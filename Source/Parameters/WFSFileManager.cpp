@@ -669,17 +669,18 @@ bool WFSFileManager::saveSystemConfig()
 
     WFSLogger::getInstance().logInfo ("Saving system config");
 
+    // The backup first: a save it stops latches nothing.
+    auto file = getSystemConfigFile();
+
+    if (!createBackup (file))
+        return false;
+
     // The first save ends the fresh session: this file records the channel
     // counts, the patch and the channel inventory, so the numbers it writes are
     // durable the moment it exists — a later reload restores exactly them.
     // Latched BEFORE extraction so the property lands in this very file, and so
     // covering the session-exit auto-save, which funnels through here.
     valueTreeState.markChannelNumbersUserOwned ("system config save");
-
-    auto file = getSystemConfigFile();
-
-    if (file.existsAsFile())
-        createBackup (file);
 
     // Create a tree with config and audio patch
     juce::ValueTree systemState ("SystemConfig");
@@ -814,8 +815,8 @@ bool WFSFileManager::saveNetworkConfig()
     WFSLogger::getInstance().logInfo ("Saving network config");
     auto file = getNetworkConfigFile();
 
-    if (file.existsAsFile())
-        createBackup (file);
+    if (!createBackup (file))
+        return false;
 
     juce::ValueTree networkState ("NetworkConfig");
     networkState.setProperty (WFSParameterIDs::version, "1.0", nullptr);
@@ -907,14 +908,15 @@ bool WFSFileManager::saveInputConfig()
 
     WFSLogger::getInstance().logInfo ("Saving input config");
 
+    // The backup first: a save it stops latches nothing.
+    auto file = getInputConfigFile();
+
+    if (!createBackup (file))
+        return false;
+
     // Same first-save rule as saveSystemConfig: inputs.xml persists every
     // channel's number (<Input id=...>), which makes them durable on disk.
     valueTreeState.markChannelNumbersUserOwned ("input config save");
-
-    auto file = getInputConfigFile();
-
-    if (file.existsAsFile())
-        createBackup (file);
 
     juce::ValueTree inputState ("InputConfig");
     inputState.setProperty (WFSParameterIDs::version, "1.0", nullptr);
@@ -1014,8 +1016,8 @@ bool WFSFileManager::saveOutputConfig()
     WFSLogger::getInstance().logInfo ("Saving output config");
     auto file = getOutputConfigFile();
 
-    if (file.existsAsFile())
-        createBackup (file);
+    if (!createBackup (file))
+        return false;
 
     juce::ValueTree outputState ("OutputConfig");
     outputState.setProperty (WFSParameterIDs::version, "1.0", nullptr);
@@ -1096,8 +1098,8 @@ bool WFSFileManager::saveReverbConfig()
     WFSLogger::getInstance().logInfo ("Saving reverb config");
     auto file = getReverbConfigFile();
 
-    if (file.existsAsFile())
-        createBackup (file);
+    if (!createBackup (file))
+        return false;
 
     juce::ValueTree reverbState ("ReverbConfig");
     reverbState.setProperty (WFSParameterIDs::version, "1.0", nullptr);
@@ -1176,8 +1178,8 @@ bool WFSFileManager::saveEffectsConfig()
     WFSLogger::getInstance().logInfo ("Saving effects config");
     auto file = getEffectsConfigFile();
 
-    if (file.existsAsFile())
-        createBackup (file);
+    if (!createBackup (file))
+        return false;
 
     juce::ValueTree effectsState ("EffectsConfig");
     effectsState.setProperty (WFSParameterIDs::version, "1.0", nullptr);
@@ -2216,7 +2218,8 @@ bool WFSFileManager::updateInputSnapshotScope (const juce::String& snapshotName,
         return false;
     }
 
-    createBackup (file);
+    if (!createBackup (file))
+        return false;
 
     // Replace the embedded scope
     auto existingScope = snapshot.getChildWithName ("ExtendedScope");
@@ -3002,7 +3005,16 @@ bool WFSFileManager::applyInputWithExtendedScope (int channelIndex, const juce::
 
 bool WFSFileManager::createBackup (const juce::File& file)
 {
-    return spatcore::control::state::XmlPersistence::createBackup (file, getBackupFolder());
+    if (spatcore::control::state::XmlPersistence::createBackup (file, getBackupFolder()))
+        return true;
+
+    // Every save backs the file up before replacing it, and stops here when
+    // it cannot: going on would lose the version the backup was for.
+    setError (LOC ("fileManager.errors.backupFailed")
+                  .replace ("{file}", file.getFileName())
+                  .replace ("{folder}", getBackupFolder().getFullPathName()));
+    WFSLogger::getInstance().logWarning ("Backup of " + file.getFullPathName() + " failed; the file was not saved over");
+    return false;
 }
 
 juce::Array<juce::File> WFSFileManager::getBackups (const juce::String& fileType) const

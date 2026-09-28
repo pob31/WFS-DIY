@@ -10,6 +10,10 @@ Zero diff proves load -> in-memory state -> save is lossless for the whole
 session surface. The committed fixture IS the golden; there is no --update
 here (regenerate the fixture with the bootstrap procedure instead).
 
+Before closing, a second save runs with a file where the backups folder
+should be: it must fail, name the file and the folder, and leave every
+section file as it was (audit S2).
+
 Usage:
   python session_roundtrip.py [--exe path\\to\\WFS-DIY.exe] [--keep-temp]
 
@@ -25,6 +29,48 @@ import sys
 from pathlib import Path
 
 import common
+
+
+def check_save_refused_without_backup(app: common.App,
+                                      project: Path) -> list[str]:
+    """A save backs each file up before replacing it, and must stop when the
+    backup cannot be made (audit S2): the pre-fix build ignored the failure
+    and saved over every file anyway. A file named `backups` takes the
+    folder's place; each section file gets a marker line that a save would
+    wipe. Everything is put back before returning, so the round-trip diff
+    after close is unaffected. Returns the failures."""
+    failures: list[str] = []
+    backups = project / "backups"
+    parked = project / "backups.parked"
+    originals = {name: (project / name).read_bytes()
+                 for name in common.SECTION_FILES}
+    marker = b"<!-- roundtrip: a save must not replace this file -->\r\n"
+    backups.rename(parked)
+    try:
+        backups.write_text("a file where the backups folder should be")
+        for name, data in originals.items():
+            (project / name).write_bytes(data + marker)
+
+        _, final = app.tool_confirmed("session_save", {})
+        result = common.envelope_result(final)
+        text = " ".join(c.get("text", "") for c in result.get("content", []))
+        if not result.get("isError"):
+            failures.append(f"a save with no backup folder reported success: {text[:200]}")
+        elif "system.xml" not in text or "backups" not in text:
+            # The app language may not be English: match the names only.
+            failures.append(f"the refusal does not name the file and folder: {text[:200]}")
+        for name, data in originals.items():
+            if (project / name).read_bytes() != data + marker:
+                failures.append(f"{name} was saved over although its backup failed")
+    finally:
+        if backups.is_file():
+            backups.unlink()
+        parked.rename(backups)
+        for name, data in originals.items():
+            (project / name).write_bytes(data)
+    if not failures:
+        print("[roundtrip] PASS a save whose backups fail leaves every file as it was")
+    return failures
 
 
 def main() -> int:
@@ -65,12 +111,16 @@ def main() -> int:
             print(f"[roundtrip] session_save failed: {payload}",
                   file=sys.stderr)
             return common.EXIT_MISMATCH
+
+        backup_failures = check_save_refused_without_backup(app, project)
     finally:
         graceful = app.close()
     if not graceful:
         print("[roundtrip] WARNING: close was not graceful", file=sys.stderr)
 
-    failures = 0
+    failures = len(backup_failures)
+    for f in backup_failures:
+        print(f"[roundtrip] FAIL {f}", file=sys.stderr)
     for name in common.SECTION_FILES:
         fixture_text = common.normalize_xml_text(
             (common.FIXTURE_DIR / name).read_text(encoding="utf-8"))

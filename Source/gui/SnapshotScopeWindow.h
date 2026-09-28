@@ -1374,9 +1374,9 @@ private:
 
         auto& fileManager = parameters.getFileManager();
         auto templateName = templateSelector.getText();
-        fileManager.createBackup (WFSFileManager::getNamedXmlFile (fileManager.getScopeTemplatesFolder(), templateName));
-
-        if (! fileManager.saveScopeTemplate (templateName, scope))
+        // Saved over only once its backup is made.
+        if (! fileManager.createBackup (WFSFileManager::getNamedXmlFile (fileManager.getScopeTemplatesFolder(), templateName))
+            || ! fileManager.saveScopeTemplate (templateName, scope))
             showTemplateError (fileManager.getLastError());
     }
 

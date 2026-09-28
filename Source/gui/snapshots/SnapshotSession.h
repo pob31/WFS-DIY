@@ -330,34 +330,33 @@ public:
 
         auto file = WFSFileManager::getNamedXmlFile (fileManager.getInputSnapshotsFolder(), name);
 
+        // The snapshot is saved over only once its backup is made, and only a
+        // save that landed clears the dirty marks or goes on to QLab: before,
+        // a failed save still exported to QLab and cleared them.
+        if (! fileManager.createBackup (file)
+            || ! fileManager.saveInputSnapshotWithExtendedScope (name, scope))
+        {
+            status (LOC ("inputs.messages.error").replace ("{error}", fileManager.getLastError()));
+            return;
+        }
+
         if (writeToQLabEnabled)
         {
-            // Save snapshot first — onQLabExportRequested reads XML from disk
-            fileManager.createBackup (file);
-            fileManager.saveInputSnapshotWithExtendedScope (name, scope);
+            // Saved first: onQLabExportRequested reads the XML from disk.
             if (onQLabExportRequested)
                 onQLabExportRequested (name, scope);
             parameters.getDirtyTracker().clearAll();
         }
         else
         {
-            fileManager.createBackup (file);
+            parameters.getDirtyTracker().clearAll();
+            status (LOC ("inputs.messages.snapshotUpdated").replace ("{name}", name));
 
-            if (fileManager.saveInputSnapshotWithExtendedScope (name, scope))
-            {
-                parameters.getDirtyTracker().clearAll();
-                status (LOC ("inputs.messages.snapshotUpdated").replace ("{name}", name));
+            if (onSnapshotsChanged)
+                onSnapshotsChanged();
 
-                if (onSnapshotsChanged)
-                    onSnapshotsChanged();
-
-                if (writeSnapshotLoadCueEnabled && onQLabSnapshotLoadCueRequested)
-                    onQLabSnapshotLoadCueRequested (name);
-            }
-            else
-            {
-                status (LOC ("inputs.messages.error").replace ("{error}", fileManager.getLastError()));
-            }
+            if (writeSnapshotLoadCueEnabled && onQLabSnapshotLoadCueRequested)
+                onQLabSnapshotLoadCueRequested (name);
         }
     }
 

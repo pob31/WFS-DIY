@@ -607,7 +607,9 @@ public:
     // Backup Management
     //==========================================================================
 
-    /** Create a backup of a file */
+    /** Copy a file into the backups folder before it is saved over. True when
+        the copy was made or there is no file yet; false, with the error set,
+        when it exists and could not be copied. A save must stop on false. */
     bool createBackup (const juce::File& file);
 
     /** Get list of backups for a file type */
