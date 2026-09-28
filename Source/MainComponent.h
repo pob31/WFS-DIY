@@ -266,8 +266,8 @@ private:
     int numRenderSources = 4;
 
     // The retained slot map behind numRenderSources. Rebuilt only by
-    // recomputeRenderSourceCount() (channel-type changes are stopped-only),
-    // so the audio callback may read it without synchronization. Initialized
+    // recomputeRenderSourceCount(), inside a ScopedAudioStructureChange, so
+    // the audio callback may read it without synchronization. Initialized
     // to a valid EMPTY map: a default-constructed RenderSourceMap zero-fills
     // firstDerivedSlot, which would read as "derived slots at row 0".
     spatcore::wfs::RenderSourceMap renderSourceMap = []
@@ -305,6 +305,63 @@ private:
     bool processingEnabled = false;
     std::atomic<bool> audioEngineStarted { false };
     std::atomic<double> currentDeviceSampleRate { 48000.0 };
+
+    /** THE ONE RULE FOR RESHAPING WHAT THE AUDIO CALLBACK READS (audit
+        2026-09-28, A1-A4): every change to a structure the callback touches -
+        the channel and render-source counts, the render-source map, the
+        routing matrices, the shared rings, the algorithm processors, the
+        attenuation and EQ banks, the binaural processor's buffers - happens
+        inside one of these scopes.
+
+        The scope is raised under the device's callback lock, which JUCE holds
+        for the whole of every block: taking it waits out a block already
+        running, and every block after sees the count and outputs silence
+        until the last scope ends. Nothing is ever done under the lock itself,
+        so the device thread is held up only for the increment. Worker threads
+        that read the same structures are not stopped by this; the teardown
+        joins them (stopProcessingForConfigurationChange).
+
+        Message thread only. Nests. */
+    struct ScopedAudioStructureChange
+    {
+        explicit ScopedAudioStructureChange (MainComponent& owner);
+        ~ScopedAudioStructureChange();
+
+        MainComponent& owner;
+        JUCE_DECLARE_NON_COPYABLE (ScopedAudioStructureChange)
+    };
+
+    std::atomic<int> audioStructureChanges { 0 };
+
+    // Blocks the callback ran in full, and blocks it spent silent behind a
+    // ScopedAudioStructureChange. Relaxed counters for the self-test
+    // (WFS_TEST_ENGINE_RECONFIG), which proves the gate from both sides.
+    std::atomic<uint32_t> audioBlocksProcessed { 0 };
+    std::atomic<uint32_t> audioBlocksHeldOut { 0 };
+
+    /** What the render-source map is built from. Comparing two of these says
+        whether a rebuild would change the map, without touching it: a load
+        with an unchanged layout (every snapshot recall) must not reshape
+        anything the callback reads. */
+    struct RenderSourceLayout
+    {
+        std::array<uint8_t, spatcore::wfs::RenderSourceMap::kMaxInputChannels> channelTypes {};
+        int numInputs  = -1;    // -1: nothing built yet
+        int numEffects = -1;
+
+        bool operator== (const RenderSourceLayout& other) const
+        {
+            return numInputs == other.numInputs && numEffects == other.numEffects
+                && channelTypes == other.channelTypes;
+        }
+        bool operator!= (const RenderSourceLayout& other) const { return ! (*this == other); }
+    };
+
+    /** The layout the tree describes now, for numInputChannels inputs. */
+    RenderSourceLayout readRenderSourceLayout (int numInputs);
+
+    /** The layout renderSourceMap was last built from. */
+    RenderSourceLayout builtRenderSourceLayout;
 
     // Tracks previous sampler-playing state per input for transition detection
     // in the 50Hz remote-sender timer (message thread only).
@@ -611,7 +668,10 @@ private:
 
     /** Recompute numRenderSources from numInputChannels and the channel types.
         Must run whenever numInputChannels is assigned — the renderer dimension
-        may never drift from the channel dimension it derives from. */
+        may never drift from the channel dimension it derives from. The map
+        itself is rebuilt only when its layout changed, and then only inside a
+        ScopedAudioStructureChange (it takes its own; the caller holds the one
+        that also covers the matrices sized from it). */
     void recomputeRenderSourceCount();
 
     /** Hidden diagnostic (WFS_TEST_CHANNEL_LIST=1): drives the structural

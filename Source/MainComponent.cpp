@@ -11205,48 +11205,67 @@ void MainComponent::resizeReverbAttenuation(int numReverbs, double sampleRate)
     }
 }
 
+MainComponent::RenderSourceLayout MainComponent::readRenderSourceLayout (int numInputs)
+{
+    using Map = spatcore::wfs::RenderSourceMap;
+
+    RenderSourceLayout layout;
+    layout.numInputs = juce::jlimit (0, (int) Map::kMaxInputChannels, numInputs);
+
+    auto& vts = parameters.getValueTreeState();
+    for (int i = 0; i < layout.numInputs; ++i)
+        if (vts.isInputChannelStereo (i))
+            layout.channelTypes[static_cast<size_t> (i)] = Map::Stereo;
+
+    layout.numEffects = juce::jlimit (0, (int) Map::kMaxEffectChannels, vts.getNumEffectChannels());
+    return layout;
+}
+
 void MainComponent::recomputeRenderSourceCount()
 {
     using Map = spatcore::wfs::RenderSourceMap;
 
     // Build the slot map from the per-channel type (inputChannelType on each
-    // <Input>): mono and stereo channels may interleave freely. Only a
-    // structural/type change (stopped-only) can alter the result, so the
-    // audio callback may read renderSourceMap unsynchronized. build() fails
-    // only if more than kMaxStereoChannels are stamped stereo (hand-edited
-    // file) — the UI refuses to create a 9th.
-    std::array<uint8_t, Map::kMaxInputChannels> channelTypes {};
-    const int numTypes = juce::jlimit (0, (int) Map::kMaxInputChannels, numInputChannels);
-    auto& vts = parameters.getValueTreeState();
-    for (int i = 0; i < numTypes; ++i)
-        if (vts.isInputChannelStereo (i))
-            channelTypes[static_cast<size_t> (i)] = Map::Stereo;
-
+    // <Input>): mono and stereo channels may interleave freely. The callback
+    // reads renderSourceMap unsynchronized, so it is rewritten only when its
+    // layout changed, and then behind the callback gate. A layout that did not
+    // change (every snapshot recall) leaves it untouched. build() fails only
+    // if more than kMaxStereoChannels are stamped stereo (hand-edited file) —
+    // the UI refuses to create a 9th.
+    //
     // Effect returns are appended after every input slot and derived slice:
-    // the third argument is what makes them render sources of the show, and
+    // the effect count is what makes them render sources of the show, and
     // everything sized from numRenderSources (the routing matrices, the input
     // buffer, the rings, the renderers, binaural) follows from it.
-    const int numEffects = juce::jlimit (0, (int) Map::kMaxEffectChannels, vts.getNumEffectChannels());
-    if (! Map::build (channelTypes.data(), numTypes, numEffects, renderSourceMap))
+    const auto layout = readRenderSourceLayout (numInputChannels);
+    if (layout != builtRenderSourceLayout)
     {
-        WFSLogger::getInstance().logWarning ("Render-source map build failed (" + juce::String (numTypes) + " inputs, "
-                                             + juce::String (numEffects)
-                                             + " effects) - treating every channel as mono, with no effect returns");
-        const bool ok = Map::buildIdentity (numTypes, renderSourceMap);
-        jassert (ok);
-        juce::ignoreUnused (ok);
-    }
+        const ScopedAudioStructureChange structureChange (*this);
 
-    // The single write of numRenderSources. Every message-thread copy loop that
-    // reads a calculation-engine matrix is bounded by this value while the
-    // matrices are sized by maxRenderSources, so a count past the budget would
-    // be a heap over-read on the 50 Hz path, not an error. The map refuses to
-    // build past its own budget and the two budgets are static_asserted equal,
-    // so the clamp cannot fire today - it is the defined behaviour for the day
-    // it can.
-    jassert (renderSourceMap.count <= WFSParameterDefaults::maxRenderSources);
-    numRenderSources = juce::jmin (WFSParameterDefaults::maxRenderSources,
-                                   renderSourceMap.count > 0 ? renderSourceMap.count : numInputChannels);
+        if (! Map::build (layout.channelTypes.data(), layout.numInputs, layout.numEffects, renderSourceMap))
+        {
+            WFSLogger::getInstance().logWarning ("Render-source map build failed (" + juce::String (layout.numInputs)
+                                                 + " inputs, " + juce::String (layout.numEffects)
+                                                 + " effects) - treating every channel as mono, with no effect returns");
+            const bool ok = Map::buildIdentity (layout.numInputs, renderSourceMap);
+            jassert (ok);
+            juce::ignoreUnused (ok);
+        }
+        builtRenderSourceLayout = layout;
+
+        // The single write of numRenderSources, a function of the layout like
+        // the map. Every message-thread copy loop that reads a calculation-
+        // engine matrix is bounded by this value while the matrices are sized
+        // by maxRenderSources, so a count past the budget would be a heap
+        // over-read on the 50 Hz path, not an error. The map refuses to build
+        // past its own budget and the two budgets are static_asserted equal,
+        // so the clamp cannot fire today - it is the defined behaviour for the
+        // day it can.
+        jassert (renderSourceMap.count <= WFSParameterDefaults::maxRenderSources);
+        numRenderSources = juce::jmin (WFSParameterDefaults::maxRenderSources,
+                                       renderSourceMap.count > 0 ? renderSourceMap.count : layout.numInputs);
+    }
+    const int numTypes = layout.numInputs;
 
     // Both stereo image arrays are keyed by channel SLOT, and a rebuild is
     // exactly the moment a slot can change identity — reorder, delete, type
@@ -11375,13 +11394,34 @@ void MainComponent::resizeRoutingMatrices()
     updateGradientMapStageBounds();
 }
 
+MainComponent::ScopedAudioStructureChange::ScopedAudioStructureChange (MainComponent& o)
+    : owner (o)
+{
+    JUCE_ASSERT_MESSAGE_THREAD
+
+    // Under the lock JUCE holds for a whole block: a block already running
+    // finishes before the count goes up, and every block after reads it.
+    const juce::ScopedLock sl (owner.deviceManager.getAudioCallbackLock());
+    owner.audioStructureChanges.fetch_add (1, std::memory_order_acq_rel);
+}
+
+MainComponent::ScopedAudioStructureChange::~ScopedAudioStructureChange()
+{
+    // Release: the callback that next reads zero sees every structure as the
+    // scope left it.
+    owner.audioStructureChanges.fetch_sub (1, std::memory_order_release);
+}
+
 void MainComponent::stopProcessingForConfigurationChange()
 {
     if (!audioEngineStarted)
         return;
 
-    // Signal audio callback to stop FIRST — before destroying any processors.
-    // The audio thread checks this flag at the top of getNextAudioBlock().
+    // The callback is held out BEFORE the flag flips, and stays out for the
+    // whole teardown. The flag used to be the only signal: a block that had
+    // already passed the check at the top of getNextAudioBlock() went on into
+    // processors and rings that were being destroyed under it.
+    const ScopedAudioStructureChange structureChange (*this);
     audioEngineStarted = false;
 
     processingEnabled = false;
@@ -11414,9 +11454,17 @@ void MainComponent::stopProcessingForConfigurationChange()
     }
 #endif
 
-    // Clear shared buffer references from consumers before destroying buffers
+    // Clear shared buffer references from consumers before destroying buffers.
+    // The binaural worker copies those raw pointers out under its lock and
+    // then reads them unlocked for a whole block, so clearing the references
+    // is not enough: the worker is joined first (releaseResources() does the
+    // same) and restarted on its own rings once they are gone.
+    const bool binauralWorkerWasRunning = binauralProcessor && binauralProcessor->isThreadRunning();
     if (binauralProcessor)
+    {
+        binauralProcessor->stopProcessing();
         binauralProcessor->clearSharedInputBuffers();
+    }
 
     // Stop reverb feed thread and engine for reconfiguration (drop the
     // metering manager's raw feed-thread pointer first; re-wired by the next
@@ -11440,6 +11488,9 @@ void MainComponent::stopProcessingForConfigurationChange()
 
     if (reverbEngine)
         reverbEngine->stopProcessing();
+
+    if (binauralWorkerWasRunning)
+        binauralProcessor->startProcessing();
 }
 
 void MainComponent::applySamplerSetPosition (int channelIndex, const juce::ValueTree& samplerNode, int setIndex)
@@ -11784,11 +11835,17 @@ void MainComponent::loadAudioPatches()
     auto inputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::InputPatch);
     auto outputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::OutputPatch);
 
-    // Reset patch maps to "unmapped" (-1)
-    inputPatchMap.assign(LevelMeteringManager::MaxHardwareInputs, -1);  // Max hardware inputs
-    outputPatchMap.assign(WFSParameterDefaults::maxOutputChannels, -1); // Max WFS outputs
-    inputPatchPrimaryHw.assign(WFSParameterDefaults::maxInputChannels, -1);
-    inputPatchSecondaryHw.assign(WFSParameterDefaults::maxInputChannels, -1);
+    // Built aside and copied over at the end. The callback reads these maps
+    // while it runs, and every load reaches here, snapshot recalls included:
+    // resetting the live maps to -1 and refilling them left a block in
+    // between that could read a patched channel as unpatched - one block of
+    // dropout on a cue. The sizes never change after the first call, so the
+    // copy never reallocates, and an entry the load did not change is never
+    // seen to change.
+    std::vector<int> builtInputMap (LevelMeteringManager::MaxHardwareInputs, -1);
+    std::vector<int> builtOutputMap (WFSParameterDefaults::maxOutputChannels, -1);
+    std::vector<int> builtPrimaryHw (WFSParameterDefaults::maxInputChannels, -1);
+    std::vector<int> builtSecondaryHw (WFSParameterDefaults::maxInputChannels, -1);
 
     // Load input patches: hardware channel → WFS channel
     if (inputPatchTree.isValid())
@@ -11803,17 +11860,17 @@ void MainComponent::loadAudioPatches()
             {
                 if (cols[hwChannel].getIntValue() == 1)
                 {
-                    if (hwChannel < (int) inputPatchMap.size())
-                        inputPatchMap[hwChannel] = wfsChannel;
+                    if (hwChannel < (int) builtInputMap.size())
+                        builtInputMap[hwChannel] = wfsChannel;
 
                     // Row-keyed columns, ascending: the LOWER column of a
                     // stereo-pair row is the left channel by convention
-                    if (wfsChannel < (int) inputPatchPrimaryHw.size())
+                    if (wfsChannel < (int) builtPrimaryHw.size())
                     {
-                        if (inputPatchPrimaryHw[wfsChannel] < 0)
-                            inputPatchPrimaryHw[wfsChannel] = hwChannel;
-                        else if (inputPatchSecondaryHw[wfsChannel] < 0)
-                            inputPatchSecondaryHw[wfsChannel] = hwChannel;
+                        if (builtPrimaryHw[wfsChannel] < 0)
+                            builtPrimaryHw[wfsChannel] = hwChannel;
+                        else if (builtSecondaryHw[wfsChannel] < 0)
+                            builtSecondaryHw[wfsChannel] = hwChannel;
                     }
                 }
             }
@@ -11833,12 +11890,24 @@ void MainComponent::loadAudioPatches()
             {
                 if (cols[hwChannel].getIntValue() == 1)
                 {
-                    if (wfsChannel < (int) outputPatchMap.size())
-                        outputPatchMap[wfsChannel] = hwChannel;
+                    if (wfsChannel < (int) builtOutputMap.size())
+                        builtOutputMap[wfsChannel] = hwChannel;
                 }
             }
         }
     }
+
+    auto publish = [] (std::vector<int>& live, const std::vector<int>& built)
+    {
+        if (live.size() != built.size())
+            live = built;                                    // first call only
+        else
+            std::copy (built.begin(), built.end(), live.begin());
+    };
+    publish (inputPatchMap, builtInputMap);
+    publish (outputPatchMap, builtOutputMap);
+    publish (inputPatchPrimaryHw, builtPrimaryHw);
+    publish (inputPatchSecondaryHw, builtSecondaryHw);
 
     // Apply cols policy using current device counts (0/0 when no device).
     // This keeps cols bounded to the device size or to the highest patched
@@ -12344,6 +12413,14 @@ void MainComponent::handleChannelCountChange()
                                       + juce::String (outputs) + " outputs, "
                                       + juce::String (reverbs) + " reverbs, "
                                       + juce::String (effects) + " effects");
+
+    // The callback stays out of the whole reshape. The counts used to change
+    // first and the engine was only stopped after them, so a running block's
+    // smoothing loop walked the NEW matrix size over the OLD vectors; and the
+    // binaural processor was re-prepared, its buffers freed, while the
+    // callback's binaural-only branch was still pushing into them.
+    const ScopedAudioStructureChange structureChange (*this);
+
     numInputChannels = inputs;
     numOutputChannels = outputs;
 
@@ -13037,64 +13114,40 @@ void MainComponent::handleConfigReloaded()
 {
     WFSLogger::getInstance().logInfo ("Configuration reloaded");
 
-    // Update local channel counts from newly loaded config.
-    // Always assign — the cached member must track the ValueTree children count so every
-    // per-input loop in timerCallback (speed limiter, LFO offsets, gradient maps, etc.)
-    // covers all inputs. Resize matrices only when the counts actually change.
-    int newInputChannels = parameters.getNumInputChannels();
-    int newOutputChannels = parameters.getNumOutputChannels();
-    int newReverbChannels = parameters.getNumReverbChannels();
-    bool countsChanged = (newInputChannels != numInputChannels || newOutputChannels != numOutputChannels);
-    bool reverbCountChanged = (newReverbChannels != reverbAttenuationTargetsCount);
-    numInputChannels = newInputChannels;
-    numOutputChannels = newOutputChannels;
-    const int previousRenderSources = numRenderSources;
-    recomputeRenderSourceCount();  // keep the renderer dimension in lockstep
-
-    // Every routing matrix is numRenderSources x numOutputChannels, and a stereo
-    // channel contributes TWO render sources — so a loaded project can change that
-    // dimension without changing either count: 8 mono channels replaced by 7 mono
-    // plus 1 stereo is still 8 channels and 16 outputs. Without this the matrices
-    // keep the previous session's row count while the copy loops below (and every
-    // per-render-source loop in timerCallback) walk the new one, writing past the
-    // end of the vectors.
-    countsChanged = countsChanged || (numRenderSources != previousRenderSources);
-
-    // A load that moves the effects engine's prepared layout - the effect
-    // count, or the slot the returns start at - needs rings the engine still
-    // reads rebuilt, which cannot happen under a running callback. Stop
-    // processing first: the stopped-engine contract every structural edit
-    // follows, and the operator restarts as after a count edit.
-    if (effectsHost && effectsHost->isPrepared()
-        && (parameters.getNumEffectChannels() != effectsHost->getPreparedEffectCount()
-            || renderSourceMap.firstEffectSlot != effectsHost->getFirstEffectSlot()))
+    // A LOAD THAT RESHAPES WHAT THE AUDIO CALLBACK READS GOES THROUGH THE ONE
+    // STRUCTURAL FUNNEL. The shape is: the input, output and reverb counts;
+    // the render-source layout, which moves with no count moving (a stereo
+    // channel is six render sources, so 8 mono channels replaced by 7 mono
+    // plus 1 stereo is a new matrix shape at the same counts); and the effect
+    // count the effects engine was prepared with. handleChannelCountChange()
+    // holds the callback out, stops processing (joining the workers that read
+    // the matrices) and resizes everything sized from them, and the operator
+    // restarts as after a count edit. This path used to resize the routing
+    // matrices itself with processing still running, the worker threads
+    // holding pointers into them (audit 2026-09-28, A1).
+    //
+    // A load that changes none of them - every snapshot recall - reshapes
+    // nothing, so a cue cannot put a dropout into the show.
+    const int newInputChannels  = parameters.getNumInputChannels();
+    const int newOutputChannels = parameters.getNumOutputChannels();
+    const int newReverbChannels = parameters.getNumReverbChannels();
+    const bool shapeChanges = newInputChannels != numInputChannels
+                           || newOutputChannels != numOutputChannels
+                           || newReverbChannels != reverbAttenuationTargetsCount
+                           || readRenderSourceLayout (newInputChannels) != builtRenderSourceLayout
+                           || (effectsHost && effectsHost->isPrepared()
+                               && parameters.getNumEffectChannels() != effectsHost->getPreparedEffectCount());
+    if (shapeChanges)
     {
-        WFSLogger::getInstance().logInfo ("Effects layout changed on reload ("
-                                          + juce::String (effectsHost->getPreparedEffectCount()) + " -> "
-                                          + juce::String (parameters.getNumEffectChannels())
-                                          + " effects) - processing stopped for the rebuild");
-        stopProcessingForConfigurationChange();
+        WFSLogger::getInstance().logInfo (juce::String ("The reload changes the channel layout - reconfiguring")
+                                          + (audioEngineStarted ? " and stopping processing" : ""));
+        handleChannelCountChange();
     }
-
-    if (countsChanged)
+    else
     {
-        resizeRoutingMatrices();
-
-        auto* device = deviceManager.getCurrentAudioDevice();
-        double sr = device ? device->getCurrentSampleRate() : 48000.0;
-        resizeOutputAttenuation(numOutputChannels, sr);
-
-        // Update level meter channel counts
-        if (levelMeteringManager != nullptr)
-            levelMeteringManager->setChannelCounts(newInputChannels, newOutputChannels);
-        if (levelMeterWindow != nullptr)
-            levelMeterWindow->rebuildMeters();
-    }
-    if (reverbCountChanged)
-    {
-        auto* device = deviceManager.getCurrentAudioDevice();
-        double sr = device ? device->getCurrentSampleRate() : 48000.0;
-        resizeReverbAttenuation(newReverbChannels, sr);
+        // Same layout, but the slots may hold other channels now (another
+        // project of the same shape): the per-slot stereo image state resets.
+        recomputeRenderSourceCount();
     }
 
     // Reload audio patches from ValueTree (input/output channel routing).
@@ -14293,6 +14346,11 @@ void MainComponent::startAudioEngine()
     double sampleRate = device->getCurrentSampleRate();
     int blockSize = device->getCurrentBufferSizeSamples();
 
+    // Everything the callback reads is built before it may read any of it.
+    // audioEngineStarted used to go up before setupSharedInputFeed() had
+    // filled the rings the very next block walks.
+    const ScopedAudioStructureChange structureChange (*this);
+
     // Publish the audio device's realtime workgroup so the DSP worker threads join it
     // (macOS; no-op elsewhere), and make sure the algorithms hand it to their processors.
     workgroupCoordinator.set (device->getWorkgroup());
@@ -14710,6 +14768,17 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
 
 void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
 {
+    // A structural change is in progress on the message thread (see
+    // ScopedAudioStructureChange): touch nothing it may be rebuilding - not
+    // even the meters or the test tone, whose counts it may be changing too.
+    if (audioStructureChanges.load (std::memory_order_acquire) != 0)
+    {
+        bufferToFill.clearActiveBufferRegion();
+        audioBlocksHeldOut.fetch_add (1, std::memory_order_relaxed);
+        return;
+    }
+    audioBlocksProcessed.fetch_add (1, std::memory_order_relaxed);
+
     // Xrun detection (lock-free, deferred logging)
     if (auto* device = deviceManager.getCurrentAudioDevice())
     {
@@ -15985,6 +16054,12 @@ void MainComponent::timerCallback()
                 else
                 {
                     binauralNoDeviceWarned = false;
+
+                    // The re-prepare frees the buffers the callback's binaural
+                    // branches use. Disabled is not enough to keep it out: a
+                    // block that read "enabled" before the last disable can
+                    // still be in there.
+                    const ScopedAudioStructureChange structureChange (*this);
                     binauralProcessor->stopProcessing();   // quiesce before reconfiguring
                     binauralProcessor->prepareToPlay(device->getCurrentSampleRate(),
                                                      device->getCurrentBufferSizeSamples(),
