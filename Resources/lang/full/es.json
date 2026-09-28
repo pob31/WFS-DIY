@@ -1989,6 +1989,7 @@
       "snapshotDoesNotExist": "El snapshot no existe",
       "snapshotNotFound": "Snapshot no encontrado",
       "snapshotNotFoundNamed": "Snapshot no encontrado: {name}",
+      "unusableSnapshotName": "Nombre de snapshot no válido: {name}. Un nombre no puede contener /, \\ ni :",
       "failedCreateXML": "No se pudo crear el XML a partir del estado",
       "failedWriteFile": "No se pudo escribir el archivo: {path}",
       "fileNotFound": "Archivo no encontrado: {path}",

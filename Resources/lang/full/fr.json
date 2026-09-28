@@ -2005,6 +2005,7 @@
       "snapshotDoesNotExist": "Le snapshot n'existe pas",
       "snapshotNotFound": "Snapshot introuvable",
       "snapshotNotFoundNamed": "Snapshot introuvable : {name}",
+      "unusableSnapshotName": "Nom de snapshot inutilisable : {name}. Un nom ne peut contenir ni /, ni \\, ni :",
       "failedCreateXML": "Échec de la création du XML depuis l'état",
       "failedWriteFile": "Échec de l'écriture du fichier : {path}",
       "fileNotFound": "Fichier introuvable : {path}",

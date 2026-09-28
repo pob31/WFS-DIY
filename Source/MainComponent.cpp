@@ -584,7 +584,7 @@ MainComponent::MainComponent()
         }
 
         auto& fileManager = parameters.getFileManager();
-        auto snapshotFile = fileManager.getInputSnapshotsFolder().getChildFile (snapshotName + ".xml");
+        auto snapshotFile = WFSFileManager::getNamedXmlFile (fileManager.getInputSnapshotsFolder(), snapshotName);
         auto xml = juce::XmlDocument::parse (snapshotFile);
 
         if (xml == nullptr)
@@ -2664,7 +2664,10 @@ MainComponent::MainComponent()
         }
         else
         {
-            DBG ("OSC snapshot/store: failed to save: " << fileManager.getLastError());
+            // A refused name included: a cue that stores nothing has to say so
+            // somewhere a Release build shows.
+            WFSLogger::getInstance().logWarning ("OSC snapshot store of '" + snapshotName
+                                                 + "' failed: " + fileManager.getLastError());
         }
     };
 

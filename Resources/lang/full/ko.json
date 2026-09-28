@@ -1956,6 +1956,7 @@
       "snapshotDoesNotExist": "스냅샷이 존재하지 않습니다",
       "snapshotNotFound": "스냅샷을 찾을 수 없습니다",
       "snapshotNotFoundNamed": "스냅샷을 찾을 수 없습니다: {name}",
+      "unusableSnapshotName": "사용할 수 없는 스냅샷 이름입니다: {name}. 이름에는 /, \\, : 를 사용할 수 없습니다",
       "failedCreateXML": "상태에서 XML을 생성하지 못했습니다",
       "failedWriteFile": "파일 쓰기 실패: {path}",
       "fileNotFound": "파일을 찾을 수 없습니다: {path}",

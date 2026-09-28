@@ -2009,6 +2009,7 @@
       "snapshotDoesNotExist": "Snapshot existiert nicht",
       "snapshotNotFound": "Snapshot nicht gefunden",
       "snapshotNotFoundNamed": "Snapshot nicht gefunden: {name}",
+      "unusableSnapshotName": "Kein gültiger Snapshot-Name: {name}. Ein Name darf weder /, \\ noch : enthalten",
       "failedCreateXML": "XML aus Zustand erstellen fehlgeschlagen",
       "failedWriteFile": "Datei schreiben fehlgeschlagen: {path}",
       "fileNotFound": "Datei nicht gefunden: {path}",

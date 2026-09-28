@@ -124,6 +124,15 @@ public:
     /** Get scope templates folder (<project>/snapshots/scopes) */
     juce::File getScopeTemplatesFolder() const;
 
+    /** The file a snapshot or scope-template NAME stands for in `folder`, or
+        an invalid juce::File when the name is not a plain file name. Names
+        arrive from OSC, the GUI and MIDI bindings and become a file name and
+        nothing more: one holding a path separator or a drive colon, or one
+        that resolves anywhere but directly inside `folder`, is refused.
+        OSC /wfs/input/snapshot/store "../../system" used to overwrite the
+        project's system.xml. */
+    static juce::File getNamedXmlFile (const juce::File& folder, const juce::String& itemName);
+
     //==========================================================================
     // Complete Configuration
     //==========================================================================

@@ -2783,6 +2783,7 @@
       "snapshotDoesNotExist": "Snapshot does not exist",
       "snapshotNotFound": "Snapshot not found",
       "snapshotNotFoundNamed": "Snapshot not found: {name}",
+      "unusableSnapshotName": "Not a usable snapshot name: {name}. A name cannot contain /, \\ or :",
       "failedCreateXML": "Failed to create XML from state",
       "failedWriteFile": "Failed to write file: {path}",
       "fileNotFound": "File not found: {path}",

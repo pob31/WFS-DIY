@@ -338,6 +338,19 @@ juce::File WFSFileManager::getScopeTemplatesFolder() const
     return projectFolder.getChildFile ("snapshots").getChildFile ("scopes");
 }
 
+juce::File WFSFileManager::getNamedXmlFile (const juce::File& folder, const juce::String& itemName)
+{
+    // No project folder: the folder getters return an empty File, and a name
+    // joined onto it lands at the root of the current drive.
+    if (folder == juce::File() || itemName.trim().isEmpty() || itemName.containsAnyOf ("/\\:"))
+        return {};
+
+    // The separators are out, but getChildFile still reads a leading '~' as
+    // a home directory on macOS and Linux, so the parent is checked as well.
+    const auto file = folder.getChildFile (itemName + snapshotExtension);
+    return file.getParentDirectory() == folder ? file : juce::File();
+}
+
 juce::File WFSFileManager::getIRFolder() const
 {
     if (! projectFolder.isDirectory()) return {};
@@ -1308,7 +1321,7 @@ bool WFSFileManager::importClusterLFOPresets (const juce::File& file)
 
 bool WFSFileManager::deleteInputSnapshot (const juce::String& snapshotName)
 {
-    auto file = getInputSnapshotsFolder().getChildFile (snapshotName + snapshotExtension);
+    auto file = getNamedXmlFile (getInputSnapshotsFolder(), snapshotName);
     if (file.existsAsFile())
         return file.deleteFile();
 
@@ -1913,6 +1926,15 @@ WFSFileManager::ExtendedSnapshotScope::withGlobals (bool samplerMasterOn, int nu
 
 bool WFSFileManager::saveInputSnapshotWithExtendedScope (const juce::String& snapshotName, const ExtendedSnapshotScope& scope)
 {
+    // The name first: a refused one writes nothing and latches nothing.
+    auto folder = getInputSnapshotsFolder();
+    auto file = getNamedXmlFile (folder, snapshotName);
+    if (file == juce::File())
+    {
+        setError (LOC ("fileManager.errors.unusableSnapshotName").replace ("{name}", snapshotName));
+        return false;
+    }
+
     // The one choke point for the Inputs-tab store button, the auto-store paths
     // and OSC /wfs/input/snapshot/store. Every entry below goes to disk as
     // <Input id="NUMBER"> and recall resolves it through getSlotForChannelNumber,
@@ -1920,10 +1942,7 @@ bool WFSFileManager::saveInputSnapshotWithExtendedScope (const juce::String& sna
     // renumbering them would silently repoint every stored channel.
     valueTreeState.markChannelNumbersUserOwned ("input snapshot store");
 
-    auto folder = getInputSnapshotsFolder();
     folder.createDirectory();
-
-    auto file = folder.getChildFile (snapshotName + snapshotExtension);
 
     juce::ValueTree snapshot ("InputSnapshot");
     snapshot.setProperty (version, "2.0", nullptr);  // Version 2.0 for extended scope; 2.1 once it carries <Effects>
@@ -2038,12 +2057,18 @@ bool WFSFileManager::loadInputSnapshotWithExtendedScope (const juce::String& sna
 {
     OriginTagScope originScope { OriginTag::Snapshot };
 
+    auto file = getNamedXmlFile (getInputSnapshotsFolder(), snapshotName);
+    if (file == juce::File())
+    {
+        setError (LOC ("fileManager.errors.unusableSnapshotName").replace ("{name}", snapshotName));
+        return false;
+    }
+
     // A recall normally implies an earlier store or load that already latched,
     // but a snapshots folder can also arrive with the project folder (copied
     // show, shared template) without either having run this session.
     valueTreeState.markChannelNumbersUserOwned ("input snapshot recall");
 
-    auto file = getInputSnapshotsFolder().getChildFile (snapshotName + snapshotExtension);
     auto snapshot = readFromXmlFile (file);
 
     if (!snapshot.isValid())
@@ -2137,7 +2162,7 @@ bool WFSFileManager::loadInputSnapshotWithExtendedScope (const juce::String& sna
 WFSFileManager::ExtendedSnapshotScope WFSFileManager::getExtendedSnapshotScope (const juce::String& snapshotName) const
 {
     ExtendedSnapshotScope scope;
-    auto file = getInputSnapshotsFolder().getChildFile (snapshotName + snapshotExtension);
+    auto file = getNamedXmlFile (getInputSnapshotsFolder(), snapshotName);
     auto snapshot = const_cast<WFSFileManager*>(this)->readFromXmlFile (file);
 
     if (snapshot.isValid())
@@ -2156,7 +2181,7 @@ WFSFileManager::ExtendedSnapshotScope WFSFileManager::getExtendedSnapshotScope (
 
 bool WFSFileManager::setExtendedSnapshotScope (const juce::String& snapshotName, const ExtendedSnapshotScope& scope)
 {
-    auto file = getInputSnapshotsFolder().getChildFile (snapshotName + snapshotExtension);
+    auto file = getNamedXmlFile (getInputSnapshotsFolder(), snapshotName);
     auto snapshot = readFromXmlFile (file);
 
     if (!snapshot.isValid())
@@ -2182,7 +2207,7 @@ bool WFSFileManager::setExtendedSnapshotScope (const juce::String& snapshotName,
 
 bool WFSFileManager::updateInputSnapshotScope (const juce::String& snapshotName, const ExtendedSnapshotScope& scope)
 {
-    auto file = getInputSnapshotsFolder().getChildFile (snapshotName + snapshotExtension);
+    auto file = getNamedXmlFile (getInputSnapshotsFolder(), snapshotName);
     auto snapshot = readFromXmlFile (file);
 
     if (!snapshot.isValid())
@@ -2241,6 +2266,13 @@ bool WFSFileManager::saveScopeTemplate (const juce::String& templateName, const 
         setError (LOC ("fileManager.errors.noProjectFolder"));
         return false;
     }
+
+    auto file = getNamedXmlFile (folder, templateName);
+    if (file == juce::File())
+    {
+        setError (LOC ("fileManager.errors.unusableSnapshotName").replace ("{name}", templateName));
+        return false;
+    }
     folder.createDirectory();
 
     juce::ValueTree tpl ("ScopeTemplate");
@@ -2251,12 +2283,12 @@ bool WFSFileManager::saveScopeTemplate (const juce::String& templateName, const 
     // carries is ignored on template load (templates are grid-only).
     tpl.appendChild (serializeExtendedScope (scope, valueTreeState.getNumInputChannels()), nullptr);
 
-    return writeToXmlFile (tpl, folder.getChildFile (templateName + snapshotExtension));
+    return writeToXmlFile (tpl, file);
 }
 
 bool WFSFileManager::loadScopeTemplateGrid (const juce::String& templateName, ExtendedSnapshotScope& target)
 {
-    auto file = getScopeTemplatesFolder().getChildFile (templateName + snapshotExtension);
+    auto file = getNamedXmlFile (getScopeTemplatesFolder(), templateName);
     auto tpl = readFromXmlFile (file);
 
     if (! tpl.isValid())
@@ -2297,7 +2329,7 @@ juce::StringArray WFSFileManager::getScopeTemplateNames() const
 
 bool WFSFileManager::deleteScopeTemplate (const juce::String& templateName)
 {
-    auto file = getScopeTemplatesFolder().getChildFile (templateName + snapshotExtension);
+    auto file = getNamedXmlFile (getScopeTemplatesFolder(), templateName);
     if (file.existsAsFile())
         return file.deleteFile();
 
@@ -3268,7 +3300,7 @@ InputChannelIdentityDiff WFSFileManager::preflightProjectChannelIdentity (const 
 
 InputChannelIdentityDiff WFSFileManager::preflightSnapshotChannelIdentity (const juce::String& snapshotName) const
 {
-    auto file = getInputSnapshotsFolder().getChildFile (snapshotName + snapshotExtension);
+    auto file = getNamedXmlFile (getInputSnapshotsFolder(), snapshotName);
     auto root = persistence.readTreeFromFile (file).tree;
     return compareInputChannelIdentity (valueTreeState.getInputChannelIdentity(),
                                         InputChannelIdentity::fromSnapshot (root.getChildWithName (Inputs)));

@@ -1956,6 +1956,7 @@
       "snapshotDoesNotExist": "スナップショットが存在しません",
       "snapshotNotFound": "スナップショットが見つかりません",
       "snapshotNotFoundNamed": "スナップショットが見つかりません: {name}",
+      "unusableSnapshotName": "使用できないスナップショット名です: {name}。名前に /、\\、: は使用できません",
       "failedCreateXML": "状態からXMLを作成できませんでした",
       "failedWriteFile": "ファイルの書き込みに失敗しました: {path}",
       "fileNotFound": "ファイルが見つかりません: {path}",

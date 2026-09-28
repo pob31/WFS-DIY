@@ -1989,6 +1989,7 @@
       "snapshotDoesNotExist": "快照不存在",
       "snapshotNotFound": "未找到快照",
       "snapshotNotFoundNamed": "未找到快照：{name}",
+      "unusableSnapshotName": "无法使用的快照名称：{name}。名称不能包含 /、\\ 或 :",
       "failedCreateXML": "从状态创建 XML 失败",
       "failedWriteFile": "写入文件失败：{path}",
       "fileNotFound": "未找到文件：{path}",

@@ -328,7 +328,7 @@ public:
         scopes[name] = fileManager.getExtendedSnapshotScope (name);
         auto& scope = scopes[name];
 
-        auto file = fileManager.getInputSnapshotsFolder().getChildFile (name + WFSFileManager::snapshotExtension);
+        auto file = WFSFileManager::getNamedXmlFile (fileManager.getInputSnapshotsFolder(), name);
 
         if (writeToQLabEnabled)
         {
@@ -591,7 +591,7 @@ private:
         // silently disarms a live cue. The test asks the filesystem, like the
         // write does: on Windows and macOS "scene 3" overwrites "Scene 3.xml",
         // which a case-sensitive name lookup missed, dropping the note.
-        if (fileManager.getInputSnapshotsFolder().getChildFile (name + WFSFileManager::snapshotExtension).existsAsFile())
+        if (WFSFileManager::getNamedXmlFile (fileManager.getInputSnapshotsFolder(), name).existsAsFile())
         {
             auto existing = fileManager.getExtendedSnapshotScope (name);
             scope.midiChannel = existing.midiChannel;
