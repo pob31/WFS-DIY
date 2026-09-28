@@ -2018,7 +2018,7 @@ OSCMessageRouter::ParsedEffectMessage OSCMessageRouter::parseEffectMessage(const
     //--------------------------------------------------------------------------
     if (effectParamTakesText (result.paramId))
     {
-        result.value = message[valueArg].isString() ? extractString (message[valueArg])
+        result.value = message[valueArg].isString() ? juce::var (extractString (message[valueArg]))
                                                     : juce::var (extractFloatLenient (message[valueArg]));
     }
     else if (message[valueArg].isString() && ! isNumericString (message[valueArg].getString()))
