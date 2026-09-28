@@ -9,6 +9,15 @@
 #include <utility>
 #include <vector>
 
+#if JUCE_WINDOWS
+ #ifndef NOMINMAX
+  #define NOMINMAX
+ #endif
+ #include <windows.h>
+ #include <cfgmgr32.h>
+ #pragma comment (lib, "cfgmgr32.lib")
+#endif
+
 /**
  * MidiSnapshotTrigger
  *
@@ -61,9 +70,10 @@
  * 500 ms device-change debounce leaves the device list identical, so
  * MidiDeviceListConnection never fires and the open MidiInput keeps the dead
  * instance's handle for good. Every raw OS device-change notification
- * therefore reopens the port (RawMidiDeviceChangeFlag). A port that is listed
- * but refuses to open (held by another application) is retried every 2 s
- * rather than looking armed while dead.
+ * therefore reopens the port once the notifications settle
+ * (RawMidiDeviceChangeFlag). A port that is listed but refuses to open (held
+ * by another application) is retried every 2 s rather than looking armed
+ * while dead.
  */
 class MidiSnapshotTrigger final : private juce::MidiInputCallback,
                                   private juce::Timer
@@ -76,7 +86,8 @@ public:
         doubled cable). A different bound note always fires immediately. */
     static constexpr int kRetriggerLockoutMs = 250;
 
-    /** Retry interval for a listed port that refused to open. */
+    /** Retry interval for a listed port that refused to open, and for a
+        selected port that is not listed. */
     static constexpr int kOpenRetryMs = 2000;
 
     enum class PortState
@@ -230,30 +241,104 @@ public:
 
 private:
     /** Raised by every raw OS MIDI device-change notification, whether or not
-        the device list changed. JUCE 9.0.2's ump::Endpoints::removeListener()
-        calls addListener() (juce_UMPEndpoints.cpp:186), so a listener can never
-        be detached: this one is registered once for the life of the process
-        and only raises a flag, which the trigger polls. */
-    struct RawMidiDeviceChangeFlag final : private juce::ump::EndpointsListener
+        the device list changed, and taken only once the notifications have
+        been quiet for kSettleMs: a replug arrives as a burst, and the OS has
+        not always finished listing the device when the first one lands.
+        Registered once for the life of the process; it only raises a flag,
+        which the trigger polls.
+
+        Windows asks the configuration manager directly, for the MIDI input
+        and output device interfaces. JUCE's own feed stopped being raw in
+        9.0.3: its Win32 backend now calls endpointsChanged() only when the
+        endpoint list differs, which is exactly what a fast replug does not
+        do.
+
+        Elsewhere JUCE's ump::EndpointsListener is still the raw feed. It can
+        never be detached: ump::Endpoints::removeListener() calls addListener()
+        (juce_UMPEndpoints.cpp:186, still so in 9.0.3). */
+    struct RawMidiDeviceChangeFlag final
+       #if ! JUCE_WINDOWS
+        : private juce::ump::EndpointsListener
+       #endif
     {
+        static constexpr juce::uint32 kSettleMs = 500;
+
         static RawMidiDeviceChangeFlag& get()
         {
             static RawMidiDeviceChangeFlag instance;
             return instance;
         }
 
-        bool take() noexcept { return raised.exchange (false, std::memory_order_acq_rel); }
+        bool take() noexcept
+        {
+            if (! raised.load (std::memory_order_acquire)
+                || juce::Time::getMillisecondCounter() - lastRaisedMs.load (std::memory_order_acquire) < kSettleMs)
+                return false;
+
+            return raised.exchange (false, std::memory_order_acq_rel);
+        }
 
     private:
+        void raise() noexcept
+        {
+            lastRaisedMs.store (juce::Time::getMillisecondCounter(), std::memory_order_release);
+            raised.store (true, std::memory_order_release);
+        }
+
+       #if JUCE_WINDOWS
+        RawMidiDeviceChangeFlag()
+        {
+            // GUID_DEVINTERFACE_MIDI_INPUT / _OUTPUT, the classes JUCE 9.0.3
+            // watches for its own device list.
+            static constexpr GUID midiInterfaces[] {
+                { 0x504be32c, 0xccf6, 0x4d2c, { 0xb7, 0x3f, 0x6f, 0x8b, 0x37, 0x47, 0xe2, 0x2b } },
+                { 0x6dc23320, 0xab33, 0x4ce4, { 0x80, 0xd4, 0xbb, 0xb3, 0xeb, 0xbf, 0x28, 0x14 } }
+            };
+
+            for (const auto& classGuid : midiInterfaces)
+            {
+                CM_NOTIFY_FILTER filter {};
+                filter.cbSize = sizeof (filter);
+                filter.FilterType = CM_NOTIFY_FILTER_TYPE_DEVICEINTERFACE;
+                filter.u.DeviceInterface.ClassGuid = classGuid;
+
+                HCMNOTIFICATION handle {};
+
+                if (CM_Register_Notification (&filter, this, onNotification, &handle) == CR_SUCCESS)
+                    notifications.push_back (handle);
+            }
+        }
+
+        ~RawMidiDeviceChangeFlag()
+        {
+            for (auto handle : notifications)
+                CM_Unregister_Notification (handle);
+        }
+
+        // Called on a system thread pool thread.
+        static DWORD CALLBACK onNotification (HCMNOTIFICATION, PVOID context, CM_NOTIFY_ACTION action,
+                                              PCM_NOTIFY_EVENT_DATA, DWORD)
+        {
+            if (action == CM_NOTIFY_ACTION_DEVICEINTERFACEARRIVAL
+                || action == CM_NOTIFY_ACTION_DEVICEINTERFACEREMOVAL)
+                static_cast<RawMidiDeviceChangeFlag*> (context)->raise();
+
+            return ERROR_SUCCESS;
+        }
+
+        std::vector<HCMNOTIFICATION> notifications;
+       #else
         RawMidiDeviceChangeFlag()
         {
             if (auto* endpoints = juce::ump::Endpoints::getInstance())
                 endpoints->addListener (*this);
         }
 
-        void endpointsChanged() override { raised.store (true, std::memory_order_release); }
+        void endpointsChanged() override { raise(); }
+       #endif
 
-        std::atomic<bool> raised { false };
+        std::atomic<bool>         raised { false };
+        std::atomic<juce::uint32> lastRaisedMs { 0 };
     };
 
     static juce::String ownerIn (const std::map<int, juce::String>& table, int key)
@@ -326,7 +411,11 @@ private:
             return;
         }
 
-        if (portState == PortState::refused
+        // Absent is retried too: since JUCE 9.0.3 the device list is a cache
+        // refreshed on its own timers, and a reopen that lands while it briefly
+        // lacks the port leaves nothing to announce the port's return -- the
+        // list reads the same as the last one JUCE reported.
+        if ((portState == PortState::refused || portState == PortState::absent)
             && juce::Time::getMillisecondCounter() - lastOpenAttemptMs >= (juce::uint32) kOpenRetryMs)
             reopenIfNeeded();
     }
@@ -369,6 +458,8 @@ private:
             return;
         }
 
+        lastOpenAttemptMs = juce::Time::getMillisecondCounter();
+
         juce::String target;
         const auto devices = juce::MidiInput::getAvailableDevices();
 
@@ -385,7 +476,6 @@ private:
             return;
         }
 
-        lastOpenAttemptMs = juce::Time::getMillisecondCounter();
         input = juce::MidiInput::openDevice (target, this);
 
         if (input != nullptr)
