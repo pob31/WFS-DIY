@@ -17,8 +17,10 @@ Exit-code contract (same as tools/validation/kernel_hashes.py):
 
 from __future__ import annotations
 
+import base64
 import ctypes
 import difflib
+import http.client
 import json
 import os
 import re
@@ -208,6 +210,26 @@ class App:
         except urllib.error.HTTPError as exc:
             return exc.code
 
+    def mcp_raw(self, headers: list[tuple[str, str]], body: bytes = b"",
+                method: str = "POST") -> tuple[int, dict[str, str], str]:
+        """One request to /mcp with exactly these headers (no Host, Accept or
+        Content-Type added, only Content-Length), for what a web page would
+        send. Returns (status, reply headers with lower-case names, body)."""
+        conn = http.client.HTTPConnection("127.0.0.1", MCP_PORT, timeout=30.0)
+        try:
+            conn.putrequest(method, "/mcp", skip_host=True,
+                            skip_accept_encoding=True)
+            for name, value in headers:
+                conn.putheader(name, value)
+            conn.putheader("Content-Length", str(len(body)))
+            conn.endheaders(body)
+            resp = conn.getresponse()
+            return (resp.status,
+                    {k.lower(): v for k, v in resp.getheaders()},
+                    resp.read().decode("utf-8", errors="replace"))
+        finally:
+            conn.close()
+
     def mcp(self, method: str, params: dict | None = None) -> dict:
         self._rpc_id += 1
         payload: dict = {"jsonrpc": "2.0", "id": self._rpc_id,
@@ -310,6 +332,41 @@ class OSCSender:
 
     def close(self) -> None:
         self.sock.close()
+
+
+def websocket_send_text(port: int, text: str, path: str = "/",
+                        host: str = "127.0.0.1") -> None:
+    """Open a WebSocket, send one text message and close, as any web page
+    can with `new WebSocket(...)` (no CORS rule applies to one). Raises
+    OSError when the upgrade is refused."""
+    key = base64.b64encode(os.urandom(16)).decode("ascii")
+    with socket.create_connection((host, port), timeout=10.0) as sock:
+        sock.sendall((f"GET {path} HTTP/1.1\r\nHost: {host}:{port}\r\n"
+                      "Upgrade: websocket\r\nConnection: Upgrade\r\n"
+                      f"Sec-WebSocket-Key: {key}\r\n"
+                      "Sec-WebSocket-Version: 13\r\n\r\n").encode("ascii"))
+        reply = b""
+        while b"\r\n\r\n" not in reply:
+            chunk = sock.recv(4096)
+            if not chunk:
+                raise OSError("WebSocket upgrade: the server closed the connection")
+            reply += chunk
+        status_line = reply.split(b"\r\n", 1)[0]
+        if b" 101 " not in status_line:
+            raise OSError(f"WebSocket upgrade refused: {status_line!r}")
+
+        # One final text frame, masked as a client's must be.
+        payload = text.encode("utf-8")
+        n = len(payload)
+        if n < 126:
+            head = bytes([0x81, 0x80 | n])
+        elif n < 65536:
+            head = bytes([0x81, 0x80 | 126]) + n.to_bytes(2, "big")
+        else:
+            head = bytes([0x81, 0x80 | 127]) + n.to_bytes(8, "big")
+        mask = os.urandom(4)
+        masked = bytes(b ^ mask[i & 3] for i, b in enumerate(payload))
+        sock.sendall(head + mask + masked)
 
 
 def oscquery_get(path: str, port: int = OSCQUERY_HTTP_PORT,

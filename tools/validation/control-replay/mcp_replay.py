@@ -7,7 +7,13 @@ Segment A (WFS_MCP_AI_ENABLED=1):
   2. tools/list                 -> census: count >= 350 (hard assert),
                                    tier ordering contract (tier DESC,
                                    name ASC — hard assert), per-tier counts
-  3. tier-1 write + read-back   (input_position_set_x / wfs_get_parameter)
+  3. tier-1 write + read-back   (input_position_set_x / wfs_get_parameter),
+                                   then the same call as a web page would send
+                                   it (foreign Host, page Origin, text/plain
+                                   or form body): refused with 403/415, no
+                                   CORS header, input 1 unmoved; a loopback
+                                   origin gets its own origin back (hard
+                                   asserts, not in the golden)
   4. tier-2 confirm round-trip  (input_set_attenuation: awaiting_confirmation
                                    envelope with normalized token, then the
                                    confirmed execution)
@@ -42,7 +48,9 @@ Segment A (WFS_MCP_AI_ENABLED=1):
                                    OSC driver's gate - see
                                    common.set_fixture_effect_channels)
 
-Segment B (env var absent): one tier-1 call -> ai_disabled envelope.
+Segment B (env var absent): one tier-1 call -> ai_disabled envelope; then
+900 000 nested brackets as an MCP body (-32700) and as an OSCQuery WebSocket
+message, and the app must still answer both (hard asserts).
 
 The normalized transcript is compared against a committed golden
 (--update regenerates it). Hard asserts fail the run even in --update mode.
@@ -60,6 +68,8 @@ import json
 import os
 import shutil
 import sys
+import time
+import urllib.request
 from pathlib import Path
 
 import common
@@ -247,6 +257,68 @@ def main() -> int:
         if not (isinstance(rb_payload, dict)
                 and float(rb_payload.get("value", 0)) == -5.0):
             hard_failures.append(f"tier-1 read-back wrong: {rb_payload}")
+
+        # ---- what only a web page sends (audit M2) ----
+        # A page open on the show machine could call every tool: a text/plain
+        # POST needs no preflight, `Access-Control-Allow-Origin: *` let it
+        # read the replies, and DNS rebinding reached the port under a
+        # foreign Host name. Each is refused before the dispatcher, so the
+        # call below never moves input 1 off the -5.0 just written.
+        page_call = json.dumps({
+            "jsonrpc": "2.0", "id": 9001, "method": "tools/call",
+            "params": {"name": "input_position_set_x",
+                       "arguments": {"input_id": 1, "value": 7.25}},
+        }).encode("utf-8")
+        loopback_host = ("Host", f"127.0.0.1:{common.MCP_PORT}")
+        json_type = ("Content-Type", "application/json")
+        page_requests = [
+            ("a rebinding host name",
+             [("Host", f"evil.example:{common.MCP_PORT}"), json_type], 403),
+            ("a page's origin",
+             [loopback_host, json_type, ("Origin", "http://evil.example")], 403),
+            ("a sandboxed page's origin",
+             [loopback_host, json_type, ("Origin", "null")], 403),
+            ("a text/plain body",
+             [loopback_host, ("Content-Type", "text/plain")], 415),
+            ("a form body",
+             [loopback_host,
+              ("Content-Type", "application/x-www-form-urlencoded")], 415),
+        ]
+        for what, headers, want in page_requests:
+            status, reply_headers, _ = app.mcp_raw(headers, page_call)
+            if status != want:
+                hard_failures.append(
+                    f"MCP answered {what} with HTTP {status}, want {want}")
+            if "access-control-allow-origin" in reply_headers:
+                hard_failures.append(f"MCP sent a CORS header to {what}")
+        x_after = common.tool_payload(
+            app.tool("wfs_get_parameter",
+                     {"variable": "inputPositionX", "channel_id": 1}))
+        if _position_value(x_after.get("value")) != -5.0:
+            hard_failures.append(
+                f"a refused page request moved input 1: {x_after}")
+
+        status, reply_headers, _ = app.mcp_raw(
+            [loopback_host, ("Origin", "http://evil.example"),
+             ("Access-Control-Request-Method", "POST"),
+             ("Access-Control-Request-Headers", "content-type")],
+            method="OPTIONS")
+        if status != 403 or "access-control-allow-origin" in reply_headers:
+            hard_failures.append(
+                f"a page's preflight got HTTP {status} "
+                f"{reply_headers.get('access-control-allow-origin')!r}")
+
+        # A page on a loopback origin (the MCP Inspector's) gets its own
+        # origin back, never `*`.
+        status, reply_headers, _ = app.mcp_raw(
+            [loopback_host, json_type, ("Origin", "http://localhost:6274")],
+            json.dumps({"jsonrpc": "2.0", "id": 9002,
+                        "method": "tools/list"}).encode("utf-8"))
+        if status != 200 or reply_headers.get(
+                "access-control-allow-origin") != "http://localhost:6274":
+            hard_failures.append(
+                f"a loopback origin got HTTP {status} "
+                f"{reply_headers.get('access-control-allow-origin')!r}")
 
         # ---- tier-2 confirm round-trip ----
         first, final = app.tool_confirmed("input_set_attenuation",
@@ -616,6 +688,45 @@ def main() -> int:
         if not dis_info.get("ai_disabled"):
             hard_failures.append(
                 f"run without WFS_MCP_AI_ENABLED was not refused: {dis_info}")
+
+        # ---- JSON nested past any limit (audit M1) ----
+        # juce::JSON recursed once per bracket, so a body of them overflowed
+        # the stack before any check ran, AI on or off. The MCP server now
+        # refuses it before parsing; the OSCQuery WebSocket, which any web
+        # page can open, parses through the same guard.
+        app_b.wait_for_oscquery()
+        brackets = 900_000   # under SimpleWeb's 1 MB request cap
+        try:
+            status, _, text = app_b.mcp_raw(
+                [("Host", f"127.0.0.1:{common.MCP_PORT}"),
+                 ("Content-Type", "application/json")], b"[" * brackets)
+            if status != 200 or "-32700" not in text:
+                hard_failures.append(
+                    f"a nested MCP body got HTTP {status}: {text[:120]}")
+        except OSError as exc:
+            hard_failures.append(f"a nested MCP body: {exc!r}")
+        time.sleep(0.5)
+        if not app_b.alive():
+            hard_failures.append("the app died on a nested MCP body")
+        else:
+            try:
+                common.websocket_send_text(common.OSCQUERY_HTTP_PORT,
+                                           "[" * brackets)
+            except OSError as exc:
+                hard_failures.append(f"OSCQuery WebSocket: {exc!r}")
+            time.sleep(1.5)
+            if not app_b.alive():
+                hard_failures.append(
+                    "the app died on a nested OSCQuery WebSocket message")
+            else:
+                try:
+                    app_b.mcp("tools/list")
+                    urllib.request.urlopen(
+                        f"http://127.0.0.1:{common.OSCQUERY_HTTP_PORT}/?VALUE",
+                        timeout=5.0).close()
+                except OSError as exc:
+                    hard_failures.append(
+                        f"the app stopped answering after nested JSON: {exc!r}")
     finally:
         app_b.close()
 
