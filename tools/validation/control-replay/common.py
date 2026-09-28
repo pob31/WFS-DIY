@@ -6,6 +6,8 @@ include:
   osc_replay.py         scripted OSC writes -> OSCQuery read-back -> golden
   mcp_replay.py         scripted MCP transcript -> normalized -> golden
   tracking_check.py     OSC tracking on a patched fixture -> OSCQuery read-back
+  run_selftest.py       any WFS_TEST_* self-test, headless, optionally on an
+                        injected audio device
 
 Design: docs/architecture/control-replay-harness.md.
 
