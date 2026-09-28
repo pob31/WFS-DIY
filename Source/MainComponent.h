@@ -659,6 +659,16 @@ private:
         but latches the channel numbers: run it in a throwaway session. */
     void runInputMutesPersistSelfTest();
 
+    /** WFS_TEST_VALUE_GATES=1 — the gates of audit 2026-09-28 N2 and S1, with
+        no network: the OSC and tablet value reader on constructed messages
+        (a number for a bounded parameter, text for a name), the store's rule
+        for strings, NaN and infinity at a bounded parameter, the clamp where
+        an attenuation becomes a gain, and the snapshot-name resolver, in a
+        scratch project folder. Restores the values and the project folder it
+        touched, but storing its one good snapshot latches the channel
+        numbers: run it in a throwaway session. */
+    void runValueGatesSelfTest();
+
     /** WFS_TEST_RENDER_UI=<folder>: every main tab and the Snapshot Scope window
         (both family grids) rendered offscreen to PNG files. */
     void renderUiSnapshots (const juce::File& dir);

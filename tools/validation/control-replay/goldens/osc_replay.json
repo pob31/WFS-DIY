@@ -65,8 +65,17 @@
   "input8.mutes": [
     "0,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0"
   ],
+  "output1.attenuation": [
+    -6.5
+  ],
   "output1.positionX": [
     -4.5
+  ],
+  "output2.attenuation": [
+    -9.5
+  ],
+  "reverb1.attenuation": [
+    -3.5
   ],
   "reverb1.positionX": [
     2.25

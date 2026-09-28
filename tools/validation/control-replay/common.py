@@ -297,6 +297,13 @@ class OSCSender:
         if self.delay > 0:
             time.sleep(self.delay)
 
+    def send_raw(self, data: bytes) -> None:
+        """One datagram exactly as given, for packets the codec would never
+        build (malformed bundles)."""
+        self.sock.sendto(data, self.addr)
+        if self.delay > 0:
+            time.sleep(self.delay)
+
     def close(self) -> None:
         self.sock.close()
 

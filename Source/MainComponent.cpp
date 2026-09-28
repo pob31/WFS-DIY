@@ -3044,6 +3044,19 @@ MainComponent::MainComponent()
     if (std::getenv("WFS_TEST_MUTES_PERSIST") != nullptr)
         runInputMutesPersistSelfTest();
 
+    // Hidden diagnostic: WFS_TEST_VALUE_GATES=1 checks the value gates of the
+    // 2026-09-28 audit (N2, S1) without the network, 8 s after launch so that
+    // a project given on the command line has loaded (it needs an input, an
+    // output and a reverb). Restores what it touched.
+    if (std::getenv("WFS_TEST_VALUE_GATES") != nullptr)
+    {
+        juce::Timer::callAfterDelay (8000, [safe = juce::Component::SafePointer<MainComponent> (this)]
+        {
+            if (safe != nullptr)
+                safe->runValueGatesSelfTest();
+        });
+    }
+
     // Hidden diagnostic: WFS_TEST_RENDER_UI=<folder> renders every main tab and
     // the Snapshot Scope window (both family grids) to PNG files in that folder,
     // 8 s after launch - after a project given on the command line has loaded.
@@ -3322,6 +3335,185 @@ void MainComponent::runLiveSourcePersistSelfTest()
             ls.setProperty(toggles[i], original[i], nullptr);
     }
     file.deleteFile();
+
+    logLine(failures == 0 ? "SELF-TEST RESULT: ALL PASS"
+                          : "SELF-TEST RESULT: FAIL (" + juce::String(failures) + ")");
+}
+
+void MainComponent::runValueGatesSelfTest()
+{
+    using namespace WFSParameterIDs;
+    using Router = WFSNetwork::OSCMessageRouter;
+    auto& vts = parameters.getValueTreeState();
+    auto& fm = parameters.getFileManager();
+    int failures = 0;
+
+    auto logLine = [](const juce::String& s) { WFSLogger::getInstance().logInfo(s); };
+    auto check = [&](bool ok, const juce::String& what)
+    {
+        if (! ok) ++failures;
+        logLine(juce::String("SELF-TEST ") + (ok ? "PASS " : "FAIL ") + what);
+    };
+
+    logLine("SELF-TEST begin (value gates: audit 2026-09-28 N2, S1)");
+
+    if (vts.getNumInputChannels() < 1 || vts.getNumOutputChannels() < 1 || vts.getNumReverbChannels() < 1)
+    {
+        logLine("SELF-TEST SKIP V: this session needs an input, an output and a reverb");
+        logLine("SELF-TEST RESULT: SKIPPED");
+        return;
+    }
+
+    //--------------------------------------------------------------------------
+    // G1: the OSC and tablet value reader, on messages built here.
+    auto osc = [](const char* address, std::initializer_list<juce::OSCArgument> args)
+    {
+        juce::OSCMessage m { juce::OSCAddressPattern (address) };
+        for (const auto& a : args)
+            m.addArgument (a);
+        return m;
+    };
+    auto num  = [](int v)         { return juce::OSCArgument (static_cast<juce::int32> (v)); };
+    auto real = [](float v)       { return juce::OSCArgument (v); };
+    auto text = [](const char* t) { return juce::OSCArgument (juce::String (t)); };
+
+    {
+        const auto out60 = Router::parseOutputMessage (osc ("/wfs/output/attenuation", { num (1), text ("60") }));
+        check (! out60.valid && out60.invalidReason.isNotEmpty(),
+               "G1: /wfs/output/attenuation 1 \"60\" is refused with a reason (it was read back as +60 dB)");
+        const auto outInf = Router::parseOutputMessage (osc ("/wfs/output/1/attenuation", { text ("inf") }));
+        check (! outInf.valid && outInf.invalidReason.contains ("takes a number"),
+               "G1: /wfs/output/1/attenuation \"inf\" is refused as not a number");
+        const auto outText = Router::parseOutputMessage (osc ("/wfs/output/attenuation", { num (2), text ("-9.5") }));
+        check (outText.valid && outText.value.isDouble() && static_cast<double> (outText.value) == -9.5,
+               "G1: a numeric string still sets an output (QLab types its arguments as strings)");
+        const auto rev60 = Router::parseReverbMessage (osc ("/wfs/reverb/attenuation", { num (1), text ("60") }));
+        check (! rev60.valid, "G1: /wfs/reverb/attenuation 1 \"60\" is refused");
+        const auto revInf = Router::parseReverbMessage (osc ("/wfs/reverb/1/attenuation", { text ("inf") }));
+        check (! revInf.valid, "G1: /wfs/reverb/1/attenuation \"inf\" is refused");
+        const auto inInc = Router::parseInputMessage (osc ("/wfs/input/attenuation", { num (2), text ("inc"), real (3.0f) }));
+        check (! inInc.valid && inInc.invalidReason.contains ("takes a number"),
+               "G1: /wfs/input/attenuation 2 inc 3 is refused (the word was stored and read as 0 dB)");
+        const auto inText = Router::parseInputMessage (osc ("/wfs/input/attenuation", { num (2), text ("-12.5") }));
+        check (inText.valid && static_cast<double> (inText.value) == -12.5, "G1: a numeric string still sets an input");
+        const auto inName = Router::parseInputMessage (osc ("/wfs/input/name", { num (3), text ("inf") }));
+        check (inName.valid && inName.value.toString() == "inf", "G1: a name is text, whatever it spells");
+        const auto remInf = Router::parseRemoteInputMessage (osc ("/remoteInput/attenuation", { num (2), text ("inf") }));
+        check (! remInf.valid && remInf.invalidReason.isNotEmpty(),
+               "G1: /remoteInput/attenuation 2 \"inf\" is refused (it was stored as an infinite gain)");
+        const auto rem60 = Router::parseRemoteInputMessage (osc ("/remoteInput/attenuation", { num (2), text ("60") }));
+        check (! rem60.valid, "G1: /remoteInput/attenuation 2 \"60\" is refused as out of range");
+        const auto remName = Router::parseRemoteInputMessage (osc ("/remoteInput/inputName", { num (2), text ("Lead vocal") }));
+        check (remName.valid && remName.value.toString() == "Lead vocal", "G1: the tablet still renames an input");
+        const auto remInc = Router::parseRemoteInputMessage (osc ("/remoteInput/attenuation", { num (2), text ("inc"), real (1.0f) }));
+        check (remInc.valid && remInc.type == Router::ParsedRemoteInput::Type::ParameterDelta,
+               "G1: the tablet's inc directive is still a delta");
+    }
+
+    //--------------------------------------------------------------------------
+    // G2: the store's rule, through the setters every writer uses.
+    {
+        WFSValueTreeState::ScopedUndoSuppression noUndo (vts);
+        const juce::var originalOutAtten = vts.getOutputParameter (0, outputAttenuation);
+        const juce::var originalRevAtten = vts.getReverbParameter (0, reverbAttenuation);
+        const juce::var originalPosX     = vts.getInputParameter (0, inputPositionX);
+        const juce::var originalPhaseX   = vts.getInputParameter (0, inputLFOphaseX);
+        auto outAtten = [&] { return vts.getOutputParameter (0, outputAttenuation); };
+
+        vts.setOutputParameter (0, outputAttenuation, -6.5);
+        check (static_cast<double> (outAtten()) == -6.5, "G2: a number lands");
+
+        for (const char* junk : { "inf", "-inf", "nan", "12abc", "", "0x10", "1e999" })
+        {
+            vts.setOutputParameter (0, outputAttenuation, juce::String (junk));
+            check (outAtten().isDouble() && static_cast<double> (outAtten()) == -6.5,
+                   "G2: the text \"" + juce::String (junk) + "\" at an output attenuation is refused and the value kept");
+        }
+        vts.setOutputParameter (0, outputAttenuation, std::numeric_limits<double>::quiet_NaN());
+        check (static_cast<double> (outAtten()) == -6.5, "G2: NaN is refused (it failed both comparisons of the clamp)");
+        vts.setOutputParameter (0, outputAttenuation, std::numeric_limits<double>::infinity());
+        check (static_cast<double> (outAtten()) == -6.5, "G2: infinity is refused, not clamped to a bound");
+
+        vts.setOutputParameter (0, outputAttenuation, juce::String ("60"));
+        check (outAtten().isDouble() && static_cast<double> (outAtten()) == 0.0,
+               "G2: the text \"60\" is clamped like the number 60, to 0 dB (it was stored and read as +60 dB)");
+        vts.setOutputParameter (0, outputAttenuation, juce::String ("-12.5"));
+        check (outAtten().isString() && static_cast<double> (outAtten()) == -12.5,
+               "G2: a numeric string in range is stored as it came (loads and recalls write text)");
+
+        vts.setInputParameter (0, inputPositionX, juce::String ("1.5e-6"));
+        check (std::abs (static_cast<double> (vts.getInputParameter (0, inputPositionX)) - 1.5e-6) < 1e-12,
+               "G2: scientific notation is a number (a load reads 1.5e-6 back that way, and MCP undo replays it)");
+        vts.setInputParameter (0, inputPositionX, juce::String ("1e3"));
+        check (static_cast<double> (vts.getInputParameter (0, inputPositionX)) == 50.0,
+               "G2: ...and one out of range is clamped");
+
+        vts.setReverbParameter (0, reverbAttenuation, -3.5);
+        vts.setReverbParameter (0, reverbAttenuation, juce::String ("inf"));
+        check (static_cast<double> (vts.getReverbParameter (0, reverbAttenuation)) == -3.5,
+               "G2: a reverb return refuses \"inf\" too");
+
+        vts.setInputParameter (0, inputLFOphaseX, juce::String ("500"));
+        check (static_cast<int> (vts.getInputParameter (0, inputLFOphaseX)) == 140,
+               "G2: an LFO phase string out of range still wraps (500 -> 140)");
+        vts.setInputParameter (0, inputLFOphaseX, std::numeric_limits<double>::quiet_NaN());
+        check (static_cast<int> (vts.getInputParameter (0, inputLFOphaseX)) == 140,
+               "G2: an LFO phase refuses NaN (roundToInt of it was undefined)");
+
+        vts.setOutputParameter (0, outputAttenuation, originalOutAtten);
+        vts.setReverbParameter (0, reverbAttenuation, originalRevAtten);
+        vts.setInputParameter (0, inputPositionX, originalPosX);
+        vts.setInputParameter (0, inputLFOphaseX, originalPhaseX);
+    }
+
+    //--------------------------------------------------------------------------
+    // G3: where an attenuation becomes the gain the audio thread multiplies by.
+    check (attenuationDbToGain (std::numeric_limits<float>::quiet_NaN()) == 0.0f, "G3: NaN dB is silence");
+    check (attenuationDbToGain (60.0f) == 1.0f, "G3: +60 dB is held to unity");
+    check (attenuationDbToGain (std::numeric_limits<float>::infinity()) == 1.0f, "G3: +inf dB is held to unity");
+    check (attenuationDbToGain (-std::numeric_limits<float>::infinity()) == 0.0f, "G3: -inf dB is silence");
+    check (std::abs (attenuationDbToGain (-6.0f) - juce::Decibels::decibelsToGain (-6.0f)) < 1e-7f,
+           "G3: in range it is the plain conversion");
+
+    //--------------------------------------------------------------------------
+    // G4: snapshot and template names are file names, never paths. In a
+    // scratch project folder: at a cold start the project folder is the user's
+    // last project, and a regression here would write into it.
+    {
+        const auto previousFolder = fm.getProjectFolder();
+        auto scratch = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("wfs-selftest-valuegates");
+        scratch.deleteRecursively();
+        scratch.createDirectory();
+        fm.setProjectFolder (scratch);
+        fm.createProjectFolderStructure();
+        const auto base = fm.getInputSnapshotsFolder();
+
+        for (const char* bad : { "../../system", "..\\..\\system", "C:evil", "sub/name", "", "   " })
+            check (WFSFileManager::getNamedXmlFile (base, bad) == juce::File(),
+                   "G4: the snapshot name \"" + juce::String (bad) + "\" is refused");
+        check (WFSFileManager::getNamedXmlFile (juce::File(), "Scene 1") == juce::File(),
+               "G4: with no project folder there is no file (it resolved against the drive root)");
+        for (const char* good : { "Scene #3", "Act 1, part 2", "..", "~home" })
+        {
+            const auto file = WFSFileManager::getNamedXmlFile (base, good);
+            check (file != juce::File() && file.getParentDirectory() == base,
+                   "G4: the snapshot name \"" + juce::String (good) + "\" is a file in the snapshots folder");
+        }
+
+        // OSC /wfs/input/snapshot/store "../vg-canary" wrote <project>/snapshots/vg-canary.xml.
+        const auto canary = base.getParentDirectory().getChildFile ("vg-canary.xml");
+        const bool stored = fm.saveInputSnapshotWithExtendedScope ("../vg-canary",
+                                                                   fm.getExtendedSnapshotScope ("../vg-canary"));
+        check (! stored && fm.getLastError().contains ("vg-canary"),
+               "G4: a store under a traversing name fails and says which name");
+        check (! canary.existsAsFile(), "G4: ...and writes nothing outside the snapshots folder");
+        check (fm.saveInputSnapshotWithExtendedScope ("Scene #3", fm.getExtendedSnapshotScope ("Scene #3"))
+                   && base.getChildFile ("Scene #3.xml").existsAsFile(),
+               "G4: a plain name with a # still stores");
+
+        fm.setProjectFolder (previousFolder);
+        scratch.deleteRecursively();
+    }
 
     logLine(failures == 0 ? "SELF-TEST RESULT: ALL PASS"
                           : "SELF-TEST RESULT: FAIL (" + juce::String(failures) + ")");

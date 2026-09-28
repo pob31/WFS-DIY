@@ -47,6 +47,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import common
+import corpus  # tools/fuzz, on the path through common
 
 GOLDEN = common.GOLDENS_DIR / "osc_replay.json"
 
@@ -92,6 +93,12 @@ WRITES = [
     ("input7.mutes.list",   "/wfs/input/mutes", [("i", 7), ("s", "0,1,0,0,1")]),
     ("input7.mutes.one",    "/wfs/input/mutes", [("i", 7), ("i", 3), ("i", 1)]),
     ("input7.mutes.scalar", "/wfs/input/mutes", [("i", 7), ("i", 0)]),
+    # gains for the string refusals in TYPING_REFUSALS to leave alone (audit
+    # 2026-09-28, N2), and one numeric STRING, the way QLab sends an unquoted
+    # argument, which must still set its output
+    ("output1.attenuation", "/wfs/output/attenuation", [("i", 1), ("f", -6.5)]),
+    ("reverb1.attenuation", "/wfs/reverb/attenuation", [("i", 1), ("f", -3.5)]),
+    ("output2.attenuation", "/wfs/output/attenuation", [("i", 2), ("s", "-9.5")]),
 ]
 
 # ---------------------------------------------------------------------------
@@ -245,7 +252,29 @@ TYPING_REFUSALS = [
     # and so were not even reported as refused.
     ("/wfs/effect/attenuatino",             [("i", 1), ("f", -9.5)]),
     ("/wfs/effect/attenuation",             [("i", 1)]),
+    # AUDIT 2026-09-28, N2: a string at a gain. valueWithinBounds waved every
+    # string through and the store kept it, so each of these LANDED: "60" was
+    # read back as +60 dB, "inf" as an infinite gain, and "inc" at an input
+    # (this path has no delta form) as 0 dB. The tablet path stored its string
+    # with no bounds check at all.
+    ("/wfs/output/attenuation",             [("i", 1), ("s", "60")]),
+    ("/wfs/output/1/attenuation",           [("s", "inf")]),
+    ("/wfs/reverb/attenuation",             [("i", 1), ("s", "60")]),
+    ("/wfs/reverb/1/attenuation",           [("s", "inf")]),
+    ("/wfs/input/attenuation",              [("i", 2), ("s", "inc"), ("f", 3.0)]),
+    ("/remoteInput/attenuation",            [("i", 2), ("s", "inf")]),
 ]
+
+# AUDIT 2026-09-28, S1: a snapshot name is a file name. "../../vg-canary"
+# resolved from <project>/snapshots/inputs to <project>/vg-canary.xml - with
+# "system" in its place it overwrote the project's system.xml - and a name
+# with a backslash does the same on Windows. The absolute form is added at run
+# time, pointing into the temp project. Asserted after the run: no such file.
+SNAPSHOT_TRAVERSALS = [
+    ("/wfs/input/snapshot/store", [("s", "../../vg-canary")]),
+    ("/wfs/input/snapshot/store", [("s", "..\\..\\vg-canary2")]),
+]
+CANARY_FILES = ["vg-canary.xml", "vg-canary2.xml", "vg-canary-abs.xml"]
 
 # The refusal reasons that must reach the SESSION log. OSCLogger starts
 # disabled and the only thing that enables it is a human ticking the switch in
@@ -269,6 +298,15 @@ EXPECTED_LOG_REASONS = [
     "OSC refused /wfs/effect/attenuatino",
     "OSC refused /wfs/effect/minimalLatency",
     "does not exist",
+    # audit N2: the gain refusals reach the session log as well
+    "OSC refused /wfs/output/attenuation",
+    "OSC refused /wfs/output/1/attenuation",
+    "OSC refused /wfs/reverb/attenuation",
+    "OSC refused /wfs/reverb/1/attenuation",
+    "OSC refused /wfs/input/attenuation",
+    "OSC refused /remoteInput/attenuation",
+    # audit S1: a store that wrote nothing says so
+    "OSC snapshot store of '../../vg-canary' failed",
 ]
 
 # The fixture has 16 outputs.
@@ -309,7 +347,18 @@ READS = [
     ("input6.positionY",  "/wfs/input/6/positionY"),
     ("input7.mutes",      "/wfs/input/7/mutes"),       # list + output 3, scalar refused
     ("input8.mutes",      "/wfs/input/8/mutes"),       # burst: outputs 2 and 7
+    ("output1.attenuation", "/wfs/output/1/attenuation"),  # -6.5: "60" and "inf" refused
+    ("output2.attenuation", "/wfs/output/2/attenuation"),  # -9.5, sent as a string
+    ("reverb1.attenuation", "/wfs/reverb/1/attenuation"),  # -3.5: "60" and "inf" refused
 ]
+
+# Hard invariants of the N2 refusals, independent of the golden.
+EXPECTED_GAINS = {
+    "output1.attenuation": [-6.5],
+    "output2.attenuation": [-9.5],
+    "reverb1.attenuation": [-3.5],
+    "input2.attenuation": [-12.5],     # "inc" and the tablet's "inf" refused
+}
 
 
 def _round(v):
@@ -589,6 +638,9 @@ def run_stopped_pass(exe: Path, keep_temp: bool, failures: list[str]) -> dict:
             typing.send(address, osc_args)
         for address, osc_args in VERB_SENDS:
             typing.send(address, osc_args)
+        for address, osc_args in SNAPSHOT_TRAVERSALS:
+            typing.send(address, osc_args)
+        typing.send("/wfs/input/snapshot/store", [("s", str(project / "vg-canary-abs"))])
         typing.close()
 
         # Final drain before reading back.
@@ -617,8 +669,38 @@ def run_stopped_pass(exe: Path, keep_temp: bool, failures: list[str]) -> dict:
         payload = common.tool_payload(final)
         if not (isinstance(payload, dict) and payload.get("saved") is True):
             failures.append(f"session_save failed, effects unreadable: {payload}")
+
+        # AUDIT 2026-09-28, N1, LAST OF ALL: three malformed bundles. The first
+        # crashed the app and the second hung its message thread, so they come
+        # after every read-back above. They must leave the app there AND still
+        # draining: an ordinary write sent after them has to land. (OSCQuery
+        # answers from its own threads, so a read alone would pass with the
+        # message thread stuck.)
+        hostile = common.OSCSender(delay=0.5)
+        for packet in (corpus.BUNDLE_SIZE_OVERFLOW, corpus.BUNDLE_SIBLING_BOMB,
+                       corpus.BUNDLE_TOO_DEEP):
+            hostile.send_raw(packet)
+        hostile.send("/wfs/config/stage/width", [("f", 15.0)])
+        hostile.close()
+        time.sleep(1.5)
+        if not app.alive():
+            failures.append("a malformed OSC bundle took the app down (audit N1)")
+        else:
+            try:
+                width = common.oscquery_get("/wfs/config/stage/width")
+            except Exception as exc:  # noqa: BLE001
+                width = f"<read failed: {exc}>"
+            if width != [15.0]:
+                failures.append("after the malformed bundles an ordinary write did "
+                                f"not land (stage width {width}, expected [15.0]): "
+                                "the message thread is stuck (audit N1)")
     finally:
         app.close()
+
+    for name in CANARY_FILES:
+        if (project / name).exists():
+            failures.append("a snapshot store under a traversing name wrote "
+                            f"{project / name} (audit S1)")
 
     try:
         readbacks.update(check_effects(project, failures))
@@ -788,6 +870,12 @@ def main() -> int:
         if readbacks.get(label) != expected:
             print(f"[osc-replay] HARD FAIL: {label} is {readbacks.get(label)}, "
                   f"expected {expected}", file=sys.stderr)
+            ok = False
+    for label, expected in EXPECTED_GAINS.items():
+        if readbacks.get(label) != expected:
+            print(f"[osc-replay] HARD FAIL: {label} is {readbacks.get(label)}, "
+                  f"expected {expected} - a string reached a gain (audit N2)",
+                  file=sys.stderr)
             ok = False
     for failure in failures:
         print(f"[osc-replay] HARD FAIL: {failure}", file=sys.stderr)
