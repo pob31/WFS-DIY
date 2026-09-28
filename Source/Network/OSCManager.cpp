@@ -2772,7 +2772,10 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
         else
         {
             if (parsed.invalidReason.isNotEmpty())
+            {
                 logger.logRejected (address, senderIP, port, transport, parsed.invalidReason);
+                logRefusalToSession (address, parsed.invalidReason);
+            }
             ++parseErrors;
         }
     }
@@ -2796,7 +2799,10 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
         else
         {
             if (parsed.invalidReason.isNotEmpty())
+            {
                 logger.logRejected (address, senderIP, port, transport, parsed.invalidReason);
+                logRefusalToSession (address, parsed.invalidReason);
+            }
             ++parseErrors;
         }
     }
@@ -2846,7 +2852,10 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
         else
         {
             if (parsed.invalidReason.isNotEmpty())
+            {
                 logger.logRejected (address, senderIP, port, transport, parsed.invalidReason);
+                logRefusalToSession (address, parsed.invalidReason);
+            }
             ++parseErrors;
         }
     }
@@ -3149,8 +3158,11 @@ void OSCManager::handleRemoteInputMessage(const juce::OSCMessage& message,
     if (!parsed.valid)
     {
         if (parsed.invalidReason.isNotEmpty())
+        {
             logger.logRejected (message.getAddressPattern().toString(),
                                 senderIP, port, transport, parsed.invalidReason);
+            logRefusalToSession (message.getAddressPattern().toString(), parsed.invalidReason);
+        }
         ++parseErrors;
         return;
     }

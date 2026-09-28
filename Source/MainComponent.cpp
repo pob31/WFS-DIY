@@ -66,6 +66,21 @@ namespace
                      .getParentDirectory()   // project root
                      .getChildFile ("Source/Network/MCP/generated_tools.json");
     }
+
+    /** An attenuation read back from the tree (master, output, reverb return:
+        all -92..0 dB), as the linear gain the audio thread multiplies by. The
+        store clamps out-of-range values and refuses non-finite ones, but the
+        master level never passes through it (setConfigParam writes the tree
+        directly), and this is the last step before the speakers, so it holds
+        the range itself: never louder than unity, and silence for NaN. A
+        string that got past the store used to read back as +60 dB, or as
+        infinity. */
+    float attenuationDbToGain (float dB)
+    {
+        if (std::isnan (dB))
+            return 0.0f;
+        return juce::Decibels::decibelsToGain (juce::jlimit (-92.0f, 0.0f, dB), -92.0f);
+    }
 }
 
 //==============================================================================
@@ -2974,7 +2989,7 @@ MainComponent::MainComponent()
     {
         float masterLevelDb = (float)parameters.getConfigParam("MasterLevel");
         masterLevelGainTarget.store(
-            juce::Decibels::decibelsToGain(masterLevelDb, -92.0f),
+            attenuationDbToGain(masterLevelDb),
             std::memory_order_relaxed);
     }
 
@@ -15271,7 +15286,7 @@ void MainComponent::timerCallback()
     {
         float masterLevelDb = (float)parameters.getConfigParam("MasterLevel");
         masterLevelGainTarget.store(
-            juce::Decibels::decibelsToGain(masterLevelDb, -92.0f),
+            attenuationDbToGain(masterLevelDb),
             std::memory_order_relaxed);
     }
 
@@ -15290,7 +15305,7 @@ void MainComponent::timerCallback()
                    && arrayMutes.isMuted (WFSVar::toInt (parameters.getOutputParam (i, "outputArray")))))
             {
                 float dB = (float) parameters.getOutputParam(i, "outputAttenuation");
-                gain = juce::Decibels::decibelsToGain(dB, -92.0f);
+                gain = attenuationDbToGain(dB);
             }
             outputAttenuationTargets[i].store(gain, std::memory_order_relaxed);
         }
@@ -15304,7 +15319,7 @@ void MainComponent::timerCallback()
         {
             float dB = (float) parameters.getReverbParam(i, "reverbAttenuation");
             reverbAttenuationTargets[i].store(
-                juce::Decibels::decibelsToGain(dB, -92.0f),
+                attenuationDbToGain(dB),
                 std::memory_order_relaxed);
         }
     }

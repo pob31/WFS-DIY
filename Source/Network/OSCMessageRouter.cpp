@@ -1208,6 +1208,42 @@ namespace
         return true;
     }
 
+    // The value argument of an input, output or reverb write, read by the rule
+    // parseEffectMessage and parseConfigMessage already follow. A parameter
+    // with a bounds entry takes a number: a numeric string is coerced, because
+    // QLab types its unquoted arguments as strings, and any other string is
+    // refused with a reason. valueWithinBounds waves strings through, so the
+    // word used to be stored and read back as a number: "60" as +60 dB on an
+    // output, "inf" as infinite gain, "inc" as 0 dB. A parameter without a
+    // bounds entry (a name, a row) keeps its text.
+    static bool readValueArgument (const juce::Identifier& paramId,
+                                   const juce::OSCArgument& arg,
+                                   juce::var& outValue,
+                                   juce::String& outReason)
+    {
+        if (! arg.isString())
+        {
+            outValue = OSCMessageRouter::extractFloat (arg);
+            return true;
+        }
+
+        const juce::String s = arg.getString();
+        if (! WFSNetwork::getBounds (paramId).has_value())
+        {
+            outValue = s;
+            return true;
+        }
+
+        if (! OSCMessageRouter::isNumericString (s))
+        {
+            outReason = paramId.toString() + " takes a number, not \"" + s + "\"";
+            return false;
+        }
+
+        outValue = s.trim().getFloatValue();
+        return true;
+    }
+
     // Clamp the optional ramp-time arg to a sane window [0, 600] s. We
     // clamp rather than reject so a bad ramp doesn't drop the value.
     static float clampRampSeconds (float v)
@@ -1314,13 +1350,10 @@ OSCMessageRouter::ParsedInputMessage OSCMessageRouter::parseInputMessage(const j
 
                 // Numeric strings are coerced to floats — QLab custom messages
                 // may type every argument as a string. inputName legitimately
-                // takes arbitrary text and is exempt.
-                if (message[0].isString()
-                    && (result.paramId == WFSParameterIDs::inputName
-                        || ! isNumericString (message[0].getString())))
-                    result.value = extractString(message[0]);
-                else
-                    result.value = extractFloatLenient(message[0]);
+                // takes arbitrary text; a numeric parameter refuses any other
+                // string (readValueArgument).
+                if (! readValueArgument (result.paramId, message[0], result.value, result.invalidReason))
+                    return result;
 
                 // Optional ramp time: /wfs/input/{channelID}/{param} <value> <rampTimeSec>
                 if (message.size() >= 2)
@@ -1360,14 +1393,12 @@ OSCMessageRouter::ParsedInputMessage OSCMessageRouter::parseInputMessage(const j
 
         // Numeric strings are coerced to floats — QLab custom messages may
         // type every argument as a string. inputName legitimately takes
-        // arbitrary text and is exempt (as are the "inc"/"dec" directives,
-        // which are non-numeric and therefore stay strings).
-        if (message[1].isString()
-            && (result.paramId == WFSParameterIDs::inputName
-                || ! isNumericString (message[1].getString())))
-            result.value = extractString(message[1]);
-        else
-            result.value = extractFloatLenient(message[1]);
+        // arbitrary text; a numeric parameter refuses any other string
+        // (readValueArgument). That includes "inc" and "dec": this path has
+        // no delta form (the Remote and array-adjust paths do), and the word
+        // used to be stored and read back as 0.
+        if (! readValueArgument (result.paramId, message[1], result.value, result.invalidReason))
+            return result;
 
         // Optional ramp time argument — only accepted for parameters listed as
         // ramp-capable in Documentation/WFS-UI_input.csv.
@@ -1495,20 +1526,16 @@ OSCMessageRouter::ParsedOutputMessage OSCMessageRouter::parseOutputMessage(const
                 {
                     result.isEQparam = true;
                     result.bandIndex = extractInt(message[0]);
-                    if (message[1].isString())
-                        result.value = extractString(message[1]);
-                    else
-                        result.value = extractFloat(message[1]);
+                    if (! readValueArgument (result.paramId, message[1], result.value, result.invalidReason))
+                        return result;
                     if (! valueWithinBounds (result.paramId, result.value, result.invalidReason))
                         return result;
                     result.valid = true;
                 }
                 else if (!isEQ && message.size() >= 1)
                 {
-                    if (message[0].isString())
-                        result.value = extractString(message[0]);
-                    else
-                        result.value = extractFloat(message[0]);
+                    if (! readValueArgument (result.paramId, message[0], result.value, result.invalidReason))
+                        return result;
                     if (! valueWithinBounds (result.paramId, result.value, result.invalidReason))
                         return result;
                     result.valid = true;
@@ -1534,10 +1561,8 @@ OSCMessageRouter::ParsedOutputMessage OSCMessageRouter::parseOutputMessage(const
             result.channelId = extractInt(message[0]);
             result.bandIndex = extractInt(message[1]);
 
-            if (message[2].isString())
-                result.value = extractString(message[2]);
-            else
-                result.value = extractFloat(message[2]);
+            if (! readValueArgument (result.paramId, message[2], result.value, result.invalidReason))
+                return result;
         }
         else
         {
@@ -1546,10 +1571,8 @@ OSCMessageRouter::ParsedOutputMessage OSCMessageRouter::parseOutputMessage(const
 
             result.channelId = extractInt(message[0]);
 
-            if (message[1].isString())
-                result.value = extractString(message[1]);
-            else
-                result.value = extractFloat(message[1]);
+            if (! readValueArgument (result.paramId, message[1], result.value, result.invalidReason))
+                return result;
         }
 
         if (! valueWithinBounds (result.paramId, result.value, result.invalidReason))
@@ -1592,20 +1615,16 @@ OSCMessageRouter::ParsedReverbMessage OSCMessageRouter::parseReverbMessage(const
                 {
                     result.isEQparam = true;
                     result.bandIndex = extractInt(message[0]);
-                    if (message[1].isString())
-                        result.value = extractString(message[1]);
-                    else
-                        result.value = extractFloat(message[1]);
+                    if (! readValueArgument (result.paramId, message[1], result.value, result.invalidReason))
+                        return result;
                     if (! valueWithinBounds (result.paramId, result.value, result.invalidReason))
                         return result;
                     result.valid = true;
                 }
                 else if (!isEQ && message.size() >= 1)
                 {
-                    if (message[0].isString())
-                        result.value = extractString(message[0]);
-                    else
-                        result.value = extractFloat(message[0]);
+                    if (! readValueArgument (result.paramId, message[0], result.value, result.invalidReason))
+                        return result;
                     if (! valueWithinBounds (result.paramId, result.value, result.invalidReason))
                         return result;
                     result.valid = true;
@@ -1639,10 +1658,8 @@ OSCMessageRouter::ParsedReverbMessage OSCMessageRouter::parseReverbMessage(const
             result.channelId = extractInt(message[0]);
             result.bandIndex = extractInt(message[1]);
 
-            if (message[2].isString())
-                result.value = extractString(message[2]);
-            else
-                result.value = extractFloat(message[2]);
+            if (! readValueArgument (result.paramId, message[2], result.value, result.invalidReason))
+                return result;
         }
         else
         {
@@ -1651,10 +1668,8 @@ OSCMessageRouter::ParsedReverbMessage OSCMessageRouter::parseReverbMessage(const
 
             result.channelId = extractInt(message[0]);
 
-            if (message[1].isString())
-                result.value = extractString(message[1]);
-            else
-                result.value = extractFloat(message[1]);
+            if (! readValueArgument (result.paramId, message[1], result.value, result.invalidReason))
+                return result;
         }
 
         if (! valueWithinBounds (result.paramId, result.value, result.invalidReason))
@@ -2325,9 +2340,16 @@ OSCMessageRouter::ParsedRemoteInput OSCMessageRouter::parseRemoteInputMessage(co
             return result;
         }
 
-        // String value (e.g., inputName): /remoteInput/inputName <ID> <name>
+        // String value (e.g., inputName): /remoteInput/inputName <ID> <name>.
+        // Any other string is read like the /wfs/input form reads it: a number
+        // for a parameter that takes one, refused when it is not a number or
+        // out of range. It used to be stored as it came, with no bounds check,
+        // so /remoteInput/attenuation 2 "inf" set the gain to infinity.
         result.type = ParsedRemoteInput::Type::ParameterSet;
-        result.value = directive;
+        if (! readValueArgument (result.paramId, message[1], result.value, result.invalidReason))
+            return result;
+        if (! valueWithinBounds (result.paramId, result.value, result.invalidReason))
+            return result;
         result.valid = true;
         return result;
     }

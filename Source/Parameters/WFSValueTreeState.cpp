@@ -160,6 +160,61 @@ namespace
             + "\" - the stored row was kept. A row is one value per column, comma-separated.");
     }
 
+    /** The number a string spells, when it spells a finite one: an optional
+        sign, digits with at most one point, and an optional exponent. The
+        exponent matters: a project load hands every property back as text,
+        and JUCE writes |x| >= 1e6 and 0 < |x| <= 1e-5 in scientific notation,
+        so MCP undo can replay "1.2e-16". "inf", "nan", "0x10", "12abc" and ""
+        are not numbers here, although String::getDoubleValue reads the first
+        two as the IEEE values and the last two as 12 and 0. */
+    std::optional<double> parseFiniteNumber (const juce::String& text)
+    {
+        const juce::String trimmed = text.trim();
+        auto p = trimmed.getCharPointer();
+
+        if (*p == '+' || *p == '-')
+            ++p;
+
+        int mantissaDigits = 0;
+        while (juce::CharacterFunctions::isDigit (*p)) { ++p; ++mantissaDigits; }
+        if (*p == '.')
+        {
+            ++p;
+            while (juce::CharacterFunctions::isDigit (*p)) { ++p; ++mantissaDigits; }
+        }
+        if (mantissaDigits == 0)
+            return std::nullopt;
+
+        if (*p == 'e' || *p == 'E')
+        {
+            ++p;
+            if (*p == '+' || *p == '-')
+                ++p;
+            int exponentDigits = 0;
+            while (juce::CharacterFunctions::isDigit (*p)) { ++p; ++exponentDigits; }
+            if (exponentDigits == 0)
+                return std::nullopt;
+        }
+
+        if (! p.isEmpty())
+            return std::nullopt;
+
+        const double value = trimmed.getDoubleValue();   // "1e999" is infinite
+        return std::isfinite (value) ? std::optional<double> (value) : std::nullopt;
+    }
+
+    /** Same idea as logRefusedRowWrite: every path that can reach this without
+        validating first is a caller that has already gone wrong, and the
+        reader trying to work out why a value did not move needs the name. */
+    void logRefusedNumberWrite (const juce::Identifier& property, const juce::var& proposed)
+    {
+        const juce::String text = proposed.toString();
+        WFSLogger::getInstance().logWarning (
+            "Refused a write to " + property.toString() + " that is not a finite number: \""
+            + (text.length() > 64 ? text.substring (0, 64) + "..." : text)
+            + "\" - the stored value was kept.");
+    }
+
     /** The <Input> child a property belongs in when no child carries it yet. A
         channel the merge could not match by number is appended whole from the
         file, with no backfill, so one from an inputs.xml older than a property has
@@ -294,29 +349,70 @@ WFSValueTreeState::WFSValueTreeState()
                        : juce::var (canonicalEffectSendRow (property, {}, selfIndex));
         }
 
-        if (proposed.isDouble() || proposed.isInt() || proposed.isInt64())
-        {
-            // LFO phases are circular: wrap into the canonical [-180, 180]
-            // instead of clamping, so legacy 0..360 values (accepted by the
-            // gates' compat window) land on the equivalent angle.
-            if (WFSNetwork::isLFOPhaseParam (property))
-            {
-                const double d = static_cast<double> (proposed);
-                if (d < -180.0 || d > 180.0)
-                    return juce::var (WFSParameterDefaults::wrapPhaseDegrees (juce::roundToInt (d)));
-                return proposed;
-            }
+        // A PARAMETER WITH BOUNDS TAKES A FINITE NUMBER, AND NOTHING ELSE
+        // (audit 2026-09-28, N2). The clamp below used to look only at values
+        // that were already numbers, so two kinds of write went straight past:
+        //
+        //   - a STRING, stored as it came. Every reader converts with
+        //     String::getDoubleValue, which reads "60" as 60 and "inf" as
+        //     infinity: an output attenuation written as the text "60" played
+        //     at +60 dB. A string that spells a finite number is still
+        //     accepted, because project loads, snapshot recalls and MCP undo
+        //     all hand back the text a load produced. In range it is stored
+        //     untouched, exactly as before; out of range it is clamped like a
+        //     number. Anything else is refused.
+        //   - NaN, which fails both comparisons of the clamp and was stored.
+        //     Infinity is refused with it rather than clamped: neither end of
+        //     the range is what the sender meant.
+        //
+        // Refusing returns undefined, which leaves the node as it was (see
+        // TreeParameterStore::WriteInterceptor).
+        const auto bounds = WFSNetwork::getBounds (property);
+        if (! bounds.has_value())
+            return proposed;
 
-            if (const auto bounds = WFSNetwork::getBounds (property))
+        double d = 0.0;
+        if (proposed.isString())
+        {
+            const auto number = parseFiniteNumber (proposed.toString());
+            if (! number.has_value())
             {
-                const double d = static_cast<double> (proposed);
-                if (d < bounds->min || d > bounds->max)
-                {
-                    const double clamped = juce::jlimit (bounds->min, bounds->max, d);
-                    return bounds->isInt ? juce::var (juce::roundToInt (clamped))
-                                         : juce::var (clamped);
-                }
+                logRefusedNumberWrite (property, proposed);
+                return juce::var::undefined();
             }
+            if (*number >= bounds->min && *number <= bounds->max)
+                return proposed;
+            d = *number;
+        }
+        else if (proposed.isDouble() || proposed.isInt() || proposed.isInt64())
+        {
+            d = static_cast<double> (proposed);
+            if (! std::isfinite (d))
+            {
+                logRefusedNumberWrite (property, proposed);
+                return juce::var::undefined();
+            }
+        }
+        else
+        {
+            return proposed;
+        }
+
+        // LFO phases are circular: wrap into the canonical [-180, 180]
+        // instead of clamping, so legacy 0..360 values (accepted by the
+        // gates' compat window) land on the equivalent angle.
+        if (WFSNetwork::isLFOPhaseParam (property))
+        {
+            if (d < -180.0 || d > 180.0)
+                return juce::var (WFSParameterDefaults::wrapPhaseDegrees (juce::roundToInt (d)));
+            return proposed;
+        }
+
+        if (d < bounds->min || d > bounds->max)
+        {
+            const double clamped = juce::jlimit (bounds->min, bounds->max, d);
+            return bounds->isInt ? juce::var (juce::roundToInt (clamped))
+                                 : juce::var (clamped);
         }
         return proposed;
     });
