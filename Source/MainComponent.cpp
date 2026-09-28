@@ -3057,6 +3057,19 @@ MainComponent::MainComponent()
         });
     }
 
+    // Hidden diagnostic: WFS_TEST_ENGINE_RECONFIG=1 reshapes the engine while
+    // the device calls back (audit 2026-09-28, A1-A4). 10 s after launch, so
+    // that WFS_TEST_AUTOSTART_PROCESSING has had its project open and its
+    // processing started.
+    if (std::getenv("WFS_TEST_ENGINE_RECONFIG") != nullptr)
+    {
+        juce::Timer::callAfterDelay (10000, [safe = juce::Component::SafePointer<MainComponent> (this)]
+        {
+            if (safe != nullptr)
+                safe->runEngineReconfigSelfTest();
+        });
+    }
+
     // Hidden diagnostic: WFS_TEST_RENDER_UI=<folder> renders every main tab and
     // the Snapshot Scope window (both family grids) to PNG files in that folder,
     // 8 s after launch - after a project given on the command line has loaded.
@@ -3514,6 +3527,188 @@ void MainComponent::runValueGatesSelfTest()
         fm.setProjectFolder (previousFolder);
         scratch.deleteRecursively();
     }
+
+    logLine(failures == 0 ? "SELF-TEST RESULT: ALL PASS"
+                          : "SELF-TEST RESULT: FAIL (" + juce::String(failures) + ")");
+}
+
+void MainComponent::runEngineReconfigSelfTest()
+{
+    auto& vts = parameters.getValueTreeState();
+    int failures = 0;
+
+    auto logLine = [](const juce::String& s) { WFSLogger::getInstance().logInfo(s); };
+    auto check = [&](bool ok, const juce::String& what)
+    {
+        if (! ok) ++failures;
+        logLine(juce::String("SELF-TEST ") + (ok ? "PASS " : "FAIL ") + what);
+    };
+
+    logLine("SELF-TEST begin (engine reconfiguration: audit 2026-09-28 A1-A4)");
+
+    // The device thread keeps calling back while this thread sleeps.
+    struct Blocks { uint32_t processed = 0, heldOut = 0; };
+    auto blocksDuring = [this] (int ms)
+    {
+        const uint32_t p0 = audioBlocksProcessed.load(), h0 = audioBlocksHeldOut.load();
+        juce::Thread::sleep (ms);
+        return Blocks { audioBlocksProcessed.load() - p0, audioBlocksHeldOut.load() - h0 };
+    };
+
+    if (! isProcessingActive() || blocksDuring (300).processed == 0)
+    {
+        logLine ("SELF-TEST SKIP E: processing is not running on a live device "
+                 "(WFS_TEST_AUTOSTART_PROCESSING=1 and a project on the command line)");
+        logLine ("SELF-TEST RESULT: SKIPPED");
+        return;
+    }
+
+    // Every buffer the callback reads, at the shape the counts say.
+    auto shapeHolds = [this]
+    {
+        const size_t matrix = (size_t) numRenderSources * (size_t) numOutputChannels;
+        return numOutputChannels == parameters.getNumOutputChannels()
+            && delayTimesMs.size() == matrix && targetDelayTimesMs.size() == matrix
+            && levels.size() == matrix && frLevels.size() == matrix
+            && (int) outputAttenuationGains.size() == numOutputChannels
+            && outputAttenuationTargetsCount == numOutputChannels
+            && (! audioEngineStarted || (int) sharedInputBuffers.size() == numRenderSources);
+    };
+
+    // The Start button's route: the flag, then the change handler.
+    auto restart = [this]
+    {
+        parameters.setConfigParam ("ProcessingEnabled", true);
+        handleProcessingChange (true);
+    };
+
+    // --- E2: the gate, from both sides ---------------------------------------
+    {
+        Blocks held;
+        {
+            const ScopedAudioStructureChange structureChange (*this);
+            held = blocksDuring (250);
+        }
+        const auto after = blocksDuring (250);
+        check (held.processed == 0 && held.heldOut > 0,
+               "E2: while a structure change is held no block runs; " + juce::String (held.heldOut)
+               + " were held out");
+        check (after.processed > 0 && after.heldOut == 0, "E2: once it ends, blocks run again");
+    }
+
+    // --- E3: a reload that changes no shape (every snapshot recall) ----------
+    {
+        const auto patchBefore = inputPatchMap;
+        const uint32_t heldBefore = audioBlocksHeldOut.load();
+        handleConfigReloaded();
+        check (isProcessingActive(), "E3: a reload with the same shape keeps processing");
+        check (audioBlocksHeldOut.load() == heldBefore, "E3: ...holds no block out, so a cue cannot drop out");
+        check (inputPatchMap == patchBefore, "E3: ...and leaves the patch map as it was");
+        check (shapeHolds(), "E3: the shape holds");
+    }
+
+    // --- E4/E5: a reload that changes the output count (A1) ------------------
+    const int originalOutputs = numOutputChannels;
+    vts.setNumOutputChannels (originalOutputs + 1);
+    handleConfigReloaded();
+    check (! audioEngineStarted,
+           "E4: a reload that changes the output count stops processing (it used to resize the "
+           "matrices under the running workers)");
+    check (numOutputChannels == originalOutputs + 1 && shapeHolds(),
+           "E4: ...and every buffer the callback reads has the new shape");
+
+    restart();
+    {
+        const auto flow = blocksDuring (300);
+        check (isProcessingActive() && flow.processed > 0 && shapeHolds(),
+               "E5: restarted at " + juce::String (numOutputChannels) + " outputs, blocks flow");
+    }
+
+    // --- E6: an algorithm switch while running (A4: the teardown handshake) --
+    {
+        const int algoBefore = juce::jmax (1, (int) parameters.getConfigParam ("ProcessingAlgorithm"));
+        const int otherCpu = (currentAlgorithm == ProcessingAlgorithm::InputBuffer) ? 2 : 1;
+        for (int id : { otherCpu, algoBefore })
+        {
+            parameters.setConfigParam ("ProcessingAlgorithm", id);
+            handleAlgorithmSelectionChange (id);
+            const auto flow = blocksDuring (300);
+            check (isProcessingActive() && flow.processed > 0 && shapeHolds(),
+                   "E6: switched to algorithm " + juce::String (id) + " while running; blocks flow at the right shape");
+        }
+    }
+
+    // --- E7: reshape cycles with processing on (A1, A3, A4) ------------------
+    {
+        bool allHeld = true;
+        for (int cycle = 0; cycle < 10; ++cycle)
+        {
+            vts.setNumOutputChannels (numOutputChannels + 1);     // a load that grows them
+            handleConfigReloaded();
+            allHeld = allHeld && ! audioEngineStarted && shapeHolds();
+            restart();
+
+            vts.setNumOutputChannels (numOutputChannels - 1);     // an edit that shrinks them
+            handleChannelCountChange();
+            allHeld = allHeld && ! audioEngineStarted && shapeHolds();
+            restart();
+
+            allHeld = allHeld && isProcessingActive() && shapeHolds();
+        }
+        check (allHeld && blocksDuring (300).processed > 0,
+               "E7: ten grow-and-shrink cycles while processing: stopped with the right shape at "
+               "every step, running again after each, blocks flow");
+    }
+
+    // --- E8: count changes under the binaural-only path (A2) -----------------
+    {
+        parameters.setConfigParam ("ProcessingEnabled", false);
+        handleProcessingChange (false);
+
+        const bool binauralBefore = vts.getBinauralEnabled();
+        const int binauralChannelBefore = vts.getBinauralOutputChannel();
+        vts.setBinauralOutputChannel (0);
+        vts.setBinauralEnabled (true);
+
+        // The timer syncs binaural on every fourth tick: tick until it has.
+        for (int tick = 0; tick < 8 && ! (binauralProcessor != nullptr && binauralProcessor->isEnabled()); ++tick)
+            timerCallback();
+
+        const bool live = binauralProcessor != nullptr && binauralProcessor->isEnabled()
+                       && binauralCalcEngine != nullptr && binauralCalcEngine->getBinauralOutputChannel() >= 0;
+        check (live, "E8: binaural on, processing off: the callback's binaural-only branch is live");
+
+        bool allHeld = live;
+        for (int cycle = 0; live && cycle < 10; ++cycle)
+        {
+            vts.setNumOutputChannels (numOutputChannels + ((cycle % 2) == 0 ? 1 : -1));
+            handleChannelCountChange();
+            allHeld = allHeld && binauralProcessor->isEnabled() && binauralProcessor->isThreadRunning()
+                   && shapeHolds();
+        }
+        check (allHeld && blocksDuring (300).processed > 0,
+               "E8: ten count changes re-prepare binaural while its branch is live; it stays enabled "
+               "and running, blocks flow");
+
+        vts.setBinauralEnabled (binauralBefore);
+        vts.setBinauralOutputChannel (binauralChannelBefore);
+        for (int tick = 0; tick < 8 && binauralProcessor != nullptr && binauralProcessor->isEnabled() != binauralBefore; ++tick)
+            timerCallback();
+    }
+
+    // --- E9: back as found ----------------------------------------------------
+    vts.setNumOutputChannels (originalOutputs);
+    handleChannelCountChange();
+    restart();
+    check (isProcessingActive() && numOutputChannels == originalOutputs && shapeHolds()
+               && blocksDuring (300).processed > 0,
+           "E9: back to " + juce::String (originalOutputs) + " outputs with processing running");
+
+    // Left stopped, so the session can quit without the "processing is
+    // running" prompt - and so the harness's graceful close also proves the
+    // shutdown after all of the above.
+    parameters.setConfigParam ("ProcessingEnabled", false);
+    handleProcessingChange (false);
 
     logLine(failures == 0 ? "SELF-TEST RESULT: ALL PASS"
                           : "SELF-TEST RESULT: FAIL (" + juce::String(failures) + ")");

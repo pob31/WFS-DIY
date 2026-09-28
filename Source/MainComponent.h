@@ -729,6 +729,19 @@ private:
         numbers: run it in a throwaway session. */
     void runValueGatesSelfTest();
 
+    /** WFS_TEST_ENGINE_RECONFIG=1 (with WFS_TEST_AUTOSTART_PROCESSING=1 and a
+        project on the command line) — audit 2026-09-28 A1-A4, with the device
+        really calling back: ScopedAudioStructureChange holds every block out
+        and lets them back; a same-shape reload keeps processing and never
+        raises it; a reload that changes the output count stops processing and
+        leaves every buffer the callback reads at the new size; an algorithm
+        switch and twenty reshape cycles, processing on and in the binaural-only
+        path, keep the app alive with the shape right after every step. Ends
+        with processing stopped, so the session quits without the
+        running-processing prompt. Changes the session's output count on the
+        way: run it in a throwaway session. */
+    void runEngineReconfigSelfTest();
+
     /** WFS_TEST_RENDER_UI=<folder>: every main tab and the Snapshot Scope window
         (both family grids) rendered offscreen to PNG files. */
     void renderUiSnapshots (const juce::File& dir);
