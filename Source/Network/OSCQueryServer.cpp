@@ -4,6 +4,7 @@
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
 #include "OSCParameterBounds.h"
+#include "../../spatcore/control/osc/NetworkJson.h"
 
 namespace WFSNetwork
 {
@@ -213,7 +214,9 @@ void OSCQueryServer::connectionOpened(const juce::String& id)
 void OSCQueryServer::messageReceived(const juce::String& id, const juce::String& message)
 {
     // Parse JSON command: {"COMMAND":"LISTEN","DATA":"/wfs/input/1/positionX"}
-    auto json = juce::JSON::parse(message);
+    // Any web page can open this WebSocket, so the nesting is capped before
+    // juce::JSON recurses into it.
+    auto json = spatcore::control::osc::parseNetworkJson(message);
 
     if (auto* obj = json.getDynamicObject())
     {

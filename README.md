@@ -180,19 +180,25 @@ Any client that supports the **Streamable HTTP** MCP transport can connect to th
 
 - **Transport:** Streamable HTTP (a single endpoint, not the legacy HTTP+SSE pair)
 - **URL:** the value of the MCP URL button (default `http://127.0.0.1:7400/mcp`)
-- **Authentication:** none
+- **Authentication:** none (see *Who can connect* below)
 
 Refer to your client's MCP configuration documentation for the exact UI path.
 
-### Connecting from a different machine
+### Who can connect
 
-The server binds to loopback (`127.0.0.1`) by default — only an AI client running on the same computer as WFS-DIY can reach it. To allow a remote AI client, switch the bind scope to the selected network interface in the Network tab, then use that machine's LAN IP in the URL (e.g. `http://192.168.1.20:7400/mcp`). Treat this as a local-trust setup: there is no authentication in v1, so do not expose port 7400 to the public internet.
+The server binds to loopback (`127.0.0.1`), so only software running on the same computer as WFS-DIY can reach it, and there is no authentication. A web page open in a browser on that computer can reach the port too, so the server refuses what only a page sends:
+
+- a request addressed to a host name other than `127.0.0.1`, `localhost` or `[::1]` (DNS rebinding);
+- a request with an `Origin` header from anything but a loopback address (every cross-origin request a page makes carries one);
+- a POST whose `Content-Type` is not `application/json` (a page can send text or form data without asking the server first, but not JSON).
+
+MCP clients send none of these, so they need no extra configuration. An AI client on another machine cannot connect: there is no setting that binds the server to a network interface. An SSH tunnel to port 7400 does work, as the port in the `Host` header is not checked.
 
 ### Troubleshooting
 
 - **MCP URL button shows "stopped".** The server failed to bind and there is no automatic fallback. Open the Network Log window for the reason — nearly always another process holding port 7400, usually a second copy of WFS-DIY. Close whatever owns the port and restart the application.
 - **AI assistant reports "tool call refused".** Check the **AI: ON / OFF** toggle and the **AI critical actions** gate. Tier-3 (destructive) tools require both to be permissive.
-- **Endpoint URL changed.** Switching network interface updates the URL. The MCP URL button always reflects the live value — re-copy it and update your client config.
+- **The client gets HTTP 403 or 415.** It sent something only a web page sends (see *Who can connect*): a non-loopback host name, a browser `Origin`, or a body that is not `application/json`. The Network Log window names which.
 - **AI looks out of sync after you moved a fader by hand.** Expected. Manual edits take precedence; the AI is notified and re-reads state before its next action.
 
 ## Development

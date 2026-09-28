@@ -1,6 +1,7 @@
 #include "OSCManager.h"
 #include "../../spatcore/control/osc/OSCIngestQueue.h"
 #include "../../spatcore/control/osc/OSCParser.h"
+#include "../../spatcore/control/osc/NetworkJson.h"
 #include "QLabCueBuilder.h"
 #include "../Helpers/CoordinateConverter.h"
 #include "../../spatcore/dsp/NumericGuards.h"
@@ -6315,7 +6316,7 @@ void OSCManager::sendToQLab (const QLabCueSequence& sequence,
                 auto address = msg.getAddressPattern().toString();
                 if (address.contains ("uniqueID") && msg.size() > 0 && msg[0].isString())
                 {
-                    auto json = juce::JSON::parse (msg[0].getString());
+                    auto json = spatcore::control::osc::parseNetworkJson (msg[0].getString());
                     if (json.isObject())
                     {
                         auto status = json.getProperty (juce::Identifier ("status"), "").toString();

@@ -2,6 +2,7 @@
 #include "../../spatcore/dsp/TrackingPositionFilter.h"
 #include "OSCLogger.h"
 #include "../../spatcore/control/osc/NetworkStringUtils.h"
+#include "../../spatcore/control/osc/NetworkJson.h"
 
 namespace WFSNetwork
 {
@@ -422,8 +423,8 @@ void TrackingMQTTReceiver::processJsonPayload (const juce::String& topic, const 
         logger->logEntry (entry);
     }
 
-    // Parse JSON
-    auto json = juce::JSON::parse (payload);
+    // Parse JSON (nesting capped: the payload is whatever the broker relays)
+    auto json = spatcore::control::osc::parseNetworkJson (payload);
     if (! json.isObject())
         return;
 
