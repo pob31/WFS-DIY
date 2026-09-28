@@ -282,9 +282,45 @@ CASES: list[Case] = [
 ]
 
 
+def osc_bundle(*elements: bytes) -> bytes:
+    """"#bundle", the time tag "immediately", then each element behind its
+    size field."""
+    out = b"#bundle\x00" + struct.pack(">II", 0, 1)
+    for element in elements:
+        out += struct.pack(">i", len(element)) + element
+    return out
+
+
+def osc_bundle_chain(depth: int) -> bytes:
+    """One message wrapped in `depth` bundles, the outermost included."""
+    packet = b"/deep\x00\x00\x00,\x00\x00\x00"
+    for _ in range(depth):
+        packet = osc_bundle(packet)
+    return packet
+
+
+# Audit 2026-09-28, N1. The first crashed every OSC listener: pos + size
+# overflowed, the bounds check passed and the next read landed about 2 GB
+# before the buffer. The second never finished parsing: a nested bundle was
+# parsed against the packet's end, adopted its later siblings, and the work
+# doubled with every sibling. The third is one level past the nesting cap
+# (16) and must be refused whole.
+BUNDLE_SIZE_OVERFLOW = (b"#bundle\x00" + struct.pack(">II", 0, 1)
+                        + struct.pack(">I", 0x7FFFFFF0) + b"/a\x00\x00,\x00\x00\x00")
+BUNDLE_SIBLING_BOMB = osc_bundle(*([osc_bundle()] * 70))
+BUNDLE_TOO_DEEP = osc_bundle_chain(17)
+
 # Synthetic raw-bytes cases that bypass the codec entirely, sent verbatim.
 # Format: (category, raw_bytes, expect, notes)
 RAW_PACKETS: list[tuple[str, bytes, str, str]] = [
+    ("raw-bundle", BUNDLE_SIZE_OVERFLOW, "ignored",
+     "element size 0x7FFFFFF0: pos + size overflowed (audit N1)"),
+    ("raw-bundle", BUNDLE_SIBLING_BOMB, "ignored",
+     "70 sibling empty bundles: parse work doubled per sibling (audit N1)"),
+    ("raw-bundle", BUNDLE_TOO_DEEP, "ignored",
+     "17 nested bundles, one past the cap (audit N1)"),
+    ("raw-bundle", osc_bundle_chain(16), "ignored",
+     "16 nested bundles, the cap: parsed"),
     ("raw-malformed", b"", "ignored", "empty datagram"),
     ("raw-malformed", b"not an osc packet", "ignored",
      "no leading slash, no nulls"),
