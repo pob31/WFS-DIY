@@ -11187,8 +11187,8 @@ MainComponent::~MainComponent()
     if (networkTab != nullptr)
         networkTab->setMCPServer (nullptr);
 
-    // The Scope window references the parameters, which are destroyed before
-    // the session (declared ahead of the tabs so it outlives their rows).
+    // The Scope window is a top-level window: close it while the UI it serves
+    // is still up.
     if (snapshotSession != nullptr)
         snapshotSession->shutdown();
 

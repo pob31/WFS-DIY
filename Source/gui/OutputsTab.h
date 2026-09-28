@@ -311,8 +311,7 @@ public:
     ~OutputsTab() override
     {
         parameters.getArrayEdit().onBypassStarted = nullptr;
-        // Weak: MainComponent destroys WfsParameters before the tabbedComponent
-        // that owns this tab, and with it the ListenerList.
+        // Weak, in case the mute state goes before this tab.
         if (auto* mutes = arrayMuteState.get())
             mutes->removeListener(this);
         ColorScheme::Manager::getInstance().removeListener(this);

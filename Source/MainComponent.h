@@ -205,10 +205,17 @@ private:
     juce::Label algorithmLabel;
     juce::ComboBox algorithmSelector;
 
+    // Parameter management system. Declared before everything that holds a
+    // reference into it - the snapshot session, the tabs, the Map, the windows
+    // - so that it is destroyed after all of them: members go in reverse order,
+    // and the tabs' destructors reach into it (InputsTab clears the cluster
+    // edit's hook, OutputsTab the array edit's).
+    WfsParameters parameters;
+
     // The snapshot row's model, actions and Scope window, shared by the Inputs
     // and Effects tabs (one snapshot file carries both families). Declared
     // BEFORE tabbedComponent so it outlives the rows the tabs own; shutdown()
-    // closes its window early in the destructor, while the parameters exist.
+    // closes its window early in the destructor.
     std::unique_ptr<SnapshotSession> snapshotSession;
 
     // Main tabbed interface with status bar
@@ -377,9 +384,6 @@ private:
     // audio thread exactly as muteReverbPre is.
     std::atomic<bool> soloEffects { false };
     std::atomic<bool> muteEffectsPre { false };
-
-    // Parameter management system
-    WfsParameters parameters;
 
     // Network OSC management
     std::unique_ptr<WFSNetwork::OSCManager> oscManager;
