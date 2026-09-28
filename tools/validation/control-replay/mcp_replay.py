@@ -87,8 +87,19 @@ def read_positions(app: common.App):
     payload = common.tool_payload(app.tool("wfs_get_parameters",
                                            {"reads": READS}))
     assert isinstance(payload, dict), f"batch read failed: {payload}"
-    return [(r["variable"], r["channel_id"], round(float(r["value"]), 6))
+    return [(r["variable"], r["channel_id"], _position_value(r["value"]))
             for r in payload["results"]]
+
+
+def _position_value(value):
+    """A read-back position as a rounded float. A value stored as text reads
+    back as a string, as it always did; a NaN reads back as JSON null and is
+    kept as it is, so a comparison names it instead of the driver dying on
+    float(None)."""
+    try:
+        return round(float(value), 6)
+    except (TypeError, ValueError):
+        return value
 
 
 def main() -> int:
@@ -505,6 +516,41 @@ def main() -> int:
                                   "channel_id": 1}))
         if common.envelope_result(nudged).get("isError"):
             hard_failures.append("wfs_nudge_parameter failed on a tier-1 param")
+
+        # ---- AUDIT 2026-09-28, M4: a number that is not one -----------------
+        # The hand-written tools read their numbers with static_cast<float>,
+        # which reads the text "nan" as NaN, and clamped with jlimit, which
+        # passes NaN through; the nudge's amount did the same, and a missing
+        # coordinate read as 0. Each call must be refused and move nothing.
+        def get_value(variable: str, channel: int):
+            payload = common.tool_payload(app.tool(
+                "wfs_get_parameter", {"variable": variable, "channel_id": channel}))
+            return payload.get("value") if isinstance(payload, dict) else payload
+
+        watched = [("inputAttenuation", 1), ("outputPositionX", 1), ("reverbPositionY", 1)]
+        before = (read_positions(app), [get_value(v, c) for v, c in watched])
+        for label, tool, call_args in (
+                ("input_pos_nan", "input_position_set_cartesian",
+                 {"input_id": 1, "x": "nan", "y": 0.0, "z": 0.0}),
+                ("input_pos_missing_z", "input_position_set_cartesian",
+                 {"input_id": 1, "x": 1.0, "y": 0.0}),
+                ("input_atten_inf", "input_set_attenuation",
+                 {"input_id": 1, "db": "inf"}),
+                ("output_pos_inf", "output_position_set_cartesian",
+                 {"output_id": 1, "x": "inf", "y": 0.0, "z": 0.0}),
+                ("reverb_pos_nan", "reverb_position_set_cartesian",
+                 {"reverb_id": 1, "x": 0.0, "y": "nan", "z": 0.0}),
+                ("nudge_nan", "wfs_nudge_parameter",
+                 {"variable": "inputPositionY", "direction": "inc",
+                  "amount": "nan", "channel_id": 1})):
+            _, refused = app.tool_confirmed(tool, call_args)
+            record(f"not_a_number_refused_{label}", refused)
+            if not common.envelope_result(refused).get("isError"):
+                hard_failures.append(f"{tool} accepted {call_args} (audit M4)")
+        after = (read_positions(app), [get_value(v, c) for v, c in watched])
+        if after != before:
+            hard_failures.append(
+                f"a refused not-a-number call changed a value (audit M4): {before} -> {after}")
 
         # ---- describe_parameters: group overview + summary/full modes ------
         groups = record("describe_groups",

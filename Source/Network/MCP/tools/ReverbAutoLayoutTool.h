@@ -6,6 +6,7 @@
 #include <vector>
 #include <array>
 #include "../MCPCompat.h"
+#include "../MCPParameterValidation.h"
 #include "../../../Parameters/WFSValueTreeState.h"
 #include "../../../Parameters/WFSParameterIDs.h"
 
@@ -1137,8 +1138,10 @@ inline ToolResult autoLayout (WFSValueTreeState& state, const juce::var& args,
                 userTopology = obj->getProperty ("topology").toString();
             if (obj->hasProperty ("audience_radius"))
             {
+                ToolResult notANumber;
+                if (! MCPValidation::readFiniteNumber (*obj, "audience_radius", audienceRadius, notANumber))
+                    return notANumber;
                 hasAudienceR = true;
-                audienceRadius = static_cast<double> (obj->getProperty ("audience_radius"));
             }
             if (obj->hasProperty ("seed"))
             {

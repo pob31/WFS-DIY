@@ -27,8 +27,10 @@
 #include <juce_core/juce_core.h>
 #include <cmath>
 #include <limits>
+#include <optional>
 #include "MCPCompat.h"
 #include "MCPParameterRegistry.h"
+#include "../../Parameters/VarCoercion.h"
 
 namespace WFSNetwork::MCPValidation
 {
@@ -53,6 +55,45 @@ inline bool isExactInt (double d) noexcept
         && d == std::floor (d)
         && d >= static_cast<double> (std::numeric_limits<int>::min())
         && d <= static_cast<double> (std::numeric_limits<int>::max());
+}
+
+/** The finite number a tool argument holds, for the hand-written tools that
+    read their numbers themselves. A JSON number is taken as it is, a string
+    only when it spells a finite number (clients do send "1.5"). Anything
+    else - a missing argument, "nan", "inf", 1e999, true, an object - sets
+    `error` to an invalid_args result naming the argument and returns false.
+
+    Those tools used to read with static_cast<float> (var), which reads the
+    text "nan" as NaN, and then clamp with jlimit, which passes NaN through
+    (audit 2026-09-28, M4). */
+inline bool readFiniteNumber (const juce::DynamicObject& args, const juce::Identifier& name,
+                              double& out, ToolResult& error)
+{
+    const juce::var v = args.getProperty (name);
+    std::optional<double> number;
+
+    if (v.isDouble() || v.isInt() || v.isInt64())
+    {
+        const double d = static_cast<double> (v);
+        if (std::isfinite (d))
+            number = d;
+    }
+    else if (v.isString())
+    {
+        number = WFSVar::parseFiniteNumber (v.toString());
+    }
+
+    if (number.has_value())
+    {
+        out = *number;
+        return true;
+    }
+
+    error = ToolResult::error ("invalid_args",
+                               name.toString() + " must be a finite number"
+                               + (args.hasProperty (name) ? ", not " + v.toString().quoted()
+                                                          : juce::String (", and it is missing")));
+    return false;
 }
 
 /** Validate (and where needed coerce) `value` for `variable`.

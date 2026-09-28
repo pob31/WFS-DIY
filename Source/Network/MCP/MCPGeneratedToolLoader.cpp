@@ -686,10 +686,15 @@ namespace Detail
         if (direction != "inc" && direction != "dec")
             return ToolResult::error ("invalid_args", "direction must be 'inc' or 'dec'");
 
-        // Resolve amount (default 1.0)
-        const double amount = argsObj->hasProperty ("amount")
-                                ? static_cast<double> (argsObj->getProperty ("amount"))
-                                : 1.0;
+        // Resolve amount (default 1.0). A NaN amount made the nudged value NaN,
+        // and the sampler nodes are written directly, past the store's rule.
+        double amount = 1.0;
+        if (argsObj->hasProperty ("amount"))
+        {
+            ToolResult notANumber;
+            if (! MCPValidation::readFiniteNumber (*argsObj, "amount", amount, notANumber))
+                return notANumber;
+        }
         const double signedDelta = (direction == "dec") ? -amount : amount;
 
         const juce::Identifier paramId (binding.internalVariable);

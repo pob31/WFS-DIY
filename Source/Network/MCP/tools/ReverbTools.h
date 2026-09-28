@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "../MCPCompat.h"
+#include "../MCPParameterValidation.h"
 #include "../../../Parameters/WFSValueTreeState.h"
 #include "../../../Parameters/WFSParameterIDs.h"
 
@@ -70,10 +71,17 @@ inline ToolResult setCartesian (WFSValueTreeState& state, const juce::var& args,
     if (channelIndex < 0)
         return ToolResult::error ("invalid_args", "reverb_id out of range: " + juce::String (reverbId));
 
-    constexpr float kStageMax = 50.0f;
-    float x = juce::jlimit (-kStageMax, kStageMax, static_cast<float> (obj->getProperty ("x")));
-    float y = juce::jlimit (-kStageMax, kStageMax, static_cast<float> (obj->getProperty ("y")));
-    float z = juce::jlimit (-kStageMax, kStageMax, static_cast<float> (obj->getProperty ("z")));
+    double rawX = 0.0, rawY = 0.0, rawZ = 0.0;
+    ToolResult notANumber;
+    if (! MCPValidation::readFiniteNumber (*obj, "x", rawX, notANumber)
+        || ! MCPValidation::readFiniteNumber (*obj, "y", rawY, notANumber)
+        || ! MCPValidation::readFiniteNumber (*obj, "z", rawZ, notANumber))
+        return notANumber;
+
+    constexpr double kStageMax = 50.0;
+    float x = static_cast<float> (juce::jlimit (-kStageMax, kStageMax, rawX));
+    float y = static_cast<float> (juce::jlimit (-kStageMax, kStageMax, rawY));
+    float z = static_cast<float> (juce::jlimit (-kStageMax, kStageMax, rawZ));
 
     float oldX = static_cast<float> (state.getReverbParameter (channelIndex, WFSParameterIDs::reverbPositionX));
     float oldY = static_cast<float> (state.getReverbParameter (channelIndex, WFSParameterIDs::reverbPositionY));

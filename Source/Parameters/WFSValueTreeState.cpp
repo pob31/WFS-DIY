@@ -160,49 +160,6 @@ namespace
             + "\" - the stored row was kept. A row is one value per column, comma-separated.");
     }
 
-    /** The number a string spells, when it spells a finite one: an optional
-        sign, digits with at most one point, and an optional exponent. The
-        exponent matters: a project load hands every property back as text,
-        and JUCE writes |x| >= 1e6 and 0 < |x| <= 1e-5 in scientific notation,
-        so MCP undo can replay "1.2e-16". "inf", "nan", "0x10", "12abc" and ""
-        are not numbers here, although String::getDoubleValue reads the first
-        two as the IEEE values and the last two as 12 and 0. */
-    std::optional<double> parseFiniteNumber (const juce::String& text)
-    {
-        const juce::String trimmed = text.trim();
-        auto p = trimmed.getCharPointer();
-
-        if (*p == '+' || *p == '-')
-            ++p;
-
-        int mantissaDigits = 0;
-        while (juce::CharacterFunctions::isDigit (*p)) { ++p; ++mantissaDigits; }
-        if (*p == '.')
-        {
-            ++p;
-            while (juce::CharacterFunctions::isDigit (*p)) { ++p; ++mantissaDigits; }
-        }
-        if (mantissaDigits == 0)
-            return std::nullopt;
-
-        if (*p == 'e' || *p == 'E')
-        {
-            ++p;
-            if (*p == '+' || *p == '-')
-                ++p;
-            int exponentDigits = 0;
-            while (juce::CharacterFunctions::isDigit (*p)) { ++p; ++exponentDigits; }
-            if (exponentDigits == 0)
-                return std::nullopt;
-        }
-
-        if (! p.isEmpty())
-            return std::nullopt;
-
-        const double value = trimmed.getDoubleValue();   // "1e999" is infinite
-        return std::isfinite (value) ? std::optional<double> (value) : std::nullopt;
-    }
-
     /** Same idea as logRefusedRowWrite: every path that can reach this without
         validating first is a caller that has already gone wrong, and the
         reader trying to work out why a value did not move needs the name. */
@@ -374,7 +331,7 @@ WFSValueTreeState::WFSValueTreeState()
         double d = 0.0;
         if (proposed.isString())
         {
-            const auto number = parseFiniteNumber (proposed.toString());
+            const auto number = WFSVar::parseFiniteNumber (proposed.toString());
             if (! number.has_value())
             {
                 logRefusedNumberWrite (property, proposed);
