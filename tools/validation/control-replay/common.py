@@ -1,9 +1,11 @@
 """Shared plumbing for the control-plane replay harnesses.
 
-Stdlib-only (repo convention, see tools/fuzz/). Three drivers build on this:
+Stdlib-only (repo convention, see tools/fuzz/). The drivers that build on this
+include:
   session_roundtrip.py  load fixture -> MCP session_save -> diff vs fixture
   osc_replay.py         scripted OSC writes -> OSCQuery read-back -> golden
   mcp_replay.py         scripted MCP transcript -> normalized -> golden
+  tracking_check.py     OSC tracking on a patched fixture -> OSCQuery read-back
 
 Design: docs/architecture/control-replay-harness.md.
 

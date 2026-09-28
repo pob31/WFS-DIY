@@ -172,6 +172,14 @@ void TrackingOSCReceiver::processTrackingMessage(const juce::OSCMessage& message
         if (flipZ) z = -z;
     }
 
+    // A sample that is not a number is dropped whole: one NaN poisoned the
+    // input's position filter for good and reached its offset. Checked after
+    // the transforms, which can take a huge finite value to infinity. (PSN,
+    // RTTrP and MQTT get the same check in TrackingIngestQueue::push.)
+    if ((hasX && ! std::isfinite (x)) || (hasY && ! std::isfinite (y))
+        || (hasZ && ! std::isfinite (z)) || (hasQ && ! std::isfinite (q)))
+        return;
+
     // Route to matching inputs
     routeToInputs(trackingId, x, y, z, hasX, hasY, hasZ, q);
 }
@@ -214,17 +222,19 @@ void TrackingOSCReceiver::routeToInputs(int trackingId, float x, float y, float 
         }
 
         // Update offset coordinates (tracking updates offset, not position)
-        // Using setProperty triggers ValueTree listeners which updates map and broadcasts to targets.
+        // The write fires the ValueTree listeners, which update the map and broadcast to targets.
         // Live tracking is transient — suppress dirty flagging in the snapshot scope.
         // Phase 5b: tag as Tracking-origin for the MCP staleness/notifications path.
         OriginTagScope originScope { OriginTag::Tracking };
         ParameterDirtyTracker::ScopedInternalWrite guard (dirtyTracker);
+        // Through the store (no undo), so its range clamp and its NaN refusal
+        // hold for tracking as for every other writer.
         if (hasX)
-            posSection.setProperty(WFSParameterIDs::inputOffsetX, fx, nullptr);
+            state.setParameterWithoutUndo (WFSParameterIDs::inputOffsetX, fx, ch);
         if (hasY)
-            posSection.setProperty(WFSParameterIDs::inputOffsetY, fy, nullptr);
+            state.setParameterWithoutUndo (WFSParameterIDs::inputOffsetY, fy, ch);
         if (hasZ)
-            posSection.setProperty(WFSParameterIDs::inputOffsetZ, fz, nullptr);
+            state.setParameterWithoutUndo (WFSParameterIDs::inputOffsetZ, fz, ch);
 
         anyRouted = true;
     }

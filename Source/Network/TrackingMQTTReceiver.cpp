@@ -605,9 +605,11 @@ void TrackingMQTTReceiver::routePositionToInput (int inputIndex, float x, float 
     // Phase 5b: tag as Tracking-origin for the MCP staleness/notifications path.
     OriginTagScope originScope { OriginTag::Tracking };
     ParameterDirtyTracker::ScopedInternalWrite guard (dirtyTracker);
-    posSection.setProperty (WFSParameterIDs::inputOffsetX, fx, nullptr);
-    posSection.setProperty (WFSParameterIDs::inputOffsetY, fy, nullptr);
-    posSection.setProperty (WFSParameterIDs::inputOffsetZ, fz, nullptr);
+    // Through the store (no undo), so its range clamp and its NaN refusal hold
+    // for tracking as for every other writer; the listeners fire as they did.
+    state.setParameterWithoutUndo (WFSParameterIDs::inputOffsetX, fx, inputIndex);
+    state.setParameterWithoutUndo (WFSParameterIDs::inputOffsetY, fy, inputIndex);
+    state.setParameterWithoutUndo (WFSParameterIDs::inputOffsetZ, fz, inputIndex);
 
     ++positionsRouted;
 }
