@@ -724,8 +724,9 @@ def run_stopped_pass(exe: Path, keep_temp: bool, failures: list[str]) -> dict:
         # crashed the app and the second hung its message thread, so they come
         # after every read-back above. They must leave the app there AND still
         # draining: an ordinary write sent after them has to land. (OSCQuery
-        # answers from its own threads, so a read alone would pass with the
-        # message thread stuck.)
+        # used to answer from its own threads, so a read alone passed with the
+        # message thread stuck; since re-audit N4 it answers on the message
+        # thread, and the write-then-read stays the direct test.)
         hostile = common.OSCSender(delay=0.5)
         for packet in (corpus.BUNDLE_SIZE_OVERFLOW, corpus.BUNDLE_SIBLING_BOMB,
                        corpus.BUNDLE_TOO_DEEP):
