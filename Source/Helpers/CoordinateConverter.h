@@ -62,14 +62,19 @@ namespace WFSCoordinates
     // Utility Functions
     //==========================================================================
 
-    /** Normalize angle to -180 to 180 degrees range */
+    /** Normalize angle to the (-180, 180] degrees range.
+
+        std::remainder is exact at any size. The subtract-360 loop it replaces
+        stopped moving above about 8.6e9, where 360 is less than half a float
+        step, so one OSC packet carrying a huge but finite angle
+        (/wfs/input/positionTheta 1 1e10) hung the message thread. An angle
+        that is not finite has no direction and reads as 0. */
     inline float normalizeAngle(float degrees)
     {
-        while (degrees > 180.0f)
-            degrees -= 360.0f;
-        while (degrees <= -180.0f)
-            degrees += 360.0f;
-        return degrees;
+        if (! std::isfinite (degrees))
+            return 0.0f;
+        const float wrapped = std::remainder (degrees, 360.0f);
+        return wrapped <= -180.0f ? wrapped + 360.0f : wrapped;
     }
 
     /** Clamp elevation to -90 to 90 degrees range */
