@@ -278,7 +278,8 @@ private:
     // MQTT protocol handling
     bool connectToBroker();
     bool sendSubscribe();
-    void processIncomingData();
+    /** False when the socket, reported readable, had nothing to read: closed. */
+    bool processIncomingData();
     bool readPacket (uint8_t& packetType, juce::MemoryBlock& payload);
     void handlePublish (const uint8_t* data, int dataSize);
     void sendPing();
