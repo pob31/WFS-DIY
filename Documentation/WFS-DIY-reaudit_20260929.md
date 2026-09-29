@@ -167,6 +167,8 @@ Every item in sections 2–5 was re-read in the code on `effects/reverb-models` 
 | N5 | `717df05d` | Tracking OSC gets its own bounded `OSCIngestQueue` (FIFO only, 5 ms drain, drops logged); `stop()` joins the socket thread before destroying the queue. |
 | N4 | `4489ec27` | HTTP requests are queued and answered in one pass on the message thread (one tree per batch); no HTTP thread waits, and only the queue holds a response. **Found on the way:** a first version that blocked the asio threads crashed `midi_snapshot_check` 3/3 in WinINet: every snapshot recall re-ran the MCP OSCQuery audit, the replaced auditor was stopped with a 3 s `stopThread` while its 750 kB reply could not be sent, and JUCE killed it inside WinINet. Also fixed: the audit runs only when OSCQuery starts, and the auditor's fetch is cancellable. |
 | Tests | `953d208f` | New `network_threads_check.py` (N3 TCP + MQTT with a fake broker, N4 GET storm smoke check, N5 burst). The pre-fix exe fails N3 twice and N5. Full sweep (self-test + 9 drivers) passes on Debug; self-test, `osc_replay`, `mcp_replay`, `midi_snapshot_check`, `network_threads_check` pass on Release. |
+| R3, R5, S2, R7, R8, R6, B5 | `79088fe2` + spatcore `ff3f99b` (branch `fix/reaudit-save-integrity`, PR pending) | Complete save backs up all six files first and removes its own backups if one fails. Backups get millisecond names and never replace an existing one. Snapshot and template saves back up themselves, into `backups/snapshots` and `backups/templates`. Write failures are logged in Release, and both autosaves report failure (the patch save retries every minute). Store with QLab stops on a failed save. Save temp files are left out of the lists. `./`-joined names accept a leading `~`. Windows-reserved names are refused. The sampler export checks its write. `cleanupBackups` is still not wired up: that needs a retention decision. |
+| Tests | `365c5238` | 93 self-test checks (new G4: reserved names, snapshot/template backups, temp files); `session_roundtrip.py` locks `inputs.xml` for an R3 case, which the pre-fix exe fails seven ways; spatcore-tests gain the R5 cases (a mutant with the old naming loses the older backup). Full sweep on Debug; self-test, round trip, `osc_replay`, `midi_snapshot_check` on Release. |
 
 ### 7.2 What the second look added
 
@@ -208,4 +210,4 @@ Every item in sections 2–5 was re-read in the code on `effects/reverb-models` 
 
 ### 7.3 Order from here
 
-Done: M3 (+R4), P1, N3, N4, N5. Next: save integrity (R3, R5, S2 gaps, R7, R8, backups namespace); R2; then B3–B6, R6, F4–F11 and the section 5 items. Progress is recorded in 7.1.
+Done: M3 (+R4), P1, N3, N4, N5; the save-integrity group. Next: R2; then B3, B4, B6, F4–F11 and the section 5 items. Progress is recorded in 7.1.
