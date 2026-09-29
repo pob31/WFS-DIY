@@ -328,13 +328,10 @@ public:
         scopes[name] = fileManager.getExtendedSnapshotScope (name);
         auto& scope = scopes[name];
 
-        auto file = WFSFileManager::getNamedXmlFile (fileManager.getInputSnapshotsFolder(), name);
-
-        // The snapshot is saved over only once its backup is made, and only a
-        // save that landed clears the dirty marks or goes on to QLab: before,
-        // a failed save still exported to QLab and cleared them.
-        if (! fileManager.createBackup (file)
-            || ! fileManager.saveInputSnapshotWithExtendedScope (name, scope))
+        // The save backs the snapshot up first (and stops when it cannot), and
+        // only a save that landed clears the dirty marks or goes on to QLab:
+        // before, a failed save still exported to QLab and cleared them.
+        if (! fileManager.saveInputSnapshotWithExtendedScope (name, scope))
         {
             status (LOC ("inputs.messages.error").replace ("{error}", fileManager.getLastError()));
             return;
@@ -597,41 +594,42 @@ private:
             scope.midiNote    = existing.midiNote;
         }
 
+        // Saved first, as update() does. With QLab on, a failed save still
+        // exported the cue (from the file on disk: the OLD snapshot, or none,
+        // under the new scope) and cleared the dirty marks, and the cached
+        // scope already said what the disk did not (re-audit 2026-09-29, R7).
+        if (! fileManager.saveInputSnapshotWithExtendedScope (name, scope))
+        {
+            status (LOC ("inputs.messages.error").replace ("{error}", fileManager.getLastError()));
+            return;
+        }
+
         scopes[name] = scope;
 
         if (writeToQLabEnabled)
         {
-            // Save snapshot first — onQLabExportRequested reads XML from disk
-            if (fileManager.saveInputSnapshotWithExtendedScope (name, scope))
-            {
-                selected = name;
-                refreshList();
-                if (onSnapshotsChanged)
-                    onSnapshotsChanged();
-            }
+            selected = name;
+            refreshList();
+            if (onSnapshotsChanged)
+                onSnapshotsChanged();
+
+            // onQLabExportRequested reads the XML from disk.
             if (onQLabExportRequested)
                 onQLabExportRequested (name, scope);
             parameters.getDirtyTracker().clearAll();
         }
         else
         {
-            if (fileManager.saveInputSnapshotWithExtendedScope (name, scope))
-            {
-                parameters.getDirtyTracker().clearAll();
-                selected = name;
-                refreshList();
-                status (LOC ("inputs.messages.snapshotStored").replace ("{name}", name));
+            parameters.getDirtyTracker().clearAll();
+            selected = name;
+            refreshList();
+            status (LOC ("inputs.messages.snapshotStored").replace ("{name}", name));
 
-                if (onSnapshotsChanged)
-                    onSnapshotsChanged();
+            if (onSnapshotsChanged)
+                onSnapshotsChanged();
 
-                if (writeSnapshotLoadCueEnabled && onQLabSnapshotLoadCueRequested)
-                    onQLabSnapshotLoadCueRequested (name);
-            }
-            else
-            {
-                status (LOC ("inputs.messages.error").replace ("{error}", fileManager.getLastError()));
-            }
+            if (writeSnapshotLoadCueEnabled && onQLabSnapshotLoadCueRequested)
+                onQLabSnapshotLoadCueRequested (name);
         }
     }
 

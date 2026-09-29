@@ -8,6 +8,7 @@
 #include "../Localization/LocalizationManager.h"
 #include "../Helpers/TypedValue.h"
 #include "../AppSettings.h"
+#include "../WFSLogger.h"
 #include "ColorScheme.h"
 #include "sliders/WfsStandardSlider.h"
 #include "sliders/WfsRangeSlider.h"
@@ -1649,9 +1650,22 @@ private:
 
                 AppSettings::setLastFolder ("lastSampleFolder", result.getParentDirectory());
 
+                // Its result was ignored: a read-only folder or a full disk
+                // exported nothing and said nothing.
                 auto xml = samplerTree.createXml();
-                if (xml != nullptr)
-                    xml->writeTo (result);
+                if (xml == nullptr || ! xml->writeTo (result))
+                {
+                    WFSLogger::getInstance().logWarning ("Sampler config export to "
+                                                         + result.getFullPathName() + " failed");
+                    juce::AlertWindow::showAsync (juce::MessageBoxOptions()
+                                                      .withIconType (juce::MessageBoxIconType::WarningIcon)
+                                                      .withTitle (LOC ("sampler.exportTitle"))
+                                                      .withMessage (LOC ("sampler.exportFailed")
+                                                                        .replace ("{path}", result.getFullPathName()))
+                                                      .withButton (LOC ("common.ok"))
+                                                      .withAssociatedComponent (this),
+                                                  nullptr);
+                }
             });
     }
 

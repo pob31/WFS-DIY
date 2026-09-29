@@ -338,17 +338,74 @@ juce::File WFSFileManager::getScopeTemplatesFolder() const
     return projectFolder.getChildFile ("snapshots").getChildFile ("scopes");
 }
 
+namespace
+{
+    // Names Windows cannot use for a file: its forbidden characters and
+    // control characters, and the device names (CON, PRN, AUX, NUL, COM0-9,
+    // LPT0-9, superscript digits included) whatever follows the first dot.
+    // Windows 11 accepts "NUL.xml" as a file, Windows 10 and older read it as
+    // the device, so a snapshot of that name could not be written there, nor
+    // a project holding one copied there (re-audit 2026-09-29, B5).
+    bool isUnwritableOnWindows (const juce::String& itemName)
+    {
+        for (auto c : itemName)
+            if (c < 0x20 || juce::String ("<>\"|?*").containsChar (c))
+                return true;
+
+        const auto base = itemName.upToFirstOccurrenceOf (".", false, false)
+                                  .trimEnd().toUpperCase();
+        if (base == "CON" || base == "PRN" || base == "AUX" || base == "NUL")
+            return true;
+
+        if (base.length() == 4 && (base.startsWith ("COM") || base.startsWith ("LPT")))
+        {
+            const auto last = base.getLastCharacter();
+            return juce::CharacterFunctions::isDigit (last) || last == 0xB9 || last == 0xB2 || last == 0xB3;
+        }
+        return false;
+    }
+
+    // The temp file XmlPersistence::replaceFileContents writes beside its
+    // target, ".<name>_temp<hex><ext>", survives a crash between the write and
+    // the rename. It is not a snapshot: listed, it showed up in the list, and
+    // sorting before its snapshot it took that snapshot's MIDI note
+    // (re-audit 2026-09-29, R8). ignoreHiddenFiles cannot tell: on Windows
+    // "hidden" is an attribute the file does not have.
+    bool isLeftoverSaveTemp (const juce::File& file)
+    {
+        const auto stem = file.getFileNameWithoutExtension();
+        if (! stem.startsWithChar ('.'))
+            return false;
+
+        const int at = stem.lastIndexOf ("_temp");
+        if (at < 1)
+            return false;
+
+        const auto tail = stem.substring (at + 5);
+        return tail.isNotEmpty() && tail.containsOnly ("0123456789abcdefABCDEF");
+    }
+}
+
 juce::File WFSFileManager::getNamedXmlFile (const juce::File& folder, const juce::String& itemName)
 {
     // No project folder: the folder getters return an empty File, and a name
     // joined onto it lands at the root of the current drive.
-    if (folder == juce::File() || itemName.trim().isEmpty() || itemName.containsAnyOf ("/\\:"))
+    if (folder == juce::File() || itemName.trim().isEmpty() || itemName.containsAnyOf ("/\\:")
+        || isUnwritableOnWindows (itemName))
         return {};
 
-    // The separators are out, but getChildFile still reads a leading '~' as
-    // a home directory on macOS and Linux, so the parent is checked as well.
-    const auto file = folder.getChildFile (itemName + snapshotExtension);
+    // "./" first: on macOS and Linux getChildFile reads a leading '~' as an
+    // absolute path (a home directory), which refused every name starting
+    // with one there (re-audit 2026-09-29, R6). The parent is still checked.
+    const auto file = folder.getChildFile ("./" + itemName + snapshotExtension);
     return file.getParentDirectory() == folder ? file : juce::File();
+}
+
+juce::String WFSFileManager::describeUnusableName (const juce::String& itemName)
+{
+    return LOC (isUnwritableOnWindows (itemName) ? "fileManager.errors.reservedSnapshotName"
+                                                 : "fileManager.errors.unusableSnapshotName")
+               .replace ("{name}", itemName);
 }
 
 juce::File WFSFileManager::getIRFolder() const
@@ -382,6 +439,38 @@ bool WFSFileManager::saveCompleteConfig()
     }
 
     WFSLogger::getInstance().logInfo ("Saving complete config to " + projectFolder.getFullPathName());
+
+    // Every backup first, then every write (re-audit 2026-09-29, R3). A section
+    // whose backup failed used to be skipped while the others were written,
+    // which left files of different generations on disk, and gave the skipped
+    // one a backup fewer, so Reload Complete Backup, which pairs backups by
+    // index, mixed generations too. Now the first backup that fails stops the
+    // save before anything is written or latched, and the backups this save
+    // had already made are removed again.
+    {
+        const juce::File sectionFiles[] = { getSystemConfigFile(), getNetworkConfigFile(),
+                                            getInputConfigFile(), getOutputConfigFile(),
+                                            getReverbConfigFile(), getEffectsConfigFile() };
+        juce::Array<juce::File> madeThisSave;
+        for (const auto& file : sectionFiles)
+        {
+            const auto backup = spatcore::control::state::XmlPersistence::backUpFile (file, getBackupFolder());
+            if (! backup.ok)
+            {
+                for (auto& made : madeThisSave)
+                    made.deleteFile();
+                setError (LOC ("fileManager.errors.backupFailed")
+                              .replace ("{file}", file.getFileName())
+                              .replace ("{folder}", getBackupFolder().getFullPathName()));
+                WFSLogger::getInstance().logWarning ("Backup of " + file.getFullPathName()
+                                                     + " failed; nothing of the project was saved");
+                return false;
+            }
+            if (backup.copy != juce::File())
+                madeThisSave.add (backup.copy);
+        }
+    }
+    const juce::ScopedValueSetter<bool> backupsTaken (sectionBackupsTaken, true);
 
     // Save all individual configuration files
     bool success = true;
@@ -695,10 +784,10 @@ bool WFSFileManager::saveSystemConfig()
     return ok;
 }
 
-bool WFSFileManager::autoSaveSystemConfig()
+WFSFileManager::AutoSave WFSFileManager::autoSaveSystemConfig()
 {
     if (!hasValidProjectFolder())
-        return false;
+        return AutoSave::skipped;
 
     // Never clobber an existing system.xml the user hasn't loaded (or saved) this
     // session: right after selecting a work folder the in-memory state is still
@@ -706,10 +795,10 @@ bool WFSFileManager::autoSaveSystemConfig()
     if (!systemConfigSynced && getSystemConfigFile().existsAsFile())
     {
         WFSLogger::getInstance().logInfo ("Auto-save of system config skipped: config not yet loaded from this project folder");
-        return false;
+        return AutoSave::skipped;
     }
 
-    return saveSystemConfig();
+    return saveSystemConfig() ? AutoSave::saved : AutoSave::failed;
 }
 
 bool WFSFileManager::loadSystemConfig()
@@ -1339,7 +1428,8 @@ juce::StringArray WFSFileManager::getInputSnapshotNames() const
     if (folder.isDirectory())
     {
         for (auto& file : folder.findChildFiles (juce::File::findFiles, false, "*" + juce::String (snapshotExtension)))
-            names.add (file.getFileNameWithoutExtension());
+            if (! isLeftoverSaveTemp (file))
+                names.add (file.getFileNameWithoutExtension());
     }
 
     return names;
@@ -1360,6 +1450,7 @@ std::vector<WFSFileManager::MidiBinding> WFSFileManager::scanSnapshotMidiBinding
 
     auto files = folder.findChildFiles (juce::File::findFiles, false,
                                         "*" + juce::String (snapshotExtension));
+    files.removeIf ([] (const juce::File& f) { return isLeftoverSaveTemp (f); });
 
     // findChildFiles order is filesystem-dependent; sorting makes the winner of
     // a duplicate binding deterministic. The sort is on the snapshot NAME,
@@ -1435,6 +1526,9 @@ juce::int64 WFSFileManager::getInputSnapshotsFolderSignature() const
                                                             "*" + juce::String (snapshotExtension),
                                                             juce::File::findFiles))
     {
+        if (isLeftoverSaveTemp (entry.getFile()))
+            continue;
+
         const auto text = entry.getFile().getFileName()
                           + "|" + juce::String (entry.getFileSize())
                           + "|" + juce::String (entry.getModificationTime().toMilliseconds());
@@ -1933,9 +2027,16 @@ bool WFSFileManager::saveInputSnapshotWithExtendedScope (const juce::String& sna
     auto file = getNamedXmlFile (folder, snapshotName);
     if (file == juce::File())
     {
-        setError (LOC ("fileManager.errors.unusableSnapshotName").replace ("{name}", snapshotName));
+        setError (describeUnusableName (snapshotName));
         return false;
     }
+
+    // Backed up before anything is written or latched. A Store over an
+    // existing name (the button, OSC /wfs/input/snapshot/store, a QLab cue)
+    // replaced the snapshot with no copy kept; only Update made one, from
+    // outside (re-audit 2026-09-29, S2).
+    if (! createBackupIn (file, getSnapshotBackupFolder()))
+        return false;
 
     // The one choke point for the Inputs-tab store button, the auto-store paths
     // and OSC /wfs/input/snapshot/store. Every entry below goes to disk as
@@ -2062,7 +2163,7 @@ bool WFSFileManager::loadInputSnapshotWithExtendedScope (const juce::String& sna
     auto file = getNamedXmlFile (getInputSnapshotsFolder(), snapshotName);
     if (file == juce::File())
     {
-        setError (LOC ("fileManager.errors.unusableSnapshotName").replace ("{name}", snapshotName));
+        setError (describeUnusableName (snapshotName));
         return false;
     }
 
@@ -2204,6 +2305,9 @@ bool WFSFileManager::setExtendedSnapshotScope (const juce::String& snapshotName,
     // (or removes them when the binding was cleared).
     writeMidiBindingToRoot (snapshot, scope);
 
+    if (! createBackupIn (file, getSnapshotBackupFolder()))
+        return false;
+
     return writeToXmlFile (snapshot, file);
 }
 
@@ -2218,7 +2322,7 @@ bool WFSFileManager::updateInputSnapshotScope (const juce::String& snapshotName,
         return false;
     }
 
-    if (!createBackup (file))
+    if (!createBackupIn (file, getSnapshotBackupFolder()))
         return false;
 
     // Replace the embedded scope
@@ -2273,9 +2377,15 @@ bool WFSFileManager::saveScopeTemplate (const juce::String& templateName, const 
     auto file = getNamedXmlFile (folder, templateName);
     if (file == juce::File())
     {
-        setError (LOC ("fileManager.errors.unusableSnapshotName").replace ("{name}", templateName));
+        setError (describeUnusableName (templateName));
         return false;
     }
+
+    // Save As over an existing template replaced it with no copy; only
+    // Update made one (re-audit 2026-09-29, S2).
+    if (! createBackupIn (file, getTemplateBackupFolder()))
+        return false;
+
     folder.createDirectory();
 
     juce::ValueTree tpl ("ScopeTemplate");
@@ -2324,7 +2434,8 @@ juce::StringArray WFSFileManager::getScopeTemplateNames() const
     if (folder.isDirectory())
     {
         for (auto& file : folder.findChildFiles (juce::File::findFiles, false, "*" + juce::String (snapshotExtension)))
-            names.add (file.getFileNameWithoutExtension());
+            if (! isLeftoverSaveTemp (file))
+                names.add (file.getFileNameWithoutExtension());
     }
 
     return names;
@@ -3005,16 +3116,37 @@ bool WFSFileManager::applyInputWithExtendedScope (int channelIndex, const juce::
 
 bool WFSFileManager::createBackup (const juce::File& file)
 {
-    if (spatcore::control::state::XmlPersistence::createBackup (file, getBackupFolder()))
+    // Inside saveCompleteConfig, which backed up all six files before any write.
+    if (sectionBackupsTaken)
+        return true;
+
+    return createBackupIn (file, getBackupFolder());
+}
+
+bool WFSFileManager::createBackupIn (const juce::File& file, const juce::File& backupFolder)
+{
+    if (spatcore::control::state::XmlPersistence::createBackup (file, backupFolder))
         return true;
 
     // Every save backs the file up before replacing it, and stops here when
     // it cannot: going on would lose the version the backup was for.
     setError (LOC ("fileManager.errors.backupFailed")
                   .replace ("{file}", file.getFileName())
-                  .replace ("{folder}", getBackupFolder().getFullPathName()));
+                  .replace ("{folder}", backupFolder.getFullPathName()));
     WFSLogger::getInstance().logWarning ("Backup of " + file.getFullPathName() + " failed; the file was not saved over");
     return false;
+}
+
+juce::File WFSFileManager::getSnapshotBackupFolder() const
+{
+    const auto backups = getBackupFolder();
+    return backups == juce::File() ? juce::File() : backups.getChildFile ("snapshots");
+}
+
+juce::File WFSFileManager::getTemplateBackupFolder() const
+{
+    const auto backups = getBackupFolder();
+    return backups == juce::File() ? juce::File() : backups.getChildFile ("templates");
 }
 
 juce::Array<juce::File> WFSFileManager::getBackups (const juce::String& fileType) const
@@ -3047,13 +3179,19 @@ bool WFSFileManager::writeToXmlFile (const juce::ValueTree& tree, const juce::Fi
         case WriteResult::ok:
             return true;
 
+        // setError reaches the debugger only, so a failed write left no trace
+        // in a Release build (re-audit 2026-09-29, S2): logged here as well.
         case WriteResult::xmlConversionFailed:
             setError (LOC ("fileManager.errors.failedCreateXML"));
+            WFSLogger::getInstance().logWarning ("Save of " + file.getFullPathName()
+                                                 + " failed: the state could not be turned into XML");
             return false;
 
         case WriteResult::fileWriteFailed:
         default:
             setError (LOC ("fileManager.errors.failedWriteFile").replace ("{path}", file.getFullPathName()));
+            WFSLogger::getInstance().logWarning ("Save of " + file.getFullPathName()
+                                                 + " failed: the file could not be written (it is unchanged)");
             return false;
     }
 }

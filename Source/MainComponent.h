@@ -612,6 +612,7 @@ private:
     int timerTicksSinceLastRandom = 0;
     const int rampDurationTicks = 200;          // 1 second at 5ms per tick
     int patchSaveCountdown = 0;                 // Debounce timer for auto-saving patch (0 = idle)
+    bool patchSaveFailing = false;              // The last patch auto-save failed (logged once, retried)
     juce::Random random;
 
     // Master level gain (smoothed for click-free operation).

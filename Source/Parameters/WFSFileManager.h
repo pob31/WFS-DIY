@@ -133,6 +133,9 @@ public:
         project's system.xml. */
     static juce::File getNamedXmlFile (const juce::File& folder, const juce::String& itemName);
 
+    /** Why getNamedXmlFile refused `itemName`, as the error to show. */
+    static juce::String describeUnusableName (const juce::String& itemName);
+
     //==========================================================================
     // Complete Configuration
     //==========================================================================
@@ -164,7 +167,8 @@ public:
         whose config hasn't been loaded (or explicitly saved) this session — otherwise
         selecting a work folder and starting audio before reloading would clobber the
         on-disk config with the in-memory defaults. */
-    bool autoSaveSystemConfig();
+    enum class AutoSave { saved, skipped, failed };
+    AutoSave autoSaveSystemConfig();
 
     /** Load system configuration from project folder */
     bool loadSystemConfig();
@@ -607,10 +611,22 @@ public:
     // Backup Management
     //==========================================================================
 
-    /** Copy a file into the backups folder before it is saved over. True when
-        the copy was made or there is no file yet; false, with the error set,
-        when it exists and could not be copied. A save must stop on false. */
+    /** Copy a section file (system, network, inputs, ...) into the backups
+        folder before it is saved over. True when the copy was made or there
+        is no file yet; false, with the error set, when it exists and could
+        not be copied. A save must stop on false. */
     bool createBackup (const juce::File& file);
+
+    /** The same into `backupFolder`: snapshots and scope templates keep their
+        backups apart from the section files (getSnapshotBackupFolder,
+        getTemplateBackupFolder). */
+    bool createBackupIn (const juce::File& file, const juce::File& backupFolder);
+
+    /** backups/snapshots and backups/templates. A snapshot backup used to sit
+        among the section backups, where one named "inputs..." was listed as
+        an inputs.xml backup and Reload Input Backup could load it. */
+    juce::File getSnapshotBackupFolder() const;
+    juce::File getTemplateBackupFolder() const;
 
     /** Get list of backups for a file type */
     juce::Array<juce::File> getBackups (const juce::String& fileType) const;
@@ -729,6 +745,10 @@ private:
     // folder (loaded from it, or explicitly saved to it). Gates autoSaveSystemConfig
     // so background saves can't clobber a config the user hasn't loaded yet.
     bool systemConfigSynced = false;
+
+    // Set by saveCompleteConfig while it writes: it has already backed up all
+    // six section files, so createBackup must not make a second copy.
+    bool sectionBackupsTaken = false;
 
     // Whether the last system config applied carried an <InputChannelList>.
     //

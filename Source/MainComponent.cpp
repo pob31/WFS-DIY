@@ -2644,7 +2644,8 @@ MainComponent::MainComponent()
         auto& fileManager = parameters.getFileManager();
         if (!fileManager.hasValidProjectFolder())
         {
-            DBG ("OSC snapshot/store: no project folder configured");
+            WFSLogger::getInstance().logWarning ("OSC snapshot store of '" + snapshotName
+                                                 + "' failed: no project folder is open");
             return;
         }
 
@@ -11453,8 +11454,10 @@ MainComponent::~MainComponent()
     // Auto-save variant: skipped if the folder's config was never loaded this
     // session, so quitting can't clobber a config selected but not yet reloaded.
     auto& fileManager = parameters.getFileManager();
-    if (fileManager.hasValidProjectFolder())
-        fileManager.autoSaveSystemConfig();
+    if (fileManager.hasValidProjectFolder()
+        && fileManager.autoSaveSystemConfig() == WFSFileManager::AutoSave::failed)
+        WFSLogger::getInstance().logWarning ("The system config (audio patch) could not be saved at exit: "
+                                             + fileManager.getLastError());
 
     // Clean up status bar (owned by this component, not TabbedComponent)
     delete statusBar;
@@ -16002,9 +16005,26 @@ void MainComponent::timerCallback()
     // overwrite a project folder's config that hasn't been loaded this session)
     if (patchSaveCountdown > 0 && --patchSaveCountdown == 0)
     {
+        // A failed patch save used to be dropped: nothing shown, no retry, and
+        // the edit lived only in memory until the exit save failed the same
+        // way (re-audit 2026-09-29, S2). Now it is logged once and retried
+        // every minute until it lands.
         auto& fm = parameters.getFileManager();
-        if (fm.hasValidProjectFolder())
-            fm.autoSaveSystemConfig();
+        const auto saved = fm.hasValidProjectFolder() ? fm.autoSaveSystemConfig()
+                                                      : WFSFileManager::AutoSave::skipped;
+        if (saved == WFSFileManager::AutoSave::failed)
+        {
+            if (! patchSaveFailing)
+                WFSLogger::getInstance().logWarning ("The audio patch could not be saved (retrying every minute): "
+                                                     + fm.getLastError());
+            patchSaveFailing = true;
+            patchSaveCountdown = 12000;   // 60 s at the 200 Hz tick
+        }
+        else if (saved == WFSFileManager::AutoSave::saved && patchSaveFailing)
+        {
+            WFSLogger::getInstance().logInfo ("The audio patch is saved again");
+            patchSaveFailing = false;
+        }
     }
 
     // Increment tick counter

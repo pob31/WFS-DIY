@@ -2784,6 +2784,7 @@
       "snapshotNotFound": "Snapshot not found",
       "snapshotNotFoundNamed": "Snapshot not found: {name}",
       "unusableSnapshotName": "Not a usable snapshot name: {name}. A name cannot contain /, \\ or :",
+      "reservedSnapshotName": "Not a usable snapshot name: {name}. Windows reserves it for a device (CON, PRN, AUX, NUL, COM1-9, LPT1-9), or it holds one of < > \" | ? * or a control character.",
       "failedCreateXML": "Failed to create XML from state",
       "failedWriteFile": "Failed to write file: {path}. The file on disk is unchanged.",
       "backupFailed": "Could not back up {file} into {folder}, so it was not saved: the file on disk is unchanged.",
@@ -2862,6 +2863,7 @@
     },
     "importTitle": "Import Sampler Config",
     "exportTitle": "Export Sampler Config",
+    "exportFailed": "The sampler config could not be written to {path}.",
     "grid": {
       "help": "Click = select\nShift = multi\nCtrl = set toggle\nDblClick = load"
     },
