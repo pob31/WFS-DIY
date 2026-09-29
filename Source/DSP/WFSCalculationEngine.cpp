@@ -982,7 +982,7 @@ float WFSCalculationEngine::coneAttenuation (int orientationDeg, int pitchDeg, i
 {
     // The reverb-feed law, operation for operation
     // (calculateReverbFeedAngularAttenuation), on explicit parameters.
-    if (angleOnDeg >= 90)
+    if (angleOnDeg >= 180)
         return 1.0f;
 
     constexpr float degToRad = juce::MathConstants<float>::pi / 180.0f;
@@ -1192,9 +1192,11 @@ float WFSCalculationEngine::calculateAngularAttenuation (int /*inputIndex*/, int
     int angleOnDeg = positionSection.getProperty (outputAngleOn, outputAngleOnDefault);
     int angleOffDeg = positionSection.getProperty (outputAngleOff, outputAngleOffDefault);
 
-    // Optimization: if angleOn >= 90°, all inputs are in the "on" zone
-    // (hemisphere behind speaker) - skip angular calculation
-    if (angleOnDeg >= 90)
+    // Only an On cone of 180 degrees takes in every direction. The shortcut
+    // used to fire from 90, which switched the front mute cone off for any
+    // On angle past 90: at On 90 / Off 90 a source straight in front of the
+    // speaker played at full level. The zones below need no help past 90.
+    if (angleOnDeg >= 180)
         return 1.0f;
 
     // Convert to radians
@@ -1274,8 +1276,9 @@ float WFSCalculationEngine::calculateReverbFeedAngularAttenuation (int /*inputIn
     int angleOnDeg = feedSection.getProperty (reverbAngleOn, reverbAngleOnDefault);
     int angleOffDeg = feedSection.getProperty (reverbAngleOff, reverbAngleOffDefault);
 
-    // Optimization: if angleOn >= 90°, all inputs are in the "on" zone
-    if (angleOnDeg >= 90)
+    // Only an On cone of 180 degrees takes in every direction (see
+    // calculateAngularAttenuation: the shortcut used to fire from 90).
+    if (angleOnDeg >= 180)
         return 1.0f;
 
     // Convert to radians
