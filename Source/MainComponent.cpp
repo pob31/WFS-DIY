@@ -11,6 +11,9 @@
 #include "Accessibility/TTSManager.h"
 #include "Network/QLabCueBuilder.h"
 #include "Network/OSCMessageRouter.h"
+#include "Helpers/CoordinateConverter.h"
+#include "Helpers/ArrayGeometryCalculator.h"
+#include "Shared/PluginAdmMapping.h"
 #include "Network/MCP/tools/ChannelLifecycleTools.h"
 #include "Network/MCP/MCPSurfaceAudit.h"
 #include "Controllers/DialsAndButtons/pages/InputsTabPages.h"
@@ -3368,7 +3371,7 @@ void MainComponent::runValueGatesSelfTest()
         logLine(juce::String("SELF-TEST ") + (ok ? "PASS " : "FAIL ") + what);
     };
 
-    logLine("SELF-TEST begin (value gates: audit 2026-09-28 N2, S1)");
+    logLine("SELF-TEST begin (value gates: audit 2026-09-28 N2, S1; re-audit 2026-09-29 F1-F3, R1, B1, B2)");
 
     if (vts.getNumInputChannels() < 1 || vts.getNumOutputChannels() < 1 || vts.getNumReverbChannels() < 1)
     {
@@ -3526,6 +3529,218 @@ void MainComponent::runValueGatesSelfTest()
 
         fm.setProjectFolder (previousFolder);
         scratch.deleteRecursively();
+    }
+
+    //--------------------------------------------------------------------------
+    // G5: re-audit 2026-09-29, F1. An angle wrap that ends at any size: the
+    // subtract-360 loops never finished above about 8.6e9, so one OSC packet
+    // hung the message thread. On a build without the fix this phase hangs.
+    {
+        using WFSCoordinates::normalizeAngle;
+        const float huge = 1.0e10f;
+        const float wrapped = normalizeAngle (huge);
+        check (wrapped > -180.0f && wrapped <= 180.0f, "G5 F1: a 1e10 degree azimuth wraps into (-180, 180]");
+        check (normalizeAngle (540.0f) == 180.0f && normalizeAngle (-180.0f) == 180.0f
+                   && normalizeAngle (190.0f) == -170.0f && normalizeAngle (-190.0f) == 170.0f
+                   && normalizeAngle (-3600.0f) == 0.0f,
+               "G5 F1: ...and the ordinary wraps land where the loop put them");
+        check (normalizeAngle (std::numeric_limits<float>::infinity()) == 0.0f
+                   && normalizeAngle (std::numeric_limits<float>::quiet_NaN()) == 0.0f,
+               "G5 F1: an angle that is not finite reads as 0");
+        const float arrayWrapped = ArrayGeometry::normalizeAngle (-huge);
+        check (arrayWrapped >= -180.0f && arrayWrapped <= 180.0f && ArrayGeometry::normalizeAngle (-180.0f) == -180.0f,
+               "G5 F1: the array helper's wrap ends too, and keeps -180");
+        const float admWrapped = PluginAdmMapping::normalizeAngleDeg (huge);
+        check (admWrapped > -180.0f && admWrapped <= 180.0f && PluginAdmMapping::normalizeAngleDeg (-180.0f) == 180.0f,
+               "G5 F1: ...and the ADM-OSC one");
+    }
+
+    //--------------------------------------------------------------------------
+    // G6: re-audit 2026-09-29, F2. The front mute cone holds for any Angle On
+    // below 180. The shortcut "On >= 90 hears everything" switched it off, so
+    // at On 90 / Off 90 a source straight in front of a speaker played at full
+    // level. Read from the level matrix itself: output 1 is put 2 m upstage
+    // of input 1 (the source is in front of it: orientation 0 faces the
+    // audience) or 2 m downstage (the source is behind it, the control).
+    if (auto* calc = calculationEngine.get())
+    {
+        WFSValueTreeState::ScopedUndoSuppression noUndo (vts);
+        const juce::Identifier outIds[] = { outputPositionX, outputPositionY, outputPositionZ, outputOrientation,
+                                            outputPitch, outputAngleOn, outputAngleOff };
+        const juce::Identifier revIds[] = { reverbPositionX, reverbPositionY, reverbPositionZ, reverbOrientation,
+                                            reverbPitch, reverbAngleOn, reverbAngleOff };
+        std::vector<juce::var> outBefore, revBefore;
+        for (const auto& param : outIds) outBefore.push_back (vts.getOutputParameter (0, param));
+        for (const auto& param : revIds) revBefore.push_back (vts.getReverbParameter (0, param));
+
+        calc->recalculateAllInputPositions();
+        const auto src = calc->getCompositeInputPosition (0);
+
+        auto outputLevel = [&] (float dy, int angleOn, int angleOff)
+        {
+            vts.setOutputParameter (0, outputPositionX, src.x);
+            vts.setOutputParameter (0, outputPositionY, src.y + dy);
+            vts.setOutputParameter (0, outputPositionZ, src.z);
+            vts.setOutputParameter (0, outputOrientation, 0);
+            vts.setOutputParameter (0, outputPitch, 0);
+            vts.setOutputParameter (0, outputAngleOn, angleOn);
+            vts.setOutputParameter (0, outputAngleOff, angleOff);
+            calc->recalculateAllListenerPositions();
+            calc->recalculateMatrix (nullptr);
+            return calc->getLevel (0, 0);
+        };
+        auto reverbFeedLevel = [&] (float dy, int angleOn, int angleOff)
+        {
+            vts.setReverbParameter (0, reverbPositionX, src.x);
+            vts.setReverbParameter (0, reverbPositionY, src.y + dy);
+            vts.setReverbParameter (0, reverbPositionZ, src.z);
+            vts.setReverbParameter (0, reverbOrientation, 0);
+            vts.setReverbParameter (0, reverbPitch, 0);
+            vts.setReverbParameter (0, reverbAngleOn, angleOn);
+            vts.setReverbParameter (0, reverbAngleOff, angleOff);
+            calc->recalculateAllReverbPositions();
+            calc->recalculateMatrix (nullptr);
+            return calc->getInputReverbLevels()[0];
+        };
+
+        const float behind = outputLevel (-2.0f, 86, 90);
+        check (behind > 0.0f, "G6 F2: control - input 1 reaches output 1 from behind it (level " + juce::String (behind) + ")");
+        check (outputLevel (2.0f, 86, 90) == 0.0f, "G6 F2: in front of it at the default On 86 / Off 90 it is muted");
+        check (outputLevel (2.0f, 90, 90) == 0.0f,
+               "G6 F2: ...and still muted at On 90 / Off 90 (the shortcut played it at full level)");
+        check (outputLevel (2.0f, 120, 40) == 0.0f, "G6 F2: On 120 / Off 40 mutes the 40 degree front cone");
+        check (outputLevel (-2.0f, 120, 40) > 0.0f, "G6 F2: ...and not what is behind");
+        check (outputLevel (2.0f, 180, 0) > 0.0f, "G6 F2: On 180 still takes in every direction");
+
+        if (reverbFeedLevel (-2.0f, 86, 90) > 0.0f)
+        {
+            check (reverbFeedLevel (2.0f, 90, 90) == 0.0f, "G6 F2: a reverb feed keeps its front mute cone at On 90 / Off 90");
+            check (reverbFeedLevel (2.0f, 120, 40) == 0.0f, "G6 F2: ...and at On 120 / Off 40");
+        }
+        else
+        {
+            logLine ("SELF-TEST SKIP G6 F2 reverb: input 1 does not feed reverb 1 in this session");
+        }
+
+        for (size_t i = 0; i < std::size (outIds); ++i) vts.setOutputParameter (0, outIds[i], outBefore[i]);
+        for (size_t i = 0; i < std::size (revIds); ++i) vts.setReverbParameter (0, revIds[i], revBefore[i]);
+        calc->recalculateAllListenerPositions();
+        calc->recalculateAllReverbPositions();
+        calc->markMatrixDirty();
+    }
+
+    //--------------------------------------------------------------------------
+    // G7: re-audit 2026-09-29, F3. A relatively linked array member follows
+    // an orientation round the circle. The delta across the wrap (179 -> -179)
+    // was -358 and the member was clamped to the end stop.
+    if (vts.getNumOutputChannels() >= 2)
+    {
+        WFSValueTreeState::ScopedUndoSuppression noUndo (vts);
+
+        // An array nobody else is in, so the propagation reaches these two only.
+        std::set<int> usedArrays;
+        for (int o = 0; o < vts.getNumOutputChannels(); ++o)
+            usedArrays.insert (WFSVar::toInt (vts.getOutputParameter (o, outputArray)));
+        int freeArray = 0;
+        for (int a = WFSParameterDefaults::outputArrayMax; a >= 1 && freeArray == 0; --a)
+            if (usedArrays.count (a) == 0)
+                freeArray = a;
+
+        if (freeArray == 0)
+        {
+            logLine ("SELF-TEST SKIP G7 F3: every array number is in use in this session");
+        }
+        else
+        {
+            const juce::Identifier ids[] = { outputArray, outputApplyToArray, outputOrientation };
+            std::vector<juce::var> before;
+            for (int o = 0; o < 2; ++o)
+                for (const auto& param : ids)
+                    before.push_back (vts.getOutputParameter (o, param));
+
+            for (int o = 0; o < 2; ++o)
+            {
+                vts.setOutputParameter (o, outputArray, freeArray);
+                vts.setOutputParameter (o, outputApplyToArray, 2);   // RELATIVE
+            }
+            auto member = [&] { return WFSVar::toInt (vts.getOutputParameter (1, outputOrientation)); };
+
+            vts.setOutputParameter (0, outputOrientation, 179);
+            vts.setOutputParameter (1, outputOrientation, 170);
+            vts.setOutputParameterWithArrayPropagation (0, outputOrientation, -179, true);
+            check (member() == 172, "G7 F3: a 2 degree turn across 180 turns the member 2 degrees (170 -> "
+                                        + juce::String (member()) + "; clamping sent it to the end stop)");
+            vts.setOutputParameterWithArrayPropagation (0, outputOrientation, 179, true);
+            check (member() == 170, "G7 F3: ...and back");
+
+            vts.setOutputParameter (0, outputOrientation, 0);
+            vts.setOutputParameter (1, outputOrientation, 175);
+            vts.setOutputParameterWithArrayPropagation (0, outputOrientation, 10, true);
+            check (member() == -175, "G7 F3: a member pushed past 180 comes round the other side (175 + 10 -> "
+                                         + juce::String (member()) + ")");
+
+            size_t k = 0;
+            for (int o = 0; o < 2; ++o)
+                for (const auto& param : ids)
+                    vts.setOutputParameter (o, param, before[k++]);
+        }
+    }
+
+    //--------------------------------------------------------------------------
+    // G8: re-audit 2026-09-29, R1 + B2. The OSC-writable numbers that had no
+    // bounds entry kept a numeric STRING as text, so a QLab "1" to a gradient
+    // map layer enable switched the layer OFF (its handler takes a number).
+    {
+        const auto layerOn = Router::parseInputMessage (osc ("/wfs/input/gmLayer0Enabled", { num (1), text ("1") }));
+        check (layerOn.valid && layerOn.value.isDouble() && static_cast<double> (layerOn.value) == 1.0,
+               "G8 R1: /wfs/input/gmLayer0Enabled 1 \"1\" is the number 1 (it stayed text and read as off)");
+        const auto layerTwo = Router::parseInputMessage (osc ("/wfs/input/gmLayer2Enabled", { num (1), real (2.0f) }));
+        check (! layerTwo.valid, "G8 B2: a layer enable of 2 is refused as out of range");
+        const auto macro = Router::parseInputMessage (osc ("/wfs/input/muteMacro", { num (1), text ("3") }));
+        check (macro.valid && macro.value.isDouble(), "G8 B2: a mute macro sent as text is a number");
+        const auto sends = Router::parseInputMessage (osc ("/wfs/input/muteReverbSends", { num (1), text ("x") }));
+        check (! sends.valid, "G8 B2: the reverb-send mute refuses a word");
+        const auto link = Router::parseOutputMessage (osc ("/wfs/output/applyToArray", { num (1), text ("2") }));
+        check (link.valid && link.value.isDouble() && static_cast<double> (link.value) == 2.0,
+               "G8 B2: an output's array link mode sent as text is a number");
+        const auto linkBad = Router::parseOutputMessage (osc ("/wfs/output/applyToArray", { num (1), real (3.0f) }));
+        check (! linkBad.valid, "G8 B2: ...and 3 is refused");
+        const auto revMacro = Router::parseReverbMessage (osc ("/wfs/reverb/muteMacro", { num (1), real (26.0f) }));
+        check (! revMacro.valid, "G8 B2: a reverb mute macro past 25 is refused");
+        const auto numericName = Router::parseInputMessage (osc ("/wfs/input/name", { num (1), text ("1") }));
+        check (numericName.valid && numericName.value.isString(), "G8: a name that spells a number stays text");
+    }
+
+    //--------------------------------------------------------------------------
+    // G9: re-audit 2026-09-29, B1. The cluster LFO's OSC handler wrote the tree
+    // as sent, past the store gate. It now writes through setClusterLFOParameter
+    // (the OSC half, the refusal with a reason, is in osc_replay.py).
+    {
+        auto lfo = vts.getClusterLFOSection (1);
+        if (lfo.isValid())
+        {
+            const juce::Identifier ids[] = { clusterLFOamplitudeX, clusterLFOrateX, clusterLFOphaseX };
+            std::vector<juce::var> before;
+            for (const auto& param : ids) before.push_back (lfo.getProperty (param));
+
+            vts.setClusterLFOParameter (1, clusterLFOamplitudeX, 2.5);
+            vts.setClusterLFOParameter (1, clusterLFOamplitudeX, std::numeric_limits<double>::quiet_NaN());
+            check (static_cast<double> (lfo.getProperty (clusterLFOamplitudeX)) == 2.5,
+                   "G9 B1: a cluster LFO amplitude refuses NaN");
+            vts.setClusterLFOParameter (1, clusterLFOamplitudeX, 1.0e30);
+            check (static_cast<double> (lfo.getProperty (clusterLFOamplitudeX))
+                       == static_cast<double> (WFSParameterDefaults::clusterLFOamplitudeXYZMax),
+                   "G9 B1: ...and holds 1e30 to its range");
+            vts.setClusterLFOParameter (1, clusterLFOphaseX, 270);
+            check (WFSVar::toInt (lfo.getProperty (clusterLFOphaseX)) == -90, "G9 B1: a cluster LFO phase wraps (270 -> -90)");
+
+            for (size_t i = 0; i < std::size (ids); ++i)
+                lfo.setProperty (ids[i], before[i], nullptr);
+        }
+        else
+        {
+            logLine ("SELF-TEST SKIP G9 B1: this session has no cluster 1");
+        }
     }
 
     logLine(failures == 0 ? "SELF-TEST RESULT: ALL PASS"

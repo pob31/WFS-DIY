@@ -99,6 +99,13 @@ WRITES = [
     ("output1.attenuation", "/wfs/output/attenuation", [("i", 1), ("f", -6.5)]),
     ("reverb1.attenuation", "/wfs/reverb/attenuation", [("i", 1), ("f", -3.5)]),
     ("output2.attenuation", "/wfs/output/attenuation", [("i", 2), ("s", "-9.5")]),
+    # RE-AUDIT 2026-09-29, R1: a layer enable sent as text, the way QLab sends
+    # an unquoted argument. gmLayer*Enabled had no bounds entry, so the "1"
+    # stayed a string and the handler, which only takes a number, switched the
+    # layer OFF. Read back from the saved inputs.xml (check_reaudit).
+    ("input1.gmLayer0Enabled", "/wfs/input/gmLayer0Enabled", [("i", 1), ("s", "1")]),
+    # B1: the value the refused cluster LFO write in TYPING_REFUSALS must keep
+    ("cluster1.lfoAmplitudeX", "/wfs/cluster/lfoAmplitudeX", [("i", 1), ("f", 2.5)]),
 ]
 
 # ---------------------------------------------------------------------------
@@ -263,6 +270,10 @@ TYPING_REFUSALS = [
     ("/wfs/reverb/1/attenuation",           [("s", "inf")]),
     ("/wfs/input/attenuation",              [("i", 2), ("s", "inc"), ("f", 3.0)]),
     ("/remoteInput/attenuation",            [("i", 2), ("s", "inf")]),
+    # RE-AUDIT 2026-09-29, B1: the cluster LFO handler wrote the tree as sent,
+    # past every gate, so this amplitude was stored. B2: a layer enable of 2.
+    ("/wfs/cluster/lfoAmplitudeX",          [("i", 1), ("f", 1e30)]),
+    ("/wfs/input/gmLayer1Enabled",          [("i", 1), ("f", 2.0)]),
 ]
 
 # AUDIT 2026-09-28, S1: a snapshot name is a file name. "../../vg-canary"
@@ -307,6 +318,9 @@ EXPECTED_LOG_REASONS = [
     "OSC refused /remoteInput/attenuation",
     # audit S1: a store that wrote nothing says so
     "OSC snapshot store of '../../vg-canary' failed",
+    # re-audit 2026-09-29, B1 and B2
+    "OSC refused /wfs/cluster/lfoAmplitudeX",
+    "OSC refused /wfs/input/gmLayer1Enabled",
 ]
 
 # The fixture has 16 outputs.
@@ -578,6 +592,42 @@ def check_effects(project: Path, failures: list[str]) -> dict:
     return readbacks
 
 
+def check_reaudit(project: Path, failures: list[str]) -> None:
+    """Re-audit 2026-09-29 R1, B1 and B2, read from the project session_save
+    wrote. Neither value has an OSCQuery read: a layer enable is a routing
+    token (the stored property is gmLayerEnabled on the layer node), and the
+    cluster LFO is not in the namespace."""
+    inputs = ET.parse(project / "inputs.xml").getroot()
+    layers = {}
+    for inp in inputs.iter("Input"):
+        if inp.get("id") == "1":
+            layers = {gl.get("id"): gl.get("gmLayerEnabled") for gl in inp.iter("GradientLayer")}
+            break
+    if "0" not in layers:
+        failures.append("inputs.xml has no gradient layer 0 on input 1: re-audit R1 unread")
+    elif layers["0"] != "1":
+        failures.append('/wfs/input/gmLayer0Enabled 1 "1" left layer 0 at '
+                        f"{layers['0']!r}: a numeric string still switches it off (re-audit R1)")
+    if layers.get("1") != "0":
+        failures.append(f"/wfs/input/gmLayer1Enabled 1 2.0 left layer 1 at {layers.get('1')!r}: "
+                        "a layer enable out of range was taken (re-audit B2)")
+
+    system = ET.parse(project / "system.xml").getroot()
+    amplitude = None
+    for cluster in system.iter("Cluster"):
+        if cluster.get("id") == "1":
+            lfo = cluster.find("ClusterLFO")
+            amplitude = lfo.get("clusterLFOamplitudeX") if lfo is not None else None
+            break
+    try:
+        amplitude_value = float(amplitude)
+    except (TypeError, ValueError):
+        amplitude_value = None
+    if amplitude_value != 2.5:
+        failures.append(f"cluster 1 LFO amplitude X is {amplitude!r}, expected 2.5: "
+                        "/wfs/cluster/lfoAmplitudeX 1 1e30 was stored (re-audit B1)")
+
+
 def run_stopped_pass(exe: Path, keep_temp: bool, failures: list[str]) -> dict:
     """The main pass: the whole write script against a stopped engine."""
     work_root = Path(os.environ.get("TEMP", ".")) / "wfs-control-replay" / "osc_replay"
@@ -694,8 +744,35 @@ def run_stopped_pass(exe: Path, keep_temp: bool, failures: list[str]) -> dict:
                 failures.append("after the malformed bundles an ordinary write did "
                                 f"not land (stage width {width}, expected [15.0]): "
                                 "the message thread is stuck (audit N1)")
+
+        # RE-AUDIT 2026-09-29, F1, after N1 for the same reason: an azimuth of
+        # 1e10 degrees. It is finite, so every value gate passes it, and the
+        # subtract-360 loop in normalizeAngle stops moving above about 8.6e9:
+        # this hung the message thread for good.
+        if app.alive():
+            angle = common.OSCSender(delay=0.5)
+            angle.send("/wfs/input/positionTheta", [("i", 1), ("f", 1e10)])
+            angle.send("/wfs/config/stage/width", [("f", 16.0)])
+            angle.close()
+            time.sleep(1.5)
+            if not app.alive():
+                failures.append("a 1e10 degree azimuth took the app down (re-audit F1)")
+            else:
+                try:
+                    width = common.oscquery_get("/wfs/config/stage/width")
+                except Exception as exc:  # noqa: BLE001
+                    width = f"<read failed: {exc}>"
+                if width != [16.0]:
+                    failures.append("after /wfs/input/positionTheta 1 1e10 an ordinary "
+                                    f"write did not land (stage width {width}, expected "
+                                    "[16.0]): the message thread is stuck (re-audit F1)")
     finally:
         app.close()
+
+    try:
+        check_reaudit(project, failures)
+    except Exception as exc:  # noqa: BLE001
+        failures.append(f"the re-audit read-back failed: {exc}")
 
     for name in CANARY_FILES:
         if (project / name).exists():
