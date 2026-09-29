@@ -5691,15 +5691,18 @@ private:
             if (!oscManager->isOSCQueryRunning())
             {
                 oscManager->startOSCQuery(oscPort, httpPort);
-            }
 
-            // Phase 7: re-run the MCP OSCQuery cross-check now that the
-            // server is up. The auditor handles its own threading + logging.
-            if (mcpServer != nullptr && oscManager->isOSCQueryRunning())
-            {
-                const auto port = oscManager->getOSCQueryHttpPort();
-                if (port > 0)
-                    mcpServer->runOSCQueryAudit ("http://127.0.0.1:" + juce::String (port) + "/");
+                // Phase 7: re-run the MCP OSCQuery cross-check now that the
+                // server is up. The auditor handles its own threading + logging.
+                // Only when it has just come up: this runs on every refresh,
+                // snapshot recalls included, and each audit fetches the whole
+                // tree (about 750 kB) and replaced the one still in flight.
+                if (mcpServer != nullptr && oscManager->isOSCQueryRunning())
+                {
+                    const auto port = oscManager->getOSCQueryHttpPort();
+                    if (port > 0)
+                        mcpServer->runOSCQueryAudit ("http://127.0.0.1:" + juce::String (port) + "/");
+                }
             }
         }
         else

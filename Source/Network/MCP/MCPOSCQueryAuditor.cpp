@@ -47,6 +47,12 @@ void MCPOSCQueryAuditor::addChannelStrippedForms (std::set<juce::String>& paths)
 
 MCPOSCQueryAuditor::~MCPOSCQueryAuditor()
 {
+    signalThreadShouldExit();
+    {
+        const juce::ScopedLock sl (streamLock);
+        if (activeStream != nullptr)
+            activeStream->cancel();
+    }
     stopThread (3000);
 }
 
@@ -99,19 +105,26 @@ void MCPOSCQueryAuditor::run()
     if (threadShouldExit())
         return;
 
-    // 1. Fetch the OSCQuery tree.
-    juce::URL url (oscQueryUrl);
-    auto options = juce::URL::InputStreamOptions (juce::URL::ParameterHandling::inAddress)
-        .withConnectionTimeoutMs (kHttpTimeoutMs);
+    // 1. Fetch the OSCQuery tree, where the destructor can cancel it.
+    juce::WebInputStream stream (juce::URL (oscQueryUrl), false);
+    stream.withConnectionTimeout (kHttpTimeoutMs);
+    {
+        const juce::ScopedLock sl (streamLock);
+        activeStream = &stream;
+    }
+    struct Unpublish
+    {
+        MCPOSCQueryAuditor& owner;
+        ~Unpublish() { const juce::ScopedLock sl (owner.streamLock); owner.activeStream = nullptr; }
+    } unpublish { *this };
 
-    auto stream = url.createInputStream (options);
-    if (stream == nullptr)
+    if (threadShouldExit() || ! stream.connect (nullptr) || stream.isError())
     {
         mcpLogger.logInfo ("OSCQuery audit skipped: server not reachable at " + oscQueryUrl);
         return;
     }
 
-    const auto responseText = stream->readEntireStreamAsString();
+    const auto responseText = stream.readEntireStreamAsString();
     if (threadShouldExit() || responseText.isEmpty())
     {
         mcpLogger.logInfo ("OSCQuery audit skipped: empty response from " + oscQueryUrl);

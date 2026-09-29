@@ -38,6 +38,8 @@ bool OSCQueryServer::start(int oscPortParam, int httpPortParam)
     oscPort = oscPortParam;
     httpPort = httpPortParam;
 
+    serving = std::make_shared<std::atomic<bool>>(true);
+
     wsServer = std::make_unique<SimpleWebSocketServer>();
     wsServer->addHTTPRequestHandler(this);
     wsServer->addWebSocketListener(this);
@@ -81,6 +83,16 @@ void OSCQueryServer::stop()
         return;
 
     running = false;
+    if (serving != nullptr)
+        serving->store(false);
+
+    // Release the requests still waiting while the server, and the sockets
+    // their responses write to, are alive.
+    {
+        const juce::ScopedLock sl(pendingRepliesLock);
+        pendingReplies.clear();
+        replyPassScheduled = false;
+    }
     stopTimer();
 
     if (wsServer)
@@ -107,9 +119,64 @@ void OSCQueryServer::stop()
 bool OSCQueryServer::handleHTTPRequest(std::shared_ptr<HttpServer::Response> response,
                                         std::shared_ptr<HttpServer::Request> request)
 {
-    juce::String path = juce::String(request->path);
-    juce::String query = juce::String(request->query_string);
+    // Answered on the message thread. The reply is built from the ValueTree,
+    // which only the message thread may read, and this runs on the HTTP
+    // server's own threads: every GET raced the writes the show was making
+    // (re-audit 2026-09-29, N4).
+    //
+    // Nothing here waits for the answer. These four threads also carry every
+    // socket's I/O, and blocking them on the message thread starved a large
+    // reply of the thread that sends it; the MCP auditor, stuck reading that
+    // reply, was then killed inside WinINet by a 3 s stopThread and the app
+    // crashed. So the request is queued, one pass on the message thread
+    // answers all that are waiting, and the response goes out when that
+    // pass lets go of it.
+    bool schedulePass = false;
+    {
+        const juce::ScopedLock sl(pendingRepliesLock);
+        pendingReplies.push_back({ std::move(response),
+                                   juce::String(request->path),
+                                   juce::String(request->query_string) });
+        schedulePass = ! replyPassScheduled;
+        replyPassScheduled = true;
+    }
 
+    if (schedulePass)
+    {
+        auto token = serving;
+        juce::MessageManager::callAsync([this, token]
+        {
+            if (token != nullptr && token->load())
+                answerPendingReplies();
+        });
+    }
+    return true;
+}
+
+void OSCQueryServer::answerPendingReplies()
+{
+    JUCE_ASSERT_MESSAGE_THREAD
+
+    std::vector<PendingReply> batch;
+    {
+        const juce::ScopedLock sl(pendingRepliesLock);
+        batch.swap(pendingReplies);
+        replyPassScheduled = false;
+    }
+
+    // One tree for the whole batch: a client polling a value every few ms
+    // no longer costs a full build per request.
+    juce::DynamicObject::Ptr root;
+    for (auto& pending : batch)
+    {
+        const auto reply = buildHTTPReply(pending.path, pending.query, root);
+        sendJsonResponse(pending.response, reply.status, reply.body);
+    }
+}
+
+OSCQueryServer::HttpReply OSCQueryServer::buildHTTPReply(juce::String path, const juce::String& query,
+                                                         juce::DynamicObject::Ptr& root)
+{
     // Normalize path
     if (path.isEmpty())
         path = "/";
@@ -118,14 +185,12 @@ bool OSCQueryServer::handleHTTPRequest(std::shared_ptr<HttpServer::Response> res
 
     // HOST_INFO query
     if (query == "HOST_INFO")
-    {
-        sendJsonResponse(response, 200, buildHostInfoJson());
-        return true;
-    }
+        return { 200, buildHostInfoJson() };
 
-    // Build full tree and walk to requested path
-    juce::DynamicObject::Ptr rootPtr(buildFullTree());
-    juce::DynamicObject::Ptr targetPtr = rootPtr;
+    // Build the full tree (once per batch) and walk to the requested path
+    if (root == nullptr)
+        root = buildFullTree();
+    juce::DynamicObject::Ptr targetPtr = root;
 
     if (path != "/" && path.isNotEmpty())
     {
@@ -136,20 +201,12 @@ bool OSCQueryServer::handleHTTPRequest(std::shared_ptr<HttpServer::Response> res
             const auto& contentsVar = targetPtr->getProperty("CONTENTS");
             auto* contentsObj = contentsVar.getDynamicObject();
             if (contentsObj == nullptr)
-            {
-                sendJsonResponse(response, 404,
-                    "{\"ERROR\": \"Path not found: " + path + "\"}");
-                return true;
-            }
+                return { 404, "{\"ERROR\": \"Path not found: " + path + "\"}" };
 
             const auto& childVar = contentsObj->getProperty(juce::Identifier(seg));
             auto* childObj = childVar.getDynamicObject();
             if (childObj == nullptr)
-            {
-                sendJsonResponse(response, 404,
-                    "{\"ERROR\": \"Path not found: " + path + "\"}");
-                return true;
-            }
+                return { 404, "{\"ERROR\": \"Path not found: " + path + "\"}" };
 
             targetPtr = childObj;
         }
@@ -165,21 +222,16 @@ bool OSCQueryServer::handleHTTPRequest(std::shared_ptr<HttpServer::Response> res
         {
             juce::String result = extractAttribute(targetPtr.get(), attr);
             if (result.isNotEmpty())
-                sendJsonResponse(response, 200, result);
-            else
-                sendJsonResponse(response, 204, "");
-            return true;
+                return { 200, result };
+            return { 204, {} };
         }
 
-        sendJsonResponse(response, 400,
-            "{\"ERROR\": \"Unrecognized attribute: " + query + "\"}");
-        return true;
+        return { 400, "{\"ERROR\": \"Unrecognized attribute: " + query + "\"}" };
     }
 
     // Full node response
     juce::var targetVar(targetPtr.get());
-    sendJsonResponse(response, 200, juce::JSON::toString(targetVar, false));
-    return true;
+    return { 200, juce::JSON::toString(targetVar, false) };
 }
 
 void OSCQueryServer::sendJsonResponse(std::shared_ptr<HttpServer::Response> response,

@@ -70,6 +70,12 @@ private:
     juce::File    generatedToolsJson;
     juce::String  oscQueryUrl;
 
+    // The fetch in flight, so the destructor can cancel it. stopThread's
+    // timeout otherwise kills the thread, and a thread killed inside WinINet
+    // leaves it corrupt: its next timer took the app down.
+    juce::CriticalSection streamLock;
+    juce::WebInputStream* activeStream = nullptr;
+
     static constexpr int kStartupDelayMs        = 1000;  // give OSCQuery time to come up
     static constexpr int kHttpTimeoutMs         = 5000;
     static constexpr int kMaxDriftLogsPerRun    = 20;
