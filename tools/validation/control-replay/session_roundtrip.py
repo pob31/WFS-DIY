@@ -73,6 +73,59 @@ def check_save_refused_without_backup(app: common.App,
     return failures
 
 
+def check_one_backup_failing_saves_nothing(app: common.App,
+                                           project: Path) -> list[str]:
+    """Re-audit 2026-09-29, R3. A complete save used to skip a section whose
+    backup failed and still write the other five, leaving files of two
+    generations on disk. inputs.xml, third in the save order, is held open
+    with no sharing, so its backup cannot be read while the system and
+    network backups before it succeed. The save must fail, leave every
+    section file as it was, and leave no backup of this attempt behind.
+    Windows only (the lock is a Win32 share mode)."""
+    if os.name != "nt":
+        return []
+
+    import ctypes
+    import ctypes.wintypes
+
+    failures: list[str] = []
+    backups = project / "backups"
+    originals = {name: (project / name).read_bytes() for name in common.SECTION_FILES}
+    marker = b"<!-- roundtrip: a save must not replace this file -->\r\n"
+    for name, data in originals.items():
+        (project / name).write_bytes(data + marker)
+    before = {p.name for p in backups.rglob("*") if p.is_file()} if backups.is_dir() else set()
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.CreateFileW.restype = ctypes.wintypes.HANDLE
+    GENERIC_READ, OPEN_EXISTING = 0x80000000, 3
+    handle = kernel32.CreateFileW(str(project / "inputs.xml"), GENERIC_READ, 0, None,
+                                  OPEN_EXISTING, 0, None)
+    if handle in (None, ctypes.wintypes.HANDLE(-1).value):
+        return [f"could not lock inputs.xml (error {ctypes.get_last_error()})"]
+    try:
+        _, final = app.tool_confirmed("session_save", {})
+        result = common.envelope_result(final)
+        if not result.get("isError"):
+            failures.append("a save whose inputs.xml backup failed reported success (re-audit R3)")
+    finally:
+        kernel32.CloseHandle(handle)
+
+    for name, data in originals.items():
+        if (project / name).read_bytes() != data + marker:
+            failures.append(f"{name} was written although the inputs.xml backup failed: "
+                            "the save left two generations on disk (re-audit R3)")
+    after = {p.name for p in backups.rglob("*") if p.is_file()} if backups.is_dir() else set()
+    if after - before:
+        failures.append(f"the refused save left backups behind: {sorted(after - before)} "
+                        "(they would misalign Reload Complete Backup) (re-audit R3)")
+    for name, data in originals.items():
+        (project / name).write_bytes(data)
+    if not failures:
+        print("[roundtrip] PASS a save whose inputs.xml backup fails writes nothing and keeps no backup")
+    return failures
+
+
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--exe", default=None,
@@ -113,6 +166,7 @@ def main() -> int:
             return common.EXIT_MISMATCH
 
         backup_failures = check_save_refused_without_backup(app, project)
+        backup_failures += check_one_backup_failing_saves_nothing(app, project)
     finally:
         graceful = app.close()
     if not graceful:

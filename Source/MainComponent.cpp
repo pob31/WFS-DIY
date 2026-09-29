@@ -3372,7 +3372,7 @@ void MainComponent::runValueGatesSelfTest()
         logLine(juce::String("SELF-TEST ") + (ok ? "PASS " : "FAIL ") + what);
     };
 
-    logLine("SELF-TEST begin (value gates: audit 2026-09-28 N2, S1; re-audit 2026-09-29 F1-F3, R1, B1, B2)");
+    logLine("SELF-TEST begin (value gates: audit 2026-09-28 N2, S1; re-audit 2026-09-29 F1-F3, R1, B1, B2, B5, R8, S2)");
 
     if (vts.getNumInputChannels() < 1 || vts.getNumOutputChannels() < 1 || vts.getNumReverbChannels() < 1)
     {
@@ -3527,6 +3527,34 @@ void MainComponent::runValueGatesSelfTest()
         check (fm.saveInputSnapshotWithExtendedScope ("Scene #3", fm.getExtendedSnapshotScope ("Scene #3"))
                    && base.getChildFile ("Scene #3.xml").existsAsFile(),
                "G4: a plain name with a # still stores");
+
+        // Re-audit 2026-09-29, B5: names Windows cannot hold as a file.
+        for (const juce::String bad : { "CON", "nul", "Com1", "LPT9.backup", "AUX .old", "a<b", "why?",
+                                        "pipe|name", "quote\"d", "tab\tname" })
+            check (WFSFileManager::getNamedXmlFile (base, bad) == juce::File(),
+                   "G4 B5: the snapshot name \"" + bad + "\" is refused (Windows cannot hold it)");
+        for (const char* ordinary : { "CONSOLE", "COM10", "nullify", "Aux Send" })
+            check (WFSFileManager::getNamedXmlFile (base, ordinary) != juce::File(),
+                   "G4 B5: ...while \"" + juce::String (ordinary) + "\" is an ordinary name");
+
+        // S2: a Store over an existing name keeps a copy, and apart from the
+        // section backups.
+        check (fm.saveInputSnapshotWithExtendedScope ("Scene #3", fm.getExtendedSnapshotScope ("Scene #3"))
+                   && fm.getSnapshotBackupFolder().findChildFiles (juce::File::findFiles, false,
+                                                                   "Scene #3_*.xml").size() == 1,
+               "G4 S2: a Store over an existing snapshot keeps a backup in backups/snapshots");
+        check (fm.getBackups ("Scene #3").isEmpty(), "G4 S2: ...not among the section backups");
+        check (fm.saveScopeTemplate ("tpl", WFSFileManager::ExtendedSnapshotScope())
+                   && fm.saveScopeTemplate ("tpl", WFSFileManager::ExtendedSnapshotScope())
+                   && fm.getTemplateBackupFolder().findChildFiles (juce::File::findFiles, false,
+                                                                   "tpl_*.xml").size() == 1,
+               "G4 S2: a template Save As over an existing one keeps a backup in backups/templates");
+
+        // R8: a save's temp file left by a crash is not a snapshot.
+        base.getChildFile (".Scene #3_temp1a2b3c4d.xml").replaceWithText ("<InputSnapshot midiChannel=\"1\" midiNote=\"60\"/>");
+        const auto listed = fm.getInputSnapshotNames();
+        check (listed.contains ("Scene #3") && ! listed.contains (".Scene #3_temp1a2b3c4d"),
+               "G4 R8: a leftover save temp file is not listed as a snapshot");
 
         fm.setProjectFolder (previousFolder);
         scratch.deleteRecursively();
