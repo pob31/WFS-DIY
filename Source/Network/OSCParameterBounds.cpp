@@ -232,6 +232,7 @@ namespace
             BIND_F (inputFRhighShelfGain);
             BIND_F (inputFRhighShelfSlope);
             BIND_I (inputFRdiffusion);
+            BIND_BOOL (inputMuteReverbSends);
 
             //------------------------------------------------------------------
             // Input / Jitter + LFO
@@ -285,11 +286,25 @@ namespace
             // Input / Sampler
             //------------------------------------------------------------------
             BIND_BOOL (inputSamplerActive);
+            // inputSamplerActiveSet stays out: OSC numbers sets from 1 and the
+            // store from 0, so one range cannot gate both. Its OSC handler
+            // checks the set it resolves to.
+
+            //------------------------------------------------------------------
+            // Input / Mutes + Gradient map layers
+            //------------------------------------------------------------------
+            // Without an entry these kept their text: a QLab "1" to a layer
+            // enable read as off, because the handler only takes a number.
+            BIND_I (inputMuteMacro);
+            BIND_BOOL (gmLayer0Enabled);
+            BIND_BOOL (gmLayer1Enabled);
+            BIND_BOOL (gmLayer2Enabled);
 
             //------------------------------------------------------------------
             // Output / Channel
             //------------------------------------------------------------------
             BIND_I (outputArray);
+            BIND_I (outputApplyToArray);
             BIND_F (outputAttenuation);
             BIND_F (outputDelayLatency);
 
@@ -361,6 +376,7 @@ namespace
             //------------------------------------------------------------------
             BIND_F (reverbDistanceAttenuation);
             BIND_I (reverbCommonAtten);
+            BIND_I (reverbMuteMacro);
 
             //------------------------------------------------------------------
             // Reverb / Algorithm (global)

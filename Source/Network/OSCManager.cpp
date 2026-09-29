@@ -2747,9 +2747,13 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
                         }
                         else if (parsed.paramId == WFSParameterIDs::inputSamplerActiveSet)
                         {
-                            int setIdx = static_cast<int> (static_cast<double> (parsed.value)) - 1;
-                            if (setIdx >= 0)
-                                state.setInputParameter(channelIndex, parsed.paramId, setIdx);
+                            // Sets are numbered from 1 here and stored from 0, so this
+                            // parameter has no bounds entry to gate it on the way in.
+                            const double setNumber = static_cast<double> (parsed.value);
+                            if (std::isfinite (setNumber) && setNumber >= 1.0
+                                && setNumber < WFSParameterDefaults::maxSamplerSets + 1.0)
+                                state.setInputParameter(channelIndex, parsed.paramId,
+                                                        static_cast<int> (setNumber) - 1);
                         }
                     }
                     incomingGuard.release();

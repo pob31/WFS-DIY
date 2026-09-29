@@ -666,6 +666,10 @@ namespace WFSParameterDefaults
     constexpr float inputOtomoPhiMin       = -3600.0f;  // 10 full rotations
     constexpr float inputOtomoPhiMax       = 3600.0f;
 
+    // Input > Mutes. The macro selector's range, as WFS-UI_input.csv states it.
+    constexpr int inputMuteMacroMin      = 0;
+    constexpr int inputMuteMacroMax      = 25;  // 5 macros + mute/unmute for 10 arrays
+
     // Input > Sidelines (auto-mute at stage edges)
     constexpr int inputSidelinesActiveDefault    = 0;      // OFF by default
     constexpr float inputSidelinesFringeDefault  = 1.0f;   // 1 meter
@@ -747,6 +751,8 @@ namespace WFSParameterDefaults
     constexpr int outputArrayMax                = 10;
 
     constexpr int outputApplyToArrayDefault     = 1;  // 0=OFF, 1=ABSOLUTE, 2=RELATIVE
+    constexpr int outputApplyToArrayMin         = 0;
+    constexpr int outputApplyToArrayMax         = 2;
 
     constexpr float outputAttenuationDefault    = 0.0f;
     constexpr float outputAttenuationMin        = -92.0f;
@@ -978,6 +984,8 @@ namespace WFSParameterDefaults
     constexpr int reverbCommonAttenMax           = 100;
 
     constexpr int reverbMuteMacroDefault         = 0;   // 0=Mute Macro Select (no action)
+    constexpr int reverbMuteMacroMin             = 0;
+    constexpr int reverbMuteMacroMax             = 25;  // 5 macros + mute/unmute for 10 arrays (WFS-UI_reverb.csv)
 
     //==========================================================================
     // Reverb Algorithm Defaults (global, not per-channel)
