@@ -2944,6 +2944,13 @@ void WFSValueTreeState::setClusterParameter (int clusterIndex, const juce::Ident
         writeProperty (cluster, paramId, value, getActiveUndoManager());
 }
 
+void WFSValueTreeState::setClusterLFOParameter (int clusterIndex, const juce::Identifier& paramId, const juce::var& value)
+{
+    auto lfoSection = getClusterLFOSection (clusterIndex);
+    if (lfoSection.isValid())
+        writeProperty (lfoSection, paramId, value, nullptr);
+}
+
 //==============================================================================
 // Binaural Enable/Solo Access
 //==============================================================================

@@ -87,6 +87,12 @@ public:
     juce::ValueTree getClustersState() const;
     juce::ValueTree getClusterState (int clusterIndex);
     juce::ValueTree getClusterLFOSection (int clusterIndex);
+
+    /** One cluster LFO property, through the store's value gate (NaN and
+        infinity refused, out-of-range clamped, phases wrapped). No undo: the
+        LFO section has never had any. */
+    void setClusterLFOParameter (int clusterIndex, const juce::Identifier& paramId, const juce::var& value);
+
     juce::ValueTree getClusterLFOPresetsSection();
     juce::ValueTree ensureClusterLFOPreset (int presetIndex);
 

@@ -4254,11 +4254,22 @@ void OSCManager::handleClusterLFOMessage(const juce::OSCMessage& message)
         return;
     }
 
+    // Refused like any other OSC write out of range. This used to reach the
+    // tree as sent, past the store gate too: /wfs/cluster/lfoAmplitudeX 1 1e30
+    // was stored, and a NaN passes every comparison.
+    if (const auto bounds = WFSNetwork::getBounds (it->second))
+    {
+        const double d = static_cast<double> (value);
+        if (! std::isfinite (d) || d < bounds->min || d > bounds->max)
+        {
+            logRefusalToSession (address, WFSNetwork::formatOutOfRangeReason (it->second, d));
+            return;
+        }
+    }
+
     juce::MessageManager::callAsync([this, clusterId, paramId = it->second, value]()
     {
-        auto lfoSection = state.getClusterLFOSection(clusterId);
-        if (lfoSection.isValid())
-            lfoSection.setProperty(paramId, value, nullptr);
+        state.setClusterLFOParameter (clusterId, paramId, value);
     });
 }
 
