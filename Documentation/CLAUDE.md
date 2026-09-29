@@ -177,7 +177,8 @@ Positions can be displayed and input in three coordinate systems. Data is always
 | **Spherical** | r, θ, φ | Radius, azimuth angle, elevation |
 
 **Angle Conventions:**
-- **Azimuth (θ)**: 0° = toward audience (-Y), 180°/-180° = upstage (+Y), 90° = stage right (+X)
+- **Azimuth (θ)**: 0° = upstage (+Y), 90° = stage right (+X), ±180° = toward audience (-Y)
+  (a source's azimuth; a speaker's or source's *orientation* is a different quantity, 0° = facing the audience)
 - **Elevation (φ)**: 0° = horizontal plane, 90° = up (+Z), -90° = down (-Z)
 
 **Conversion Formulas:**
@@ -185,14 +186,14 @@ Positions can be displayed and input in three coordinate systems. Data is always
 Cartesian to Cylindrical:
 ```cpp
 r = sqrt(x² + y²)
-θ = atan2(-x, -y) * (180/π)  // 0° toward audience
+θ = atan2(x, y) * (180/π)    // 0° upstage, 90° stage right
 Z = z
 ```
 
 Cartesian to Spherical:
 ```cpp
 r = sqrt(x² + y² + z²)
-θ = atan2(-x, -y) * (180/π)  // 0° toward audience
+θ = atan2(x, y) * (180/π)    // 0° upstage, 90° stage right
 φ = asin(z / r) * (180/π)    // 0° horizontal, 90° up
 ```
 
@@ -315,21 +316,23 @@ level = pow(10.0f, attenuationDb / 20.0f) * angularAttenuation
 ### Angular Attenuation
 Based on speaker orientation, pitch, angleOn, and angleOff:
 - **Rear axis**: Direction opposite to where speaker points (orientation + 180)
-- **angleOn**: Cone behind speaker where inputs are fully reproduced (attenuation = 1.0)
-- **angleOff**: Cone in front where inputs are muted (attenuation = 0.0)
-- **Transition zone**: Linear interpolation between angleOn and angleOff
+- **angleOn**: Half-angle of the cone behind the speaker (around the rear axis) where inputs are fully reproduced (attenuation = 1.0)
+- **angleOff**: Half-angle of the cone in front (around the facing direction) where inputs are muted (attenuation = 0.0)
+- **Transition zone**: Linear interpolation between the two cones
+- Only angleOn = 180 skips the calculation: any smaller angleOn still has its front mute cone (the shortcut used to fire from 90, re-audit 2026-09-29 F2)
 
 ```cpp
-// Calculate angle from speaker's rear axis to input
-rearAxisX = sin(orientationRad) * cos(pitchRad)
-rearAxisY = -cos(orientationRad) * cos(pitchRad)
+// Orientation 0 faces the audience (-Y), so the rear axis points upstage (+Y)
+rearAxisX = -sin(orientationRad) * cos(pitchRad)
+rearAxisY = cos(orientationRad) * cos(pitchRad)
 rearAxisZ = sin(pitchRad)
-angleFromRear = acos(dot(rearAxis, toInput))
+angle = acos(dot(rearAxis, toInput))         // 0 = straight behind, pi = straight in front
 
 // Zone-based attenuation
 if (angle <= angleOn) return 1.0f;           // Full reproduction
-if (angle >= angleOff) return 0.0f;          // Muted
-return (angleOff - angle) / (angleOff - angleOn);  // Transition
+muteAngle = pi - angleOff;
+if (angle >= muteAngle) return 0.0f;         // Muted
+return 1.0f - (angle - angleOn) / (muteAngle - angleOn);  // Transition
 ```
 
 ### Input Muting
