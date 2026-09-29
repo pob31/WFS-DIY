@@ -161,6 +161,12 @@ Every item in sections 2–5 was re-read in the code on `effects/reverb-models` 
 | B1 | `e944dd2b` | Out-of-range or non-finite values are refused with a session-log line; the write goes through `WFSValueTreeState::setClusterLFOParameter` (store gate, phase wrap). |
 | F12 | `619ea3b0` | Also corrected the angular-attenuation pseudo-code next to it (rear-axis signs, mute edge at `180 − angleOff`). |
 | Tests | `eb51b7a5` | `WFS_TEST_VALUE_GATES` G5–G9 (75 checks; G6 reads the level matrix) and new `osc_replay.py` checks. The pre-fix exe fails all six new OSC checks; a mutant with the fixes reverted fails all 17 targeted self-test checks. All 8 replay drivers pass on Debug; self-test and `osc_replay` pass on Release. |
+| M3 (+R4) | `c82ea3ae` | Channel create/delete/recount records (hand-written and generated tools) are filed non-undoable, like `session_save`; the tool descriptions say to use the opposite tool. `mcp_replay.py` checks it; the pre-fix exe fails all three checks (the undo took the count back to 8 in the tree alone). |
+| P1 | `c13a4b53` | Both plugin destructors unregister first, and every bridge registration has a call gate: a call runs holding it, unregister closes it and waits for calls in flight (re-entry and self-retirement handled). ABI unchanged. A standalone harness built from `Bridge.cpp` passes 10/10; the previous bridge fails 5. Bridge, Master and Cartesian Track VST3 build on Windows; macOS/Linux left to plugin CI. |
+| N3 | spatcore `f82b1e5` (branch `fix/reaudit-network`, PR pending) + `3ac3aa81` | A 0-byte read after the socket reported readable is end of stream (TCP handler ends); MQTT leaves its read loop on -1 or an empty readable socket and reconnects. |
+| N5 | `717df05d` | Tracking OSC gets its own bounded `OSCIngestQueue` (FIFO only, 5 ms drain, drops logged); `stop()` joins the socket thread before destroying the queue. |
+| N4 | `4489ec27` | HTTP requests are queued and answered in one pass on the message thread (one tree per batch); no HTTP thread waits, and only the queue holds a response. **Found on the way:** a first version that blocked the asio threads crashed `midi_snapshot_check` 3/3 in WinINet: every snapshot recall re-ran the MCP OSCQuery audit, the replaced auditor was stopped with a 3 s `stopThread` while its 750 kB reply could not be sent, and JUCE killed it inside WinINet. Also fixed: the audit runs only when OSCQuery starts, and the auditor's fetch is cancellable. |
+| Tests | `953d208f` | New `network_threads_check.py` (N3 TCP + MQTT with a fake broker, N4 GET storm smoke check, N5 burst). The pre-fix exe fails N3 twice and N5. Full sweep (self-test + 9 drivers) passes on Debug; self-test, `osc_replay`, `mcp_replay`, `midi_snapshot_check`, `network_threads_check` pass on Release. |
 
 ### 7.2 What the second look added
 
@@ -202,4 +208,4 @@ Every item in sections 2–5 was re-read in the code on `effects/reverb-models` 
 
 ### 7.3 Order from here
 
-M3 (+R4) and P1; N3, N4, N5; save integrity (R3, R5, S2 gaps, R7, R8, backups namespace); R2; then B3–B6, R6, F4–F11 and the section 5 items. Progress is recorded in 7.1.
+Done: M3 (+R4), P1, N3, N4, N5. Next: save integrity (R3, R5, S2 gaps, R7, R8, backups namespace); R2; then B3–B6, R6, F4–F11 and the section 5 items. Progress is recorded in 7.1.
