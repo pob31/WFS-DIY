@@ -1067,6 +1067,16 @@ LoadStats loadGeneratedTools (MCPToolRegistry& registry,
                 && onTopologyChanged != nullptr && *onTopologyChanged)
                 (*onTopologyChanged)();
 
+            // Filed but not undoable, like the hand-written channel tools
+            // (ChannelLifecycleTools::markStructural): undo would write the
+            // count into the tree alone, with no processing refusal and no
+            // topology callback (re-audit 2026-09-29, M3).
+            if (result.success && isChannelCount && record != nullptr)
+            {
+                record->undoable = false;
+                record->operatorDescription += " (structural change - not undoable)";
+            }
+
             if (result.success && isSamplerWrite
                 && onSamplerChanged != nullptr && *onSamplerChanged)
             {

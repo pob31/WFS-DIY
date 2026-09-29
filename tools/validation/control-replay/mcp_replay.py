@@ -673,6 +673,51 @@ def main() -> int:
             hard_failures.append(
                 "undo after session_save changed nothing - it should have "
                 "skipped the non-undoable save record and reverted the nudge")
+
+        # ---- RE-AUDIT 2026-09-29, M3: channel structure is not undoable ----
+        # Undo replayed the count into the tree alone: no processing refusal,
+        # no topology callback, so the engine kept its old shape until the next
+        # snapshot recall stopped processing mid-show (R4), and an undone
+        # delete came back as a new default mono channel. The record stays in
+        # the history, flagged, and undo steps over it. Kept out of the
+        # transcript so the golden does not move.
+        def input_total():
+            payload = common.tool_payload(
+                app.tool("wfs_get_parameter", {"variable": "inputChannels"}))
+            try:
+                return int(float(payload.get("value")))
+            except (AttributeError, TypeError, ValueError):
+                return None
+
+        def newest_record():
+            payload = common.tool_payload(
+                app.tool("mcp_get_ai_change_history", {"limit": 1, "compact": False}))
+            return (payload.get("records") or [{}])[-1] \
+                if isinstance(payload, dict) else {}
+
+        total_before = input_total()
+        _, created = app.tool_confirmed("input_create", {})
+        if common.envelope_result(created).get("isError"):
+            hard_failures.append(f"input_create failed: {common.tool_payload(created)}")
+        newest = newest_record()
+        if newest.get("tool_name") != "input_create" or newest.get("undoable") is not False:
+            hard_failures.append(
+                f"input_create was not filed as a non-undoable record ({newest}) (re-audit M3)")
+        app.tool("mcp_undo_last_ai_change", {})
+        total_after = input_total()
+        if total_before is None or total_after != total_before + 1:
+            hard_failures.append(
+                f"after input_create and an undo the input count is {total_after} "
+                f"(was {total_before}): the undo took the channel out of the tree "
+                "alone (re-audit M3)")
+
+        _, deleted = app.tool_confirmed("output_delete", {})
+        if common.envelope_result(deleted).get("isError"):
+            hard_failures.append(f"output_delete failed: {common.tool_payload(deleted)}")
+        newest = newest_record()
+        if newest.get("tool_name") != "output_delete" or newest.get("undoable") is not False:
+            hard_failures.append(
+                f"output_delete was not filed as a non-undoable record ({newest}) (re-audit M3)")
     finally:
         app.close()
 

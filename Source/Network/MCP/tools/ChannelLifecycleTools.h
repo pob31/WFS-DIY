@@ -134,6 +134,19 @@ inline juce::var inputDeleteSchema()
     return juce::var (schema.release());
 }
 
+/** A channel create, delete or recomposition is filed in the history but cannot
+    be undone (re-audit 2026-09-29, M3). Undo replayed the count into the tree
+    with state.setParameter: no processing refusal, no topology callback, so
+    the engine kept its old shape until the next snapshot recall saw the
+    difference and stopped processing mid-show. Undoing a delete could not
+    bring the channel back either - it appended a new default mono channel.
+    The opposite tool is the way back. */
+inline void markStructural (ChangeRecord& record)
+{
+    record.undoable = false;
+    record.operatorDescription += " (structural change - not undoable)";
+}
+
 inline ToolResult create (WFSValueTreeState& state,
                             const ChannelKindConfig& cfg,
                             int count,
@@ -228,6 +241,7 @@ inline ToolResult create (WFSValueTreeState& state,
                                            + juce::String (currentCount) + " -> "
                                            + juce::String (newCount) + ")";
         }
+        markStructural (*record);
     }
 
     auto result = std::make_unique<juce::DynamicObject>();
@@ -298,6 +312,7 @@ inline ToolResult del (WFSValueTreeState& state,
                                        + " (" + cfg.kindLabel + " count "
                                        + juce::String (currentCount) + " -> "
                                        + juce::String (newCount) + ")";
+        markStructural (*record);
     }
 
     auto result = std::make_unique<juce::DynamicObject>();
@@ -445,6 +460,7 @@ inline ToolResult setCounts (WFSValueTreeState& state,
             juce::String ("Set input channels to ") + juce::String (newMono)
             + " mono + " + juce::String (newStereo) + " stereo (was "
             + juce::String (liveMono) + " + " + juce::String (liveStereo) + ")";
+        markStructural (*record);
     }
 
     auto result = std::make_unique<juce::DynamicObject>();
@@ -485,7 +501,7 @@ inline ToolDescriptor describeSetCount (WFSValueTreeState& state,
             "resulting mono/stereo/total and, on a reduction, removed_channels "
             "naming exactly what went. Clears every tab undo history and "
             "re-prepares the engine."))
-        + " Refused while the audio engine is running."
+        + " Refused while the audio engine is running. Not undoable: set the count back instead."
         + juce::String (kTier3DescriptionSuffix);
     d.inputSchema = countSchema (settingStereo ? WFSParameterDefaults::maxStereoChannels
                                                : WFSParameterDefaults::maxInputChannels,
@@ -530,20 +546,22 @@ inline ToolDescriptor describeCreate (WFSValueTreeState& state,
                     "`last_channel_id`, `created_count`, `total`, `kind` (+ deprecated "
                     "`channel_id` alias). Refused with at_capacity at 64 live channels, "
                     "number-space exhaustion, or the 8-stereo budget. Triggers a DSP "
-                    "restart, so plan accordingly.")
+                    "restart, so plan accordingly. Not undoable: delete the channel "
+                    "instead.")
                   + juce::String (kTier2DescriptionSuffix)
                   : "Add one or more " + kindLabel + " channels by bumping "
                     + cfg.countParamId.toString() + ". With the default count=1 "
                     "this creates a single channel; pass count=N (up to "
                     + juce::String (cfg.hardMax) + ") to create N at once with "
-                    "a single tier-2 handshake and a single undoable entry. "
+                    "a single tier-2 handshake and a single history entry. "
                     "Returns `created_channel_ids` (array of new 1-based ids), "
                     "`first_channel_id`, `last_channel_id`, `created_count`, "
                     "`total`, `kind`. Also returns `channel_id` (deprecated "
                     "alias for last_channel_id) for back-compat. Refused with "
                     "at_capacity when currentCount + count > hardMax ("
                     + juce::String (cfg.hardMax) + "). Triggers a DSP restart, "
-                    "so plan accordingly."
+                    "so plan accordingly. Not undoable: delete the channels "
+                    "instead."
                   + juce::String (kTier2DescriptionSuffix);
     d.inputSchema   = createSchema (cfg.hardMax, isInput);
     d.modifiesState = true;
@@ -588,13 +606,15 @@ inline ToolDescriptor describeDelete (WFSValueTreeState& state,
                     "permanent gap: every other channel keeps its number, slot and "
                     "patch columns, so snapshots, QLab cues and DAW mappings stay "
                     "valid. The deleted channel's parameters are dropped. Triggers a "
-                    "DSP restart.")
+                    "DSP restart. Not undoable: create a channel instead (its "
+                    "parameters are not restored).")
                   + juce::String (kTier2DescriptionSuffix)
                   : "Remove the highest-numbered " + kindLabel + " channel by "
                     "decrementing " + cfg.countParamId.toString() + " by 1. "
                     "The deleted channel's parameters are dropped. Refused "
                     "with `empty` when the count is already 0. Triggers a DSP "
-                    "restart."
+                    "restart. Not undoable: create a channel instead (its "
+                    "parameters are not restored)."
                   + juce::String (kTier2DescriptionSuffix);
     d.inputSchema   = isInput ? inputDeleteSchema() : emptyObjectSchema();
     d.modifiesState = true;
