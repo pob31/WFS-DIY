@@ -1,5 +1,6 @@
 #include "WFSValueTreeState.h"
 #include "../Network/OSCParameterBounds.h"
+#include "../Helpers/CoordinateConverter.h"
 #include "../WFSLogger.h"
 #include "../Sampler/SamplerData.h"
 #include "VarCoercion.h"
@@ -1367,6 +1368,13 @@ void WFSValueTreeState::setOutputParameterWithArrayPropagation (int channelIndex
     float newFloat = static_cast<float> (value);
     float delta = newFloat - oldFloat;
 
+    // Orientation is a circle: a dial carried from 179 to -179 turned 2
+    // degrees, not -358, and a member pushed past 180 comes round the other
+    // side. Clamping sent every relatively linked member to the end stop.
+    const bool isCircular = (paramId == outputOrientation);
+    if (isCircular)
+        delta = WFSCoordinates::normalizeAngle (delta);
+
     // Set the originating channel
     setOutputParameter (channelIndex, paramId, value);
 
@@ -1398,7 +1406,8 @@ void WFSValueTreeState::setOutputParameterWithArrayPropagation (int channelIndex
         else
         {
             float memberCurrent = static_cast<float> (getOutputParameter (i, paramId));
-            float memberNew = clampOutputParamToRange (paramId, memberCurrent + delta);
+            float memberNew = isCircular ? WFSCoordinates::normalizeAngle (memberCurrent + delta)
+                                         : clampOutputParamToRange (paramId, memberCurrent + delta);
 
             // For int parameters, round the result (toggles never reach this branch)
             if (paramId == outputOrientation || paramId == outputAngleOn ||
