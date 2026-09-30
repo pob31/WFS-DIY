@@ -8,6 +8,12 @@
     <Filter Include="WFS-DIY\Source\Parameters">
       <UniqueIdentifier>{C58F2054-E3F5-AD0A-420D-2C2375F6AFD0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="WFS-DIY\Source\gui\snapshots">
+      <UniqueIdentifier>{708DC84B-1751-C61F-F8A3-20D37AE32268}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="WFS-DIY\Source\gui\effects">
+      <UniqueIdentifier>{C3B40B98-E017-39DF-9559-AF8F28DB58A7}</UniqueIdentifier>
+    </Filter>
     <Filter Include="WFS-DIY\Source\gui">
       <UniqueIdentifier>{779C7693-77C1-9EF7-9439-EE6915457295}</UniqueIdentifier>
     </Filter>
@@ -1083,6 +1089,12 @@
     </ClCompile>
     <ClCompile Include="..\..\Source\Parameters\WFSFileManager.cpp">
       <Filter>WFS-DIY\Source\Parameters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\gui\effects\EffectsSendMatrixShim.cpp">
+      <Filter>WFS-DIY\Source\gui\effects</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\spatcore\ui\sends\SendMatrixComponent.cpp">
+      <Filter>WFS-DIY\Source\gui\effects</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Source\gui\NetworkLogWindow.cpp">
       <Filter>WFS-DIY\Source\gui</Filter>
@@ -4794,6 +4806,12 @@
     <ClInclude Include="..\..\Source\Parameters\ParameterDirtyTracker.h">
       <Filter>WFS-DIY\Source\Parameters</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\Parameters\EffectParamEdit.h">
+      <Filter>WFS-DIY\Source\Parameters</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Parameters\EffectsSnapshotScope.h">
+      <Filter>WFS-DIY\Source\Parameters</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\gui\StatusBar.h">
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClInclude>
@@ -4821,11 +4839,56 @@
     <ClInclude Include="..\..\Source\gui\InputsTab.h">
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\gui\snapshots\SnapshotSession.h">
+      <Filter>WFS-DIY\Source\gui\snapshots</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\gui\snapshots\SnapshotRow.h">
+      <Filter>WFS-DIY\Source\gui\snapshots</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\gui\ClustersTab.h">
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\gui\ReverbTab.h">
       <Filter>WFS-DIY\Source\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\gui\TabIndex.h">
+      <Filter>WFS-DIY\Source\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\gui\TriangleIndicator.h">
+      <Filter>WFS-DIY\Source\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\gui\effects\EffectsTabContext.h">
+      <Filter>WFS-DIY\Source\gui\effects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\gui\effects\EffectsTab.h">
+      <Filter>WFS-DIY\Source\gui\effects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\gui\effects\EffectsChannelPanel.h">
+      <Filter>WFS-DIY\Source\gui\effects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\gui\effects\EffectsMovementsPanel.h">
+      <Filter>WFS-DIY\Source\gui\effects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\gui\effects\EffectsSendsPanel.h">
+      <Filter>WFS-DIY\Source\gui\effects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\gui\effects\EffectsChainPanel.h">
+      <Filter>WFS-DIY\Source\gui\effects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\gui\effects\EffectsSettingsPanel.h">
+      <Filter>WFS-DIY\Source\gui\effects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\gui\effects\EffectsModulePanel.h">
+      <Filter>WFS-DIY\Source\gui\effects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\gui\effects\EffectsModuleDescriptors.h">
+      <Filter>WFS-DIY\Source\gui\effects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\spatcore\ui\sends\SendMatrixConfig.h">
+      <Filter>WFS-DIY\Source\gui\effects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\spatcore\ui\sends\SendMatrixComponent.h">
+      <Filter>WFS-DIY\Source\gui\effects</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\gui\MapTab.h">
       <Filter>WFS-DIY\Source\gui</Filter>
@@ -5085,6 +5148,9 @@
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\ReverbTabPages.h">
       <Filter>WFS-DIY\Source\Controllers\DialsAndButtons\pages</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\EffectsTabPages.h">
+      <Filter>WFS-DIY\Source\Controllers\DialsAndButtons\pages</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\ClustersTabPages.h">
       <Filter>WFS-DIY\Source\Controllers\DialsAndButtons\pages</Filter>
     </ClInclude>
@@ -5170,6 +5236,9 @@
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\DSP\StereoChannelManager.h">
+      <Filter>WFS-DIY\Source\DSP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\DSP\EffectsHost.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\spatcore\wfs\OutputBufferAlgorithm.h">

@@ -1,9 +1,13 @@
 #include "WFSValueTreeState.h"
 #include "../Network/OSCParameterBounds.h"
+#include "../Helpers/CoordinateConverter.h"
 #include "../WFSLogger.h"
 #include "../Sampler/SamplerData.h"
+#include "VarCoercion.h"
+#include "../../spatcore/effects/EffectPresets.h"
 
 #include <algorithm>
+#include <cmath>
 #include <vector>
 
 using namespace WFSParameterIDs;
@@ -26,6 +30,147 @@ namespace
                 return child;
         }
         return {};
+    }
+
+    /** The nth child of `parent` that has `type`, counting ONLY that type.
+
+        ONE RULE, ONE PLACE, because this file got it wrong at three different
+        depths. A container built holding a single node type is addressed by its
+        callers as if the nth child WERE the nth of that type - <EQ> holds six
+        <Band>s, <FxDelay> eight <Tap>s, <ReverbPostEQ> its <PostEQBand>s - and
+        for everything this application writes that is true. A FILE is not this
+        application: mergeTreeRecursive appends an unmatched source child
+        verbatim, so one unrecognised node anywhere in the list shifts every
+        sibling above it by one, and a straight getChild (n) then answers with
+        the wrong node - or with nothing, for the last band, which has been
+        pushed off the end.
+
+        That is not a lookup miss, it is a SILENT WRITE TO NOWHERE. The caller
+        gets back a valid tree, setProperty succeeds, canWriteParameter says yes
+        and the remote surface reports success - while the value lands on a node
+        no reader ever descends into. Worse, it ROUND-TRIPS: the property is
+        saved onto that node and read back off it, so a check that writes and
+        reads through the same accessor passes, and the operator only ever sees
+        an EQ band or a delay tap that does not do anything.
+
+        The unknown child is left exactly where it is. An unrecognised node is
+        evidence of nothing, and deleting it on load would be a second silent
+        data loss rather than a fix for the first - the rule getEffectState and
+        stripObsoleteEffectProperties already follow at their own granularities.
+
+        Returns an invalid tree when there is no nth child of that type, which is
+        what every caller already handles for an out-of-range index. */
+    juce::ValueTree nthChildOfType (const juce::ValueTree& parent,
+                                    const juce::Identifier& type,
+                                    int n)
+    {
+        if (n < 0)
+            return {};
+
+        int seen = 0;
+        for (int i = 0; i < parent.getNumChildren(); ++i)
+        {
+            auto child = parent.getChild (i);
+            if (! child.hasType (type))
+                continue;
+            if (seen == n)
+                return child;
+            ++seen;
+        }
+        return {};
+    }
+
+    /** Is this token a number a packed LEVEL row may keep exactly as written?
+
+        A level normaliser that re-spells every token would rewrite an operator's
+        whole row on any touch and make a file diff where no value moved, so a
+        token that is already a well-formed number in range is kept verbatim and
+        only the rest are rewritten. That is only safe if "well-formed" is tested
+        rather than assumed: getFloatValue() answers 0 for "abc", and 0 dB is a
+        legal level, so trusting the parse alone would preserve junk as unity
+        gain.
+
+        The GRAMMAR IS WALKED rather than sampled, because "at least one digit and
+        nothing outside the characters a number uses" is not the same test and
+        misses this function's own target: "--5" and "-6.5.3" both pass it, both
+        answer 0 from getFloatValue(), and 0 dB is UNITY - precisely the outcome
+        the paragraph above says this exists to prevent. The overflow form
+        "1e400" passes it too and parses to infinity, which the level clamp then
+        pins to the MAXIMUM (unity again) rather than to the row default. So: an
+        optional sign, digits with at most one point, an optional exponent,
+        nothing after it, and a value that is actually finite.
+
+        Spelled out here rather than handed to strtod, whose decimal point
+        follows the C locale while juce::String::getFloatValue never does - this
+        app runs in French on the dev box, and a locale-sensitive test would
+        re-default every level of every row the first time it ran there. */
+    bool isNumericToken (const juce::String& token)
+    {
+        auto p = token.getCharPointer();
+
+        auto readDigits = [&p]
+        {
+            int n = 0;
+            while (*p >= '0' && *p <= '9') { ++p; ++n; }
+            return n;
+        };
+
+        if (*p == '+' || *p == '-')
+            ++p;
+
+        int digits = readDigits();
+        if (*p == '.')
+        {
+            ++p;
+            digits += readDigits();
+        }
+        if (digits == 0)
+            return false;
+
+        if (*p == 'e' || *p == 'E')
+        {
+            ++p;
+            if (*p == '+' || *p == '-')
+                ++p;
+            if (readDigits() == 0)
+                return false;
+        }
+
+        return p.isEmpty() && std::isfinite (token.getFloatValue());
+    }
+
+    /** A write refused because it was not a row, said out loud.
+
+        A guard that silently keeps the old value turns a DESTRUCTIVE write into
+        one that appears to succeed and does nothing, which is the shape of bug
+        the cell setters refuse to be (they return false rather than report a
+        write they cannot make). The interceptor cannot return false - it returns
+        the value to store - so the one place that can see the refusal names it.
+
+        Rare by construction: every writer inside this app sends a full row, and
+        the OSC per-output form is parsed into setInputOutputMute long before it
+        gets here. What reaches this line is an MCP enum, a mistyped OSC string
+        or a cue carrying a scalar - which is precisely what a reader trying to
+        work out why a mute did nothing needs to be told. */
+    void logRefusedRowWrite (const juce::Identifier& property, const juce::var& proposed)
+    {
+        const juce::String text = proposed.toString();
+        WFSLogger::getInstance().logWarning (
+            "Refused a write to " + property.toString() + " that is not a row: \""
+            + (text.length() > 64 ? text.substring (0, 64) + "..." : text)
+            + "\" - the stored row was kept. A row is one value per column, comma-separated.");
+    }
+
+    /** Same idea as logRefusedRowWrite: every path that can reach this without
+        validating first is a caller that has already gone wrong, and the
+        reader trying to work out why a value did not move needs the name. */
+    void logRefusedNumberWrite (const juce::Identifier& property, const juce::var& proposed)
+    {
+        const juce::String text = proposed.toString();
+        WFSLogger::getInstance().logWarning (
+            "Refused a write to " + property.toString() + " that is not a finite number: \""
+            + (text.length() > 64 ? text.substring (0, 64) + "..." : text)
+            + "\" - the stored value was kept.");
     }
 
     /** The <Input> child a property belongs in when no child carries it yet. A
@@ -60,7 +205,7 @@ using namespace WFSParameterDefaults;
 
 WFSValueTreeState::WFSValueTreeState()
     : TreeParameterStore (static_cast<int> (UndoDomain::COUNT),
-                          { "Input", "Output", "Reverb", "Map", "Config", "Clusters" })
+                          { "Input", "Output", "Reverb", "Map", "Config", "Clusters", "Effects" })
 {
     // WRITE-INTERCEPTOR (control Q6a): numeric-bounds hardening at the store
     // choke point, using the same bounds table OSC ingress and the MCP
@@ -68,49 +213,164 @@ WFSValueTreeState::WFSValueTreeState()
     // the store; this clamp only ever fires for paths that used to bypass
     // validation). In-range numeric writes and all non-numeric writes return
     // the proposed var UNTOUCHED — same object, same type — so every
-    // already-validated caller produces byte-identical results. The one
-    // exception is the per-output mute list (inputMutes), handled first below.
+    // already-validated caller produces byte-identical results. The exceptions
+    // are the SEVEN packed CSV rows, handled first below: inputMutes,
+    // reverbMutes, effectMutes and the four <Sends> rows. Each is a whole row of
+    // columns in one string property, none of them has a bounds entry (they are
+    // not numbers), and so the generic clause below passes a bare number through
+    // untouched and the row becomes that number. That is how input mutes were
+    // lost to a QLab cue, an OSC scalar and an MCP enum; the clause that closed
+    // it for inputMutes is the model for the other six.
+    //
+    // WHAT IS TESTED IS THE SHAPE OF THE WRITE, NOT ITS TYPE. A guard that only
+    // asked "is this a string?" would hand every string to the normaliser, and
+    // one junk token normalises into a full row of defaults - a quieter loss
+    // than the bare number that started this, not a smaller one, because a row
+    // of zeros is well-formed and reads as a deliberate unmute-all. The MCP
+    // surface advertises reverb_set_mutes with its value as the string enum
+    // "unmute" / "MUTE" (Source/Network/MCP/generated_tools.json) and the OSC
+    // list form takes any non-numeric string, so that write is reachable today.
     setWriteInterceptor ([this] (const juce::Identifier& property, const juce::var& proposed,
                                  const juce::ValueTree& node) -> juce::var
     {
-        // The per-output mute list is one string for the whole input. A bare
-        // number here is never a list: it is what a QLab cue, an OSC scalar or
-        // an MCP enum used to write over it, which unmuted every output but the
-        // first and was then saved like that. Keep the list as it is instead,
-        // and fit a real list to the live outputs.
-        if (property == inputMutes)
+        // THE PER-OUTPUT MUTE ROW OF ALL THREE FAMILIES. One string holding
+        // the whole row, and a bare number is never a row: it is what a QLab
+        // cue, an OSC scalar or an MCP enum used to write over inputMutes, which
+        // unmuted every output but the first and was then saved like that. Keep
+        // the row as it is instead, and fit a real one to the live outputs.
+        //
+        // reverbMutes and effectMutes join it here, and reverbMutes was
+        // destructible by that exact route until this clause: /wfs/reverb/mutes
+        // <id> <out> <v> parses the SECOND argument as the value, reverbMutes has
+        // no bounds entry so valueWithinBounds waves it through, and the row
+        // became "2". All three share ONE rule because a column really is the
+        // same thing in all three - an output index - so the row follows the live
+        // output count. That is precisely what separates them from the four send
+        // rows below, whose columns are input numbers and effect indexes.
+        if (property == inputMutes || property == reverbMutes || property == effectMutes)
         {
-            if (proposed.isString())
-                return juce::var (normaliseMuteList (proposed, getNumOutputChannels()));
+            if (isPackedRowWrite (proposed, getNumOutputChannels()))
+            {
+                // MERGED onto the stored row, never padded over it, and fitted to
+                // a width that can only grow. A writer speaks for the columns it
+                // names: a tablet showing 16 outputs of a 32-output rig writes 16
+                // tokens, and a snapshot recalled before the output count caught
+                // up writes more than the rig has - the first must not clear the
+                // top half, the second must not be cut. Same rule as the refit in
+                // setNumOutputChannels, and for the same reason.
+                const juce::String row = mergePackedRow (node.getProperty (property), proposed);
+                return juce::var (normaliseMuteList (row, perOutputRowWidth (row, getNumOutputChannels())));
+            }
 
+            logRefusedRowWrite (property, proposed);
             return node.hasProperty (property)
                        ? node.getProperty (property)
                        : juce::var (normaliseMuteList ({}, getNumOutputChannels()));
         }
 
-        if (proposed.isDouble() || proposed.isInt() || proposed.isInt64())
+        // THE FOUR SEND ROWS. Same protection, DIFFERENT SHAPE, and the
+        // difference is the whole reason canonicalEffectSendRow exists rather
+        // than another normaliseMuteList call:
+        //
+        //   - their width is FIXED (maxInputChannels / maxEffectChannels) and
+        //     has nothing to do with the live output count. A column is an input
+        //     PERMANENT NUMBER, which can be anything up to the maximum whatever
+        //     the live count is, so fitting one of these to the outputs would
+        //     drop the columns of channels that still exist;
+        //   - two of them hold dB, not flags. normaliseMuteList coerces every
+        //     token to 0 or 1, which on a level row silently sets every send to
+        //     unity or to nothing;
+        //   - the fx rows have a diagonal that must stay off, and this is one of
+        //     the places it is forced: a whole-row write is exactly how a self-
+        //     send would otherwise arrive.
+        if (property == effectSendLevels || property == effectSendOns
+         || property == effectFxSendLevels || property == effectFxSendOns)
         {
-            // LFO phases are circular: wrap into the canonical [-180, 180]
-            // instead of clamping, so legacy 0..360 values (accepted by the
-            // gates' compat window) land on the equivalent angle.
-            if (WFSNetwork::isLFOPhaseParam (property))
-            {
-                const double d = static_cast<double> (proposed);
-                if (d < -180.0 || d > 180.0)
-                    return juce::var (WFSParameterDefaults::wrapPhaseDegrees (juce::roundToInt (d)));
-                return proposed;
-            }
+            const int selfIndex = denseEffectIndexOfNode (node);
+            const int columns   = (property == effectSendLevels || property == effectSendOns)
+                                      ? maxInputChannels : maxEffectChannels;
 
-            if (const auto bounds = WFSNetwork::getBounds (property))
+            // The same shape test as the mute rows above. None of these four is
+            // on the MCP surface yet, so none can be reached by the string enum
+            // that reaches reverbMutes - but they inherit that hole the day the
+            // grid tools land, and a one-token string wiped a routed row here
+            // exactly as it did there. The width is FIXED, so that is what the
+            // shape is judged against rather than any live count.
+            if (isPackedRowWrite (proposed, columns))
+                return juce::var (canonicalEffectSendRow (property,
+                                                          mergePackedRow (node.getProperty (property), proposed),
+                                                          selfIndex));
+
+            logRefusedRowWrite (property, proposed);
+            return node.hasProperty (property)
+                       ? node.getProperty (property)
+                       : juce::var (canonicalEffectSendRow (property, {}, selfIndex));
+        }
+
+        // A PARAMETER WITH BOUNDS TAKES A FINITE NUMBER, AND NOTHING ELSE
+        // (audit 2026-09-28, N2). The clamp below used to look only at values
+        // that were already numbers, so two kinds of write went straight past:
+        //
+        //   - a STRING, stored as it came. Every reader converts with
+        //     String::getDoubleValue, which reads "60" as 60 and "inf" as
+        //     infinity: an output attenuation written as the text "60" played
+        //     at +60 dB. A string that spells a finite number is still
+        //     accepted, because project loads, snapshot recalls and MCP undo
+        //     all hand back the text a load produced. In range it is stored
+        //     untouched, exactly as before; out of range it is clamped like a
+        //     number. Anything else is refused.
+        //   - NaN, which fails both comparisons of the clamp and was stored.
+        //     Infinity is refused with it rather than clamped: neither end of
+        //     the range is what the sender meant.
+        //
+        // Refusing returns undefined, which leaves the node as it was (see
+        // TreeParameterStore::WriteInterceptor).
+        const auto bounds = WFSNetwork::getBounds (property);
+        if (! bounds.has_value())
+            return proposed;
+
+        double d = 0.0;
+        if (proposed.isString())
+        {
+            const auto number = WFSVar::parseFiniteNumber (proposed.toString());
+            if (! number.has_value())
             {
-                const double d = static_cast<double> (proposed);
-                if (d < bounds->min || d > bounds->max)
-                {
-                    const double clamped = juce::jlimit (bounds->min, bounds->max, d);
-                    return bounds->isInt ? juce::var (juce::roundToInt (clamped))
-                                         : juce::var (clamped);
-                }
+                logRefusedNumberWrite (property, proposed);
+                return juce::var::undefined();
             }
+            if (*number >= bounds->min && *number <= bounds->max)
+                return proposed;
+            d = *number;
+        }
+        else if (proposed.isDouble() || proposed.isInt() || proposed.isInt64())
+        {
+            d = static_cast<double> (proposed);
+            if (! std::isfinite (d))
+            {
+                logRefusedNumberWrite (property, proposed);
+                return juce::var::undefined();
+            }
+        }
+        else
+        {
+            return proposed;
+        }
+
+        // LFO phases are circular: wrap into the canonical [-180, 180]
+        // instead of clamping, so legacy 0..360 values (accepted by the
+        // gates' compat window) land on the equivalent angle.
+        if (WFSNetwork::isLFOPhaseParam (property))
+        {
+            if (d < -180.0 || d > 180.0)
+                return juce::var (WFSParameterDefaults::wrapPhaseDegrees (juce::roundToInt (d)));
+            return proposed;
+        }
+
+        if (d < bounds->min || d > bounds->max)
+        {
+            const double clamped = juce::jlimit (bounds->min, bounds->max, d);
+            return bounds->isInt ? juce::var (juce::roundToInt (clamped))
+                                 : juce::var (clamped);
         }
         return proposed;
     });
@@ -394,6 +654,63 @@ juce::ValueTree WFSValueTreeState::getReverbState (int channelIndex)
     return {};
 }
 
+juce::ValueTree WFSValueTreeState::getEffectsState()
+{
+    return state.getChildWithName (Effects);
+}
+
+juce::ValueTree WFSValueTreeState::getEffectsState() const
+{
+    return state.getChildWithName (Effects);
+}
+
+juce::ValueTree WFSValueTreeState::getEffectsGlobalSection() const
+{
+    return getConfigState().getChildWithName (EffectsGlobal);
+}
+
+juce::ValueTree WFSValueTreeState::getEffectState (int channelIndex)
+{
+    // THE SAME COUNT-BY-TYPE WALK getReverbState does, and for the same reason
+    // - not because <Effects> is meant to hold anything but <Effect> children,
+    // but because this must AGREE WITH getNumEffectChannels whatever the file
+    // turned out to hold.
+    //
+    // This used to index straight into the child list and treat the type test as
+    // a guard on the container's invariant. The invariant is real and nothing in
+    // this app breaks it; a FILE can. mergeTreeRecursive appends any unmatched
+    // source child verbatim, and WFSFileManager::applyEffectsSection is exactly
+    // the path a hand-edited or foreign effects.xml takes, so <Effects> holding
+    // <Effect id="1"/>, <Foo/>, <Effect id="2"/> was reachable. The count walks
+    // by type and said two; this indexed and returned an invalid tree for
+    // channel 2, and every accessor built on it - Channel, Position, Feed,
+    // Return, AutomOtion, Chain, Sends, the eleven modules - plus
+    // redistributeAllEffectPositions went with it. setNumEffectChannels then
+    // wrote that same two into <Effects count> and Config/IO/effectChannels, so
+    // a channel the whole application agreed existed could not be addressed.
+    //
+    // The unknown child is left where it is rather than deleted on load: an
+    // unrecognised node is evidence of nothing (see stripObsoleteEffectProperties
+    // for the same rule at property granularity), and dropping it would be the
+    // second silent data loss on this path, not a fix for the first.
+    auto effects = getEffectsState();
+    if (channelIndex < 0)
+        return {};
+
+    int effectCount = 0;
+    for (int i = 0; i < effects.getNumChildren(); ++i)
+    {
+        auto child = effects.getChild (i);
+        if (child.hasType (Effect))
+        {
+            if (effectCount == channelIndex)
+                return child;
+            ++effectCount;
+        }
+    }
+    return {};
+}
+
 juce::ValueTree WFSValueTreeState::getAudioPatchState()
 {
     return state.getChildWithName (AudioPatch);
@@ -431,6 +748,11 @@ void WFSValueTreeState::setParameter (const juce::Identifier& paramId, const juc
         setNumReverbChannels (static_cast<int> (value));
         return;
     }
+    if (paramId == effectChannels)
+    {
+        setNumEffectChannels (static_cast<int> (value));
+        return;
+    }
     if (paramId == stereoInputChannels)
     {
         // Obsolete under the stable-number model: a channel's type lives on
@@ -457,7 +779,8 @@ bool WFSValueTreeState::canWriteParameter (const juce::Identifier& paramId, int 
     // The three live channel counts never reach getTreeForParameter: setParameter
     // re-routes them to the setNumXChannels helpers above. They resolve to nothing
     // and are writable anyway, so answer for the routing, not for the tree.
-    if (paramId == inputChannels || paramId == outputChannels || paramId == reverbChannels)
+    if (paramId == inputChannels || paramId == outputChannels || paramId == reverbChannels
+        || paramId == effectChannels)
         return true;
 
     // Deliberately dropped — see the comment in setParameter. Saying so here is the
@@ -479,6 +802,7 @@ void WFSValueTreeState::setParameterWithoutUndo (const juce::Identifier& paramId
     if (paramId == inputChannels)  { setNumInputChannels  (static_cast<int> (value)); return; }
     if (paramId == outputChannels) { setNumOutputChannels (static_cast<int> (value)); return; }
     if (paramId == reverbChannels) { setNumReverbChannels (static_cast<int> (value)); return; }
+    if (paramId == effectChannels) { setNumEffectChannels (static_cast<int> (value)); return; }
     if (paramId == stereoInputChannels) { return; }  // obsolete — see setParameter
 
     TreeParameterStore::setParameterWithoutUndo (paramId, value, channelIndex);
@@ -610,6 +934,59 @@ juce::String WFSValueTreeState::normaliseMuteList (const juce::var& list, int nu
     }
 
     return tokens.joinIntoString (",");
+}
+
+int WFSValueTreeState::perOutputRowWidth (const juce::var& row, int numOutputs)
+{
+    juce::StringArray tokens;
+    tokens.addTokens (row.toString(), ",", "");
+    return juce::jmax (numOutputs, tokens.size());
+}
+
+bool WFSValueTreeState::isPackedRowWrite (const juce::var& proposed, int expectedColumns)
+{
+    if (! proposed.isString())
+        return false;   // a bare number is a scalar, and always was
+
+    juce::StringArray tokens;
+    tokens.addTokens (proposed.toString(), ",", "");
+
+    if (tokens.isEmpty())
+        return false;   // "" names no column at all
+
+    // ONE TOKEN IS A SCALAR whatever it spells - unless the row really does have
+    // one column, which is why the width is asked for rather than assumed.
+    if (tokens.size() == 1 && expectedColumns != 1)
+        return false;
+
+    // A ROW IS NUMBERS. A string with a token that is not one is refused WHOLE
+    // rather than repaired token by token: the normalisers repair what a FILE
+    // carries, because a file has no writer left to refuse, but a live write
+    // that cannot spell its own row is not a row that lost a column.
+    for (const auto& token : tokens)
+        if (! isNumericToken (token.trim()))
+            return false;
+
+    return true;
+}
+
+juce::String WFSValueTreeState::mergePackedRow (const juce::var& existing, const juce::var& proposed)
+{
+    juce::StringArray row;
+    row.addTokens (existing.toString(), ",", "");
+
+    juce::StringArray tokens;
+    tokens.addTokens (proposed.toString(), ",", "");
+
+    for (int i = 0; i < tokens.size(); ++i)
+    {
+        if (i < row.size())
+            row.set (i, tokens[i]);
+        else
+            row.add (tokens[i]);
+    }
+
+    return row.joinIntoString (",");
 }
 
 bool WFSValueTreeState::setInputOutputMute (int channelIndex, int outputIndex, bool muted)
@@ -991,6 +1368,13 @@ void WFSValueTreeState::setOutputParameterWithArrayPropagation (int channelIndex
     float newFloat = static_cast<float> (value);
     float delta = newFloat - oldFloat;
 
+    // Orientation is a circle: a dial carried from 179 to -179 turned 2
+    // degrees, not -358, and a member pushed past 180 comes round the other
+    // side. Clamping sent every relatively linked member to the end stop.
+    const bool isCircular = (paramId == outputOrientation);
+    if (isCircular)
+        delta = WFSCoordinates::normalizeAngle (delta);
+
     // Set the originating channel
     setOutputParameter (channelIndex, paramId, value);
 
@@ -1022,7 +1406,8 @@ void WFSValueTreeState::setOutputParameterWithArrayPropagation (int channelIndex
         else
         {
             float memberCurrent = static_cast<float> (getOutputParameter (i, paramId));
-            float memberNew = clampOutputParamToRange (paramId, memberCurrent + delta);
+            float memberNew = isCircular ? WFSCoordinates::normalizeAngle (memberCurrent + delta)
+                                         : clampOutputParamToRange (paramId, memberCurrent + delta);
 
             // For int parameters, round the result (toggles never reach this branch)
             if (paramId == outputOrientation || paramId == outputAngleOn ||
@@ -1147,10 +1532,12 @@ juce::ValueTree WFSValueTreeState::getOutputEQSection (int channelIndex)
 
 juce::ValueTree WFSValueTreeState::getOutputEQBand (int channelIndex, int bandIndex)
 {
-    auto eq = getOutputEQSection (channelIndex);
-    if (eq.isValid() && bandIndex >= 0 && bandIndex < eq.getNumChildren())
-        return eq.getChild (bandIndex);
-    return {};
+    // By TYPE, never by position - see nthChildOfType. <EQ> holds <Band> children
+    // and nothing else, and a loaded outputs.xml is exactly what can make that
+    // untrue. This accessor has live remote callers (the MCP EQ-band dispatcher,
+    // the generic get/set tools, the dials pages), so a foreign child in here
+    // used to make a write to band 2 land on it and report success.
+    return nthChildOfType (getOutputEQSection (channelIndex), Band, bandIndex);
 }
 
 //==============================================================================
@@ -1319,10 +1706,13 @@ juce::ValueTree WFSValueTreeState::ensureReverbEQSection (int channelIndex)
 
 juce::ValueTree WFSValueTreeState::getReverbEQBand (int channelIndex, int bandIndex)
 {
-    auto eq = getReverbEQSection (channelIndex);
-    if (eq.isValid() && bandIndex >= 0 && bandIndex < eq.getNumChildren())
-        return eq.getChild (bandIndex);
-    return {};
+    // By TYPE - see nthChildOfType, and note getReverbEQSection above already
+    // MIGRATES old band property names in place, so this is a child list a FILE
+    // has demonstrably written. The most exposed of the five:
+    // /wfs/reverb/n/eq/b/gain resolves through here (OSCManager), as do the MCP
+    // band tools and the GUI tab, and an unknown child inside <EQ> used to send
+    // every one of those writes onto it with a success reply.
+    return nthChildOfType (getReverbEQSection (channelIndex), Band, bandIndex);
 }
 
 juce::ValueTree WFSValueTreeState::getReverbReturnSection (int channelIndex)
@@ -1374,10 +1764,12 @@ juce::ValueTree WFSValueTreeState::ensureReverbPostEQSection()
 
 juce::ValueTree WFSValueTreeState::getReverbPostEQBand (int bandIndex)
 {
-    auto postEQ = getReverbPostEQSection();
-    if (postEQ.isValid() && bandIndex >= 0 && bandIndex < postEQ.getNumChildren())
-        return postEQ.getChild (bandIndex);
-    return {};
+    // By TYPE - see nthChildOfType. <ReverbPostEQ> holds <PostEQBand> children,
+    // NOT <Band>: the post EQ is a global sibling of the reverb channels and its
+    // bands carry their own node type, which is what keeps the two id namespaces
+    // apart. Naming the wrong type here would resolve nothing at all, which is
+    // the loud failure rather than the silent one.
+    return nthChildOfType (getReverbPostEQSection(), PostEQBand, bandIndex);
 }
 
 juce::ValueTree WFSValueTreeState::getReverbPreCompSection()
@@ -1421,6 +1813,1119 @@ juce::ValueTree WFSValueTreeState::ensureReverbPostExpSection()
 }
 
 //==============================================================================
+// Effects Channel Access
+//==============================================================================
+
+namespace
+{
+    /** The eleven chain slots in their declared order - the same order and the
+        same tokens as spatcore::effects::kSlots (dist, eq1, eq2, dyn1, dyn2,
+        mod, phaser, trem, reverb, delay, crush). Each slot is its own id-less
+        node TYPE, so the tree is a 1:1 transcription of that table and
+        getChildWithName addresses a slot with no sub-index at all. */
+    const juce::Identifier* const effectModuleTypeTable[] = {
+        &FxDist, &FxEq1, &FxEq2, &FxDyn1, &FxDyn2, &FxMod,
+        &FxPhaser, &FxTrem, &FxReverb, &FxDelay, &FxCrush
+    };
+
+    static_assert ((int) (sizeof (effectModuleTypeTable) / sizeof (effectModuleTypeTable[0]))
+                       == WFSParameterDefaults::numEffectModuleSlots,
+                   "the effect module type table and numEffectModuleSlots must agree");
+
+    /** How much further out than the reverb arc the effect ring sits.
+
+        The two families are the same kind of object - a virtual source outside
+        the stage whose feed bearing and inter-node spacing both matter - so
+        they share the placement helper. They must not share the SPOT: a session
+        with four reverbs and four effects would otherwise put eight nodes on
+        four positions, which reads as four nodes on the map and gives the
+        angular attenuation two feeds pointing identically. */
+    constexpr float kEffectRingExpansion = 1.25f;
+}
+
+const juce::Identifier& WFSValueTreeState::getEffectModuleType (int slotIndex)
+{
+    static const juce::Identifier none;
+    if (slotIndex < 0 || slotIndex >= numEffectModuleSlots)
+        return none;
+    return *effectModuleTypeTable[(size_t) slotIndex];
+}
+
+bool WFSValueTreeState::isInstancedEffectModuleType (const juce::Identifier& nodeType)
+{
+    return nodeType == FxEq1 || nodeType == FxEq2 || nodeType == FxDyn1 || nodeType == FxDyn2;
+}
+
+juce::var WFSValueTreeState::getEffectParameter (int channelIndex, const juce::Identifier& paramId) const
+{
+    auto effect = const_cast<WFSValueTreeState*>(this)->getEffectState (channelIndex);
+    if (! effect.isValid())
+        return {};
+
+    for (int i = 0; i < effect.getNumChildren(); ++i)
+    {
+        auto child = effect.getChild (i);
+
+        // FxEq1/FxEq2 and FxDyn1/FxDyn2 carry identical property names, and the
+        // <Band> / <Tap> grandchildren repeat theirs across siblings. A by-name
+        // hit on any of those could only ever mean "the first one", so this walk
+        // does not look: getEffectEQBand / getEffectDelayTap /
+        // getEffectModuleSection take the missing index, and a generic caller
+        // gets an honest miss instead of a silent write to instance 1. (The
+        // reverb twin does descend into its EQ bands and always answers band 1;
+        // that is a known wart, not the model to copy.)
+        if (isInstancedEffectModuleType (child.getType()))
+            continue;
+
+        if (child.hasProperty (paramId))
+            return child.getProperty (paramId);
+    }
+    return {};
+}
+
+void WFSValueTreeState::setEffectParameter (int channelIndex, const juce::Identifier& paramId, const juce::var& value)
+{
+    auto effect = getEffectState (channelIndex);
+    if (! effect.isValid())
+        return;
+
+    for (int i = 0; i < effect.getNumChildren(); ++i)
+    {
+        auto child = effect.getChild (i);
+
+        if (isInstancedEffectModuleType (child.getType()))
+            continue;   // see getEffectParameter
+
+        if (child.hasProperty (paramId))
+        {
+            writeProperty (child, paramId, value, getActiveUndoManager());
+
+            // Placing a return by hand ends automatic layout, exactly as it does
+            // for inputs and reverbs - but through the effects-only latch. The
+            // return offsets count: that is where the effect is perceived.
+            if (paramId == effectPositionX     || paramId == effectPositionY     || paramId == effectPositionZ
+             || paramId == effectReturnOffsetX || paramId == effectReturnOffsetY || paramId == effectReturnOffsetZ)
+                markEffectPositionsUserOwned();
+
+            return;
+        }
+    }
+}
+
+juce::ValueTree WFSValueTreeState::getEffectChannelSection (int channelIndex)
+{
+    return getEffectState (channelIndex).getChildWithName (Channel);
+}
+
+juce::ValueTree WFSValueTreeState::getEffectPositionSection (int channelIndex)
+{
+    return getEffectState (channelIndex).getChildWithName (Position);
+}
+
+juce::ValueTree WFSValueTreeState::getEffectFeedSection (int channelIndex)
+{
+    return getEffectState (channelIndex).getChildWithName (Feed);
+}
+
+juce::ValueTree WFSValueTreeState::getEffectReturnSection (int channelIndex)
+{
+    // ReverbReturn is the C++ name; the XML tag is plain "Return", which is the
+    // tag an effect return uses too (see the identifier header).
+    return getEffectState (channelIndex).getChildWithName (ReverbReturn);
+}
+
+juce::ValueTree WFSValueTreeState::getEffectAutoMotionSection (int channelIndex)
+{
+    return getEffectState (channelIndex).getChildWithName (AutomOtion);
+}
+
+juce::ValueTree WFSValueTreeState::getEffectLFOSection (int channelIndex)
+{
+    return getEffectState (channelIndex).getChildWithName (LFO);
+}
+
+juce::ValueTree WFSValueTreeState::getEffectChainSection (int channelIndex)
+{
+    return getEffectState (channelIndex).getChildWithName (Chain);
+}
+
+juce::ValueTree WFSValueTreeState::getEffectSendsSection (int channelIndex)
+{
+    return getEffectState (channelIndex).getChildWithName (Sends);
+}
+
+//==============================================================================
+// Link groups - propagation between the members of one group
+//
+// MODELLED ON THE OUTPUT ARRAY, NOT ON CLUSTERS (R5-6). The plan originally
+// said to clone ClusterParamEdit, and clusters have membership with NO
+// per-member mode - cloning that template would have inherited exactly the gap
+// effectLinkMode closes. The shape here is setOutputParameterWithArrayPropagation:
+// membership plus a mode on every member, and the RECEIVER's mode is consulted
+// as well as the origin's, which is what lets a channel be detached from the
+// detached channel's own side.
+//
+// Writes that do NOT come through these methods never propagate: OSC, MCP,
+// snapshot recall and file loads all call the plain setters, exactly as the
+// input and output families behave.
+//==============================================================================
+
+bool WFSValueTreeState::isEffectLinkExcluded (const juce::Identifier& paramId)
+{
+    // What a link group must never share. Position, the return offset and the
+    // name are the channel's identity in the show; the send rows are its
+    // routing; AutomOtion is a movement authored per channel.
+    //
+    // MUTES ARE HERE, NOT IN THE ABSOLUTE-ONLY SET (R5-1). The plan had them
+    // propagating, which made two linked channels share one mute state so
+    // neither could be silenced alone - the opposite of the requirement. A
+    // group mute is an ACTION instead (setEffectGroupMute), which writes every
+    // member once and leaves each independently editable afterwards.
+    // effectSolo was already excluded, and solo independent while mute was
+    // shared was never coherent.
+    static const std::set<juce::Identifier> excluded = {
+        effectName,
+        effectPositionX, effectPositionY, effectPositionZ, effectCoordinateMode,
+        effectReturnOffsetX, effectReturnOffsetY, effectReturnOffsetZ,
+        effectLinkGroup, effectLinkMode,
+        effectMute, effectMutes, effectMuteMacro, effectMuteReverbSends, effectSolo,
+        effectSendLevels, effectSendOns, effectFxSendLevels, effectFxSendOns,
+        effectSendLevel, effectSendOn, effectFxSendLevel, effectFxSendOn,
+        effectOtomoX, effectOtomoY, effectOtomoZ, effectOtomoCoordinateMode,
+        effectOtomoR, effectOtomoTheta, effectOtomoRsph, effectOtomoPhi,
+        effectOtomoAbsoluteRelative, effectOtomoSpeedProfile, effectOtomoDuration,
+        effectOtomoCurve, effectOtomoTrigger, effectOtomoThreshold, effectOtomoReset,
+        effectOtomoPauseResume,
+        effectLFOactive, effectLFOperiod, effectLFOphase,
+        effectLFOshapeX, effectLFOshapeY, effectLFOshapeZ,
+        effectLFOrateX, effectLFOrateY, effectLFOrateZ,
+        effectLFOamplitudeX, effectLFOamplitudeY, effectLFOamplitudeZ,
+        effectLFOphaseX, effectLFOphaseY, effectLFOphaseZ,
+    };
+
+    return excluded.count (paramId) != 0;
+}
+
+bool WFSValueTreeState::isEffectLinkAbsoluteOnly (const juce::Identifier& paramId)
+{
+    // Discrete values: copied outright in any mode, never delta'd. A toggle,
+    // an enum or a validated set has no meaningful offset, and a delta would
+    // invert already-matching members instead of sharing the state - the same
+    // reasoning isBooleanOutputParameter records for the output family.
+    //
+    // THIS TABLE IS THE CSV'S "enum" COLUMN. It was generated from
+    // Documentation/WFS-UI_effects.csv by taking every per-channel row with a
+    // non-empty enum cell, minus the rows isEffectLinkExcluded already stops.
+    // Add a row with an enum to that file and it belongs here; a startsWith
+    // would be wrong for the usual reason (effectDist / effectDistance*).
+    static const std::set<juce::Identifier> absoluteOnly = {
+        effectMinimalLatency, effectFeedMiniLatency, effectAttenuationLaw,
+        effectChainBypass,
+        effectDistBypass, effectDistOversample,
+        effectEQBypass, effectEQshape,
+        effectDynBypass, effectDynDetector, effectDynAutoMakeup,
+        effectDynCompOn, effectDynExpOn,
+        effectModBypass, effectModMode, effectModVoices, effectModShape,
+        effectModThroughZero,
+        effectPhaserBypass, effectPhaserStages, effectPhaserShape,
+        effectTremBypass,
+        effectReverbBypass, effectReverbModel, effectReverbType,
+        effectReverbERProfile, effectReverbShimmerPitch,
+        effectDelayBypass, effectDelayTaps, effectDelayTapMode, effectDelayPattern,
+        effectDelayFeedbackTap,
+        effectCrushBypass, effectCrushFilter,
+
+        // Not an enum, and absolute for a stronger reason: the chain order is
+        // a permutation of eleven tokens. "Half a reorder" is not a value.
+        effectChainOrder,
+    };
+
+    return absoluteOnly.count (paramId) != 0;
+}
+
+int WFSValueTreeState::getEffectLinkGroup (int channelIndex)
+{
+    auto channel = getEffectChannelSection (channelIndex);
+    return channel.isValid()
+         ? juce::jlimit (effectLinkGroupMin, effectLinkGroupMax,
+                         WFSVar::toInt (channel.getProperty (effectLinkGroup), effectLinkGroupDefault))
+         : 0;
+}
+
+int WFSValueTreeState::getEffectLinkMode (int channelIndex)
+{
+    auto channel = getEffectChannelSection (channelIndex);
+    return channel.isValid()
+         ? juce::jlimit (effectLinkModeMin, effectLinkModeMax,
+                         WFSVar::toInt (channel.getProperty (effectLinkMode), effectLinkModeDefault))
+         : 0;
+}
+
+void WFSValueTreeState::applyEffectLinkPropagation (int channelIndex,
+                                                    const juce::Identifier& paramId,
+                                                    const juce::var& newValue,
+                                                    const juce::var& oldValue,
+                                                    const std::function<juce::ValueTree (int)>& sectionFor)
+{
+    // The source channel has already been written by the caller - this walks
+    // the other members only.
+    if (isEffectLinkExcluded (paramId))
+        return;
+
+    const int group = getEffectLinkGroup (channelIndex);
+    if (group == 0)                     // unlinked
+        return;
+
+    const int originMode = getEffectLinkMode (channelIndex);
+    if (originMode == 0)                // this channel is detached
+        return;
+
+    const bool absoluteOnly = isEffectLinkAbsoluteOnly (paramId);
+    const auto bounds = WFSNetwork::getBounds (paramId);
+
+    const float delta = absoluteOnly ? 0.0f
+                                     : static_cast<float> (static_cast<double> (newValue))
+                                     - static_cast<float> (static_cast<double> (oldValue));
+
+    const int numEffects = getNumEffectChannels();
+
+    for (int member = 0; member < numEffects; ++member)
+    {
+        if (member == channelIndex)
+            continue;
+
+        if (getEffectLinkGroup (member) != group)
+            continue;
+
+        // THE RECEIVER'S MODE, not only the origin's (R5-6). This is what makes
+        // "disengage temporarily" work from the detached channel's side rather
+        // than requiring the operator to remember which channel they edit from.
+        const int memberMode = getEffectLinkMode (member);
+        if (memberMode == 0)
+            continue;
+
+        auto section = sectionFor (member);
+        if (! section.isValid() || ! section.hasProperty (paramId))
+            continue;
+
+        // A member's reverb goes Custom exactly when its own value really
+        // moves, whatever the origin's did.
+        const bool reverbSection = section.hasType (FxReverb);
+
+        if (absoluteOnly || (originMode == 1 && memberMode == 1))
+        {
+            if (reverbSection)
+                flipEffectReverbToCustomIfEdited (section, paramId, newValue);
+            writeProperty (section, paramId, newValue, getActiveUndoManager());
+            continue;
+        }
+
+        // Relative: either side asking for it makes the member keep its offset.
+        float memberNew = static_cast<float> (static_cast<double> (section.getProperty (paramId))) + delta;
+
+        if (bounds.has_value())
+        {
+            memberNew = juce::jlimit (static_cast<float> (bounds->min),
+                                      static_cast<float> (bounds->max), memberNew);
+
+            if (bounds->isInt)
+            {
+                const int memberInt = static_cast<int> (std::round (memberNew));
+                if (reverbSection)
+                    flipEffectReverbToCustomIfEdited (section, paramId, memberInt);
+                writeProperty (section, paramId, memberInt, getActiveUndoManager());
+                continue;
+            }
+        }
+
+        if (reverbSection)
+            flipEffectReverbToCustomIfEdited (section, paramId, memberNew);
+        writeProperty (section, paramId, memberNew, getActiveUndoManager());
+    }
+}
+
+juce::ValueTree WFSValueTreeState::findEffectSectionCarrying (int channelIndex,
+                                                              const juce::Identifier& paramId)
+{
+    // The same walk setEffectParameter does, and skipping the instanced module
+    // types for the same reason: a first-hit search would answer instance 1 and
+    // report success. Anything on FxEq1/2 or FxDyn1/2 must come through
+    // setEffectModuleParameterWithLinkPropagation instead.
+    auto effect = getEffectState (channelIndex);
+    if (! effect.isValid())
+        return {};
+
+    for (int i = 0; i < effect.getNumChildren(); ++i)
+    {
+        auto child = effect.getChild (i);
+
+        if (isInstancedEffectModuleType (child.getType()))
+            continue;
+
+        if (child.hasProperty (paramId))
+            return child;
+    }
+
+    return {};
+}
+
+void WFSValueTreeState::setEffectParameterWithLinkPropagation (int channelIndex,
+                                                               const juce::Identifier& paramId,
+                                                               const juce::var& value,
+                                                               bool propagateToGroup)
+{
+    // The reverb's presets ride on this funnel too: a type is the expansion,
+    // and a real edit to a value a preset owns makes the source Custom first
+    // (applyEffectLinkPropagation does the same for each member).
+    if (paramId == effectReverbType)
+    {
+        applyEffectReverbPreset (channelIndex, WFSVar::toInt (value, 0), propagateToGroup);
+        return;
+    }
+
+    if (isEffectReverbPresetOwned (paramId))
+    {
+        auto reverb = getEffectModuleSection (channelIndex, FxReverb);
+        flipEffectReverbToCustomIfEdited (reverb, paramId, value);
+    }
+
+    if (! propagateToGroup || isEffectLinkExcluded (paramId))
+    {
+        setEffectParameter (channelIndex, paramId, value);
+        return;
+    }
+
+    const auto oldValue = getEffectParameter (channelIndex, paramId);
+    setEffectParameter (channelIndex, paramId, value);   // the source, with its ownership latch
+
+    applyEffectLinkPropagation (channelIndex, paramId, value, oldValue,
+                                [this, &paramId] (int member)
+                                {
+                                    return findEffectSectionCarrying (member, paramId);
+                                });
+}
+
+void WFSValueTreeState::setEffectModuleParameterWithLinkPropagation (int channelIndex,
+                                                                     const juce::Identifier& moduleType,
+                                                                     const juce::Identifier& paramId,
+                                                                     const juce::var& value,
+                                                                     bool propagateToGroup)
+{
+    if (moduleType == FxReverb && paramId == effectReverbType)
+    {
+        applyEffectReverbPreset (channelIndex, WFSVar::toInt (value, 0), propagateToGroup);
+        return;
+    }
+
+    auto section = getEffectModuleSection (channelIndex, moduleType);
+    if (! section.isValid())
+        return;
+
+    const auto oldValue = section.getProperty (paramId);
+
+    if (moduleType == FxReverb)
+        flipEffectReverbToCustomIfEdited (section, paramId, value);
+
+    writeProperty (section, paramId, value, getActiveUndoManager());
+
+    if (! propagateToGroup)
+        return;
+
+    applyEffectLinkPropagation (channelIndex, paramId, value, oldValue,
+                                [this, &moduleType] (int member)
+                                {
+                                    return getEffectModuleSection (member, moduleType);
+                                });
+}
+
+void WFSValueTreeState::setEffectEQBandParameterWithLinkPropagation (int channelIndex,
+                                                                     int eqInstance,
+                                                                     int bandIndex,
+                                                                     const juce::Identifier& paramId,
+                                                                     const juce::var& value,
+                                                                     bool propagateToGroup)
+{
+    auto band = getEffectEQBand (channelIndex, eqInstance, bandIndex);
+    if (! band.isValid())
+        return;
+
+    const auto oldValue = band.getProperty (paramId);
+    writeProperty (band, paramId, value, getActiveUndoManager());
+
+    if (! propagateToGroup)
+        return;
+
+    // The SAME band of the SAME instance on every member: a link group shares a
+    // chain, so band 3 of EQ 2 answers to band 3 of EQ 2.
+    applyEffectLinkPropagation (channelIndex, paramId, value, oldValue,
+                                [this, eqInstance, bandIndex] (int member)
+                                {
+                                    return getEffectEQBand (member, eqInstance, bandIndex);
+                                });
+}
+
+void WFSValueTreeState::setEffectDelayTapParameterWithLinkPropagation (int channelIndex,
+                                                                       int tapIndex,
+                                                                       const juce::Identifier& paramId,
+                                                                       const juce::var& value,
+                                                                       bool propagateToGroup)
+{
+    auto tap = getEffectDelayTap (channelIndex, tapIndex);
+    if (! tap.isValid())
+        return;
+
+    const auto oldValue = tap.getProperty (paramId);
+    writeProperty (tap, paramId, value, getActiveUndoManager());
+
+    if (! propagateToGroup)
+        return;
+
+    applyEffectLinkPropagation (channelIndex, paramId, value, oldValue,
+                                [this, tapIndex] (int member)
+                                {
+                                    return getEffectDelayTap (member, tapIndex);
+                                });
+}
+
+void WFSValueTreeState::setEffectGroupMute (int group, bool muted)
+{
+    // AN ACTION, NOT A COUPLING (R5-2). One gesture writes the mute of every
+    // member; afterwards each member is still independently mutable, which is
+    // the whole point - under propagation, unmuting one member would unmute
+    // all of them. This is the shape inputMutes + inputMuteMacro already has:
+    // independent per-channel state plus a macro that writes many at once.
+    //
+    // The per-output row is deliberately NOT touched. effectMutes says which
+    // speakers carry this return, which is spatial routing the operator
+    // authored; effectMute is the channel's own mute and the only thing a
+    // group shortcut has any business writing.
+    if (group <= 0)
+        return;
+
+    beginUndoTransaction (muted ? "Mute Effects Group " + juce::String (group)
+                                : "Unmute Effects Group " + juce::String (group));
+
+    const int numEffects = getNumEffectChannels();
+
+    for (int member = 0; member < numEffects; ++member)
+        if (getEffectLinkGroup (member) == group)
+            setEffectParameter (member, effectMute, muted ? 1 : 0);
+}
+
+//==============================================================================
+// The reverb module's presets
+//==============================================================================
+
+bool WFSValueTreeState::isEffectReverbPresetOwned (const juce::Identifier& paramId)
+{
+    // Exactly what spatcore::effects::applyReverbPreset writes; the self-test
+    // pins the two against each other.
+    static const std::set<juce::Identifier> owned = {
+        effectReverbModel, effectReverbERProfile, effectReverbERLevel, effectReverbPredelay,
+        effectReverbRT60, effectReverbRT60LowMult, effectReverbRT60HighMult,
+        effectReverbCrossoverLow, effectReverbCrossoverHigh, effectReverbDiffusion, effectReverbSize,
+        effectReverbModRate, effectReverbModDepth, effectReverbShimmerPitch, effectReverbShimmerAmount,
+    };
+
+    return owned.count (paramId) != 0;
+}
+
+void WFSValueTreeState::flipEffectReverbToCustomIfEdited (juce::ValueTree& reverb,
+                                                          const juce::Identifier& paramId,
+                                                          const juce::var& newValue)
+{
+    if (! reverb.isValid() || ! isEffectReverbPresetOwned (paramId))
+        return;
+
+    const int custom = static_cast<int> (spatcore::effects::ReverbType::Custom);
+    if (WFSVar::toInt (reverb.getProperty (effectReverbType), custom) == custom)
+        return;
+
+    // A REAL change only. A surface that re-sends the value it already shows -
+    // a fader's echo, a QLab replay of a preset's own numbers - must not
+    // unname the preset.
+    const double before = static_cast<double> (WFSVar::toFloat (reverb.getProperty (paramId), 0.0f));
+    const double after  = static_cast<double> (WFSVar::toFloat (newValue, static_cast<float> (before)));
+    if (std::abs (after - before) <= 1.0e-6 * juce::jmax (1.0, std::abs (before)))
+        return;
+
+    writeProperty (reverb, effectReverbType, custom, getActiveUndoManager());
+}
+
+void WFSValueTreeState::expandEffectReverbPreset (int channelIndex, int type)
+{
+    auto reverb = getEffectModuleSection (channelIndex, FxReverb);
+    if (! reverb.isValid())
+        return;
+
+    auto* um = getActiveUndoManager();
+
+    if (const auto* row = spatcore::effects::findReverbPreset (type))
+    {
+        writeProperty (reverb, effectReverbModel,         static_cast<int> (row->model), um);
+        writeProperty (reverb, effectReverbERProfile,     static_cast<int> (row->erProfile), um);
+        writeProperty (reverb, effectReverbERLevel,       row->erLevelDb, um);
+        writeProperty (reverb, effectReverbPredelay,      row->predelayMs, um);
+        writeProperty (reverb, effectReverbRT60,          row->rt60, um);
+        writeProperty (reverb, effectReverbRT60LowMult,   row->rt60LowMult, um);
+        writeProperty (reverb, effectReverbRT60HighMult,  row->rt60HighMult, um);
+        writeProperty (reverb, effectReverbCrossoverLow,  row->crossoverLow, um);
+        writeProperty (reverb, effectReverbCrossoverHigh, row->crossoverHigh, um);
+        writeProperty (reverb, effectReverbDiffusion,     row->diffusion, um);
+        writeProperty (reverb, effectReverbSize,          row->size, um);
+        writeProperty (reverb, effectReverbModRate,       row->modRateHz, um);
+        writeProperty (reverb, effectReverbModDepth,      row->modDepth, um);
+        writeProperty (reverb, effectReverbShimmerPitch,  static_cast<int> (row->shimmerPitch), um);
+        writeProperty (reverb, effectReverbShimmerAmount, row->shimmerAmount, um);
+    }
+
+    // The type LAST and raw: written after its values, it is never mistaken
+    // for an edit that should flip it.
+    writeProperty (reverb, effectReverbType, type, um);
+}
+
+void WFSValueTreeState::applyEffectReverbPreset (int channelIndex, int type, bool propagateToGroup)
+{
+    if (! getEffectModuleSection (channelIndex, FxReverb).isValid())
+        return;
+
+    beginUndoTransaction ("Effect Reverb Preset");
+    expandEffectReverbPreset (channelIndex, type);
+
+    if (! propagateToGroup)
+        return;
+
+    // applyEffectLinkPropagation's rules - the group, the origin's mode, each
+    // member's own mode - with the expansion run on every member rather than
+    // a value copied or a delta added. setEffectGroupMute is the precedent:
+    // an action every member performs.
+    const int group = getEffectLinkGroup (channelIndex);
+    if (group == 0 || getEffectLinkMode (channelIndex) == 0)
+        return;
+
+    const int numEffects = getNumEffectChannels();
+    for (int member = 0; member < numEffects; ++member)
+        if (member != channelIndex && getEffectLinkGroup (member) == group && getEffectLinkMode (member) != 0)
+            expandEffectReverbPreset (member, type);
+}
+
+void WFSValueTreeState::applyExternalEffectEdit (int channelIndex, const juce::Identifier& paramId,
+                                                 const juce::var& value)
+{
+    if (paramId == effectReverbType)
+    {
+        applyEffectReverbPreset (channelIndex, WFSVar::toInt (value, 0), false);
+        return;
+    }
+
+    if (isEffectReverbPresetOwned (paramId))
+    {
+        auto reverb = getEffectModuleSection (channelIndex, FxReverb);
+        flipEffectReverbToCustomIfEdited (reverb, paramId, value);
+    }
+
+    setEffectParameter (channelIndex, paramId, value);
+}
+
+//==============================================================================
+// The send matrix
+//==============================================================================
+
+juce::String WFSValueTreeState::normaliseSendLevelList (const juce::var& list, int width,
+                                                        float minDb, float maxDb, float defaultDb)
+{
+    const juce::String padding (juce::jlimit (minDb, maxDb, defaultDb));
+
+    juce::StringArray tokens;
+    tokens.addTokens (list.toString(), ",", "");
+
+    for (int i = 0; i < tokens.size(); ++i)
+    {
+        const juce::String token = tokens[i].trim();
+
+        // KEPT VERBATIM when it is already a number in range. A normaliser that
+        // re-spells every token rewrites the operator's whole row on any touch -
+        // one formatter's "-6.5" into another's "-6.50000" - and makes a file
+        // diff where no value moved. Only what is wrong is rewritten.
+        if (isNumericToken (token))
+        {
+            const float value = token.getFloatValue();
+            tokens.set (i, (value >= minDb && value <= maxDb)
+                               ? token
+                               : juce::String (juce::jlimit (minDb, maxDb, value)));
+        }
+        else
+        {
+            // Not a number at all. NOT clamped - there is nothing to clamp - so
+            // it becomes the row default, which for a send level is unity into a
+            // switch that starts off, i.e. silence.
+            tokens.set (i, padding);
+        }
+    }
+
+    if (width > 0)
+    {
+        while (tokens.size() < width)
+            tokens.add (padding);
+        tokens.removeRange (width, tokens.size() - width);
+    }
+
+    return tokens.joinIntoString (",");
+}
+
+juce::String WFSValueTreeState::normaliseSendSwitchList (const juce::var& list, int width)
+{
+    // A switch row IS shaped like a mute row - fixed tokens, 0 or 1, the same
+    // "any non-zero number is on" rule for files that wrote "1.0" - so it is
+    // built the same way. It is NOT routed through normaliseMuteList: that
+    // function fits a row to the live OUTPUT count, which is the one thing a
+    // send row must never do (a column here is an input number or an effect
+    // index), and the day someone changes its resize rule for the mute grid,
+    // this row must not follow.
+    juce::StringArray tokens;
+    tokens.addTokens (list.toString(), ",", "");
+
+    for (int i = 0; i < tokens.size(); ++i)
+        tokens.set (i, tokens[i].trim().getIntValue() != 0 ? "1" : "0");
+
+    if (width > 0)
+    {
+        while (tokens.size() < width)
+            tokens.add ("0");
+        tokens.removeRange (width, tokens.size() - width);
+    }
+
+    return tokens.joinIntoString (",");
+}
+
+juce::String WFSValueTreeState::canonicalEffectSendRow (const juce::Identifier& rowId,
+                                                        const juce::var& list,
+                                                        int selfEffectIndex)
+{
+    using namespace WFSParameterDefaults;
+
+    // THE FOUR ROWS, AND THE SHAPES THEY DO NOT SHARE. This is the only place
+    // that maps a row name onto a width, a value kind and a diagonal rule; every
+    // writer asks here, so a row cannot end up shaped by which door the write
+    // came in by.
+    //
+    // The widths are maxInputChannels and maxEffectChannels rather than the live
+    // counts, and that is the point: an input column is a PERMANENT NUMBER,
+    // which survives deletions, can leave gaps, and can be anything up to the
+    // maximum however few channels are live today. Fitting one of these rows to
+    // a live count would silently drop the columns of channels that still exist.
+    if (rowId == effectSendLevels)
+        return normaliseSendLevelList (list, maxInputChannels,
+                                       effectSendLevelMin, effectSendLevelMax,
+                                       effectSendLevelDefault);
+
+    if (rowId == effectSendOns)
+        return normaliseSendSwitchList (list, maxInputChannels);
+
+    // The fx rows carry the DIAGONAL. Forced here, so every writer inherits it:
+    // effect n may not feed itself, and a self-send is a feedback loop around a
+    // delay line rather than a routing choice anyone asked for. The level cell
+    // goes back to the default beside the switch, because a dB sitting in a cell
+    // that can never sound is a number no reader may trust - and after a channel
+    // removal shifts the columns, a stale level is exactly what would land
+    // there.
+    auto withDiagonalOff = [selfEffectIndex] (juce::String row, const juce::String& offToken)
+    {
+        if (selfEffectIndex < 0 || selfEffectIndex >= maxEffectChannels)
+            return row;   // a detached node under construction knows no index
+
+        juce::StringArray tokens;
+        tokens.addTokens (row, ",", "");
+        if (selfEffectIndex < tokens.size())
+            tokens.set (selfEffectIndex, offToken);
+        return tokens.joinIntoString (",");
+    };
+
+    if (rowId == effectFxSendLevels)
+        return withDiagonalOff (normaliseSendLevelList (list, maxEffectChannels,
+                                                        effectFxSendLevelMin, effectFxSendLevelMax,
+                                                        effectFxSendLevelDefault),
+                                juce::String (effectFxSendLevelDefault));
+
+    if (rowId == effectFxSendOns)
+        return withDiagonalOff (normaliseSendSwitchList (list, maxEffectChannels), "0");
+
+    jassertfalse;   // not a send row - the caller has the wrong identifier
+    return list.toString();
+}
+
+int WFSValueTreeState::denseEffectIndexOfNode (const juce::ValueTree& node) const
+{
+    // Up to the channel, then the same count-by-type walk getEffectState does.
+    // Not `id - 1`: the id is bookkeeping a merged file can contradict, and this
+    // has to name the channel every other accessor calls the nth one.
+    auto effect = node;
+    while (effect.isValid() && ! effect.hasType (Effect))
+        effect = effect.getParent();
+
+    if (! effect.isValid())
+        return -1;
+
+    auto effects = getEffectsState();
+    int nth = 0;
+    for (int i = 0; i < effects.getNumChildren(); ++i)
+    {
+        auto child = effects.getChild (i);
+        if (! child.hasType (Effect))
+            continue;
+        if (child == effect)
+            return nth;
+        ++nth;
+    }
+    return -1;
+}
+
+juce::String WFSValueTreeState::readEffectSendCell (int channelIndex, const juce::Identifier& rowId,
+                                                    int column) const
+{
+    if (column < 0)
+        return {};
+
+    auto sends = const_cast<WFSValueTreeState*> (this)->getEffectSendsSection (channelIndex);
+    if (! sends.isValid() || ! sends.hasProperty (rowId))
+        return {};
+
+    // Canonicalised before it is read, so a hand-edited short row still answers
+    // for every column it is supposed to have instead of returning nothing for
+    // the tail.
+    juce::StringArray tokens;
+    tokens.addTokens (canonicalEffectSendRow (rowId, sends.getProperty (rowId),
+                                              denseEffectIndexOfNode (sends)),
+                      ",", "");
+    return column < tokens.size() ? tokens[column] : juce::String();
+}
+
+bool WFSValueTreeState::writeEffectSendCell (int channelIndex, const juce::Identifier& rowId,
+                                             int column, const juce::String& token)
+{
+    if (column < 0)
+        return false;
+
+    auto sends = getEffectSendsSection (channelIndex);
+    if (! sends.isValid() || ! sends.hasProperty (rowId))
+        return false;
+
+    const int selfIndex = denseEffectIndexOfNode (sends);
+
+    juce::StringArray tokens;
+    tokens.addTokens (canonicalEffectSendRow (rowId, sends.getProperty (rowId), selfIndex), ",", "");
+    if (column >= tokens.size())
+        return false;
+
+    tokens.set (column, token);
+
+    // READ-MODIFY-WRITE OF THE WHOLE ROW through the family setter, the shape
+    // setInputOutputMute has: one undo entry, one listener notification carrying
+    // the whole row, and one pass through the write interceptor - which
+    // canonicalises it again, so what lands is the same whether the value
+    // arrived here or as a row string from OSC.
+    setEffectParameter (channelIndex, rowId, tokens.joinIntoString (","));
+    return true;
+}
+
+float WFSValueTreeState::getEffectSendLevelFromInput (int channelIndex, int inputPermanentNumber) const
+{
+    const auto cell = readEffectSendCell (channelIndex, effectSendLevels, inputPermanentNumber - 1);
+    return cell.isEmpty() ? effectSendLevelDefault : cell.getFloatValue();
+}
+
+bool WFSValueTreeState::setEffectSendLevelFromInput (int channelIndex, int inputPermanentNumber,
+                                                     float levelDb)
+{
+    const float clamped = juce::jlimit (effectSendLevelMin, effectSendLevelMax, levelDb);
+    return writeEffectSendCell (channelIndex, effectSendLevels, inputPermanentNumber - 1,
+                                juce::String (clamped));
+}
+
+bool WFSValueTreeState::getEffectSendOnFromInput (int channelIndex, int inputPermanentNumber) const
+{
+    return readEffectSendCell (channelIndex, effectSendOns, inputPermanentNumber - 1).getIntValue() != 0;
+}
+
+bool WFSValueTreeState::setEffectSendOnFromInput (int channelIndex, int inputPermanentNumber, bool on)
+{
+    return writeEffectSendCell (channelIndex, effectSendOns, inputPermanentNumber - 1,
+                                on ? "1" : "0");
+}
+
+float WFSValueTreeState::getEffectFxSendLevelFromEffect (int channelIndex, int sourceEffectIndex) const
+{
+    const auto cell = readEffectSendCell (channelIndex, effectFxSendLevels, sourceEffectIndex);
+    return cell.isEmpty() ? effectFxSendLevelDefault : cell.getFloatValue();
+}
+
+bool WFSValueTreeState::setEffectFxSendLevelFromEffect (int channelIndex, int sourceEffectIndex,
+                                                        float levelDb)
+{
+    // REFUSED AT THE DOOR as well as forced in canonicalEffectSendRow. The
+    // interceptor would put this cell back whatever happened here, but a setter
+    // that reports success for a write it knows cannot take is the shape of bug
+    // this family has already been bitten by twice.
+    if (channelIndex == sourceEffectIndex)
+        return false;
+
+    const float clamped = juce::jlimit (effectFxSendLevelMin, effectFxSendLevelMax, levelDb);
+    return writeEffectSendCell (channelIndex, effectFxSendLevels, sourceEffectIndex,
+                                juce::String (clamped));
+}
+
+bool WFSValueTreeState::getEffectFxSendOnFromEffect (int channelIndex, int sourceEffectIndex) const
+{
+    return readEffectSendCell (channelIndex, effectFxSendOns, sourceEffectIndex).getIntValue() != 0;
+}
+
+bool WFSValueTreeState::setEffectFxSendOnFromEffect (int channelIndex, int sourceEffectIndex, bool on)
+{
+    if (channelIndex == sourceEffectIndex)
+        return false;   // see setEffectFxSendLevelFromEffect
+
+    return writeEffectSendCell (channelIndex, effectFxSendOns, sourceEffectIndex, on ? "1" : "0");
+}
+
+void WFSValueTreeState::readEffectSendRows (int channelIndex,
+                                            std::array<float, maxInputChannels>& inLevelsDb,
+                                            std::array<uint8_t, maxInputChannels>& inOns,
+                                            std::array<float, maxEffectChannels>& fxLevelsDb,
+                                            std::array<uint8_t, maxEffectChannels>& fxOns) const
+{
+    inLevelsDb.fill (effectSendLevelDefault);
+    inOns.fill (0);
+    fxLevelsDb.fill (effectFxSendLevelDefault);
+    fxOns.fill (0);
+
+    auto sends = const_cast<WFSValueTreeState*> (this)->getEffectSendsSection (channelIndex);
+    if (! sends.isValid())
+        return;
+
+    // Canonicalised on the way out, as readEffectSendCell does, so a short or
+    // hand-edited row answers for every column it is supposed to have. The self
+    // index is the channel's own dense index: this section came from it, so
+    // the fx diagonal is forced off before anyone downstream can read it.
+    auto unpackLevels = [&] (const juce::Identifier& rowId, float* dest, int width)
+    {
+        if (! sends.hasProperty (rowId))
+            return;
+
+        juce::StringArray tokens;
+        tokens.addTokens (canonicalEffectSendRow (rowId, sends.getProperty (rowId), channelIndex), ",", "");
+        for (int i = 0; i < width && i < tokens.size(); ++i)
+            dest[i] = tokens[i].getFloatValue();
+    };
+
+    auto unpackSwitches = [&] (const juce::Identifier& rowId, uint8_t* dest, int width)
+    {
+        if (! sends.hasProperty (rowId))
+            return;
+
+        juce::StringArray tokens;
+        tokens.addTokens (canonicalEffectSendRow (rowId, sends.getProperty (rowId), channelIndex), ",", "");
+        for (int i = 0; i < width && i < tokens.size(); ++i)
+            dest[i] = tokens[i].getIntValue() != 0 ? 1 : 0;
+    };
+
+    unpackLevels   (effectSendLevels,   inLevelsDb.data(), maxInputChannels);
+    unpackSwitches (effectSendOns,      inOns.data(),      maxInputChannels);
+    unpackLevels   (effectFxSendLevels, fxLevelsDb.data(), maxEffectChannels);
+    unpackSwitches (effectFxSendOns,    fxOns.data(),      maxEffectChannels);
+}
+
+void WFSValueTreeState::zeroEffectSendColumnsForInput (int inputPermanentNumber)
+{
+    const int column = inputPermanentNumber - 1;
+    if (column < 0 || column >= maxInputChannels)
+        return;
+
+    const juce::String levelDefault (effectSendLevelDefault);
+    const int total = getNumEffectChannels();
+
+    for (int ch = 0; ch < total; ++ch)
+    {
+        auto sends = getEffectSendsSection (ch);
+        if (! sends.isValid())
+            continue;
+
+        // Raw setProperty with no UndoManager, like remapClusterInputOrders and
+        // the number compaction beside it: a channel delete is a structural edit
+        // this family does not make undoable, and the callers clear the
+        // histories on the way out.
+        //
+        // The two INPUT-keyed rows only, and -1 for the self index: a column
+        // here is an input number, so this row has no diagonal to force and no
+        // channel of its own to resolve.
+        for (auto rowId : { effectSendLevels, effectSendOns })
+        {
+            if (! sends.hasProperty (rowId))
+                continue;
+
+            juce::StringArray tokens;
+            tokens.addTokens (canonicalEffectSendRow (rowId, sends.getProperty (rowId), -1), ",", "");
+            if (column < tokens.size())
+                tokens.set (column, rowId == effectSendLevels ? levelDefault : juce::String ("0"));
+
+            sends.setProperty (rowId, tokens.joinIntoString (","), nullptr);
+        }
+    }
+}
+
+void WFSValueTreeState::remapEffectSendColumnsByInputNumber (const std::map<int, int>& oldToNewNumbers)
+{
+    // Worth testing before anything else: both callers run on every structural
+    // edit, whether or not a number actually moved.
+    bool anyMoved = false;
+    for (const auto& pair : oldToNewNumbers)
+        anyMoved = anyMoved || (pair.first != pair.second);
+    if (! anyMoved)
+        return;
+
+    const juce::String levelDefault (effectSendLevelDefault);
+    const int total = getNumEffectChannels();
+
+    for (int ch = 0; ch < total; ++ch)
+    {
+        auto sends = getEffectSendsSection (ch);
+        if (! sends.isValid())
+            continue;
+
+        // Input-keyed rows, so -1 for the self index: no diagonal here.
+        for (auto rowId : { effectSendLevels, effectSendOns })
+        {
+            if (! sends.hasProperty (rowId))
+                continue;
+
+            juce::StringArray before;
+            before.addTokens (canonicalEffectSendRow (rowId, sends.getProperty (rowId), -1), ",", "");
+            juce::StringArray after = before;
+
+            const juce::String idle = (rowId == effectSendLevels) ? levelDefault : juce::String ("0");
+
+            // ONE PASS, every read from `before`. Applied incrementally it would
+            // read a column it had already overwritten, and a SWAP - which is
+            // what a relabel produces and a dense compaction never does - would
+            // put both channels' sends on one column and lose the other.
+            for (const auto& pair : oldToNewNumbers)
+            {
+                const int from = pair.first - 1, to = pair.second - 1;
+                if (from < 0 || to < 0 || from >= before.size() || to >= after.size())
+                    continue;
+                after.set (to, before[from]);
+            }
+
+            // A column whose owner moved AWAY and that nothing moved INTO is now
+            // nobody's, so it goes back to idle. Columns the map never mentions
+            // are left exactly as they are: this knows which channels moved and
+            // nothing at all about a column no live channel owns today - a
+            // number retired by a delete, or one a snapshot restored ahead of
+            // the channel it belongs to. Clearing those would be inferring what
+            // may be destroyed from what cannot be seen.
+            for (const auto& pair : oldToNewNumbers)
+            {
+                const int from = pair.first - 1;
+                if (from < 0 || from >= after.size())
+                    continue;
+
+                const bool somethingMovedIn =
+                    std::any_of (oldToNewNumbers.begin(), oldToNewNumbers.end(),
+                                 [&pair] (const std::pair<const int, int>& other)
+                                 { return other.second == pair.first; });
+                if (! somethingMovedIn)
+                    after.set (from, idle);
+            }
+
+            sends.setProperty (rowId, after.joinIntoString (","), nullptr);
+        }
+    }
+}
+
+void WFSValueTreeState::dropEffectFxSendColumn (int removedEffectIndex)
+{
+    if (removedEffectIndex < 0 || removedEffectIndex >= maxEffectChannels)
+        return;
+
+    const juce::String levelDefault (effectFxSendLevelDefault);
+    const int total = getNumEffectChannels();
+
+    for (int ch = 0; ch < total; ++ch)
+    {
+        auto sends = getEffectSendsSection (ch);
+        if (! sends.isValid())
+            continue;
+
+        for (auto rowId : { effectFxSendLevels, effectFxSendOns })
+        {
+            if (! sends.hasProperty (rowId))
+                continue;
+
+            const juce::String idle = (rowId == effectFxSendLevels) ? levelDefault : juce::String ("0");
+
+            // Canonicalised with NO self index: the diagonal is forced after the
+            // shift, at the channel's new index, never before it at the old one.
+            juce::StringArray tokens;
+            tokens.addTokens (canonicalEffectSendRow (rowId, sends.getProperty (rowId), -1), ",", "");
+            if (removedEffectIndex < tokens.size())
+            {
+                tokens.remove (removedEffectIndex);
+                tokens.add (idle);         // the width is fixed; the tail refills with idle
+            }
+
+            // ch IS the survivor's new dense index, which is what the diagonal
+            // has to be forced at: everything above the hole has just moved down
+            // one, this channel among them.
+            sends.setProperty (rowId,
+                               canonicalEffectSendRow (rowId, tokens.joinIntoString (","), ch),
+                               nullptr);
+        }
+    }
+}
+
+juce::ValueTree WFSValueTreeState::getEffectModuleSection (int channelIndex, int slotIndex)
+{
+    return getEffectModuleSection (channelIndex, getEffectModuleType (slotIndex));
+}
+
+juce::ValueTree WFSValueTreeState::getEffectModuleSection (int channelIndex, const juce::Identifier& moduleType)
+{
+    if (moduleType.isNull())
+        return {};
+    return getEffectState (channelIndex).getChildWithName (moduleType);
+}
+
+juce::ValueTree WFSValueTreeState::getEffectEQSection (int channelIndex, int eqInstance)
+{
+    if (eqInstance < 0 || eqInstance >= numEffectEqInstances)
+        return {};
+    return getEffectModuleSection (channelIndex, eqInstance == 0 ? FxEq1 : FxEq2);
+}
+
+juce::ValueTree WFSValueTreeState::getEffectEQBand (int channelIndex, int eqInstance, int bandIndex)
+{
+    // By TYPE - see nthChildOfType. getEffectState counts <Effect> children by
+    // type for one reason: the accessor and the count must agree about which
+    // channel is the nth one whatever the file turned out to hold. The same file
+    // that can leave an unknown node in <Effects> can leave one in <FxEq1>, and
+    // this is that hazard one level further down the very same load path.
+    return nthChildOfType (getEffectEQSection (channelIndex, eqInstance), Band, bandIndex);
+}
+
+juce::ValueTree WFSValueTreeState::getEffectDynSection (int channelIndex, int dynInstance)
+{
+    if (dynInstance < 0 || dynInstance >= numEffectDynInstances)
+        return {};
+    return getEffectModuleSection (channelIndex, dynInstance == 0 ? FxDyn1 : FxDyn2);
+}
+
+juce::ValueTree WFSValueTreeState::getEffectDelayTap (int channelIndex, int tapIndex)
+{
+    // By TYPE - see nthChildOfType, and getEffectEQBand just above for why the
+    // fixed eight-tap child list is not a licence to index straight into it.
+    return nthChildOfType (getEffectModuleSection (channelIndex, FxDelay), Tap, tapIndex);
+}
+
+//==============================================================================
 // Cluster Access
 //==============================================================================
 
@@ -1437,6 +2942,13 @@ void WFSValueTreeState::setClusterParameter (int clusterIndex, const juce::Ident
     auto cluster = getClusterState (clusterIndex);
     if (cluster.isValid())
         writeProperty (cluster, paramId, value, getActiveUndoManager());
+}
+
+void WFSValueTreeState::setClusterLFOParameter (int clusterIndex, const juce::Identifier& paramId, const juce::var& value)
+{
+    auto lfoSection = getClusterLFOSection (clusterIndex);
+    if (lfoSection.isValid())
+        writeProperty (lfoSection, paramId, value, nullptr);
 }
 
 //==============================================================================
@@ -1696,6 +3208,16 @@ void WFSValueTreeState::migrateInputChannelModel()
             else
                 seen.add (number);
         }
+        // NO SEND REMAP HERE, and not by omission. The four <Sends> rows are
+        // keyed by input NUMBER, so this renumber leaves a file's rows pointing
+        // at the numbers it had before - but the map that would fix them cannot
+        // be built: the repair fires exactly when ids are DUPLICATED or MISSING,
+        // which is when "the channel that was number 3" names two channels or
+        // none. Effects also load after inputs (loadCompleteConfig orders
+        // system, network, inputs, outputs, reverbs, effects), so the rows are
+        // not in the tree yet at this point. Reachable only with an
+        // already-corrupt inputs.xml whose numbers are being rewritten out from
+        // under every other reference to them as well.
         if (! idsValid)
             for (int i = 0; i < total; ++i)
                 inputs.getChild (i).setProperty (id, i + 1, nullptr);
@@ -1766,11 +3288,37 @@ void WFSValueTreeState::compactChannelNumbersToDisplayOrder()
     // renumbered, so the synchronous valueTreePropertyChanged fired by the
     // tracking-id write below still reports the right slot.
     const int total = inputs.getNumChildren();
+
+    // THE PERMUTATION, WHOLE, BEFORE THE WALK. Anything keyed by the permanent
+    // number has to move with it, and the send rows are - but mid-walk this list
+    // is not a valid state to remap against: the comment above records that it
+    // can briefly hold the same number twice. Remapped one write at a time, the
+    // second channel to take a number would read a column the first had already
+    // overwritten and the two channels' sends would collapse onto one. So the
+    // map is taken here, applied once below, and read only from the row as it
+    // was before any of it moved.
+    // Identity entries are included deliberately - remapEffectSendColumnsByInputNumber
+    // reads the map as the whole permutation, and a column is only cleared when
+    // its number is a source and nothing's destination. A list already holding a
+    // number twice (which migrateInputChannelModel repairs on load, and nothing
+    // this application writes produces) would collapse to one entry here and one
+    // of the two channels would lose its column - the numbers are being rewritten
+    // out from under it in that case anyway.
+    std::map<int, int> oldToNew;
+    for (int slot = 0; slot < total; ++slot)
+    {
+        const int oldNumber = getInputChannelNumber (slot);
+        if (oldNumber > 0)
+            oldToNew[oldNumber] = slot + 1;
+    }
+
     for (int slot = 0; slot < total; ++slot)
     {
         if (getInputChannelNumber (slot) != slot + 1)
             setInputChannelNumberAtSlot (slot, slot + 1);
     }
+
+    remapEffectSendColumnsByInputNumber (oldToNew);
 }
 
 void WFSValueTreeState::setInputChannelNumberAtSlot (int slot, int newNumber)
@@ -2027,6 +3575,16 @@ juce::Result WFSValueTreeState::removeInputChannel (int channelNumber)
     {
         return s == slot ? -1 : (s > slot ? s - 1 : s);
     });
+
+    // NUMBER-keyed side state, and it has to happen HERE - after the channel is
+    // gone, before the compaction below. This number has just been retired and
+    // the gap it leaves can be handed back out by addInputChannel later, so a
+    // column left holding the dead channel's sends is a routing an operator
+    // never made, arriving on a channel they have just created. Zeroing it first
+    // also means the compaction's permutation shifts a row with nothing dead
+    // left in it; zeroing afterwards would clear whichever channel had moved
+    // into that number.
+    zeroEffectSendColumnsForInput (channelNumber);
 
     auto io = getIOState();
     if (io.isValid())
@@ -2451,6 +4009,21 @@ juce::Result WFSValueTreeState::assignInputChannelNumbersBySlot (const std::vect
         seen.push_back (n);
     }
 
+    // The whole permutation first, for the reason compactChannelNumbersToDisplayOrder
+    // spells out: this walk also writes slot by slot, so mid-walk the list holds
+    // duplicates, and an incremental remap of anything keyed by the number would
+    // read a column it had already written. This path makes that worse than the
+    // compaction does - a relabel may SWAP two numbers, which a dense compaction
+    // never produces, and a swap is exactly the case an incremental remap loses
+    // a whole channel's sends to.
+    std::map<int, int> oldToNew;
+    for (int slot = 0; slot < total; ++slot)
+    {
+        const int oldNumber = getInputChannelNumber (slot);
+        if (oldNumber > 0)
+            oldToNew[oldNumber] = numbersBySlot[(size_t) slot];
+    }
+
     juce::StringArray changes;
     for (int slot = 0; slot < total; ++slot)
     {
@@ -2462,6 +4035,11 @@ juce::Result WFSValueTreeState::assignInputChannelNumbersBySlot (const std::vect
             setInputChannelNumberAtSlot (slot, newNumber);
         }
     }
+
+    // The relabel exists so that snapshots, cues and OSC written against the
+    // file's numbers still reach the right channel afterwards. A send row keyed
+    // by number is one of those references.
+    remapEffectSendColumnsByInputNumber (oldToNew);
 
     // The numbers are now an external contract, whatever they were before.
     markChannelNumbersUserOwned (reason);
@@ -2690,6 +4268,23 @@ int WFSValueTreeState::getNumReverbChannels() const
     return reverbCount;
 }
 
+int WFSValueTreeState::getNumEffectChannels() const
+{
+    // Counted, never read off `count`: the property is bookkeeping and a writer
+    // that bypasses setNumEffectChannels makes it lie, which is exactly the
+    // drift getNumReverbChannels documents. The type test is NOT a guard on the
+    // container's invariant, whatever this comment used to say: nothing this
+    // application writes puts a non-<Effect> node in <Effects>, but a merged FILE
+    // can, and getEffectState resolves the nth channel by this same walk so the
+    // two cannot disagree about which channel that is.
+    auto effects = getEffectsState();
+    int effectCount = 0;
+    for (int i = 0; i < effects.getNumChildren(); ++i)
+        if (effects.getChild (i).hasType (Effect))
+            ++effectCount;
+    return effectCount;
+}
+
 void WFSValueTreeState::setNumInputChannels (int numChannels)
 {
     // Blunt count entry point (config-load sync, OSC/MCP inputChannels
@@ -2763,7 +4358,8 @@ void WFSValueTreeState::setNumOutputChannels (int numChannels, int previousCount
     // live count can carry real mutes, brought back by a standalone input
     // reload or a snapshot recall before the count caught up. (A real 64- or
     // 128-entry list reloaded that way onto fewer outputs is the one case this
-    // cannot tell apart; its added outputs start unmuted too.)
+    // cannot tell apart; its added outputs start unmuted too, and it is the one
+    // case in which a row is still CUT BACK to the live count.)
     auto inputs = getInputsState();
     for (int i = 0; i < inputs.getNumChildren(); ++i)
     {
@@ -2777,11 +4373,58 @@ void WFSValueTreeState::setNumOutputChannels (int numChannels, int previousCount
         const bool oldGridList = tokens.size() > previousCount
                                  && (tokens.size() == maxOutputChannels || tokens.size() == 64);
 
+        // NEVER NARROWER THAN WHAT IS STORED, outside that legacy case. Fitting
+        // the row to the live count in BOTH directions means a rig that shrinks
+        // deletes the mutes of the outputs it dropped and pads "0" back in their
+        // place when the rig returns - an interface that disappears and comes
+        // back, a System Config edit undone - with no error and nothing in the
+        // log. The columns past the live count are not stale: they are the
+        // operator's mutes for outputs that are not there today.
         mutesTree.setProperty (inputMutes,
-                               normaliseMuteList (list, numChannels,
+                               normaliseMuteList (list,
+                                                  oldGridList ? numChannels
+                                                              : perOutputRowWidth (list, numChannels),
                                                   oldGridList ? previousCount : std::numeric_limits<int>::max()),
                                getActiveUndoManager());
     }
+
+    // THE OTHER TWO FAMILIES THAT CARRY THE SAME ROW, and until now neither was
+    // refitted here. A reverb's row kept whatever width it was created at, and
+    // self-healed only because ReverbTab rewrites it whole whenever the operator
+    // opens that tab - with a hard-coded fallback of 16, which is what hid the
+    // gap for so long. An effect's row would have inherited exactly that. Both
+    // are per-OUTPUT rows, so the live output count is their width, which is the
+    // one thing that makes them unlike the four <Sends> rows: those are keyed by
+    // input number and by effect index, neither of which has anything to do with
+    // how many outputs the rig has, so nothing here touches them.
+    //
+    // No legacy keepTokens window, deliberately. That exists for inputMutes
+    // because an old grid wrote 64 or 128 entries whatever the rig was; nothing
+    // has ever written a reverb or effect row at any width but the live count.
+    //
+    // AND THE FIT ONLY EVER GROWS, which is the half a width-shaped reading of
+    // this misses. PADDING is what these two rows were missing. TRIMMING is what
+    // would make adding them here destructive: reverbMutes has shipped for years
+    // and a temporary drop to fewer outputs has always been survivable precisely
+    // because nothing refitted it. normaliseMuteList pads AND cuts, so the width
+    // it is handed has to be the one that cannot lose a column.
+    auto refitPerOutputRow = [this, numChannels] (juce::ValueTree returnSection,
+                                                  const juce::Identifier& rowId)
+    {
+        if (! returnSection.isValid() || ! returnSection.hasProperty (rowId))
+            return;   // never INVENT a row on a node that has none
+
+        const auto stored = returnSection.getProperty (rowId);
+        returnSection.setProperty (rowId,
+                                   normaliseMuteList (stored, perOutputRowWidth (stored, numChannels)),
+                                   getActiveUndoManager());
+    };
+
+    for (int i = 0; i < getNumReverbChannels(); ++i)
+        refitPerOutputRow (getReverbReturnSection (i), reverbMutes);
+
+    for (int i = 0; i < getNumEffectChannels(); ++i)
+        refitPerOutputRow (getEffectReturnSection (i), effectMutes);
 }
 
 void WFSValueTreeState::setNumReverbChannels (int numChannels)
@@ -2856,6 +4499,235 @@ void WFSValueTreeState::setNumReverbChannels (int numChannels)
     // default arc and everything else stays put (same rule as the input grid).
     if (originalCount != numChannels && ! arePositionsUserOwned())
         redistributeAllReverbPositions();
+}
+
+void WFSValueTreeState::setNumEffectChannels (int numChannels)
+{
+    // Floor of ZERO, like reverbs and unlike inputs/outputs: a show that uses no
+    // effects keeps an empty container, and that is the default.
+    numChannels = juce::jlimit (0, maxEffectChannels, numChannels);
+
+    auto effects = getEffectsState();
+    if (! effects.isValid())
+    {
+        createEffectsSection();
+        effects = getEffectsState();
+        if (! effects.isValid())
+            return;
+    }
+
+    int currentCount = getNumEffectChannels();
+    const int originalCount = currentCount;
+
+    // Structural edits are not undoable (see addEffectChannel): every write here
+    // passes nullptr, and the histories are cleared at the end if anything moved.
+    if (numChannels > currentCount)
+    {
+        // The TARGET count is passed so each new channel is laid on the ring the
+        // finished set will use, not on the ring that existed while it was born.
+        for (int i = currentCount; i < numChannels; ++i)
+            effects.appendChild (createDefaultEffectChannel (i, numChannels), nullptr);
+    }
+    else if (numChannels < currentCount)
+    {
+        for (int i = effects.getNumChildren() - 1; i >= 0 && currentCount > numChannels; --i)
+        {
+            if (effects.getChild (i).hasType (Effect))
+            {
+                effects.removeChild (i, nullptr);
+                --currentCount;
+            }
+        }
+
+        // The fx send columns of the channels that just went. They are ABOVE
+        // every survivor, so nothing shifts and each drop simply refills the
+        // tail with idle - but leaving them would mean a channel re-created at
+        // that index inherits the sends of the one that used to be there, which
+        // is the same defect the input delete closes on its own key. Same call
+        // as removeEffectChannel uses, so there is one rule and not two.
+        for (int dead = originalCount - 1; dead >= numChannels; --dead)
+            dropEffectFxSendColumn (dead);
+    }
+
+    // Written DIRECTLY, never through setParameter: setParameter routes
+    // effectChannels straight back into this function.
+    if (auto io = getIOState(); io.isValid())
+        io.setProperty (effectChannels, numChannels, nullptr);
+    effects.setProperty (count, numChannels, nullptr);
+
+    if (originalCount != numChannels)
+    {
+        // The ring depends on the total, so channels created under an earlier
+        // count sit on the wrong one - re-lay the whole set. Gated on the
+        // EFFECTS latch: the shared positionsUserOwned flag is already true in
+        // any session where the operator has touched the map, and using it here
+        // would stack every effect channel ever created on the origin.
+        if (! areEffectPositionsUserOwned())
+            redistributeAllEffectPositions();
+
+        // Guarded on a real move, and deliberately HERE rather than nowhere.
+        // That this is the setter a remote surface reaches (setParameter routes
+        // effectChannels straight into it) argues FOR the clear, not against it:
+        // a write of inputChannels over that same route already empties the
+        // stack today, through addInputChannel / removeInputChannel. The two
+        // count setters that clear nothing - setNumOutputChannels,
+        // setNumReverbChannels - make their structural writes undoable instead;
+        // this family's pass nullptr, so the only alternative to clearing is an
+        // undo stack whose entries replay onto renumbered nodes.
+        clearAllUndoHistories();
+    }
+}
+
+juce::Result WFSValueTreeState::addEffectChannel()
+{
+    auto effects = getEffectsState();
+    if (! effects.isValid())
+    {
+        createEffectsSection();
+        effects = getEffectsState();
+        if (! effects.isValid())
+            return juce::Result::fail ("effects section is missing");
+    }
+
+    const int total = getNumEffectChannels();
+    if (total >= maxEffectChannels)
+        return juce::Result::fail ("effect list is full ("
+                                   + juce::String (maxEffectChannels) + " channels)");
+
+    effects.appendChild (createDefaultEffectChannel (total, total + 1), nullptr);
+
+    if (auto io = getIOState(); io.isValid())
+        io.setProperty (effectChannels, total + 1, nullptr);
+    effects.setProperty (count, total + 1, nullptr);
+
+    if (! areEffectPositionsUserOwned())
+        redistributeAllEffectPositions();
+
+    // Structural edits are not undoable, the rule every family here follows:
+    // a channel subtree that Ctrl+Z can half-restore is worse than no undo.
+    clearAllUndoHistories();
+    return juce::Result::ok();
+}
+
+juce::Result WFSValueTreeState::removeEffectChannel (int channelIndex)
+{
+    auto effects = getEffectsState();
+    const int total = getNumEffectChannels();
+    if (channelIndex < 0 || channelIndex >= total)
+        return juce::Result::fail ("effect channel " + juce::String (channelIndex + 1)
+                                   + " is not live");
+
+    // By TYPE, like getEffectState and getNumEffectChannels: channelIndex is the
+    // nth <Effect>, which is only the nth child while nothing unrecognised sits
+    // in the list - and a merged file can put something there.
+    auto victim = getEffectState (channelIndex);
+    if (! victim.hasType (Effect))
+        return juce::Result::fail ("effect channel " + juce::String (channelIndex + 1)
+                                   + " is not an effect node");
+
+    effects.removeChild (effects.indexOf (victim), nullptr);
+
+    // Effect ids are DENSE, so the hole closes: everything above moves down one.
+    // No number is retired and none is ever reused, because an effect return is
+    // addressed by its place in the list rather than by a permanent number.
+    // Only the <Effect> children are numbered - stamping an id onto a foreign
+    // sibling would invent a channel that is not one, and the merge matches
+    // children by type AND id, so the invention would stick to the file.
+    int renumbered = 0;
+    for (int i = 0; i < effects.getNumChildren(); ++i)
+        if (auto child = effects.getChild (i); child.hasType (Effect))
+            child.setProperty (id, ++renumbered, nullptr);
+
+    const int remaining = renumbered;   // by type, never getNumChildren()
+    if (auto io = getIOState(); io.isValid())
+        io.setProperty (effectChannels, remaining, nullptr);
+    effects.setProperty (count, remaining, nullptr);
+
+    // THE FX SEND COLUMNS FOLLOW THE IDS. They are keyed by dense index, so the
+    // hole that just closed in the channel list has to close in every survivor's
+    // row too: leave the columns where they are and every send above the deleted
+    // channel silently re-points one channel down. The input-keyed rows are NOT
+    // touched here - an input's permanent number means nothing to an effect
+    // delete - which is the whole reason the two conventions are named apart.
+    // AFTER the renumber loop: the call forces each survivor's diagonal at its
+    // NEW index, and the new index is what that loop has just established.
+    dropEffectFxSendColumn (channelIndex);
+
+    if (! areEffectPositionsUserOwned())
+        redistributeAllEffectPositions();
+
+    clearAllUndoHistories();
+    return juce::Result::ok();
+}
+
+bool WFSValueTreeState::areEffectPositionsUserOwned() const
+{
+    auto effects = getEffectsState();
+    return effects.isValid()
+        && (bool) effects.getProperty (effectPositionsUserOwned, false);
+}
+
+void WFSValueTreeState::markEffectPositionsUserOwned()
+{
+    auto effects = getEffectsState();
+    if (effects.isValid() && ! (bool) effects.getProperty (effectPositionsUserOwned, false))
+        effects.setProperty (effectPositionsUserOwned, true, nullptr);   // no undo: see header
+}
+
+void WFSValueTreeState::redistributeAllEffectPositions()
+{
+    const int n = getNumEffectChannels();
+    if (n == 0)
+        return;
+
+    const auto nodes = layoutEffectNodes (n);
+
+    for (int i = 0; i < n && i < (int) nodes.size(); ++i)
+    {
+        const auto& node = nodes[(size_t) i];
+
+        // Raw setProperty deliberately: a re-layout is the app placing the
+        // returns, not the operator, so it must not trip the ownership latch
+        // that setEffectParameter carries. Same reason
+        // redistributeAllReverbPositions bypasses setReverbParameter.
+        if (auto pos = getEffectPositionSection (i); pos.isValid())
+        {
+            pos.setProperty (effectPositionX, node.x, nullptr);
+            pos.setProperty (effectPositionY, node.y, nullptr);
+            pos.setProperty (effectPositionZ, node.z, nullptr);
+        }
+
+        // The bearing is part of the placement: a node moved without it keeps
+        // facing wherever it used to, and the angular attenuation can then mute
+        // the feed outright.
+        if (auto feed = getEffectFeedSection (i); feed.isValid())
+            feed.setProperty (effectOrientation, node.orientationDeg, nullptr);
+    }
+}
+
+std::vector<ReverbNodePlacement::Node> WFSValueTreeState::layoutEffectNodes (int totalCount)
+{
+    const auto stage = getStageForPlacement();
+    auto nodes = ReverbNodePlacement::layout (stage, juce::jmax (1, totalCount));
+
+    // Positions are origin-relative and the origin is not the stage centre; the
+    // helper centres its arc on (-originW, -originD), so the push outwards has
+    // to use the same centre or it would drag the ring off the stage instead of
+    // widening it.
+    const float centreX = -stage.originW;
+    const float centreY = -stage.originD;
+
+    for (auto& node : nodes)
+    {
+        node.x = centreX + (node.x - centreX) * kEffectRingExpansion;
+        node.y = centreY + (node.y - centreY) * kEffectRingExpansion;
+
+        // Recomputed after the push, not carried over: the bearing means "faces
+        // away from the world origin", and moving the node changes it.
+        node.orientationDeg = ReverbNodePlacement::orientationAwayFromOrigin (node.x, node.y);
+    }
+
+    return nodes;
 }
 
 namespace
@@ -3180,6 +5052,9 @@ void WFSValueTreeState::replaceState (const juce::ValueTree& newState)
         // default in the proper section and the real value stays orphaned.
         migrateStrayConfigProperties();
         stripObsoleteReverbProperties();
+        // Same job for the effects family, and on the same side of the back-fill:
+        // evict what the schema no longer declares, THEN stamp what it is missing.
+        stripObsoleteEffectProperties();
         // Back-fill anything the loaded state omitted (incomplete / scope-filtered
         // files) so no parameter is left absent on this wholesale-replace path.
         ensureCompleteSchema();
@@ -3216,8 +5091,34 @@ namespace
 {
     // Recursively add to `target` any property or child present in `tmpl` but
     // missing from `target`. Never overwrites an existing value and never removes
-    // anything. Children are matched by id (when the template child carries one),
-    // otherwise by type name - mirroring WFSFileManager::mergeTreeRecursive.
+    // anything.
+    //
+    // Child matching mirrors spatcore::control::state::mergeTreeRecursive, and
+    // must keep mirroring it: this function drifted once already and the two
+    // rules below are the corrections that landed there and not here.
+    //
+    // An id'd child is matched on type AND id together. Matching on id alone and
+    // then rejecting a type mismatch is not the same thing: getChildWithProperty
+    // returns the FIRST child of any type carrying that id, so as soon as two
+    // sibling node types share an id namespace, the wrong one is found, the
+    // template child is declared missing, and a duplicate is appended - on every
+    // load, for ever.
+    //
+    // CORRECTION, from a later audit: the commit that wrote this said no node
+    // type in today's schema shares an id with a sibling of another type, and
+    // that is FALSE. <ADMOSC> holds four <ADMCartMapping id="0".."3"> and four
+    // <ADMPolarMapping id="0".."3"> as siblings (createADMOSCSection), and
+    // <Sampler> holds <SamplerCell id> beside <SamplerSet id>. Both are in the
+    // Config template this function walks. So the bug was LIVE, not latent:
+    // every pass over an <ADMOSC> appended four duplicate polar mappings,
+    // because the polar template child kept finding the cart mapping of the
+    // same id. Do not restore the old matcher, and do not assume sibling types
+    // have disjoint id namespaces - two pairs already do not.
+    //
+    // An id-less child is matched on type AND ordinal position among its
+    // id-less same-type siblings. Matching on type alone returns the first such
+    // child for every template child, so a run of repeated id-less siblings all
+    // collapses into the first slot.
     void backfillFromTemplate (juce::ValueTree& target, const juce::ValueTree& tmpl,
                                juce::UndoManager* um)
     {
@@ -3235,13 +5136,48 @@ namespace
 
             if (tmplChild.hasProperty (id))
             {
-                match = target.getChildWithProperty (id, tmplChild.getProperty (id));
-                if (match.isValid() && match.getType() != tmplChild.getType())
-                    match = {};
+                const auto tmplId = tmplChild.getProperty (id);
+
+                for (int c = 0; c < target.getNumChildren(); ++c)
+                {
+                    auto candidate = target.getChild (c);
+
+                    if (candidate.getType() == tmplChild.getType()
+                        && candidate.getProperty (id) == tmplId)
+                    {
+                        match = candidate;
+                        break;
+                    }
+                }
             }
             else
             {
-                match = target.getChildWithName (tmplChild.getType());
+                // Which id-less sibling of this type is this, counting from the
+                // start of the template?
+                int wanted = 0;
+                for (int j = 0; j < i; ++j)
+                {
+                    const auto prev = tmpl.getChild (j);
+                    if (prev.getType() == tmplChild.getType() && ! prev.hasProperty (id))
+                        ++wanted;
+                }
+
+                int seen = 0;
+                for (int c = 0; c < target.getNumChildren(); ++c)
+                {
+                    auto candidate = target.getChild (c);
+
+                    if (candidate.getType() == tmplChild.getType() && ! candidate.hasProperty (id))
+                    {
+                        if (seen == wanted)
+                        {
+                            match = candidate;
+                            break;
+                        }
+
+                        ++seen;
+                    }
+                }
             }
 
             if (match.isValid())
@@ -3271,6 +5207,7 @@ void WFSValueTreeState::ensureCompleteSchema()
         createClustersSection (defaultConfig);
         createBinauralSection (defaultConfig);
         createUISection (defaultConfig);
+        createEffectsGlobalSection (defaultConfig);
         backfillFromTemplate (config, defaultConfig, um);
     }
 
@@ -3336,6 +5273,96 @@ void WFSValueTreeState::ensureCompleteSchema()
         backfillGlobal (createReverbPostEQSection());
         backfillGlobal (createReverbPostExpSection());
     }
+
+    // --- Effects (per channel) ---
+    // Unlike the reverb branch above, this one CREATES the container when it is
+    // absent. It has to: validateState requires only WFSProcessor/Config/Inputs/
+    // Outputs, so a project written before this family existed replaces the
+    // state successfully with no <Effects> node at all, and a branch guarded on
+    // isValid() would leave every effects accessor returning nothing for the
+    // life of the session. (The reverb branch has the same latent gap.)
+    auto effects = state.getChildWithName (Effects);
+    if (! effects.isValid())
+        createEffectsSection();
+    else
+        backfillEffectChannelsFromTemplate();
+}
+
+void WFSValueTreeState::backfillEffectChannelsFromTemplate()
+{
+    juce::UndoManager* um = nullptr;  // schema back-fill is not an undoable user edit
+
+    auto effects = getEffectsState();
+    if (! effects.isValid())
+        return;
+
+    // Count first, so each per-channel template is built for the count the
+    // finished set has and the ring the backfill would stamp matches the one
+    // the channels are already on.
+    const int effectCount = getNumEffectChannels();
+
+    juce::StringArray repairedRows;
+
+    int fxIdx = 0;
+    for (int i = 0; i < effects.getNumChildren(); ++i)
+    {
+        auto child = effects.getChild (i);
+        if (! child.hasType (Effect))
+            continue;
+
+        const int denseIndex = fxIdx++;
+        auto tmpl = createDefaultEffectChannel (denseIndex, effectCount);
+        backfillFromTemplate (child, tmpl, um);
+
+        // THE FOUR SEND ROWS, CANONICALISED ON THE WAY IN. Every accessor
+        // canonicalises what it READS, so the app itself was already safe from a
+        // row a file carries in the wrong shape - but only the app. The stored
+        // text is what the next save writes back, so a self-feed hand-edited into
+        // effects.xml stayed in that operator's file indefinitely: a unity-gain
+        // loop around a delay line that no load and no save was going to take
+        // out. A row this build wrote is already canonical, so this is a no-op on
+        // every file the app itself produced.
+        //
+        // denseIndex, never the file's id: the diagonal belongs at the position
+        // every other effect accessor calls this channel by, and a merged file
+        // can contradict its own ids.
+        auto sends = child.getChildWithName (Sends);
+        if (sends.isValid())
+        {
+            for (auto rowId : { effectSendLevels, effectSendOns, effectFxSendLevels, effectFxSendOns })
+            {
+                if (! sends.hasProperty (rowId))
+                    continue;   // an absent row is the backfill's business, not this one's
+
+                const juce::String stored = sends.getProperty (rowId).toString();
+                const juce::String canonical = canonicalEffectSendRow (rowId, stored, denseIndex);
+                if (canonical != stored)
+                {
+                    sends.setProperty (rowId, canonical, um);
+                    repairedRows.addIfNotAlreadyThere (rowId.toString());
+                }
+            }
+        }
+    }
+
+    // SAY SO, for the reason the eviction hook says so: this rewrites an
+    // operator's routing with no undo entry, and a repair nobody can see is a
+    // repair nobody can check. By ROW rather than by channel - a file wrong in
+    // one row is usually wrong in it on every channel, and 32 identical lines
+    // would bury the one thing a reader needs.
+    if (! repairedRows.isEmpty())
+        WFSLogger::getInstance().logWarning (
+            "Effects sends: repaired " + juce::String (repairedRows.size())
+            + " row(s) a file carried out of canonical form - " + repairedRows.joinIntoString (", "));
+
+    // Container properties, if the file predates either of them. `count` is
+    // bookkeeping (getNumEffectChannels counts children), and the ownership
+    // latch defaults to "not owned" so an older file still gets its returns
+    // laid out on a count change.
+    if (! effects.hasProperty (count))
+        effects.setProperty (count, effectCount, um);
+    if (! effects.hasProperty (effectPositionsUserOwned))
+        effects.setProperty (effectPositionsUserOwned, false, um);
 }
 
 void WFSValueTreeState::migrateADMOSCSection()
@@ -3448,7 +5475,12 @@ int WFSValueTreeState::resolveChannelIndex (const juce::ValueTree& changedNode) 
     // The notified index is the SLOT (dense child index): for inputs the id
     // is the permanent channel number and the list may have gaps, so it must
     // go through the number->slot lookup — id - 1 would point at the wrong
-    // channel. Outputs/reverbs stay dense (id == index + 1).
+    // channel. Outputs/reverbs/effects stay dense (id == index + 1).
+    //
+    // The walk is exactly two levels, which is what an <Effect> needs: a flat
+    // section is the parent, and a <Band> or <Tap> under a module node makes
+    // the module the parent and the <Effect> the grandparent. Anything deeper
+    // would notify with -1.
     auto slotOf = [this] (const juce::ValueTree& node) -> int
     {
         if (node.getType() == Input)
@@ -3461,11 +5493,12 @@ int WFSValueTreeState::resolveChannelIndex (const juce::ValueTree& changedNode) 
 
     if (parent.isValid())
     {
-        if (parent.getType() == Input || parent.getType() == Output || parent.getType() == Reverb)
+        if (parent.getType() == Input || parent.getType() == Output || parent.getType() == Reverb
+            || parent.getType() == Effect)
             channelIndex = slotOf (parent);
         else if (parent.getParent().isValid() &&
                  (parent.getParent().getType() == Input || parent.getParent().getType() == Output ||
-                  parent.getParent().getType() == Reverb))
+                  parent.getParent().getType() == Reverb || parent.getParent().getType() == Effect))
             channelIndex = slotOf (parent.getParent());
     }
 
@@ -3517,6 +5550,7 @@ void WFSValueTreeState::initializeDefaultState()
     createInputsSection();
     createOutputsSection();
     createReverbsSection();
+    createEffectsSection();
     createAudioPatchSection();
 }
 
@@ -3534,6 +5568,7 @@ void WFSValueTreeState::createConfigSection()
     createClustersSection (config);
     createBinauralSection (config);
     createUISection (config);
+    createEffectsGlobalSection (config);
 
     state.appendChild (config, nullptr);
 }
@@ -3553,6 +5588,11 @@ void WFSValueTreeState::createIOSection (juce::ValueTree& config)
     io.setProperty (inputChannels, inputChannelsDefault, nullptr);
     io.setProperty (outputChannels, outputChannelsDefault, nullptr);
     io.setProperty (reverbChannels, reverbChannelsDefault, nullptr);
+    // Zero by default, so a show that uses no effects gains one attribute and
+    // nothing else. It lives HERE rather than on <Effects> for the same reason
+    // the other three counts do: applyConfigSection reads the channel inventory
+    // off <IO> before any per-family file is touched.
+    io.setProperty (effectChannels, effectChannelsDefault, nullptr);
     io.setProperty (algorithmDSP, algorithmDSPDefault, nullptr);
     io.setProperty (runDSP, runDSPDefault, nullptr);
     config.appendChild (io, nullptr);
@@ -3582,7 +5622,23 @@ void WFSValueTreeState::createMasterSection (juce::ValueTree& config)
     master.setProperty (systemLatency, systemLatencyDefault, nullptr);
     master.setProperty (haasEffect, haasEffectDefault, nullptr);
     master.setProperty (reverbsMapVisible, 1, nullptr);  // Default: visible
+    master.setProperty (effectsMapVisible, effectsMapVisibleDefault, nullptr);  // Default: visible
     config.appendChild (master, nullptr);
+}
+
+void WFSValueTreeState::createEffectsGlobalSection (juce::ValueTree& config)
+{
+    juce::ValueTree effectsGlobal (EffectsGlobal);
+    effectsGlobal.setProperty (effectsGlobalLinkNames, effectsGlobalLinkNamesDefault, nullptr);
+    effectsGlobal.setProperty (effectsGlobalLinkMode, effectsGlobalLinkModeDefault, nullptr);
+    effectsGlobal.setProperty (effectsGlobalFxFeedGeometric, effectsGlobalFxFeedGeometricDefault, nullptr);
+    effectsGlobal.setProperty (effectsGlobalWorkerThreads, effectsGlobalWorkerThreadsDefault, nullptr);
+    effectsGlobal.setProperty (effectsGlobalReturnCushion, effectsGlobalReturnCushionDefault, nullptr);
+    effectsGlobal.setProperty (effectsGlobalLoopGuard, effectsGlobalLoopGuardDefault, nullptr);
+    effectsGlobal.setProperty (effectsGlobalLoopGuardCeiling, effectsGlobalLoopGuardCeilingDefault, nullptr);
+    effectsGlobal.setProperty (effectsGlobalMaxDelaySeconds, effectsGlobalMaxDelaySecondsDefault, nullptr);
+    effectsGlobal.setProperty (effectsGlobalFeedGpuDevice, effectsGlobalFeedGpuDeviceDefault, nullptr);
+    config.appendChild (effectsGlobal, nullptr);
 }
 
 void WFSValueTreeState::migrateStrayConfigProperties()
@@ -3667,6 +5723,142 @@ void WFSValueTreeState::stripObsoleteReverbProperties()
         if (feed.isValid() && feed.hasProperty (legacyReverbLSenable))
             feed.removeProperty (legacyReverbLSenable, nullptr);
     }
+}
+
+void WFSValueTreeState::stripObsoleteEffectProperties()
+{
+    // The reverb twin above names one retired identifier by hand. This one names
+    // none, on purpose: every property anywhere under an <Effect> is stamped by
+    // exactly one builder under createDefaultEffectChannel, so a freshly built
+    // channel IS the list of what the schema still declares. Diffing against it
+    // evicts a retired attribute the moment its setProperty line is deleted,
+    // with no second table to keep in step - and the reverb hook's history (a
+    // name removed in 125e00b, re-saved in every show until someone noticed) is
+    // what that table costs when it is forgotten.
+    //
+    // Structure, not just the top level: <Band> and <Tap> carry ids, the eleven
+    // module nodes carry none but each has its own type, and the walk matches on
+    // exactly that - the same rule backfillFromTemplate uses in the opposite
+    // direction.
+    const int n = getNumEffectChannels();
+    if (n == 0)
+        return;
+
+    // One template for the whole set. createDefaultEffectChannel lays the
+    // channel out on the ring for (index, totalCount), but only VALUES depend on
+    // that; the property NAMES - all this walk reads - do not, so the shape of
+    // channel 0 answers for every channel.
+    const auto tmplChannel = createDefaultEffectChannel (0, juce::jmax (1, n));
+
+    // ONCE DECLARED-BUT-UNSTAMPED, NOW STAMPED - and the exemption that stood in
+    // for that is deleted, which is this design working rather than a
+    // regression. A template diff cannot tell PENDING from RETIRED: both are
+    // absent from a freshly built channel. While <Sends> was built EMPTY, the
+    // four packed rows (effectSendLevels / effectSendOns / effectFxSendLevels /
+    // effectFxSendOns) were declared in WFSParameterIDs, written at runtime, and
+    // therefore indistinguishable from retired names by the only evidence this
+    // hook has - so they were named here by hand and skipped, or the first
+    // runtime write would have been saved correctly, restored faithfully by the
+    // merge, and deleted right here with no error and no undo entry.
+    //
+    // createEffectSendsSection stamps all four now, at their fixed widths, so
+    // the template carries them like every other property and the list is dead
+    // weight. Its own comment said an entry must be REMOVED the day its property
+    // stops being declared-but-unstamped; this is that day. What goes with it:
+    // the second warning that named an exempt row found outside <Sends>, because
+    // there is no longer anything exempt to find. A send row name on a <Chain> or
+    // a <Band> is now what it always looked like - a property the template does
+    // not have on that node - and is evicted like any other ghost.
+    //
+    // The rule the exemption bought stays, and is now the general one: nothing
+    // may stamp a property onto an <Effect> subtree that createDefaultEffectChannel
+    // does not also stamp. A runtime-only flag parked there is evicted on the
+    // next load and belongs outside the persisted subtree.
+
+    // What was actually dropped, for the log. Collected rather than logged in
+    // place: a name retired from one builder is evicted from the same node of
+    // all 32 channels, and thirty-two identical warnings would bury the one
+    // thing a reader needs, which is WHICH names went.
+    juce::StringArray evicted;
+
+    // Depth-first, template-driven. A node the template does not have at all is
+    // left alone rather than deleted: removing a whole subtree is a different
+    // and much more destructive decision than dropping a retired attribute, and
+    // nothing has ever needed it. Note the consequence, which is wider than the
+    // node itself - the walk does not DESCEND into an unmatched node either, so
+    // every property under it is out of this hook's reach. Retiring a whole
+    // module type (dropping <FxTrem> from the chain, say) therefore needs a
+    // deliberate decision here, exactly as the reverb hook's hand-written list
+    // does at property granularity.
+    std::function<void (juce::ValueTree&, const juce::ValueTree&)> evict =
+        [&evict, &evicted] (juce::ValueTree& target, const juce::ValueTree& tmpl)
+    {
+        for (int i = target.getNumProperties(); --i >= 0;)
+        {
+            const auto propName = target.getPropertyName (i);
+
+            if (! tmpl.hasProperty (propName))
+            {
+                evicted.addIfNotAlreadyThere (propName.toString());
+                target.removeProperty (propName, nullptr);   // schema eviction is not an undoable user edit
+            }
+        }
+
+        for (int c = 0; c < target.getNumChildren(); ++c)
+        {
+            auto child = target.getChild (c);
+            juce::ValueTree match;
+
+            if (child.hasProperty (id))
+            {
+                // Type AND id together, never id alone: two sibling types
+                // sharing an id namespace would otherwise cross-match and strip
+                // each other's properties wholesale.
+                for (int t = 0; t < tmpl.getNumChildren(); ++t)
+                {
+                    auto candidate = tmpl.getChild (t);
+                    if (candidate.getType() == child.getType()
+                        && candidate.getProperty (id) == child.getProperty (id))
+                    {
+                        match = candidate;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                match = tmpl.getChildWithName (child.getType());
+                if (match.isValid() && match.hasProperty (id))
+                    match = juce::ValueTree();   // an id-less node never answers for an id'd template child
+            }
+
+            if (match.isValid())
+                evict (child, match);
+        }
+    };
+
+    auto effects = getEffectsState();
+    for (int i = 0; i < effects.getNumChildren(); ++i)
+    {
+        auto child = effects.getChild (i);
+        if (child.hasType (Effect))
+            evict (child, tmplChannel);
+    }
+
+    // SAY SO. Eviction passes nullptr for the UndoManager by design - a schema
+    // change is not a user edit and Ctrl+Z must not resurrect a retired name -
+    // so a wrong eviction cannot be undone and, until this line, could not even
+    // be noticed: the <Sends> hole would have destroyed an operator's entire
+    // send routing on load with nothing in the log to say it had happened. A
+    // retired name appears here on EVERY load of a file that still carries it and
+    // stops the first time that file is saved back, which is the honest shape of
+    // it: the hook strips the live tree, not the file. Anything else appearing
+    // here is a bug in this hook.
+    if (! evicted.isEmpty())
+        WFSLogger::getInstance().logWarning (
+            "Effects schema: dropped " + juce::String (evicted.size())
+            + " attribute(s) no longer declared by the effect channel template - "
+            + evicted.joinIntoString (", "));
 }
 
 void WFSValueTreeState::createNetworkSection (juce::ValueTree& config)
@@ -3887,6 +6079,28 @@ void WFSValueTreeState::createReverbsSection()
     reverbs.appendChild (createReverbPostExpSection(), nullptr);
 
     state.appendChild (reverbs, nullptr);
+}
+
+void WFSValueTreeState::createEffectsSection()
+{
+    juce::ValueTree effects (Effects);
+    effects.setProperty (count, effectChannelsDefault, nullptr);
+
+    // The family's own ownership latch, stamped at creation so it is never
+    // absent and never has to be inferred. See the header for why it must not
+    // be the shared <Stage> flag.
+    effects.setProperty (effectPositionsUserOwned, false, nullptr);
+
+    // Zero by default: <Effects count="0"/> and nothing else. Unlike
+    // createReverbsSection there are NO global siblings to append - the effects
+    // globals live in Config/EffectsGlobal, so nothing this application writes
+    // ever puts a non-<Effect> node in here. The accessors still count by type
+    // rather than trusting that, because a merged file is not this application:
+    // see getEffectState.
+    for (int i = 0; i < effectChannelsDefault; ++i)
+        effects.appendChild (createDefaultEffectChannel (i, effectChannelsDefault), nullptr);
+
+    state.appendChild (effects, nullptr);
 }
 
 void WFSValueTreeState::createAudioPatchSection()
@@ -4601,6 +6815,464 @@ juce::ValueTree WFSValueTreeState::createReverbPostExpSection()
     return postExp;
 }
 
+juce::ValueTree WFSValueTreeState::createDefaultEffectChannel (int index, int totalCount)
+{
+    juce::ValueTree effect (Effect);
+    effect.setProperty (id, index + 1, nullptr);
+
+    // ONE layout call for the whole channel. The position and the feed bearing
+    // are two halves of one placement - a node that keeps its old bearing after
+    // a move can have its feed muted outright by the angular attenuation - and
+    // recomputing the ring inside each builder is what makes the reverb twin
+    // quadratic (it lays the whole set out twice per channel).
+    const auto nodes = layoutEffectNodes (juce::jmax (1, totalCount));
+    const auto node  = nodes[(size_t) juce::jlimit (0, (int) nodes.size() - 1, index)];
+
+    effect.appendChild (createEffectChannelSection (index), nullptr);
+    effect.appendChild (createEffectPositionSection (node), nullptr);
+    effect.appendChild (createEffectFeedSection (node.orientationDeg), nullptr);
+    effect.appendChild (createEffectReturnSection (getNumOutputChannels()), nullptr);
+    effect.appendChild (createEffectAutoMotionSection(), nullptr);
+    effect.appendChild (createEffectLFOSection(), nullptr);
+    effect.appendChild (createEffectChainSection(), nullptr);
+
+    // The eleven chain slots, in the declared order, so the child list reads
+    // like spatcore::effects::kSlots. Each is its own id-less node type: two
+    // <FxEQ id="1"/"2"> siblings would put two node types in one id namespace,
+    // repeat every EQ property name on a sibling, and make every first-hit
+    // search answer instance 1 while reporting success.
+    effect.appendChild (createEffectDistSection(), nullptr);
+    effect.appendChild (createEffectEQSection (FxEq1), nullptr);
+    effect.appendChild (createEffectEQSection (FxEq2), nullptr);
+    effect.appendChild (createEffectDynSection (FxDyn1), nullptr);
+    effect.appendChild (createEffectDynSection (FxDyn2), nullptr);
+    effect.appendChild (createEffectModSection(), nullptr);
+    effect.appendChild (createEffectPhaserSection(), nullptr);
+    effect.appendChild (createEffectTremSection(), nullptr);
+    effect.appendChild (createEffectReverbSection(), nullptr);
+    effect.appendChild (createEffectDelaySection(), nullptr);
+    effect.appendChild (createEffectCrushSection(), nullptr);
+
+    effect.appendChild (createEffectSendsSection (index), nullptr);
+
+    return effect;
+}
+
+int WFSValueTreeState::getDefaultEffectLinkMode() const
+{
+    // Reads the global, falls back to the constant on a half-built tree. The
+    // fallback matters: createEffectChannelSection runs from the schema
+    // template as well as from addEffectChannel, and the template is built
+    // before <Config><EffectsGlobal> exists on some paths.
+    auto globals = getEffectsGlobalSection();
+    if (! globals.isValid() || ! globals.hasProperty (effectsGlobalLinkMode))
+        return effectLinkModeDefault;
+
+    return juce::jlimit (effectLinkModeMin, effectLinkModeMax,
+                         WFSVar::toInt (globals.getProperty (effectsGlobalLinkMode), effectLinkModeDefault));
+}
+
+const juce::Identifier& WFSValueTreeState::getEffectArrayAttenId (int arrayIndex)
+{
+    // Index 0..9 -> effectArrayAtten1..10. A table, never a name built from a
+    // string: effectArrayAtten1 is a strict prefix of effectArrayAtten10, and
+    // an Identifier assembled at runtime would also allocate on every call.
+    static const juce::Identifier* const ids[10] = {
+        &effectArrayAtten1, &effectArrayAtten2, &effectArrayAtten3, &effectArrayAtten4,
+        &effectArrayAtten5, &effectArrayAtten6, &effectArrayAtten7, &effectArrayAtten8,
+        &effectArrayAtten9, &effectArrayAtten10
+    };
+
+    return *ids[juce::jlimit (0, 9, arrayIndex)];
+}
+
+bool WFSValueTreeState::isEffectArrayAttenId (const juce::Identifier& paramId)
+{
+    for (int a = 0; a < 10; ++a)
+        if (paramId == getEffectArrayAttenId (a))
+            return true;
+
+    return false;
+}
+
+juce::ValueTree WFSValueTreeState::createEffectChannelSection (int index)
+{
+    juce::ValueTree channel (Channel);
+    channel.setProperty (effectName, getDefaultEffectName (index), nullptr);
+    channel.setProperty (effectAttenuation, effectAttenuationDefault, nullptr);
+    channel.setProperty (effectDelayLatency, effectDelayLatencyDefault, nullptr);
+    channel.setProperty (effectMinimalLatency, effectMinimalLatencyDefault, nullptr);
+    channel.setProperty (effectLinkGroup, effectLinkGroupDefault, nullptr);
+
+    // The link MODE is per channel (R5-5), stamped from the global rather than
+    // read from it. The global is nothing more than "what a new channel gets":
+    // with only a global, detaching one channel from its group detached every
+    // group at once, which is the one thing an output array can already do and
+    // effects could not. A stamped copy is also what lets a Stream Deck or an
+    // OSC client detach a single channel - a per-channel mode is an ordinary
+    // parameter, a global is not.
+    channel.setProperty (effectLinkMode, getDefaultEffectLinkMode(), nullptr);
+
+    channel.setProperty (effectMute, effectMuteDefault, nullptr);
+    channel.setProperty (effectSolo, effectSoloDefault, nullptr);
+    return channel;
+}
+
+juce::ValueTree WFSValueTreeState::createEffectPositionSection (const ReverbNodePlacement::Node& node)
+{
+    juce::ValueTree position (Position);
+
+    // The placement, not effectPositionDefault. A channel born at the origin is
+    // the failure mode the family's own ownership latch exists to prevent: it
+    // stacks every effect return on one spot, where the feed geometry and the
+    // inter-node spacing both stop meaning anything.
+    position.setProperty (effectPositionX, node.x, nullptr);
+    position.setProperty (effectPositionY, node.y, nullptr);
+    position.setProperty (effectPositionZ, node.z, nullptr);
+    position.setProperty (effectCoordinateMode, effectCoordinateModeDefault, nullptr);
+    position.setProperty (effectReturnOffsetX, effectReturnOffsetDefault, nullptr);
+    position.setProperty (effectReturnOffsetY, effectReturnOffsetDefault, nullptr);
+    position.setProperty (effectReturnOffsetZ, effectReturnOffsetDefault, nullptr);
+    return position;
+}
+
+juce::ValueTree WFSValueTreeState::createEffectFeedSection (int orientationDeg)
+{
+    juce::ValueTree feed (Feed);
+
+    // The bearing comes from the placement for the same reason the reverb feed
+    // takes one as an argument: leaving every node facing 0 deg points the
+    // upstage half of the ring away from the stage.
+    feed.setProperty (effectOrientation, orientationDeg, nullptr);
+    feed.setProperty (effectAngleOn, effectAngleOnDefault, nullptr);
+    feed.setProperty (effectAngleOff, effectAngleOffDefault, nullptr);
+    feed.setProperty (effectPitch, effectPitchDefault, nullptr);
+    feed.setProperty (effectHFdamping, effectHFdampingDefault, nullptr);
+    feed.setProperty (effectFeedMiniLatency, effectFeedMiniLatencyDefault, nullptr);
+    feed.setProperty (effectDistanceAttenPercent, effectDistanceAttenPercentDefault, nullptr);
+    return feed;
+}
+
+juce::ValueTree WFSValueTreeState::createEffectReturnSection (int numOutputs)
+{
+    // ReverbReturn is the C++ name of the identifier; its XML tag is "Return".
+    juce::ValueTree returnSection (ReverbReturn);
+    returnSection.setProperty (effectAttenuationLaw, effectAttenuationLawDefault, nullptr);
+    returnSection.setProperty (effectDistanceAttenuation, effectDistanceAttenuationDefault, nullptr);
+    returnSection.setProperty (effectDistanceRatio, effectDistanceRatioDefault, nullptr);
+    returnSection.setProperty (effectCommonAtten, effectCommonAttenDefault, nullptr);
+    returnSection.setProperty (effectHFshelf, effectHFshelfDefault, nullptr);
+
+    // One token per output, all unmuted. A packed CSV row like inputMutes and
+    // reverbMutes, and guarded like them now: a bare number written over it
+    // leaves the row alone, and setNumOutputChannels refits its width when the
+    // rig changes. Per-OUTPUT, which is what separates it from the four <Sends>
+    // rows next door - those are keyed by input number and by effect index and
+    // never follow the output count.
+    juce::StringArray muteArray;
+    const int outputCount = numOutputs > 0 ? numOutputs : outputChannelsDefault;
+    for (int i = 0; i < outputCount; ++i)
+        muteArray.add ("0");
+    returnSection.setProperty (effectMutes, muteArray.joinIntoString (","), nullptr);
+
+    returnSection.setProperty (effectMuteMacro, effectMuteMacroDefault, nullptr);
+    returnSection.setProperty (effectMuteReverbSends, effectMuteReverbSendsDefault, nullptr);
+
+    // Level 3's trim (R5-4). Ten properties, one per output array, applied to
+    // the return rows by the calculation engine against outputArrayAssignments.
+    // They complete the third matrix level: it had a per-output MUTE and no
+    // level at all, while levels 1 and 2 each carry an on/off row AND a level
+    // row. Deliberately not a free per-output matrix - a return is a render
+    // source, so its per-output gains are solved from geometry, and an
+    // arbitrary per-output level would overwrite the spatialisation.
+    for (int a = 0; a < 10; ++a)
+        returnSection.setProperty (getEffectArrayAttenId (a), effectArrayAttenDefault, nullptr);
+
+    return returnSection;
+}
+
+juce::ValueTree WFSValueTreeState::createEffectAutoMotionSection()
+{
+    juce::ValueTree otomo (AutomOtion);
+    otomo.setProperty (effectOtomoX, effectOtomoDefault, nullptr);
+    otomo.setProperty (effectOtomoY, effectOtomoDefault, nullptr);
+    otomo.setProperty (effectOtomoZ, effectOtomoDefault, nullptr);
+    otomo.setProperty (effectOtomoAbsoluteRelative, effectOtomoAbsoluteRelativeDefault, nullptr);
+    otomo.setProperty (effectOtomoSpeedProfile, effectOtomoSpeedProfileDefault, nullptr);
+    otomo.setProperty (effectOtomoDuration, effectOtomoDurationDefault, nullptr);
+    otomo.setProperty (effectOtomoCurve, effectOtomoCurveDefault, nullptr);
+    otomo.setProperty (effectOtomoTrigger, effectOtomoTriggerDefault, nullptr);
+    otomo.setProperty (effectOtomoThreshold, effectOtomoThresholdDefault, nullptr);
+    otomo.setProperty (effectOtomoReset, effectOtomoResetDefault, nullptr);
+    otomo.setProperty (effectOtomoPauseResume, effectOtomoPauseResumeDefault, nullptr);
+    otomo.setProperty (effectOtomoCoordinateMode, effectOtomoCoordinateModeDefault, nullptr);
+    otomo.setProperty (effectOtomoR, effectOtomoRDefault, nullptr);
+    otomo.setProperty (effectOtomoTheta, effectOtomoThetaDefault, nullptr);
+    otomo.setProperty (effectOtomoRsph, effectOtomoRsphDefault, nullptr);
+    otomo.setProperty (effectOtomoPhi, effectOtomoPhiDefault, nullptr);
+    return otomo;
+}
+
+juce::ValueTree WFSValueTreeState::createEffectLFOSection()
+{
+    // The input LFO section minus gyrophone. An older effects.xml without the
+    // node gains it through backfillEffectChannelsFromTemplate, which walks
+    // this template child by child.
+    juce::ValueTree lfo (LFO);
+    lfo.setProperty (effectLFOactive, effectLFOactiveDefault, nullptr);
+    lfo.setProperty (effectLFOperiod, effectLFOperiodDefault, nullptr);
+    lfo.setProperty (effectLFOphase, effectLFOphaseDefault, nullptr);
+    lfo.setProperty (effectLFOshapeX, effectLFOshapeDefault, nullptr);
+    lfo.setProperty (effectLFOshapeY, effectLFOshapeDefault, nullptr);
+    lfo.setProperty (effectLFOshapeZ, effectLFOshapeDefault, nullptr);
+    lfo.setProperty (effectLFOrateX, effectLFOrateDefault, nullptr);
+    lfo.setProperty (effectLFOrateY, effectLFOrateDefault, nullptr);
+    lfo.setProperty (effectLFOrateZ, effectLFOrateDefault, nullptr);
+    lfo.setProperty (effectLFOamplitudeX, effectLFOamplitudeDefault, nullptr);
+    lfo.setProperty (effectLFOamplitudeY, effectLFOamplitudeDefault, nullptr);
+    lfo.setProperty (effectLFOamplitudeZ, effectLFOamplitudeDefault, nullptr);
+    lfo.setProperty (effectLFOphaseX, effectLFOphaseDefault, nullptr);
+    lfo.setProperty (effectLFOphaseY, effectLFOphaseDefault, nullptr);
+    lfo.setProperty (effectLFOphaseZ, effectLFOphaseDefault, nullptr);
+    return lfo;
+}
+
+juce::ValueTree WFSValueTreeState::createEffectChainSection()
+{
+    juce::ValueTree chain (Chain);
+
+    // A permutation of the eleven slot tokens, in their declared order. Stored
+    // as a plain string in this commit; validating it against
+    // spatcore::effects::parseChainOrder is a decision for the commit that
+    // teaches the write interceptor its first string rule.
+    chain.setProperty (effectChainOrder, effectChainOrderDefault, nullptr);
+    chain.setProperty (effectChainBypass, effectChainBypassDefault, nullptr);
+    return chain;
+}
+
+juce::ValueTree WFSValueTreeState::createEffectSendsSection (int channelIndex)
+{
+    juce::ValueTree sends (Sends);
+
+    // ALL FOUR ROWS, AT THEIR FIXED WIDTHS. The node used to be built empty,
+    // and the comment here recorded what a row wanted before anything could
+    // stamp one: a width, a keying convention, cell accessors, an interceptor
+    // clause each and column maintenance on input delete and renumber. That list
+    // is the changelog of this commit - all of it exists now, so the rows do.
+    //
+    // Stamping them is what retires the eviction exemption too. A property the
+    // schema DECLARES but no builder stamps is indistinguishable from a retired
+    // one by the only evidence stripObsoleteEffectProperties has (absence from a
+    // freshly built channel), which is why those four names had to be exempted
+    // by hand while this returned a bare node. The template carries them now, so
+    // the hand-maintained list is gone and a send row name found anywhere else is
+    // a genuine ghost again.
+    //
+    // The defaults are silence, in two halves: every level is unity (0 dB) and
+    // every switch is off, so a channel is born routed to nothing and one switch
+    // is all it takes to hear a source at the level the grid already shows.
+    for (auto rowId : { effectSendLevels, effectSendOns, effectFxSendLevels, effectFxSendOns })
+        sends.setProperty (rowId, canonicalEffectSendRow (rowId, {}, channelIndex), nullptr);
+
+    return sends;
+}
+
+juce::ValueTree WFSValueTreeState::createEffectDistSection()
+{
+    juce::ValueTree dist (FxDist);
+    dist.setProperty (effectDistBypass, effectDistBypassDefault, nullptr);
+    dist.setProperty (effectDistDrive, effectDistDriveDefault, nullptr);
+    dist.setProperty (effectDistShape, effectDistShapeDefault, nullptr);
+    dist.setProperty (effectDistBias, effectDistBiasDefault, nullptr);
+    dist.setProperty (effectDistPreLoShelfFreq, effectDistPreLoShelfFreqDefault, nullptr);
+    dist.setProperty (effectDistPreLoShelfGain, effectDistPreLoShelfGainDefault, nullptr);
+    dist.setProperty (effectDistPreHiShelfFreq, effectDistPreHiShelfFreqDefault, nullptr);
+    dist.setProperty (effectDistPreHiShelfGain, effectDistPreHiShelfGainDefault, nullptr);
+    dist.setProperty (effectDistPostLoShelfFreq, effectDistPostLoShelfFreqDefault, nullptr);
+    dist.setProperty (effectDistPostLoShelfGain, effectDistPostLoShelfGainDefault, nullptr);
+    dist.setProperty (effectDistPostHiShelfFreq, effectDistPostHiShelfFreqDefault, nullptr);
+    dist.setProperty (effectDistPostHiShelfGain, effectDistPostHiShelfGainDefault, nullptr);
+    dist.setProperty (effectDistOutput, effectDistOutputDefault, nullptr);
+    dist.setProperty (effectDistMix, effectDistMixDefault, nullptr);
+    dist.setProperty (effectDistOversample, effectDistOversampleDefault, nullptr);
+    return dist;
+}
+
+juce::ValueTree WFSValueTreeState::createEffectEQSection (const juce::Identifier& nodeType)
+{
+    // One builder, two node types. FxEq1 and FxEq2 are identical apart from
+    // their type - the type IS the instance - so the defaults are stamped once
+    // and the caller says which slot is being built.
+    juce::ValueTree eq (nodeType);
+    eq.setProperty (effectEQBypass, effectEQBypassDefault, nullptr);
+
+    for (int i = 0; i < numEffectEQBands; ++i)
+    {
+        juce::ValueTree band (Band);
+        band.setProperty (id, i + 1, nullptr);
+        band.setProperty (effectEQshape, effectEQBandShapes[i], nullptr);
+        band.setProperty (effectEQfreq, effectEQBandFrequencies[i], nullptr);
+        band.setProperty (effectEQgain, effectEQgainDefault, nullptr);
+        band.setProperty (effectEQq, effectEQqDefault, nullptr);
+        band.setProperty (effectEQslope, effectEQslopeDefault, nullptr);
+        eq.appendChild (band, nullptr);
+    }
+
+    return eq;
+}
+
+juce::ValueTree WFSValueTreeState::createEffectDynSection (const juce::Identifier& nodeType)
+{
+    juce::ValueTree dyn (nodeType);   // FxDyn1 or FxDyn2 - see createEffectEQSection
+    dyn.setProperty (effectDynBypass, effectDynBypassDefault, nullptr);
+    dyn.setProperty (effectDynDetector, effectDynDetectorDefault, nullptr);
+    dyn.setProperty (effectDynLookahead, effectDynLookaheadDefault, nullptr);
+    dyn.setProperty (effectDynMakeup, effectDynMakeupDefault, nullptr);
+    dyn.setProperty (effectDynAutoMakeup, effectDynAutoMakeupDefault, nullptr);
+
+    dyn.setProperty (effectDynCompOn, effectDynCompOnDefault, nullptr);
+    dyn.setProperty (effectDynCompThreshold, effectDynCompThresholdDefault, nullptr);
+    dyn.setProperty (effectDynCompRatio, effectDynCompRatioDefault, nullptr);
+    dyn.setProperty (effectDynCompKnee, effectDynCompKneeDefault, nullptr);
+    dyn.setProperty (effectDynCompAttack, effectDynCompAttackDefault, nullptr);
+    dyn.setProperty (effectDynCompRelease, effectDynCompReleaseDefault, nullptr);
+    dyn.setProperty (effectDynCompDetectorDelay, effectDynCompDetectorDelayDefault, nullptr);
+    dyn.setProperty (effectDynCompScLoCut, effectDynCompScLoCutDefault, nullptr);
+    dyn.setProperty (effectDynCompScHiCut, effectDynCompScHiCutDefault, nullptr);
+
+    dyn.setProperty (effectDynExpOn, effectDynExpOnDefault, nullptr);
+    dyn.setProperty (effectDynExpThreshold, effectDynExpThresholdDefault, nullptr);
+    dyn.setProperty (effectDynExpRatio, effectDynExpRatioDefault, nullptr);
+    dyn.setProperty (effectDynExpAttack, effectDynExpAttackDefault, nullptr);
+    dyn.setProperty (effectDynExpRelease, effectDynExpReleaseDefault, nullptr);
+    dyn.setProperty (effectDynExpRange, effectDynExpRangeDefault, nullptr);
+    dyn.setProperty (effectDynExpHold, effectDynExpHoldDefault, nullptr);
+    dyn.setProperty (effectDynExpScLoCut, effectDynExpScLoCutDefault, nullptr);
+    dyn.setProperty (effectDynExpScHiCut, effectDynExpScHiCutDefault, nullptr);
+    return dyn;
+}
+
+juce::ValueTree WFSValueTreeState::createEffectModSection()
+{
+    juce::ValueTree mod (FxMod);
+    mod.setProperty (effectModBypass, effectModBypassDefault, nullptr);
+    mod.setProperty (effectModMode, effectModModeDefault, nullptr);
+    mod.setProperty (effectModRate, effectModRateDefault, nullptr);
+    mod.setProperty (effectModDepth, effectModDepthDefault, nullptr);
+    mod.setProperty (effectModDelay, effectModDelayDefault, nullptr);
+    mod.setProperty (effectModFeedback, effectModFeedbackDefault, nullptr);
+    mod.setProperty (effectModVoices, effectModVoicesDefault, nullptr);
+    mod.setProperty (effectModShape, effectModShapeDefault, nullptr);
+    mod.setProperty (effectModPhase, effectModPhaseDefault, nullptr);
+    mod.setProperty (effectModLoCut, effectModLoCutDefault, nullptr);
+    mod.setProperty (effectModThroughZero, effectModThroughZeroDefault, nullptr);
+    mod.setProperty (effectModMix, effectModMixDefault, nullptr);
+    return mod;
+}
+
+juce::ValueTree WFSValueTreeState::createEffectPhaserSection()
+{
+    juce::ValueTree phaser (FxPhaser);
+    phaser.setProperty (effectPhaserBypass, effectPhaserBypassDefault, nullptr);
+    phaser.setProperty (effectPhaserStages, effectPhaserStagesDefault, nullptr);
+    phaser.setProperty (effectPhaserCentre, effectPhaserCentreDefault, nullptr);
+    phaser.setProperty (effectPhaserSpread, effectPhaserSpreadDefault, nullptr);
+    phaser.setProperty (effectPhaserRate, effectPhaserRateDefault, nullptr);
+    phaser.setProperty (effectPhaserDepth, effectPhaserDepthDefault, nullptr);
+    phaser.setProperty (effectPhaserShape, effectPhaserShapeDefault, nullptr);
+    phaser.setProperty (effectPhaserFeedback, effectPhaserFeedbackDefault, nullptr);
+    phaser.setProperty (effectPhaserMix, effectPhaserMixDefault, nullptr);
+    return phaser;
+}
+
+juce::ValueTree WFSValueTreeState::createEffectTremSection()
+{
+    juce::ValueTree trem (FxTrem);
+    trem.setProperty (effectTremBypass, effectTremBypassDefault, nullptr);
+    trem.setProperty (effectTremRate, effectTremRateDefault, nullptr);
+    trem.setProperty (effectTremDepth, effectTremDepthDefault, nullptr);
+    trem.setProperty (effectTremShape, effectTremShapeDefault, nullptr);
+    trem.setProperty (effectTremMix, effectTremMixDefault, nullptr);
+    return trem;
+}
+
+juce::ValueTree WFSValueTreeState::createEffectReverbSection()
+{
+    // The per-chain reverb MODULE. Unrelated to the <Reverbs> family, and its
+    // properties are named effectReverb* precisely so the two never collide.
+    juce::ValueTree reverb (FxReverb);
+    reverb.setProperty (effectReverbBypass, effectReverbBypassDefault, nullptr);
+    reverb.setProperty (effectReverbModel, effectReverbModelDefault, nullptr);
+    reverb.setProperty (effectReverbType, effectReverbTypeDefault, nullptr);
+    reverb.setProperty (effectReverbPredelay, effectReverbPredelayDefault, nullptr);
+    reverb.setProperty (effectReverbRT60, effectReverbRT60Default, nullptr);
+    reverb.setProperty (effectReverbRT60LowMult, effectReverbRT60LowMultDefault, nullptr);
+    reverb.setProperty (effectReverbRT60HighMult, effectReverbRT60HighMultDefault, nullptr);
+    reverb.setProperty (effectReverbCrossoverLow, effectReverbCrossoverLowDefault, nullptr);
+    reverb.setProperty (effectReverbCrossoverHigh, effectReverbCrossoverHighDefault, nullptr);
+    reverb.setProperty (effectReverbDiffusion, effectReverbDiffusionDefault, nullptr);
+    reverb.setProperty (effectReverbSize, effectReverbSizeDefault, nullptr);
+    reverb.setProperty (effectReverbTone, effectReverbToneDefault, nullptr);
+    reverb.setProperty (effectReverbMix, effectReverbMixDefault, nullptr);
+    reverb.setProperty (effectReverbERProfile, effectReverbERProfileDefault, nullptr);
+    reverb.setProperty (effectReverbERLevel, effectReverbERLevelDefault, nullptr);
+    reverb.setProperty (effectReverbModRate, effectReverbModRateDefault, nullptr);
+    reverb.setProperty (effectReverbModDepth, effectReverbModDepthDefault, nullptr);
+    reverb.setProperty (effectReverbShimmerPitch, effectReverbShimmerPitchDefault, nullptr);
+    reverb.setProperty (effectReverbShimmerAmount, effectReverbShimmerAmountDefault, nullptr);
+    return reverb;
+}
+
+juce::ValueTree WFSValueTreeState::createEffectDelaySection()
+{
+    juce::ValueTree delay (FxDelay);
+    delay.setProperty (effectDelayBypass, effectDelayBypassDefault, nullptr);
+    delay.setProperty (effectDelayTime, effectDelayTimeDefault, nullptr);
+    delay.setProperty (effectDelayTaps, effectDelayTapsDefault, nullptr);
+    delay.setProperty (effectDelayTapMode, effectDelayTapModeDefault, nullptr);
+    delay.setProperty (effectDelayPattern, effectDelayPatternDefault, nullptr);
+    delay.setProperty (effectDelayFeedback, effectDelayFeedbackDefault, nullptr);
+    delay.setProperty (effectDelayFeedbackTap, effectDelayFeedbackTapDefault, nullptr);
+    delay.setProperty (effectDelayInLoCut, effectDelayInLoCutDefault, nullptr);
+    delay.setProperty (effectDelayFbLoShelfFreq, effectDelayFbLoShelfFreqDefault, nullptr);
+    delay.setProperty (effectDelayFbLoShelfGain, effectDelayFbLoShelfGainDefault, nullptr);
+    delay.setProperty (effectDelayFbHiShelfFreq, effectDelayFbHiShelfFreqDefault, nullptr);
+    delay.setProperty (effectDelayFbHiShelfGain, effectDelayFbHiShelfGainDefault, nullptr);
+    delay.setProperty (effectDelayModRate, effectDelayModRateDefault, nullptr);
+    delay.setProperty (effectDelayModDepth, effectDelayModDepthDefault, nullptr);
+    delay.setProperty (effectDelayDiffusion, effectDelayDiffusionDefault, nullptr);
+    delay.setProperty (effectDelayGlide, effectDelayGlideDefault, nullptr);
+    delay.setProperty (effectDelayMix, effectDelayMixDefault, nullptr);
+
+    // All eight taps always exist; effectDelayTaps says how many are live.
+    // A fixed child count is what lets the schema backfill match them by id.
+    // It does NOT make getEffectDelayTap a straight positional index: a merged
+    // file can leave an unknown node in here, and indexing would then hand the
+    // caller the wrong tap - see nthChildOfType.
+    for (int i = 0; i < numEffectDelayTaps; ++i)
+    {
+        juce::ValueTree tap (Tap);
+        tap.setProperty (id, i + 1, nullptr);
+        tap.setProperty (effectDelayTapTime, effectDelayTapTimes[i], nullptr);
+        tap.setProperty (effectDelayTapLevel, effectDelayTapLevels[i], nullptr);
+        delay.appendChild (tap, nullptr);
+    }
+
+    return delay;
+}
+
+juce::ValueTree WFSValueTreeState::createEffectCrushSection()
+{
+    juce::ValueTree crush (FxCrush);
+    crush.setProperty (effectCrushBypass, effectCrushBypassDefault, nullptr);
+    crush.setProperty (effectCrushBits, effectCrushBitsDefault, nullptr);
+    crush.setProperty (effectCrushRate, effectCrushRateDefault, nullptr);
+    crush.setProperty (effectCrushFilter, effectCrushFilterDefault, nullptr);
+    crush.setProperty (effectCrushDither, effectCrushDitherDefault, nullptr);
+    crush.setProperty (effectCrushMix, effectCrushMixDefault, nullptr);
+    return crush;
+}
+
 juce::ValueTree WFSValueTreeState::createDefaultNetworkTarget (int index)
 {
     juce::ValueTree target (NetworkTarget);
@@ -4680,6 +7352,17 @@ juce::ValueTree WFSValueTreeState::getTreeForParameter (const juce::Identifier& 
             auto ui = config.getChildWithName (UI);
             if (ui.hasProperty (paramId))
                 return ui;
+
+            // EffectsGlobal. getParameterScope sends every effectsGlobal* name
+            // here by name, ahead of the per-channel "effect" prefix test - but
+            // the routing is only half the journey: a scope with no node to land
+            // on falls off the end of this list and the write is dropped in
+            // silence (TreeParameterStore::setParameter is `if (tree.isValid())`
+            // with no else and a void return). That was the state of things
+            // until <Config><EffectsGlobal> existed.
+            auto effectsGlobal = config.getChildWithName (EffectsGlobal);
+            if (effectsGlobal.hasProperty (paramId))
+                return effectsGlobal;
 
             return {};
         }
@@ -4845,6 +7528,65 @@ juce::ValueTree WFSValueTreeState::getTreeForParameter (const juce::Identifier& 
                     return {};
                 }
                 ++nth;
+            }
+            return {};
+        }
+
+        case ParameterScope::Effect:
+        {
+            if (channelIndex < 0)
+                return {};
+
+            auto effects = mutableState.getChildWithName (Effects);
+            if (! effects.isValid())
+                return {};
+
+            // BY TYPE, exactly as the Reverb case above walks its nth, and for
+            // the reason getEffectState records: this must resolve the same
+            // channel getNumEffectChannels counted, whatever the container turns
+            // out to hold. There is still no hasProperty pre-pass over global
+            // siblings - the effects globals are Config properties, routed there
+            // by name in getParameterScope - but "no globals" was never a
+            // promise about what a MERGED FILE can leave in the child list, and
+            // this is the resolution path every OSC, MCP and GUI write takes. It
+            // indexed positionally, so a foreign child ahead of a channel made
+            // canWriteParameter answer FALSE for a channel the count promised,
+            // and every remote write to it was refused for the life of the show.
+            int nth = 0;
+            juce::ValueTree effect;
+            for (int i = 0; i < effects.getNumChildren(); ++i)
+            {
+                auto candidate = effects.getChild (i);
+                if (! candidate.hasType (Effect))
+                    continue;
+                if (nth == channelIndex)
+                {
+                    effect = candidate;
+                    break;
+                }
+                ++nth;
+            }
+
+            if (! effect.isValid())
+                return {};
+
+            for (int i = 0; i < effect.getNumChildren(); ++i)
+            {
+                auto sub = effect.getChild (i);
+
+                // Skip the doubled module types and never descend into <Band> or
+                // <Tap>: those property names exist on more than one node, so a
+                // hit here could only mean "the first one". Returning an invalid
+                // tree makes canWriteParameter answer FALSE, which is what lets
+                // a remote surface report an error instead of being handed a
+                // success for a write that landed on instance 1. The sends CELL
+                // pseudo-identifiers miss here for the same reason - no node
+                // carries them, deliberately.
+                if (isInstancedEffectModuleType (sub.getType()))
+                    continue;
+
+                if (sub.hasProperty (paramId))
+                    return sub;
             }
             return {};
         }
@@ -5059,7 +7801,8 @@ WFSValueTreeState::ParameterScope WFSValueTreeState::getParameterScope (const ju
     // Check for config-level parameters that might have misleading prefixes
     // inputChannels, outputChannels, reverbChannels are stored in Config/IO,
     // not in their respective channel sections
-    if (paramId == inputChannels || paramId == outputChannels || paramId == reverbChannels)
+    if (paramId == inputChannels || paramId == outputChannels || paramId == reverbChannels
+        || paramId == effectChannels)
         return ParameterScope::Config;
 
     // reverbsMapVisible is a Master-section display toggle, not a per-reverb
@@ -5067,7 +7810,7 @@ WFSValueTreeState::ParameterScope WFSValueTreeState::getParameterScope (const ju
     // the Reverb branch, which searches <Reverb> channel nodes and never finds
     // it, so the write vanished. Named here for the same reason the channel
     // counts are — the prefix lies about where the property lives.
-    if (paramId == reverbsMapVisible)
+    if (paramId == reverbsMapVisible || paramId == effectsMapVisible)
         return ParameterScope::Config;
 
     // Check if it's an input parameter
@@ -5091,6 +7834,22 @@ WFSValueTreeState::ParameterScope WFSValueTreeState::getParameterScope (const ju
     // Check if it's a reverb parameter
     if (paramName.startsWith ("reverb"))
         return ParameterScope::Reverb;
+
+    // The effects globals live in <Config><EffectsGlobal>, not on a channel, and
+    // every one of them starts with "effect" - so this test MUST come before the
+    // per-channel prefix branch below. Without it the prefix sends them to the
+    // Effect branch, which searches <Effect> channel nodes, finds nothing, and
+    // the write is dropped with no error at all (TreeParameterStore::setParameter
+    // is `if (tree.isValid()) write(...)` with no else and a void return). That
+    // is the exact incident the reverbsMapVisible exception above records.
+    // effectChannels and effectsMapVisible are named individually further up for
+    // the same reason.
+    if (paramName.startsWith ("effectsGlobal"))
+        return ParameterScope::Config;
+
+    // Check if it's a per-channel effect parameter
+    if (paramName.startsWith ("effect"))
+        return ParameterScope::Effect;
 
     // Check if it's an output parameter
     if (paramName.startsWith ("output") || paramName.startsWith ("eq"))

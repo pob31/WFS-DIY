@@ -63,6 +63,32 @@ private:
     void connectionClosed(const juce::String& id, int status, const juce::String& reason) override;
     void connectionError(const juce::String& id, int status, const juce::String& message) override;
 
+    // --- HTTP replies, answered on the message thread ---
+    struct HttpReply { int status = 503; juce::String body; };
+
+    /** A request waiting for the message thread. Only this list holds the
+        response: SimpleWeb sends it when the last reference goes, and a
+        response must not outlive the server whose socket it writes to. */
+    struct PendingReply
+    {
+        std::shared_ptr<HttpServer::Response> response;
+        juce::String path, query;
+    };
+    std::vector<PendingReply> pendingReplies;   // guarded by pendingRepliesLock
+    bool replyPassScheduled = false;            // guarded by pendingRepliesLock
+    juce::CriticalSection pendingRepliesLock;
+
+    /** Message thread: answers every request queued so far, the tree built once. */
+    void answerPendingReplies();
+
+    /** The reply to one request, from the tree `root` (built on first use). */
+    HttpReply buildHTTPReply(juce::String path, const juce::String& query,
+                             juce::DynamicObject::Ptr& root);
+
+    // False once stop() has run, so a pass still queued for the message thread
+    // answers nothing and touches nothing. A new token for every start().
+    std::shared_ptr<std::atomic<bool>> serving;
+
     // --- HTTP Response Helpers ---
     void sendJsonResponse(std::shared_ptr<HttpServer::Response> response,
                           int statusCode, const juce::String& body);

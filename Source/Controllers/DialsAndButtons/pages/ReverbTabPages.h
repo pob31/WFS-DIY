@@ -15,12 +15,13 @@
 #include "../../../Parameters/WFSParameterIDs.h"
 #include "../../../Parameters/WFSParameterDefaults.h"
 #include "../../../Localization/LocalizationManager.h"
+#include "../../../gui/TabIndex.h"
 
 namespace ReverbTabPages
 {
 
 /** Main tab index for Reverb (0-based position in the tab bar). */
-static constexpr int REVERB_MAIN_TAB_INDEX = 3;
+static constexpr int REVERB_MAIN_TAB_INDEX = TabIndex::Reverb;
 
 /** Band colours for 4-band EQ (subset of output EQ colours). */
 inline juce::Colour getReverbEqBandColour (int band)

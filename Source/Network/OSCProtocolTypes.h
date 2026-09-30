@@ -116,6 +116,12 @@ namespace OSCPaths
     // Standard WFS OSC paths
     constexpr const char* INPUT_PREFIX = "/wfs/input/";
     constexpr const char* OUTPUT_PREFIX = "/wfs/output/";
+    // REVERB_PREFIX was missing while three files spelled "/wfs/reverb/" as a
+    // literal (the router's address test, the ingest classifier rule and the
+    // OSCQuery container). Named here so the effects family has no excuse to
+    // add a fourth copy of its own.
+    constexpr const char* REVERB_PREFIX = "/wfs/reverb/";
+    constexpr const char* EFFECT_PREFIX = "/wfs/effect/";
     constexpr const char* CONFIG_PREFIX = "/wfs/config/";
 
     // Config/Stage paths (global parameters, no channel ID)
@@ -165,6 +171,27 @@ namespace OSCPaths
     constexpr const char* CONFIG_REVERB_POST_EXP_RATIO     = "/wfs/config/reverb/postExpRatio";
     constexpr const char* CONFIG_REVERB_POST_EXP_ATTACK    = "/wfs/config/reverb/postExpAttack";
     constexpr const char* CONFIG_REVERB_POST_EXP_RELEASE   = "/wfs/config/reverb/postExpRelease";
+
+    // Config/EffectsGlobal paths (global parameters, no channel ID). They live
+    // in <Config><EffectsGlobal>, NOT under the <Effect> channels, which is why
+    // they are addressed under /wfs/config/ like every other global and not
+    // under EFFECT_PREFIX.
+    constexpr const char* CONFIG_EFFECTS_LINK_NAMES         = "/wfs/config/effects/linkNames";
+    constexpr const char* CONFIG_EFFECTS_LINK_MODE          = "/wfs/config/effects/linkMode";
+    constexpr const char* CONFIG_EFFECTS_FX_FEED_GEOMETRIC  = "/wfs/config/effects/fxFeedGeometric";
+    constexpr const char* CONFIG_EFFECTS_WORKER_THREADS     = "/wfs/config/effects/workerThreads";
+    constexpr const char* CONFIG_EFFECTS_RETURN_CUSHION     = "/wfs/config/effects/returnCushion";
+    constexpr const char* CONFIG_EFFECTS_LOOP_GUARD         = "/wfs/config/effects/loopGuard";
+    constexpr const char* CONFIG_EFFECTS_LOOP_GUARD_CEILING = "/wfs/config/effects/loopGuardCeiling";
+    constexpr const char* CONFIG_EFFECTS_MAX_DELAY_SECONDS  = "/wfs/config/effects/maxDelaySeconds";
+    constexpr const char* CONFIG_EFFECTS_FEED_GPU_DEVICE    = "/wfs/config/effects/feedGpuDevice";
+
+    /** The effect channel COUNT. Deliberately one segment deep, so
+        buildConfigJson's group split skips it: a channel count is not a
+        parameter of a group and has never been published in the OSCQuery tree
+        (no other family's count is addressable at all). It is STOPPED-ONLY —
+        see the refusal in OSCManager's config branch. */
+    constexpr const char* CONFIG_EFFECT_CHANNELS            = "/wfs/config/effectChannels";
 
     // REMOTE protocol paths
     constexpr const char* REMOTE_INPUT_PREFIX = "/remoteInput/";

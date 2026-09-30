@@ -2,6 +2,7 @@
 #include "ColorScheme.h"
 #include "WfsLookAndFeel.h"
 #include "WindowUtils.h"
+#include "ScreenShareRendering.h"
 #include "../Localization/LocalizationManager.h"
 #include "../MidiSnapshotTrigger.h"
 
@@ -826,6 +827,7 @@ AudioInterfaceWindow::AudioInterfaceWindow(juce::AudioDeviceManager& deviceManag
     setResizeLimits(600, 720, userArea.getWidth(), userArea.getHeight());
 
     centreWithSize(windowWidth, windowHeight);
+    ScreenShareRendering::apply(*this);
     setVisible(true);
     WindowUtils::enableDarkTitleBar(this);
     WindowUtils::enableRawMultiTouch(this);

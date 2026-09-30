@@ -113,6 +113,20 @@ public:
         }
     }
 
+    /** Paint at the disabled alpha while staying fully draggable — the same
+        "dimmed but live" state a disabled WfsSliderBase has (its mouse
+        handlers never consult isEnabled()). For a section that is switched
+        off but whose values are meant to be set up in advance; setEnabled
+        (false) stays the way to make the dial actually refuse input. */
+    void setDimmed(bool shouldBeDimmed)
+    {
+        if (dimmed != shouldBeDimmed)
+        {
+            dimmed = shouldBeDimmed;
+            repaint();
+        }
+    }
+
 private:
     void paint(juce::Graphics& g) override
     {
@@ -126,7 +140,7 @@ private:
         // Draw full circle track - use theme color with disabled alpha
         auto trackRadius = radius * 0.8f;
         auto trackWidth = radius * 0.12f;
-        const float alpha = isEnabled() ? 1.0f : disabledAlpha;
+        const float alpha = (isEnabled() && ! dimmed) ? 1.0f : disabledAlpha;
         g.setColour(ColorScheme::get().buttonBorder.withAlpha(alpha));
         g.drawEllipse(juce::Rectangle<float>(
             centre.x - trackRadius, centre.y - trackRadius,
@@ -206,7 +220,8 @@ private:
     }
 
     float angleDegrees = 0.0f;
-    float disabledAlpha = 0.45f;  // painted alpha while !isEnabled()
+    float disabledAlpha = 0.45f;  // painted alpha while !isEnabled() or dimmed
+    bool dimmed = false;           // see setDimmed
     bool planViewMapping = false;  // see setPlanViewMapping
 
     // TTS accessibility

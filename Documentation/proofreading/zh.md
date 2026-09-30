@@ -1,6 +1,6 @@
 # Proofreading checklist — Chinese (中文)
 
-Locale: `zh`  |  Total keys: 770  |  Source: `Resources/lang/en.json` vs `Resources/lang/zh.json`
+Locale: `zh`  |  Total keys: 803  |  Source: `Resources/lang/en.json` vs `Resources/lang/zh.json`
 
 ## How to use this file
 
@@ -59,8 +59,8 @@ Walk through each section. For every entry:
 ## `audioPatch.deviceSettings`
 
 - **`midiTooltip`**
-  - EN: Snapshot recall only. This port is opened for input alone and is used for nothing else: WFS-DIY sends it no MIDI, and the only messages it acts on are note-ons that recall an input snapshot. Bind a channel and note to a snapshot in the Inputs tab's Edit Scope window; a note-on above velocity 64 recalls it.
-  - ZH: 仅用于快照调用。此端口只作为输入打开，不作其他任何用途：WFS-DIY 不会向其发送任何 MIDI，且只响应用于调用输入快照的 Note On 消息。请在 Inputs 标签页的 Edit Scope 窗口中为快照绑定通道和音符；力度高于 64 的 Note On 即会调用该快照。
+  - EN: Snapshot recall only. This port is opened for input alone and is used for nothing else: WFS-DIY sends it no MIDI, and the only messages it acts on are note-ons that recall a snapshot (inputs and effects). Bind a channel and note to a snapshot in the Edit Scope window of the Inputs or Effects tab; a note-on above velocity 64 recalls it.
+  - ZH: 仅用于快照调用。此端口只作为输入打开，不作其他任何用途：WFS-DIY 不会向其发送任何 MIDI，且只响应用于调用快照（输入和效果）的 Note On 消息。请在 Inputs 或 Effects 标签页的 Edit Scope 窗口中为快照绑定通道和音符；力度高于 64 的 Note On 即会调用该快照。
   - [ ] OK    Fix: 
 
 ## `audioPatch.dialogs`
@@ -433,6 +433,159 @@ Walk through each section. For every entry:
   - ZH: 是
   - [ ] OK    Fix: 
 
+## `effects`
+
+- **`noChannels`**
+  - EN: No effects channels. Set the count in System Config, or import an effects configuration.
+  - ZH: 没有效果通道。请在 System Config 中设置数量，或导入效果配置。
+  - [ ] OK    Fix: 
+
+## `effects.dialogs`
+
+- **`exportTitle`**
+  - EN: Export Effects Configuration
+  - ZH: 导出效果配置
+  - [ ] OK    Fix: 
+
+- **`importTitle`**
+  - EN: Import Effects Configuration
+  - ZH: 导入效果配置
+  - [ ] OK    Fix: 
+
+## `effects.help`
+
+- **`channelSelector`**
+  - EN: Select the effects channel to edit.
+  - ZH: 选择要编辑的效果通道。
+  - [ ] OK    Fix: 
+
+- **`clear`**
+  - EN: Long-press to flush this effect chain; hold Ctrl to clear every effect.
+  - ZH: 长按以清空此效果链；按住 Ctrl 可清空所有效果。
+  - [ ] OK    Fix: 
+
+- **`cycle`**
+  - EN: This effect is part of a feedback loop in the sends grid.
+  - ZH: 此效果属于发送网格中的一个反馈环路。
+  - [ ] OK    Fix: 
+
+- **`editOnMap`**
+  - EN: Enable editing effect positions from the Map tab.
+  - ZH: 允许在 Map 标签页中编辑效果位置。
+  - [ ] OK    Fix: 
+
+- **`entry`**
+  - EN: This effect is fed by an input, so it is an entry point of its bunch.
+  - ZH: 此效果由某个输入馈送，因此是其所在组的入口点。
+  - [ ] OK    Fix: 
+
+- **`export`**
+  - EN: Export Effects Configuration to file (with file explorer window).
+  - ZH: 将效果配置导出到文件（使用文件浏览器）。
+  - [ ] OK    Fix: 
+
+- **`groupMute`**
+  - EN: Long-press to mute or unmute every member of this link group at once.
+  - ZH: 长按以一次性静音或取消静音此链接组的所有成员。
+  - [ ] OK    Fix: 
+
+- **`import`**
+  - EN: Import Effects Configuration from file (with file explorer window).
+  - ZH: 从文件导入效果配置（使用文件浏览器）。
+  - [ ] OK    Fix: 
+
+- **`linkGroup`**
+  - EN: Link this effect to a group so module edits propagate to the other members.
+  - ZH: 将此效果链接到一个组，使模块编辑传播到其他成员。
+  - [ ] OK    Fix: 
+
+- **`linkMode`**
+  - EN: How this channel takes group edits: off, absolute, or relative.
+  - ZH: 此通道接收组编辑的方式：关、绝对或相对。
+  - [ ] OK    Fix: 
+
+- **`loopGuard`**
+  - EN: The loop guard has muted this channel's effect-to-effect feed.
+  - ZH: 环路保护已将此通道的效果间馈送静音。
+  - [ ] OK    Fix: 
+
+- **`mapVisible`**
+  - EN: Show or hide effect return markers on the Map tab.
+  - ZH: 在 Map 标签页上显示或隐藏效果返回标记。
+  - [ ] OK    Fix: 
+
+- **`mute`**
+  - EN: Mute this effect return.
+  - ZH: 静音此效果返回。
+  - [ ] OK    Fix: 
+
+- **`name`**
+  - EN: Displayed name of this effects channel.
+  - ZH: 此效果通道的显示名称。
+  - [ ] OK    Fix: 
+
+- **`reloadBackup`**
+  - EN: Reload Effects Configuration from backup file (with confirmation).
+  - ZH: 从备份文件重新加载效果配置（需确认）。
+  - [ ] OK    Fix: 
+
+- **`reloadConfig`**
+  - EN: Reload Effects Configuration from file (with confirmation).
+  - ZH: 从文件重新加载效果配置（需确认）。
+  - [ ] OK    Fix: 
+
+- **`solo`**
+  - EN: Long-press to solo this effect return.
+  - ZH: 长按以独听此效果返回。
+  - [ ] OK    Fix: 
+
+- **`soloEffects`**
+  - EN: Long-press to solo the effect returns: the direct signal is muted.
+  - ZH: 长按以独听效果返回：直达信号被静音。
+  - [ ] OK    Fix: 
+
+- **`storeConfig`**
+  - EN: Store Effects Configuration to file (overwrite with confirmation).
+  - ZH: 将效果配置存储到文件（覆盖前确认）。
+  - [ ] OK    Fix: 
+
+## `effects.messages`
+
+- **`cleared`**
+  - EN: Effect chain cleared.
+  - ZH: 效果链已清空。
+  - [ ] OK    Fix: 
+
+- **`clearedAll`**
+  - EN: Every effect chain cleared.
+  - ZH: 所有效果链已清空。
+  - [ ] OK    Fix: 
+
+- **`configLoaded`**
+  - EN: Effects configuration loaded.
+  - ZH: 效果配置已加载。
+  - [ ] OK    Fix: 
+
+- **`configSaved`**
+  - EN: Effects configuration saved.
+  - ZH: 效果配置已保存。
+  - [ ] OK    Fix: 
+
+- **`error`**
+  - EN: Error: {error}
+  - ZH: 错误: {error}
+  - [ ] OK    Fix: 
+
+- **`groupMuteNeedsGroup`**
+  - EN: This effect is not in a link group, so there is no group to mute.
+  - ZH: 此效果不在任何链接组中，因此没有可静音的组。
+  - [ ] OK    Fix: 
+
+- **`selectFolderFirst`**
+  - EN: Select a project folder first.
+  - ZH: 请先选择项目文件夹。
+  - [ ] OK    Fix: 
+
 ## `eq.status`
 
 - **`off`**
@@ -510,6 +663,18 @@ Walk through each section. For every entry:
 - **`title`**
   - EN: Diagnostics & Feedback
   - ZH: 诊断与反馈
+  - [ ] OK    Fix: 
+
+## `help.effects`
+
+- **`body`**
+  - EN: An effects channel is a chain of eleven modules (distortion, two EQs, two dynamics, chorus/flanger, phaser, tremolo, reverb, multitap delay, bitcrusher) fed by inputs and by other effects through the sends matrix. Its output is a RETURN placed on the stage like an input: it renders through the WFS arrays from its own position, with the same feed orientation, attenuation law and mutes an input has.\nThe header mirrors the Reverb tab: channel selector, name, map visibility, Edit on Map, Solo Effects, Mute, Solo and the emergency Clear (long-press; hold Ctrl to clear every chain). The three dots are the engine's word on this channel: loop guard tripped, part of a feedback cycle, fed by an input (the entry point of its bunch).\nLink groups are not like reverbs, which are one system: a channel in a group shares its chain (order, bypasses, module parameters) with the other members by each member's link mode - Absolute copies, Relative keeps the offset, Off receives nothing - while its movements, sends, mutes and position never propagate. Ctrl-drag any control to edit this channel alone. Mute Group mutes every member once and leaves each independently editable.
+  - ZH: 效果通道是由十一个模块（失真、两个均衡器、两个动态处理器、合唱/镶边、移相器、颤音、混响、多抽头延迟、比特粉碎器）组成的效果链，通过发送矩阵由输入和其他效果馈送。其输出是一个返回，像输入一样放置在舞台上：从自身位置经 WFS 阵列渲染，具有与输入相同的朝向、衰减曲线和静音。\n标题栏与 Reverb 标签页相同：通道选择、名称、地图显示、Edit on Map、Solo Effects、Mute、Solo 以及紧急Clear（长按；按住 Ctrl 清空所有效果链）。三个指示点显示引擎对此通道的状态：环路保护已触发、属于反馈环路、由输入馈送（其所在组的入口点）。\n链接组不同于构成单一系统的混响：组内通道按各成员的链接模式与其他成员共享其效果链（顺序、旁通、模块参数）——Absolute为复制，Relative为保持差值，Off为不接收——而其运动、发送、静音和位置从不传播。按住 Ctrl 拖动任一控件可只编辑此通道。Mute Group 会将每个成员静音一次，并让每个成员仍可单独编辑。
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Effects
+  - ZH: 效果
   - [ ] OK    Fix: 
 
 ## `help.floorReflections`
@@ -875,13 +1040,13 @@ Walk through each section. For every entry:
 ## `help.snapshotScope`
 
 - **`body`**
-  - EN: Snapshots store input parameters, but can have a scope to be recalled during a performance. They can have between all parameters for all inputs and only one parameter for a single channel. They can be updated and renamed for convenience.\nThe Scope tells the system what data to store or recall. It's the opposite of 'safe' parameters.\nThere are several ways to do this in this application:\n- Record only the needed data in local files. The scope filter is applied when storing the data. A recall cue can be created in QLab to trigger the reading of the local file.\n- Record all data and a filter in local files. The scope filter is applied when recalling the data. This allows to eventually recall all data not taking into account the scope filter. This may come in handy when a complete configuration should be recalled during rehearsal for example. A recall cue can be created in QLab to trigger the reading of the local file.\n- Record all data in scope in QLab cues. This should not be used to recall all parameters for large configurations since QLab may stall when recalling so much data.\nThe scope can show and automatically pre-select the parameters that have been manually changed (local UI, hardware controllers, remote Android application). Changed parameters are marked with a yellow mark.
-  - ZH: 快照存储输入参数，但可以有一个范围，在演出期间调用。\n范围告诉系统存储或调用哪些数据。\n有几种方法：\n- 仅在本地文件中记录所需数据。过滤器在存储时应用。\n- 在本地文件中记录所有数据和过滤器。过滤器在调用时应用。\n- 在QLab cue中记录所有范围内的数据。不建议用于大型配置。\n范围可以显示并自动预选手动更改的参数。更改的参数用黄色标记。
+  - EN: Snapshots store input and effect parameters, but can have a scope to be recalled during a performance. They can have between all parameters for all inputs and effects and only one parameter for a single channel. They can be updated and renamed for convenience.\nThe Scope tells the system what data to store or recall. It's the opposite of 'safe' parameters.\nThere are several ways to do this in this application:\n- Record only the needed data in local files. The scope filter is applied when storing the data. A recall cue can be created in QLab to trigger the reading of the local file.\n- Record all data and a filter in local files. The scope filter is applied when recalling the data. This allows to eventually recall all data not taking into account the scope filter. This may come in handy when a complete configuration should be recalled during rehearsal for example. A recall cue can be created in QLab to trigger the reading of the local file.\n- Record all data in scope in QLab cues. This should not be used to recall all parameters for large configurations since QLab may stall when recalling so much data.\nThe scope can show and automatically pre-select the parameters that have been manually changed (local UI, hardware controllers, remote Android application). Changed parameters are marked with a yellow mark.\nOne snapshot carries the inputs and the effects channels. The Scope window has an Inputs tab and an Effects tab, one grid per family; on the Effects grid each module of the chain is one row, its bands and taps included. The Inputs tab and the Effects tab show the same snapshot row, so a snapshot stored or recalled from either covers both, and one MIDI note or OSC cue recalls both.
+  - ZH: 快照存储输入和效果参数，但可以有一个范围，在演出期间调用。\n范围告诉系统存储或调用哪些数据。\n有几种方法：\n- 仅在本地文件中记录所需数据。过滤器在存储时应用。\n- 在本地文件中记录所有数据和过滤器。过滤器在调用时应用。\n- 在QLab cue中记录所有范围内的数据。不建议用于大型配置。\n范围可以显示并自动预选手动更改的参数。更改的参数用黄色标记。\n一个快照同时包含输入和效果通道。范围窗口有输入和效果两个标签页，每个类别一个网格；在效果网格中，效果链的每个模块占一行，包括其频段和抽头。输入标签页和效果标签页显示同一个快照行，因此从任一处存储或调用的快照都涵盖两者，一个MIDI音符或OSC cue即可同时调用两者。
   - [ ] OK    Fix: 
 
 - **`title`**
-  - EN: Input Snapshots and Scope
-  - ZH: 输入快照和范围
+  - EN: Snapshots and Scope
+  - ZH: 快照和范围
   - [ ] OK    Fix: 
 
 ## `help.tracking`
@@ -1165,8 +1330,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`deleteSnapshot`**
-  - EN: Delete Selected Input Snapshot With Confirmation.
-  - ZH: 删除选定的快照。
+  - EN: Delete the selected snapshot, with confirmation.
+  - ZH: 删除选定的快照（需确认）。
   - [ ] OK    Fix: 
 
 - **`directivitySlider`**
@@ -1200,8 +1365,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`editScope`**
-  - EN: Open Selected Input Snapshot Scope Window.
-  - ZH: 编辑快照的范围过滤器。
+  - EN: Open the Snapshot Scope window for the selected snapshot.
+  - ZH: 编辑选定快照的范围过滤器。
   - [ ] OK    Fix: 
 
 - **`exportConfig`**
@@ -1625,13 +1790,13 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`reloadSnapshot`**
-  - EN: Reload Selected Input Snapshot for All Objects Taking the Scope into Account.
-  - ZH: 重新加载当前选定的快照。
+  - EN: Reload the selected snapshot (inputs and effects), taking the scope into account.
+  - ZH: 按范围过滤器重新加载选定的快照（输入和效果）。
   - [ ] OK    Fix: 
 
 - **`reloadWithoutScope`**
-  - EN: Reload Selected Input Snapshot for All Objects Without the Scope.
-  - ZH: 重新加载快照，忽略范围过滤器。
+  - EN: Reload the selected snapshot (inputs and effects) without the scope.
+  - ZH: 重新加载选定的快照（输入和效果），忽略范围过滤器。
   - [ ] OK    Fix: 
 
 - **`sidelinesActiveButton`**
@@ -1645,8 +1810,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`snapshotSelector`**
-  - EN: Select Input Snapshot Without Loading.
-  - ZH: 选择要加载的快照。
+  - EN: Select a snapshot without loading it.
+  - ZH: 选择快照但不加载。
   - [ ] OK    Fix: 
 
 - **`solo`**
@@ -1680,8 +1845,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`storeSnapshot`**
-  - EN: Store new Input Snapshot for All Objects.
-  - ZH: 将当前输入参数保存为快照。
+  - EN: Store a new snapshot of all the inputs and effects.
+  - ZH: 将所有输入和效果的当前参数保存为新快照。
   - [ ] OK    Fix: 
 
 - **`tiltSlider`**
@@ -1705,8 +1870,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`updateSnapshot`**
-  - EN: Update Selected Input Snapshot (with backup).
-  - ZH: 使用当前参数更新选定的快照。
+  - EN: Update the selected snapshot, inputs and effects (with backup).
+  - ZH: 使用当前的输入和效果参数更新选定的快照（带备份）。
   - [ ] OK    Fix: 
 
 ## `inputs.messages`
@@ -1814,6 +1979,11 @@ Walk through each section. For every entry:
 - **`snapshotDeleted`**
   - EN: Snapshot '{name}' deleted.
   - ZH: 快照 '{name}' 已删除。
+  - [ ] OK    Fix: 
+
+- **`snapshotEffectsSkipped`**
+  - EN: Snapshot '{name}': {n} effect entries skipped, no effect channel {ids}
+  - ZH: 快照“{name}”：跳过 {n} 个效果项，没有效果通道 {ids}
   - [ ] OK    Fix: 
 
 - **`snapshotEntriesSkipped`**
@@ -3242,6 +3412,13 @@ Walk through each section. For every entry:
 - **`setPos`**
   - EN: Set base position in meters (X, Y, Z)
   - ZH: 以米设置基础位置 (X、Y、Z)
+  - [ ] OK    Fix: 
+
+## `snapshotScope`
+
+- **`noEffectChannels`**
+  - EN: This session has no effect channels.
+  - ZH: 此会话没有效果通道。
   - [ ] OK    Fix: 
 
 ## `snapshotScope.midi`

@@ -6,7 +6,9 @@
 #include "../Parameters/WFSParameterDefaults.h"
 #include "../Sampler/SamplerData.h"
 #include "../Localization/LocalizationManager.h"
+#include "../Helpers/TypedValue.h"
 #include "../AppSettings.h"
+#include "../WFSLogger.h"
 #include "ColorScheme.h"
 #include "sliders/WfsStandardSlider.h"
 #include "sliders/WfsRangeSlider.h"
@@ -1414,10 +1416,24 @@ private:
 
     // ==================== LABEL EDITING ====================
 
+    void editorShown (juce::Label* label, juce::TextEditor&) override
+    {
+        labelTextBeforeEdit = label->getText();
+    }
+
     void labelTextChanged (juce::Label* label) override
     {
         if (isLoadingData) return;
-        float value = label->getText().retainCharacters ("-0123456789.").getFloatValue();
+
+        // Read as the label shows it (TypedValue); text with no number in it
+        // puts the label back
+        const auto typed = TypedValue::number (label->getText());
+        if (! typed.has_value())
+        {
+            label->setText (labelTextBeforeEdit, juce::dontSendNotification);
+            return;
+        }
+        float value = *typed;
 
         auto handleCurveLabel = [&] (juce::Label& lbl, WfsBidirectionalSlider& slider,
                                       const juce::Identifier& curveId)
@@ -1634,9 +1650,22 @@ private:
 
                 AppSettings::setLastFolder ("lastSampleFolder", result.getParentDirectory());
 
+                // Its result was ignored: a read-only folder or a full disk
+                // exported nothing and said nothing.
                 auto xml = samplerTree.createXml();
-                if (xml != nullptr)
-                    xml->writeTo (result);
+                if (xml == nullptr || ! xml->writeTo (result))
+                {
+                    WFSLogger::getInstance().logWarning ("Sampler config export to "
+                                                         + result.getFullPathName() + " failed");
+                    juce::AlertWindow::showAsync (juce::MessageBoxOptions()
+                                                      .withIconType (juce::MessageBoxIconType::WarningIcon)
+                                                      .withTitle (LOC ("sampler.exportTitle"))
+                                                      .withMessage (LOC ("sampler.exportFailed")
+                                                                        .replace ("{path}", result.getFullPathName()))
+                                                      .withButton (LOC ("common.ok"))
+                                                      .withAssociatedComponent (this),
+                                                  nullptr);
+                }
             });
     }
 
@@ -1760,6 +1789,7 @@ private:
     WfsParameters& parameters;
     int currentChannel = -1;
     bool isLoadingData = false;
+    juce::String labelTextBeforeEdit;      // what a value label showed when its editor opened
 
     // ValueTree reference
     juce::ValueTree samplerTree;

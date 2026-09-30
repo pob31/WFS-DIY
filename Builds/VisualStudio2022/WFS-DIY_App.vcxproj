@@ -70,7 +70,7 @@
       <Optimization>Disabled</Optimization>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <AdditionalIncludeDirectories>..\..\JuceLibraryCode;..\..\ThirdParty\JUCE\modules;..\..\ThirdParty;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\headtracker\host\libheadtracker\include;..\..\ThirdParty\headtracker\firmware\common\protocol;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;..\..\ThirdParty\libmysofa\src\hrtf;..\..\ThirdParty\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;DEBUG;_DEBUG;JUCE_PROJUCER_VERSION=0x90002;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_osc=1;JUCE_MODULE_AVAILABLE_juce_simpleweb=1;JUCE_MODULE_AVAILABLE_roli_blocks_basics=1;JUCE_WEBVIEW_INTEROP_LIBRARY_VERSION=&quot;1.0.0&quot;;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;JUCE_ASIO=1;JUCE_ALSA=1;JUCE_JACK=0;JUCE_USE_ANDROID_OBOE=0;JUCE_PLUGINHOST_LV2=0;JUCE_PLUGINHOST_ARA=0;JUCE_STRICT_REFCOUNTEDPOINTER=1;JUCE_STANDALONE_APPLICATION=1;SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1;WFS_GPU_PLUGINS=1;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=1.0.0beta51;JUCE_APP_VERSION_HEX=0x10000;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;DEBUG;_DEBUG;JUCE_PROJUCER_VERSION=0x90002;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_osc=1;JUCE_MODULE_AVAILABLE_juce_simpleweb=1;JUCE_MODULE_AVAILABLE_roli_blocks_basics=1;JUCE_WEBVIEW_INTEROP_LIBRARY_VERSION=&quot;1.0.0&quot;;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;JUCE_ASIO=1;JUCE_ALSA=1;JUCE_JACK=0;JUCE_USE_ANDROID_OBOE=0;JUCE_PLUGINHOST_LV2=0;JUCE_PLUGINHOST_ARA=0;JUCE_STRICT_REFCOUNTEDPOINTER=1;JUCE_STANDALONE_APPLICATION=1;SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1;WFS_GPU_PLUGINS=1;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=1.0.0beta52;JUCE_APP_VERSION_HEX=0x10000;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -85,7 +85,7 @@
     </ClCompile>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\JuceLibraryCode;..\..\ThirdParty\JUCE\modules;..\..\ThirdParty;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\headtracker\host\libheadtracker\include;..\..\ThirdParty\headtracker\firmware\common\protocol;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;..\..\ThirdParty\libmysofa\src\hrtf;..\..\ThirdParty\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;DEBUG;_DEBUG;JUCE_PROJUCER_VERSION=0x90002;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_osc=1;JUCE_MODULE_AVAILABLE_juce_simpleweb=1;JUCE_MODULE_AVAILABLE_roli_blocks_basics=1;JUCE_WEBVIEW_INTEROP_LIBRARY_VERSION=\&quot;1.0.0\&quot;;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;JUCE_ASIO=1;JUCE_ALSA=1;JUCE_JACK=0;JUCE_USE_ANDROID_OBOE=0;JUCE_PLUGINHOST_LV2=0;JUCE_PLUGINHOST_ARA=0;JUCE_STRICT_REFCOUNTEDPOINTER=1;JUCE_STANDALONE_APPLICATION=1;SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1;WFS_GPU_PLUGINS=1;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=1.0.0beta51;JUCE_APP_VERSION_HEX=0x10000;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;DEBUG;_DEBUG;JUCE_PROJUCER_VERSION=0x90002;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_osc=1;JUCE_MODULE_AVAILABLE_juce_simpleweb=1;JUCE_MODULE_AVAILABLE_roli_blocks_basics=1;JUCE_WEBVIEW_INTEROP_LIBRARY_VERSION=\&quot;1.0.0\&quot;;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;JUCE_ASIO=1;JUCE_ALSA=1;JUCE_JACK=0;JUCE_USE_ANDROID_OBOE=0;JUCE_PLUGINHOST_LV2=0;JUCE_PLUGINHOST_ARA=0;JUCE_STRICT_REFCOUNTEDPOINTER=1;JUCE_STANDALONE_APPLICATION=1;SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1;WFS_GPU_PLUGINS=1;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=1.0.0beta52;JUCE_APP_VERSION_HEX=0x10000;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
     <Link>
       <OutputFile>$(OutDir)\WFS-DIY.exe</OutputFile>
@@ -127,7 +127,7 @@
       <Optimization>Full</Optimization>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <AdditionalIncludeDirectories>..\..\JuceLibraryCode;..\..\ThirdParty\JUCE\modules;..\..\ThirdParty;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\headtracker\host\libheadtracker\include;..\..\ThirdParty\headtracker\firmware\common\protocol;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;..\..\ThirdParty\libmysofa\src\hrtf;..\..\ThirdParty\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;NDEBUG;JUCE_PROJUCER_VERSION=0x90002;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_osc=1;JUCE_MODULE_AVAILABLE_juce_simpleweb=1;JUCE_MODULE_AVAILABLE_roli_blocks_basics=1;JUCE_WEBVIEW_INTEROP_LIBRARY_VERSION=&quot;1.0.0&quot;;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;JUCE_ASIO=1;JUCE_ALSA=1;JUCE_JACK=0;JUCE_USE_ANDROID_OBOE=0;JUCE_PLUGINHOST_LV2=0;JUCE_PLUGINHOST_ARA=0;JUCE_STRICT_REFCOUNTEDPOINTER=1;JUCE_STANDALONE_APPLICATION=1;SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1;WFS_GPU_PLUGINS=1;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=1.0.0beta51;JUCE_APP_VERSION_HEX=0x10000;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;NDEBUG;JUCE_PROJUCER_VERSION=0x90002;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_osc=1;JUCE_MODULE_AVAILABLE_juce_simpleweb=1;JUCE_MODULE_AVAILABLE_roli_blocks_basics=1;JUCE_WEBVIEW_INTEROP_LIBRARY_VERSION=&quot;1.0.0&quot;;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;JUCE_ASIO=1;JUCE_ALSA=1;JUCE_JACK=0;JUCE_USE_ANDROID_OBOE=0;JUCE_PLUGINHOST_LV2=0;JUCE_PLUGINHOST_ARA=0;JUCE_STRICT_REFCOUNTEDPOINTER=1;JUCE_STANDALONE_APPLICATION=1;SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1;WFS_GPU_PLUGINS=1;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=1.0.0beta52;JUCE_APP_VERSION_HEX=0x10000;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -142,7 +142,7 @@
     </ClCompile>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\JuceLibraryCode;..\..\ThirdParty\JUCE\modules;..\..\ThirdParty;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\headtracker\host\libheadtracker\include;..\..\ThirdParty\headtracker\firmware\common\protocol;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;..\..\ThirdParty\libmysofa\src\hrtf;..\..\ThirdParty\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;NDEBUG;JUCE_PROJUCER_VERSION=0x90002;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_osc=1;JUCE_MODULE_AVAILABLE_juce_simpleweb=1;JUCE_MODULE_AVAILABLE_roli_blocks_basics=1;JUCE_WEBVIEW_INTEROP_LIBRARY_VERSION=\&quot;1.0.0\&quot;;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;JUCE_ASIO=1;JUCE_ALSA=1;JUCE_JACK=0;JUCE_USE_ANDROID_OBOE=0;JUCE_PLUGINHOST_LV2=0;JUCE_PLUGINHOST_ARA=0;JUCE_STRICT_REFCOUNTEDPOINTER=1;JUCE_STANDALONE_APPLICATION=1;SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1;WFS_GPU_PLUGINS=1;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=1.0.0beta51;JUCE_APP_VERSION_HEX=0x10000;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;NDEBUG;JUCE_PROJUCER_VERSION=0x90002;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_osc=1;JUCE_MODULE_AVAILABLE_juce_simpleweb=1;JUCE_MODULE_AVAILABLE_roli_blocks_basics=1;JUCE_WEBVIEW_INTEROP_LIBRARY_VERSION=\&quot;1.0.0\&quot;;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;JUCE_ASIO=1;JUCE_ALSA=1;JUCE_JACK=0;JUCE_USE_ANDROID_OBOE=0;JUCE_PLUGINHOST_LV2=0;JUCE_PLUGINHOST_ARA=0;JUCE_STRICT_REFCOUNTEDPOINTER=1;JUCE_STANDALONE_APPLICATION=1;SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1;WFS_GPU_PLUGINS=1;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=1.0.0beta52;JUCE_APP_VERSION_HEX=0x10000;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
     <Link>
       <OutputFile>$(OutDir)\WFS-DIY.exe</OutputFile>
@@ -180,6 +180,8 @@
     <ClCompile Include="..\..\spatcore\control\state\XmlPersistence.cpp"/>
     <ClCompile Include="..\..\Source\Parameters\WFSValueTreeState.cpp"/>
     <ClCompile Include="..\..\Source\Parameters\WFSFileManager.cpp"/>
+    <ClCompile Include="..\..\Source\gui\effects\EffectsSendMatrixShim.cpp"/>
+    <ClCompile Include="..\..\spatcore\ui\sends\SendMatrixComponent.cpp"/>
     <ClCompile Include="..\..\Source\gui\NetworkLogWindow.cpp"/>
     <ClCompile Include="..\..\Source\gui\MCPUndoOverlay.cpp"/>
     <ClCompile Include="..\..\Source\gui\MCPHistoryWindow.cpp"/>
@@ -3454,6 +3456,8 @@
     <ClInclude Include="..\..\Source\Parameters\WFSValueTreeState.h"/>
     <ClInclude Include="..\..\Source\Parameters\WFSFileManager.h"/>
     <ClInclude Include="..\..\Source\Parameters\ParameterDirtyTracker.h"/>
+    <ClInclude Include="..\..\Source\Parameters\EffectParamEdit.h"/>
+    <ClInclude Include="..\..\Source\Parameters\EffectsSnapshotScope.h"/>
     <ClInclude Include="..\..\Source\gui\StatusBar.h"/>
     <ClInclude Include="..\..\Source\gui\UpdateBanner.h"/>
     <ClInclude Include="..\..\Source\gui\GettingStartedWizard.h"/>
@@ -3463,8 +3467,23 @@
     <ClInclude Include="..\..\Source\gui\ChannelIdentityGate.h"/>
     <ClInclude Include="..\..\Source\gui\OutputsTab.h"/>
     <ClInclude Include="..\..\Source\gui\InputsTab.h"/>
+    <ClInclude Include="..\..\Source\gui\snapshots\SnapshotSession.h"/>
+    <ClInclude Include="..\..\Source\gui\snapshots\SnapshotRow.h"/>
     <ClInclude Include="..\..\Source\gui\ClustersTab.h"/>
     <ClInclude Include="..\..\Source\gui\ReverbTab.h"/>
+    <ClInclude Include="..\..\Source\gui\TabIndex.h"/>
+    <ClInclude Include="..\..\Source\gui\TriangleIndicator.h"/>
+    <ClInclude Include="..\..\Source\gui\effects\EffectsTabContext.h"/>
+    <ClInclude Include="..\..\Source\gui\effects\EffectsTab.h"/>
+    <ClInclude Include="..\..\Source\gui\effects\EffectsChannelPanel.h"/>
+    <ClInclude Include="..\..\Source\gui\effects\EffectsMovementsPanel.h"/>
+    <ClInclude Include="..\..\Source\gui\effects\EffectsSendsPanel.h"/>
+    <ClInclude Include="..\..\Source\gui\effects\EffectsChainPanel.h"/>
+    <ClInclude Include="..\..\Source\gui\effects\EffectsSettingsPanel.h"/>
+    <ClInclude Include="..\..\Source\gui\effects\EffectsModulePanel.h"/>
+    <ClInclude Include="..\..\Source\gui\effects\EffectsModuleDescriptors.h"/>
+    <ClInclude Include="..\..\spatcore\ui\sends\SendMatrixConfig.h"/>
+    <ClInclude Include="..\..\spatcore\ui\sends\SendMatrixComponent.h"/>
     <ClInclude Include="..\..\Source\gui\MapTab.h"/>
     <ClInclude Include="..\..\Source\gui\MapTabWindow.h"/>
     <ClInclude Include="..\..\Source\gui\MapTabPlaceholder.h"/>
@@ -3551,6 +3570,7 @@
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\SystemConfigTabPages.h"/>
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\MapTabPages.h"/>
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\ReverbTabPages.h"/>
+    <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\EffectsTabPages.h"/>
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\ClustersTabPages.h"/>
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\PatchWindowPages.h"/>
     <ClInclude Include="..\..\spatcore\controllers\lightpad\LightpadTypes.h"/>
@@ -3580,6 +3600,7 @@
     <ClInclude Include="..\..\spatcore\wfs\RenderSourceMap.h"/>
     <ClInclude Include="..\..\spatcore\dsp\StereoDecomposer.h"/>
     <ClInclude Include="..\..\Source\DSP\StereoChannelManager.h"/>
+    <ClInclude Include="..\..\Source\DSP\EffectsHost.h"/>
     <ClInclude Include="..\..\spatcore\wfs\OutputBufferAlgorithm.h"/>
     <ClInclude Include="..\..\spatcore\gpu\GpuAsyncPipeline.h"/>
     <ClInclude Include="..\..\spatcore\gpu\GpuBackendInterface.h"/>

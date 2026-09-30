@@ -16,6 +16,7 @@
 #include "../../../Parameters/WFSParameterIDs.h"
 #include "../../../Parameters/WFSParameterDefaults.h"
 #include "../../../Localization/LocalizationManager.h"
+#include "../../../gui/TabIndex.h"
 
 namespace OutputsTabPages
 {
@@ -256,13 +257,13 @@ inline StreamDeckPage createOutputParametersPage (WFSValueTreeState& state,
     page.activeSectionIndex = 0;
 
     // Button 2 (top row): navigate to Output EQ subtab
-    page.topRowNavigateToTab[2] = 2;       // same main tab (Outputs)
+    page.topRowNavigateToTab[2] = TabIndex::Outputs;   // same main tab
     page.topRowNavigateToSubTab[2] = 1;    // subtab 1 = EQ
     page.topRowOverrideLabel[2] = LOC ("outputs.tabs.eq");
     page.topRowOverrideColour[2] = juce::Colour (0xFFD4A843);  // gold
 
     // Button 3 (top row): navigate to Map tab
-    page.topRowNavigateToTab[3] = 6;
+    page.topRowNavigateToTab[3] = TabIndex::Map;
     page.topRowOverrideLabel[3] = LOC ("tabs.map");
     page.topRowOverrideColour[3] = juce::Colour (0xFF7B68EE);  // medium slate blue
 
@@ -566,7 +567,7 @@ inline StreamDeckPage createOutputEQPage (WFSValueTreeState& state,
 //==============================================================================
 
 /** Main tab index for Outputs (0-based position in the tab bar). */
-static constexpr int OUTPUTS_MAIN_TAB_INDEX = 2;
+static constexpr int OUTPUTS_MAIN_TAB_INDEX = TabIndex::Outputs;
 
 /** Create a Stream Deck page for the given Outputs subtab.
     @param subTabIndex   Subtab index (0 = Parameters, 1 = EQ)

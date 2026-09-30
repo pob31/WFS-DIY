@@ -10,6 +10,10 @@ Zero diff proves load -> in-memory state -> save is lossless for the whole
 session surface. The committed fixture IS the golden; there is no --update
 here (regenerate the fixture with the bootstrap procedure instead).
 
+Before closing, a second save runs with a file where the backups folder
+should be: it must fail, name the file and the folder, and leave every
+section file as it was (audit S2).
+
 Usage:
   python session_roundtrip.py [--exe path\\to\\WFS-DIY.exe] [--keep-temp]
 
@@ -25,6 +29,101 @@ import sys
 from pathlib import Path
 
 import common
+
+
+def check_save_refused_without_backup(app: common.App,
+                                      project: Path) -> list[str]:
+    """A save backs each file up before replacing it, and must stop when the
+    backup cannot be made (audit S2): the pre-fix build ignored the failure
+    and saved over every file anyway. A file named `backups` takes the
+    folder's place; each section file gets a marker line that a save would
+    wipe. Everything is put back before returning, so the round-trip diff
+    after close is unaffected. Returns the failures."""
+    failures: list[str] = []
+    backups = project / "backups"
+    parked = project / "backups.parked"
+    originals = {name: (project / name).read_bytes()
+                 for name in common.SECTION_FILES}
+    marker = b"<!-- roundtrip: a save must not replace this file -->\r\n"
+    backups.rename(parked)
+    try:
+        backups.write_text("a file where the backups folder should be")
+        for name, data in originals.items():
+            (project / name).write_bytes(data + marker)
+
+        _, final = app.tool_confirmed("session_save", {})
+        result = common.envelope_result(final)
+        text = " ".join(c.get("text", "") for c in result.get("content", []))
+        if not result.get("isError"):
+            failures.append(f"a save with no backup folder reported success: {text[:200]}")
+        elif "system.xml" not in text or "backups" not in text:
+            # The app language may not be English: match the names only.
+            failures.append(f"the refusal does not name the file and folder: {text[:200]}")
+        for name, data in originals.items():
+            if (project / name).read_bytes() != data + marker:
+                failures.append(f"{name} was saved over although its backup failed")
+    finally:
+        if backups.is_file():
+            backups.unlink()
+        parked.rename(backups)
+        for name, data in originals.items():
+            (project / name).write_bytes(data)
+    if not failures:
+        print("[roundtrip] PASS a save whose backups fail leaves every file as it was")
+    return failures
+
+
+def check_one_backup_failing_saves_nothing(app: common.App,
+                                           project: Path) -> list[str]:
+    """Re-audit 2026-09-29, R3. A complete save used to skip a section whose
+    backup failed and still write the other five, leaving files of two
+    generations on disk. inputs.xml, third in the save order, is held open
+    with no sharing, so its backup cannot be read while the system and
+    network backups before it succeed. The save must fail, leave every
+    section file as it was, and leave no backup of this attempt behind.
+    Windows only (the lock is a Win32 share mode)."""
+    if os.name != "nt":
+        return []
+
+    import ctypes
+    import ctypes.wintypes
+
+    failures: list[str] = []
+    backups = project / "backups"
+    originals = {name: (project / name).read_bytes() for name in common.SECTION_FILES}
+    marker = b"<!-- roundtrip: a save must not replace this file -->\r\n"
+    for name, data in originals.items():
+        (project / name).write_bytes(data + marker)
+    before = {p.name for p in backups.rglob("*") if p.is_file()} if backups.is_dir() else set()
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.CreateFileW.restype = ctypes.wintypes.HANDLE
+    GENERIC_READ, OPEN_EXISTING = 0x80000000, 3
+    handle = kernel32.CreateFileW(str(project / "inputs.xml"), GENERIC_READ, 0, None,
+                                  OPEN_EXISTING, 0, None)
+    if handle in (None, ctypes.wintypes.HANDLE(-1).value):
+        return [f"could not lock inputs.xml (error {ctypes.get_last_error()})"]
+    try:
+        _, final = app.tool_confirmed("session_save", {})
+        result = common.envelope_result(final)
+        if not result.get("isError"):
+            failures.append("a save whose inputs.xml backup failed reported success (re-audit R3)")
+    finally:
+        kernel32.CloseHandle(handle)
+
+    for name, data in originals.items():
+        if (project / name).read_bytes() != data + marker:
+            failures.append(f"{name} was written although the inputs.xml backup failed: "
+                            "the save left two generations on disk (re-audit R3)")
+    after = {p.name for p in backups.rglob("*") if p.is_file()} if backups.is_dir() else set()
+    if after - before:
+        failures.append(f"the refused save left backups behind: {sorted(after - before)} "
+                        "(they would misalign Reload Complete Backup) (re-audit R3)")
+    for name, data in originals.items():
+        (project / name).write_bytes(data)
+    if not failures:
+        print("[roundtrip] PASS a save whose inputs.xml backup fails writes nothing and keeps no backup")
+    return failures
 
 
 def main() -> int:
@@ -65,12 +164,17 @@ def main() -> int:
             print(f"[roundtrip] session_save failed: {payload}",
                   file=sys.stderr)
             return common.EXIT_MISMATCH
+
+        backup_failures = check_save_refused_without_backup(app, project)
+        backup_failures += check_one_backup_failing_saves_nothing(app, project)
     finally:
         graceful = app.close()
     if not graceful:
         print("[roundtrip] WARNING: close was not graceful", file=sys.stderr)
 
-    failures = 0
+    failures = len(backup_failures)
+    for f in backup_failures:
+        print(f"[roundtrip] FAIL {f}", file=sys.stderr)
     for name in common.SECTION_FILES:
         fixture_text = common.normalize_xml_text(
             (common.FIXTURE_DIR / name).read_text(encoding="utf-8"))

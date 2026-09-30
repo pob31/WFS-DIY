@@ -144,6 +144,11 @@ namespace wfs::plugin
 
     MasterProcessor::~MasterProcessor()
     {
+        // See ~TrackProcessor: without a releaseResources call (LV2) the bridge
+        // kept this Master registered, Tracks kept calling it, and no new
+        // Master could register until the host restarted.
+        MasterProcessor::releaseResources();
+
         disconnectFromApp();
         // Belt and braces: disconnectFromApp already stops it, but the worker
         // holds a reference to *this and must be joined before any member dies.

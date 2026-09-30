@@ -76,6 +76,27 @@ struct EQDisplayConfig : spatcore::ui::EQDisplayConfig
         return config;
     }
 
+    /** The effects chain's two EQ instances: the OUTPUT EQ's shape numbering
+        (Band Pass at 4) over the effectEQ* identifiers, slope drawn from its
+        own parameter as the audio path uses it. */
+    static EQDisplayConfig forEffectEQ()
+    {
+        EQDisplayConfig config;
+        config.shapeId = WFSParameterIDs::effectEQshape;
+        config.frequencyId = WFSParameterIDs::effectEQfreq;
+        config.gainId = WFSParameterIDs::effectEQgain;
+        config.qId = WFSParameterIDs::effectEQq;
+        config.qMin = WFSParameterDefaults::effectEQqMin;
+        config.qMax = WFSParameterDefaults::effectEQqMax;
+        config.slopeId = WFSParameterIDs::effectEQslope;
+        config.slopeMin = WFSParameterDefaults::effectEQslopeMin;
+        config.slopeMax = WFSParameterDefaults::effectEQslopeMax;
+        config.hasBandPass = true;
+        config.paletteProvider = [] { return makePalette(); };
+        config.disabledTextProvider = [] { return getDisabledText(); };
+        return config;
+    }
+
     static EQDisplayConfig forReverbPreEQ()
     {
         EQDisplayConfig config;

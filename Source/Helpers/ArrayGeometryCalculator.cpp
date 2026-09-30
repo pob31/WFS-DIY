@@ -9,11 +9,11 @@ namespace ArrayGeometry
 
 float normalizeAngle(float degrees)
 {
-    while (degrees > 180.0f)
-        degrees -= 360.0f;
-    while (degrees < -180.0f)
-        degrees += 360.0f;
-    return degrees;
+    // Exact at any size; a subtract-360 loop never ends above about 8.6e9
+    // (see WFSCoordinates::normalizeAngle).
+    if (! std::isfinite (degrees))
+        return 0.0f;
+    return std::remainder (degrees, 360.0f);
 }
 
 float calculateOrientationToward(float speakerX, float speakerY,

@@ -25,118 +25,23 @@
 #include "../AppSettings.h"
 #include "GainReductionMeter.h"
 #include "RefreshableComboBox.h"
-#include "SnapshotScopeWindow.h"
+#include "snapshots/SnapshotRow.h"
 #include "DuplicateNameWarning.h"
 #include "HelpCardSVG.h"
 #include "buttons/LongPressButton.h"
 #include "buttons/WrappingTextButton.h"
 #include "buttons/PadlockTextButton.h"
 #include "../Localization/LocalizationManager.h"
+#include "../Helpers/TypedValue.h"
 #include "ColumnFocusTraverser.h"
 #include "SamplerSubTab.h"
+#include "InputEffectSendsSubTab.h"
 #include "HelpCard.h"
+#include "TriangleIndicator.h"
 #include "InlineWarning.h"
 #include "ChannelIdentityGate.h"
 
-//==============================================================================
-// Custom Transport Button - Play (right-pointing triangle)
-class PlayButton : public juce::Button
-{
-public:
-    PlayButton() : juce::Button("Play") {}
-
-    void paintButton(juce::Graphics& g, bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override
-    {
-        auto bounds = getLocalBounds().toFloat().reduced(2.0f);
-
-        // Background - use theme colors
-        if (shouldDrawButtonAsDown)
-            g.setColour(ColorScheme::get().buttonPressed);
-        else if (shouldDrawButtonAsHighlighted)
-            g.setColour(ColorScheme::get().buttonHover);
-        else
-            g.setColour(ColorScheme::get().buttonNormal);
-
-        g.fillRoundedRectangle(bounds, 4.0f);
-        g.setColour(ColorScheme::get().buttonBorder);
-        g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
-
-        // Draw play triangle
-        auto iconBounds = bounds.reduced(10.0f);
-        juce::Path triangle;
-        triangle.addTriangle(
-            iconBounds.getX(), iconBounds.getY(),
-            iconBounds.getX(), iconBounds.getBottom(),
-            iconBounds.getRight(), iconBounds.getCentreY());
-
-        g.setColour(ColorScheme::get().textPrimary);
-        g.fillPath(triangle);
-    }
-};
-
-//==============================================================================
-// Custom Transport Button - Stop (square)
-class StopButton : public juce::Button
-{
-public:
-    StopButton() : juce::Button("Stop") {}
-
-    void paintButton(juce::Graphics& g, bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override
-    {
-        auto bounds = getLocalBounds().toFloat().reduced(2.0f);
-
-        // Background - use theme colors
-        if (shouldDrawButtonAsDown)
-            g.setColour(ColorScheme::get().buttonPressed);
-        else if (shouldDrawButtonAsHighlighted)
-            g.setColour(ColorScheme::get().buttonHover);
-        else
-            g.setColour(ColorScheme::get().buttonNormal);
-
-        g.fillRoundedRectangle(bounds, 4.0f);
-        g.setColour(ColorScheme::get().buttonBorder);
-        g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
-
-        // Draw stop square
-        auto iconBounds = bounds.reduced(10.0f);
-        g.setColour(ColorScheme::get().textPrimary);
-        g.fillRect(iconBounds);
-    }
-};
-
-//==============================================================================
-// Custom Transport Button - Pause (two vertical bars)
-class PauseButton : public juce::Button
-{
-public:
-    PauseButton() : juce::Button("Pause") {}
-
-    void paintButton(juce::Graphics& g, bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override
-    {
-        auto bounds = getLocalBounds().toFloat().reduced(2.0f);
-
-        // Background - use theme colors, toggle state affects color
-        if (shouldDrawButtonAsDown || getToggleState())
-            g.setColour(ColorScheme::get().buttonPressed);
-        else if (shouldDrawButtonAsHighlighted)
-            g.setColour(ColorScheme::get().buttonHover);
-        else
-            g.setColour(ColorScheme::get().buttonNormal);
-
-        g.fillRoundedRectangle(bounds, 4.0f);
-        g.setColour(ColorScheme::get().buttonBorder);
-        g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
-
-        // Draw pause bars (two vertical rectangles)
-        auto iconBounds = bounds.reduced(10.0f);
-        float barWidth = iconBounds.getWidth() * 0.3f;
-        float gap = iconBounds.getWidth() * 0.4f;
-
-        g.setColour(ColorScheme::get().textPrimary);
-        g.fillRect(iconBounds.getX(), iconBounds.getY(), barWidth, iconBounds.getHeight());
-        g.fillRect(iconBounds.getX() + barWidth + gap, iconBounds.getY(), barWidth, iconBounds.getHeight());
-    }
-};
+#include "buttons/TransportButtons.h"
 
 /**
  * Inputs Tab Component
@@ -144,7 +49,9 @@ public:
  *
  * Structure:
  * - Header: Channel selector + Name editor (always visible)
- * - Sub-tabs: Input Properties, Position, Sound, Live Source, Effects (more to be added)
+ * - Sub-tabs: Input Parameters, Live Source & Hackoustics, Movements, Gradient Maps,
+ *   Visualisation, Sampler (when active) and Effect Sends (while the session
+ *   has effect channels; always last)
  * - Footer: Store/Reload buttons (always visible)
  */
 /** Logical identity of an Inputs sub-tab.
@@ -165,7 +72,8 @@ enum class InputSubTab : int
     Movements            = 2,
     GradientMaps         = 3,
     Visualisation        = 4,
-    Sampler              = 5
+    Sampler              = 5,
+    EffectSends          = 6    // only while effect channels exist; always the last tab (the Sampler tab, when shown, shifts it)
 };
 
 class InputsTab : public juce::Component,
@@ -178,14 +86,17 @@ class InputsTab : public juce::Component,
                   public HelpCardProvider
 {
 public:
-    InputsTab(WfsParameters& params)
+    InputsTab(WfsParameters& params, SnapshotSession& snapshots)
         : parameters(params),
           inputsTree(params.getInputTree()),
           configTree(params.getConfigTree()),
           ioTree(params.getConfigTree().getChildWithName(WFSParameterIDs::IO)),
           binauralTree(params.getValueTreeState().getBinauralState()),
           outputsTree(params.getOutputTree()),
-          samplerSubTab(params)
+          effectsTree(params.getEffectTree()),
+          samplerSubTab(params),
+          effectSendsSubTab(params),
+          snapshotRow(snapshots, WFSFileManager::SnapshotFamily::Inputs)
     {
         // Enable keyboard focus so we can receive focus back after text editing
         setWantsKeyboardFocus(true);
@@ -202,6 +113,11 @@ public:
         // warnings react live when speaker capabilities change on the Outputs tab.
         if (outputsTree.isValid())
             outputsTree.addListener(this);
+        // The effects tree: the Effect Sends sub-tab exists only while the
+        // session has effect channels, so a channel added or removed there
+        // re-evaluates the sub-tab set.
+        if (effectsTree.isValid())
+            effectsTree.addListener(this);
         ColorScheme::Manager::getInstance().addListener(this);
 
         // Announce cluster-wide edits (Shift / Ctrl+Shift on any input control)
@@ -329,6 +245,9 @@ public:
         // Sampler subtab (hidden until activated)
         addChildComponent(samplerSubTab);
 
+        // Effect Sends subtab (always present, always last)
+        addChildComponent(effectSendsSubTab);
+
         // Level Meter button
         addAndMakeVisible(levelMeterButton);
         levelMeterButton.setButtonText(LOC("systemConfig.buttons.levelMeter"));
@@ -370,6 +289,8 @@ public:
         appendSubTab(InputSubTab::Movements,             "inputs.tabs.movements");
         appendSubTab(InputSubTab::GradientMaps,          "inputs.tabs.gradientMaps");
         appendSubTab(InputSubTab::Visualisation,         "inputs.tabs.visualisation");
+        if (params.getNumEffectChannels() > 0)
+            appendSubTab(InputSubTab::EffectSends,       "inputs.tabs.effectSends");
         subTabBar.setMinimumTabScaleFactor(1.0);  // Prevent tab shrinking - maintain full text width
         subTabBar.setCurrentTabIndex(0);
         subTabBar.addChangeListener(static_cast<juce::ChangeListener*>(this));
@@ -461,45 +382,10 @@ public:
         exportButton.setBaseColour(juce::Colour(0xFF8C3333));  // Reddish
         exportButton.onLongPress = [this]() { exportInputConfiguration(); };
 
-        // Snapshot management
-        addAndMakeVisible(storeSnapshotButton);
-        storeSnapshotButton.setButtonText(LOC("inputs.buttons.storeSnapshot"));
-        storeSnapshotButton.setBaseColour(juce::Colour(0xFF996633));  // Yellow-orange
-        storeSnapshotButton.onLongPress = [this]() { storeNewSnapshot(); };
-
-        addAndMakeVisible(snapshotSelector);
-        snapshotSelector.addItem(LOC("inputs.snapshots.selectSnapshot"), 1);
-        snapshotSelector.onChange = [this]() { updateSnapshotButtonStates(); };
-        snapshotSelector.onPopupAboutToShow = [this]() { refreshSnapshotList(); };
-
-        addAndMakeVisible(reloadSnapshotButton);
-        reloadSnapshotButton.setButtonText(LOC("inputs.buttons.reloadSnapshot"));
-        reloadSnapshotButton.setBaseColour(juce::Colour(0xFF669933));  // Yellow-green
-        reloadSnapshotButton.onLongPress = [this]() { reloadSnapshot(); };
-        reloadSnapshotButton.setEnabled(false);
-
-        addAndMakeVisible(reloadWithoutScopeButton);
-        reloadWithoutScopeButton.setButtonText(LOC("inputs.buttons.reloadWithoutScope"));
-        reloadWithoutScopeButton.setBaseColour(juce::Colour(0xFF669933));  // Yellow-green
-        reloadWithoutScopeButton.onLongPress = [this]() { reloadSnapshotWithoutScope(); };
-        reloadWithoutScopeButton.setEnabled(false);
-
-        addAndMakeVisible(updateSnapshotButton);
-        updateSnapshotButton.setButtonText(LOC("inputs.buttons.updateSnapshot"));
-        updateSnapshotButton.setBaseColour(juce::Colour(0xFF996633));  // Yellow-orange
-        updateSnapshotButton.onLongPress = [this]() { updateSnapshot(); };
-        updateSnapshotButton.setEnabled(false);
-
-        addAndMakeVisible(editScopeButton);
-        editScopeButton.setButtonText(LOC("inputs.buttons.editScope"));
-        editScopeButton.setBaseColour(juce::Colour(0xFF33668C));  // Light blue
-        editScopeButton.onLongPress = [this]() { editSnapshotScope(); };
-
-        addAndMakeVisible(deleteSnapshotButton);
-        deleteSnapshotButton.setButtonText(LOC("inputs.buttons.deleteSnapshot"));
-        deleteSnapshotButton.setBaseColour(juce::Colour(0xFF661A33));  // Burgundy
-        deleteSnapshotButton.onLongPress = [this]() { deleteSnapshot(); };
-        deleteSnapshotButton.setEnabled(false);
+        // The snapshot row: the SnapshotSession's, shared with the Effects tab
+        // (one snapshot file carries both families). Its model, its actions and
+        // the Scope window live in the session; this tab only lays it out.
+        addAndMakeVisible(snapshotRow);
 
         // Initialise tab navigation circuits (one loop per section)
         inputCircuits = {
@@ -562,6 +448,8 @@ public:
             ioTree.removeListener(this);
         if (outputsTree.isValid())
             outputsTree.removeListener(this);
+        if (effectsTree.isValid())
+            effectsTree.removeListener(this);
         if (binauralTree.isValid())
             binauralTree.removeListener(this);
     }
@@ -610,6 +498,7 @@ public:
 
     /** Public access to sampler subtab for MainComponent callback wiring */
     SamplerSubTab& getSamplerSubTab() { return samplerSubTab; }
+    InputEffectSendsSubTab& getEffectSendsSubTab() { return effectSendsSubTab; }
 
     /** Update LST gain reduction meters (called from MainComponent timer).
         Values are linear multipliers (1.0 = no reduction, 0.0 = full mute). */
@@ -646,6 +535,18 @@ public:
                 outputsTree.addListener(this);
         }
 
+        // And the effects tree (gates the Effect Sends sub-tab)
+        auto newEffectsTree = parameters.getEffectTree();
+        if (newEffectsTree != effectsTree)
+        {
+            if (effectsTree.isValid())
+                effectsTree.removeListener(this);
+            effectsTree = newEffectsTree;
+            if (effectsTree.isValid())
+                effectsTree.addListener(this);
+        }
+        updateSubTabSet();
+
         // Update channel selector tiles (live numbers; snaps the selection to
         // the nearest live number if the current one was deleted)
         int numInputs = parameters.getNumInputChannels();
@@ -655,29 +556,11 @@ public:
             currentChannel = channelSelector.getSelectedChannel();
         }
 
-        // Restore persisted QLab toggle states
-        {
-            auto config = parameters.getValueTreeState().getConfigState();
-            auto showSection = config.getChildWithName (WFSParameterIDs::Show);
-            if (showSection.isValid())
-            {
-                writeToQLabEnabled = static_cast<bool> (showSection.getProperty (WFSParameterIDs::writeToQLab, false));
-                writeSnapshotLoadCueEnabled = static_cast<bool> (showSection.getProperty (WFSParameterIDs::writeSnapshotLoadCue, false));
-            }
-        }
-
-        refreshSnapshotList();
-        updateSnapshotButtonStates();
-
         loadChannelParameters(currentChannel);
     }
 
     /** Callback when input config is reloaded - for triggering DSP recalculation */
     std::function<void()> onConfigReloaded;
-
-    /** Recall a snapshot through MainComponent's single recall seam, shared with
-        the OSC address /wfs/input/snapshot/load and the MIDI note trigger. */
-    std::function<void(const juce::String& snapshotName)> onSnapshotRecallRequested;
 
     /** Fired after this tab changed the channel list STRUCTURALLY (a relabel or
         rearrangement done from an identity dialog). Wired by MainComponent to
@@ -703,54 +586,11 @@ public:
         coalesces one from the tree listener) or is rebuilt on open (the selector tiles). */
     std::function<void()> onInputColourChanged;
 
-    /** Fired after any snapshot is created, updated, deleted, or has its scope
-        rewritten -- the MIDI binding index rebuilds from this. */
-    std::function<void()> onSnapshotsChanged;
-
-    /** Drop the cached snapshot scopes: they describe the previous project's
-        files. Called when the project folder changes. */
-    void forgetSnapshotScopes() { snapshotScopes.clear(); }
-
-    /** Mirror an externally-triggered recall in the dropdown, so the operator
-        can see which cue is live. Returns true when that cancelled a snapshot
-        button being held: Reload, Update and Delete act on the dropdown's
-        snapshot when released, so a cue landing mid-press would have turned
-        the operator's Delete of one snapshot into a Delete of the cue's. */
-    bool selectSnapshotInSelector (const juce::String& snapshotName)
-    {
-        const auto previous = snapshotSelector.getSelectedId() > 1 ? snapshotSelector.getText()
-                                                                   : juce::String();
-        bool cancelled = false;
-
-        if (previous != snapshotName)
-            for (auto* b : { &reloadSnapshotButton, &reloadWithoutScopeButton,
-                             &updateSnapshotButton, &deleteSnapshotButton })
-                cancelled = b->cancelPress() || cancelled;
-
-        refreshSnapshotList();
-        snapshotSelector.setText (snapshotName, juce::dontSendNotification);
-        updateSnapshotButtonStates();
-        return cancelled;
-    }
-
     /** Callback when Level Meter window is requested */
     std::function<void()> onLevelMeterWindowRequested;
 
-    /** Callback when QLab export is requested after snapshot store/update */
-    std::function<void(const juce::String& snapshotName,
-                       const WFSFileManager::ExtendedSnapshotScope& scope)> onQLabExportRequested;
-
-    /** Query whether a QLab target is configured */
-    std::function<bool()> isQLabAvailable;
-
-    /** Callback to create a QLab cue that loads this snapshot via OSC */
-    std::function<void(const juce::String& snapshotName)> onQLabSnapshotLoadCueRequested;
-
     /** Refresh UI from ValueTree after external state change (e.g., OSC snapshot load) */
     void refreshFromState() { loadChannelParameters (currentChannel); }
-
-    /** Refresh the snapshot dropdown list (e.g., after OSC snapshot store) */
-    void refreshSnapshotSelector() { refreshSnapshotList(); updateSnapshotButtonStates(); }
 
     /** Select a specific channel (1-based). Triggers onChannelSelected callback.
      *  Uses programmatic selection to prevent keyboard Enter from triggering overlay.
@@ -778,6 +618,16 @@ public:
         positionJoystick.setThumbPosition (x, y);
         positionZSlider.setThumbDeflection (z);
     }
+
+    /** The self-test checks that a drag of either opens an undo step. */
+    WfsJoystickComponent& getPositionJoystickForTest() { return positionJoystick; }
+
+    /** The self-test types into these (TypedValue: a duration, the signed
+        latency field, a word that must change nothing). */
+    juce::Label& getOtomoDurationLabelForTest() { return otomoDurationValueLabel; }
+    juce::Label& getDelayLatencyLabelForTest()  { return delayLatencyValueLabel; }
+    juce::Label& getAttenuationLabelForTest()   { return attenuationValueLabel; }
+    WfsAutoCenterSlider& getPositionZSliderForTest() { return positionZSlider; }
 
     /** Cycle to next/previous channel. delta=1 for next, delta=-1 for previous. Wraps around.
         Walks the LIVE-number list (numbers may have gaps). */
@@ -875,24 +725,9 @@ public:
         auto footerArea = bounds.removeFromBottom(footerHeight).reduced(padding, padding);
         const int buttonRowHeight = scaled(30);  // Same as Output tab buttons
 
-        // First row - Snapshot buttons (on top) - 7 buttons + selector (1.5x width) = 8.5 units
-        auto footerRow1 = footerArea.removeFromTop(buttonRowHeight);
-        const int snapButtonWidth = (footerRow1.getWidth() - spacing * 7) / 8;  // 7 buttons + 1.5x selector ≈ 8 units
-        const int selectorWidth = snapButtonWidth * 3 / 2;  // 1.5x width for selector
-
-        storeSnapshotButton.setBounds(footerRow1.removeFromLeft(snapButtonWidth));
-        footerRow1.removeFromLeft(spacing);
-        snapshotSelector.setBounds(footerRow1.removeFromLeft(selectorWidth));
-        footerRow1.removeFromLeft(spacing);
-        reloadSnapshotButton.setBounds(footerRow1.removeFromLeft(snapButtonWidth));
-        footerRow1.removeFromLeft(spacing);
-        reloadWithoutScopeButton.setBounds(footerRow1.removeFromLeft(snapButtonWidth));
-        footerRow1.removeFromLeft(spacing);
-        updateSnapshotButton.setBounds(footerRow1.removeFromLeft(snapButtonWidth));
-        footerRow1.removeFromLeft(spacing);
-        editScopeButton.setBounds(footerRow1.removeFromLeft(snapButtonWidth));
-        footerRow1.removeFromLeft(spacing);
-        deleteSnapshotButton.setBounds(footerRow1);  // Take remaining width
+        // First row - the snapshot row (7 buttons + a 1.5x selector, laid out by the row)
+        snapshotRow.setSpacing(spacing);
+        snapshotRow.setBounds(footerArea.removeFromTop(buttonRowHeight));
 
         footerArea.removeFromTop(padding);  // Same spacing as padding for consistency
 
@@ -926,6 +761,8 @@ public:
         statusBar = bar;
         gradientMapEditor.setStatusBar (bar);
         samplerSubTab.setStatusBar (bar);
+        effectSendsSubTab.setStatusBar (bar);
+        snapshotRow.setStatusBar (bar);
         setupHelpText();
         setupOscMethods();
         setupMouseListeners();
@@ -949,9 +786,9 @@ public:
      * Configure the visualisation component with output and reverb counts.
      * Call this after system configuration is loaded.
      */
-    void configureVisualisation(int numOutputs, int numReverbs)
+    void configureVisualisation(int numOutputs, int numReverbs, int numEffects = 0)
     {
-        visualisationComponent.configure(numOutputs, numReverbs, &parameters);
+        visualisationComponent.configure(numOutputs, numReverbs, numEffects, &parameters);
         visualisationComponent.setSelectedInput(channelSlot());
     }
 
@@ -976,10 +813,13 @@ public:
      * @param reverbHfDb Input→Reverb HF attenuation (dB)
      */
     void updateVisualisation(const float* delaysMs, const float* levels, const float* hfDb,
-                             const float* reverbDelaysMs, const float* reverbLevels, const float* reverbHfDb)
+                             const float* reverbDelaysMs, const float* reverbLevels, const float* reverbHfDb,
+                             const float* effectDelaysMs = nullptr, const float* effectLevels = nullptr,
+                             const float* effectHfDb = nullptr)
     {
         visualisationComponent.updateValues(delaysMs, levels, hfDb,
-                                            reverbDelaysMs, reverbLevels, reverbHfDb);
+                                            reverbDelaysMs, reverbLevels, reverbHfDb,
+                                            effectDelaysMs, effectLevels, effectHfDb);
     }
 
     /**
@@ -1078,6 +918,7 @@ public:
             case InputSubTab::GradientMaps:          return { &gradientMapEditor.getHelpButton() };
             case InputSubTab::Visualisation:         return {};
             case InputSubTab::Sampler:               return { &samplerSubTab.getHelpButton() };
+            case InputSubTab::EffectSends:           return { &effectSendsSubTab.getHelpButton() };
         }
         return {};
     }
@@ -1633,6 +1474,11 @@ private:
         positionJoystick.setOuterColour(juce::Colour(0xFF3A3A3A));
         positionJoystick.setThumbColour(juce::Colour(0xFFFF9800));
         positionJoystick.setReportingIntervalHz(50.0);  // 50Hz = 20ms updates
+        // One undo step per drag, as a map drag is one (the joystick and the
+        // Z slider write the position at 50 Hz while they are held).
+        positionJoystick.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input Position");
+        };
         positionJoystick.setOnPositionChanged([this](float x, float y) {
             // Skip if joystick is centered - don't interfere with manual text editing
             if (x == 0.0f && y == 0.0f)
@@ -1779,6 +1625,9 @@ private:
         positionZSlider.setTrackColours(juce::Colour(0xFF3A3A3A), juce::Colour(0xFF4CAF50));
         positionZSlider.setThumbColour(juce::Colours::white);
         positionZSlider.setReportingIntervalHz(50.0);  // 50Hz = 20ms updates (same as joystick)
+        positionZSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input Position");
+        };
         positionZSlider.onPositionPolled = [this](float v) {
             // Skip if slider is centered - don't interfere with manual text editing
             if (v == 0.0f)
@@ -3526,6 +3375,7 @@ private:
         setMutesVisible(false);
         setGradientMapsVisible(false);
         samplerSubTab.setVisible(false);
+        effectSendsSubTab.setVisible(false);
         inputBasicHelpButton.setVisible(false); inputBasicHelpCard.hide();
         inputAdvancedHelpButton.setVisible(false); inputAdvancedHelpCard.hide();
         inputLevelHelpButton.setVisible(false); inputLevelHelpCard.hide();
@@ -3580,6 +3430,12 @@ private:
             // Sampler
             samplerSubTab.setVisible(true);
             samplerSubTab.setBounds(subTabContentArea);
+        }
+        else if (tabId == InputSubTab::EffectSends)
+        {
+            // Effect Sends: this input's send into every effect
+            effectSendsSubTab.setVisible(true);
+            effectSendsSubTab.setBounds(subTabContentArea);
         }
 
         // Single authority for the feature-warning visibility: gated on the active
@@ -6221,6 +6077,7 @@ private:
         updateStereoControls();
         updateSubTabSet();
         samplerSubTab.setCurrentChannel(channelSlot());
+        effectSendsSubTab.setCurrentChannel(currentChannel);   // keyed by permanent number
         updateFeatureWarnings();  // refresh for the newly selected input (toggle states + off-floor)
     }
 
@@ -6370,6 +6227,17 @@ private:
 
     void editorShown (juce::Label* label, juce::TextEditor& editor) override
     {
+        labelTextBeforeEdit = label->getText();
+
+        // The label names the sign with a word ("Latency" / "Delay"); the
+        // field opens on the signed number instead, negative for a latency,
+        // so editing it cannot flip one into the other
+        if (label == &delayLatencyValueLabel)
+        {
+            editor.setText (juce::String (static_cast<float> (parameters.getInputParam (channelSlot(), "inputDelayLatency")), 1), false);
+            editor.selectAll();
+        }
+
         for (auto& col : inputCircuits)
             if (std::find (col.begin(), col.end(), static_cast<juce::Component*>(label)) != col.end())
             {
@@ -6381,7 +6249,17 @@ private:
     void labelTextChanged(juce::Label* label) override
     {
         juce::String text = label->getText();
-        float value = text.retainCharacters("-0123456789.").getFloatValue();
+
+        // Read as the label shows it (TypedValue): "2m 30s" is 150 s, "1.2k"
+        // is 1200. Text with no number in it puts the label back.
+        const auto typed = label == &otomoDurationValueLabel ? TypedValue::duration (text)
+                                                             : TypedValue::number (text);
+        if (! typed.has_value())
+        {
+            label->setText (labelTextBeforeEdit, juce::dontSendNotification);
+            return;
+        }
+        float value = *typed;
 
         // Input Properties tab
         if (label == &attenuationValueLabel)
@@ -6955,450 +6833,6 @@ private:
         });
     }
 
-    void storeNewSnapshot()
-    {
-        auto& fileManager = parameters.getFileManager();
-        if (!fileManager.hasValidProjectFolder())
-        {
-            showStatusMessage(LOC("inputs.messages.selectFolderFirst"));
-            return;
-        }
-
-        auto defaultName = WFSFileManager::getDefaultSnapshotName();
-
-        auto* dialog = new juce::AlertWindow(
-            LOC("inputs.dialogs.storeSnapshotTitle"),
-            LOC("inputs.dialogs.storeSnapshotMessage"),
-            juce::MessageBoxIconType::NoIcon);
-
-        dialog->addTextEditor("name", defaultName, LOC("inputs.dialogs.snapshotNameLabel"));
-        dialog->addButton(LOC("common.ok"), 1, juce::KeyPress(juce::KeyPress::returnKey));
-        dialog->addButton(LOC("common.cancel"), 0, juce::KeyPress(juce::KeyPress::escapeKey));
-
-        // Warn (red field + message) if the name would overwrite an existing snapshot
-        auto warning = DuplicateNameWarning::attach(*dialog, "name",
-                           fileManager.getInputSnapshotNames(),
-                           LOC("inputs.dialogs.snapshotOverwriteWarning"));
-
-        dialog->enterModalState(true, juce::ModalCallbackFunction::create(
-            [this, dialog, warning](int result)
-            {
-                if (result == 1)
-                {
-                    auto name = dialog->getTextEditorContents("name");
-                    if (name.isNotEmpty())
-                    {
-                        // Use current scope if configured, otherwise create default
-                        WFSFileManager::ExtendedSnapshotScope scope;
-                        if (currentScopeInitialized)
-                        {
-                            scope = currentScope;
-                            // The grid is the reusable part of a scope; a MIDI
-                            // binding names ONE snapshot. Belt-and-braces —
-                            // editSnapshotScope already clears it on the way in.
-                            scope.clearMidiBinding();
-                        }
-                        else
-                        {
-                            scope.initializeDefaults(parameters.getNumInputChannels());
-                        }
-
-                        // Storing over an EXISTING name is a content replace, not
-                        // a re-bind: keep whatever note that snapshot already had,
-                        // otherwise "Store" silently disarms a live cue.
-                        // (The enclosing fileManager reference is not captured by
-                        // this lambda, so go through parameters.) The test asks the
-                        // filesystem, like the write does: on Windows and macOS
-                        // "scene 3" overwrites "Scene 3.xml", which a case-sensitive
-                        // name lookup missed, dropping the note.
-                        if (parameters.getFileManager().getInputSnapshotsFolder()
-                                .getChildFile (name + ".xml").existsAsFile())
-                        {
-                            auto existing = parameters.getFileManager().getExtendedSnapshotScope(name);
-                            scope.midiChannel = existing.midiChannel;
-                            scope.midiNote    = existing.midiNote;
-                        }
-
-                        snapshotScopes[name] = scope;
-
-                        if (writeToQLabEnabled)
-                        {
-                            // Save snapshot first — onQLabExportRequested reads XML from disk
-                            auto& fileManager = parameters.getFileManager();
-                            if (fileManager.saveInputSnapshotWithExtendedScope(name, scope))
-                            {
-                                refreshSnapshotList();
-                                snapshotSelector.setText(name, juce::dontSendNotification);
-                                updateSnapshotButtonStates();
-                                if (onSnapshotsChanged)
-                                    onSnapshotsChanged();
-                            }
-                            if (onQLabExportRequested)
-                                onQLabExportRequested(name, scope);
-                            parameters.getDirtyTracker().clearAll();
-                        }
-                        else
-                        {
-                            auto& fileManager = parameters.getFileManager();
-                            if (fileManager.saveInputSnapshotWithExtendedScope(name, scope))
-                            {
-                                parameters.getDirtyTracker().clearAll();
-                                refreshSnapshotList();
-                                snapshotSelector.setText(name, juce::dontSendNotification);
-                                updateSnapshotButtonStates();
-                                showStatusMessage(LOC("inputs.messages.snapshotStored").replace("{name}", name));
-
-                                if (onSnapshotsChanged)
-                                    onSnapshotsChanged();
-
-                                if (writeSnapshotLoadCueEnabled && onQLabSnapshotLoadCueRequested)
-                                    onQLabSnapshotLoadCueRequested (name);
-                            }
-                            else
-                            {
-                                showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
-                            }
-                        }
-                    }
-                }
-                delete dialog;
-            }
-        ), true);
-    }
-
-    void reloadSnapshot()
-    {
-        auto selectedSnapshot = snapshotSelector.getText();
-        if (snapshotSelector.getSelectedId() <= 1)
-        {
-            showStatusMessage(LOC("inputs.messages.noSnapshotSelected"));
-            return;
-        }
-
-        // One recall path for UI, OSC and MIDI. The seam re-reads the scope from
-        // disk instead of using the snapshotScopes cache -- the safer of the two,
-        // since the cache goes stale if the file is edited outside this tab, and
-        // one extra XML parse on an explicit long-press costs nothing.
-        //
-        // This is the MANUAL path, so it may ask: a snapshot whose hardware
-        // fingerprint disagrees with the live patch was stored under a
-        // different configuration (or the rig was re-cabled), and the operator
-        // gets to fix the numbers, proceed on purpose, or stop. Cue-driven
-        // recalls reach onSnapshotRecallRequested directly and never block.
-        ChannelIdentityGate::confirmThenRecall (makeChannelIdentityContext(), selectedSnapshot,
-            [safe = juce::Component::SafePointer<InputsTab> (this), selectedSnapshot]
-            {
-                if (safe != nullptr && safe->onSnapshotRecallRequested)
-                    safe->onSnapshotRecallRequested (selectedSnapshot);
-            });
-    }
-
-    void reloadSnapshotWithoutScope()
-    {
-        auto selectedSnapshot = snapshotSelector.getText();
-        if (selectedSnapshot.isEmpty() || snapshotSelector.getSelectedId() <= 1)
-        {
-            showStatusMessage(LOC("inputs.messages.noSnapshotSelected"));
-            return;
-        }
-
-        ChannelIdentityGate::confirmThenRecall (makeChannelIdentityContext(), selectedSnapshot,
-            [safe = juce::Component::SafePointer<InputsTab> (this), selectedSnapshot]
-            {
-                if (safe == nullptr) return;
-                auto& fm = safe->parameters.getFileManager();
-
-                // Use a default scope (all included) to bypass any scope filtering
-                WFSFileManager::ExtendedSnapshotScope noScope;
-
-                safe->parameters.getDirtyTracker().beginSuppression();
-
-                if (fm.loadInputSnapshotWithExtendedScope(selectedSnapshot, noScope))
-                {
-                    safe->loadChannelParameters(safe->currentChannel);
-                    safe->showStatusMessage(LOC("inputs.messages.snapshotLoadedWithoutScope").replace("{name}", selectedSnapshot));
-
-                    // Entries with no live channel used to vanish silently.
-                    const auto& skipped = fm.getLastRecallSkippedNumbers();
-                    if (! skipped.empty())
-                    {
-                        juce::StringArray nums;
-                        for (int n : skipped) nums.add ("#" + juce::String (n));
-                        safe->showStatusMessage(LOC("inputs.messages.snapshotEntriesSkipped")
-                                                    .replace("{name}", selectedSnapshot)
-                                                    .replace("{n}", juce::String((int) skipped.size()))
-                                                    .replace("{numbers}", nums.joinIntoString(", ")));
-                    }
-
-                    if (safe->onConfigReloaded)
-                        safe->onConfigReloaded();
-                }
-                else
-                    safe->showStatusMessage(LOC("inputs.messages.error").replace("{error}", fm.getLastError()));
-
-                safe->parameters.getDirtyTracker().endSuppressionAndClear();
-            });
-    }
-
-    void updateSnapshotButtonStates()
-    {
-        bool hasSelection = snapshotSelector.getSelectedId() > 1;
-
-        reloadSnapshotButton.setEnabled(hasSelection);
-        updateSnapshotButton.setEnabled(hasSelection);
-        deleteSnapshotButton.setEnabled(hasSelection);
-
-        // "Reload Without Scope" only makes sense for snapshots with read-time (OnRecall) scope,
-        // because write-time (OnSave) snapshots already have filtered data in the file
-        bool enableWithoutScope = false;
-        if (hasSelection)
-        {
-            auto selectedSnapshot = snapshotSelector.getText();
-            auto& fileManager = parameters.getFileManager();
-
-            if (snapshotScopes.find(selectedSnapshot) == snapshotScopes.end())
-                snapshotScopes[selectedSnapshot] = fileManager.getExtendedSnapshotScope(selectedSnapshot);
-
-            auto& scope = snapshotScopes[selectedSnapshot];
-            enableWithoutScope = (scope.applyMode == WFSFileManager::ExtendedSnapshotScope::ApplyMode::OnRecall);
-        }
-        reloadWithoutScopeButton.setEnabled(enableWithoutScope);
-    }
-
-    void updateSnapshot()
-    {
-        auto selectedSnapshot = snapshotSelector.getText();
-        if (snapshotSelector.getSelectedId() <= 1)
-        {
-            showStatusMessage(LOC("inputs.messages.noSnapshotSelected"));
-            return;
-        }
-
-        auto& fileManager = parameters.getFileManager();
-
-        // Always from disk: this writes the scope and the MIDI binding back
-        // into the file, and a cached copy goes stale -- after a project switch
-        // it is another project's same-named snapshot (its note included, past
-        // the Scope window's conflict check), and after a channel delete or
-        // reorder its slot-keyed grid lands on other channels.
-        snapshotScopes[selectedSnapshot] = fileManager.getExtendedSnapshotScope(selectedSnapshot);
-        auto& scope = snapshotScopes[selectedSnapshot];
-
-        if (writeToQLabEnabled)
-        {
-            // Save snapshot first — onQLabExportRequested reads XML from disk
-            auto file = fileManager.getInputSnapshotsFolder().getChildFile(selectedSnapshot + ".xml");
-            fileManager.createBackup(file);
-            fileManager.saveInputSnapshotWithExtendedScope(selectedSnapshot, scope);
-            if (onQLabExportRequested)
-                onQLabExportRequested(selectedSnapshot, scope);
-            parameters.getDirtyTracker().clearAll();
-        }
-        else
-        {
-            // Create backup then save
-            auto file = fileManager.getInputSnapshotsFolder().getChildFile(selectedSnapshot + ".xml");
-            fileManager.createBackup(file);
-
-            if (fileManager.saveInputSnapshotWithExtendedScope(selectedSnapshot, scope))
-            {
-                parameters.getDirtyTracker().clearAll();
-                showStatusMessage(LOC("inputs.messages.snapshotUpdated").replace("{name}", selectedSnapshot));
-
-                if (onSnapshotsChanged)
-                    onSnapshotsChanged();
-
-                if (writeSnapshotLoadCueEnabled && onQLabSnapshotLoadCueRequested)
-                    onQLabSnapshotLoadCueRequested (selectedSnapshot);
-            }
-            else
-                showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
-        }
-    }
-
-    void editSnapshotScope()
-    {
-        auto selectedSnapshot = snapshotSelector.getText();
-        bool hasSelectedSnapshot = snapshotSelector.getSelectedId() > 1;
-
-        auto& fileManager = parameters.getFileManager();
-
-        // Determine which scope to edit
-        WFSFileManager::ExtendedSnapshotScope* scopePtr = nullptr;
-        juce::String windowTitle;
-
-        if (hasSelectedSnapshot)
-        {
-            // Always from disk, for the reason given in updateSnapshot(): the
-            // window can write this scope and its MIDI binding back.
-            snapshotScopes[selectedSnapshot] = fileManager.getExtendedSnapshotScope(selectedSnapshot);
-            scopePtr = &snapshotScopes[selectedSnapshot];
-            windowTitle = selectedSnapshot;
-        }
-        else
-        {
-            // Use current scope (for new snapshots)
-            if (!currentScopeInitialized)
-            {
-                currentScope.initializeDefaults(parameters.getNumInputChannels());
-                currentScopeInitialized = true;
-            }
-            scopePtr = &currentScope;
-            windowTitle = "(New Snapshot)";
-        }
-
-        if (snapshotScopeWindow == nullptr || !snapshotScopeWindow->isVisible())
-        {
-            // The window edits a working copy; the close result decides its fate:
-            // OK keeps it for the session (new snapshots), the long-press "Update
-            // Snapshot Scope" button writes it into the selected snapshot's file,
-            // Cancel/X discards it.
-            // shared_ptr so the lambda remains copy-constructible for std::function.
-            auto working = std::make_shared<WFSFileManager::ExtendedSnapshotScope>(*scopePtr);
-
-            // The binding as the window opened, to tell whether OK is about to
-            // drop a note the operator just set.
-            const int openedMidiChannel = scopePtr->midiChannel;
-            const int openedMidiNote    = scopePtr->midiNote;
-
-            snapshotScopeWindow = std::make_unique<SnapshotScopeWindow>(parameters, windowTitle, *working, hasSelectedSnapshot, &parameters.getDirtyTracker());
-            snapshotScopeWindow->setQLabAvailable (isQLabAvailable ? isQLabAvailable() : false);
-            snapshotScopeWindow->onWindowClosed =
-                [this, selectedSnapshot, working, hasSelectedSnapshot, openedMidiChannel, openedMidiNote]
-                (SnapshotScopeWindow::CloseResult result, bool writeToQLab, bool writeLoadCue)
-            {
-                using CloseResult = SnapshotScopeWindow::CloseResult;
-
-                writeToQLabEnabled = writeToQLab;
-                writeSnapshotLoadCueEnabled = writeLoadCue;
-
-                // Persist toggle states to config
-                auto config = parameters.getValueTreeState().getConfigState();
-                auto showSection = config.getChildWithName (WFSParameterIDs::Show);
-                if (showSection.isValid())
-                {
-                    showSection.setProperty (WFSParameterIDs::writeToQLab, writeToQLab, nullptr);
-                    showSection.setProperty (WFSParameterIDs::writeSnapshotLoadCue, writeLoadCue, nullptr);
-                }
-
-                if (result == CloseResult::Saved)
-                {
-                    // OK is session-only: the edited scope becomes the default for the
-                    // next "Create Snapshot"; the selected snapshot's file and cached
-                    // scope stay untouched (the long-press button handles those).
-                    const bool droppedMidiEdit = hasSelectedSnapshot
-                        && (working->midiChannel != openedMidiChannel || working->midiNote != openedMidiNote);
-
-                    currentScope = *working;
-                    // The grid is the reusable part of a scope; a MIDI binding
-                    // names ONE snapshot. Carrying it into the session default
-                    // would hand the next created snapshot the same note.
-                    currentScope.clearMidiBinding();
-                    currentScopeInitialized = true;
-
-                    // A note set in the window and closed with OK was dropped in
-                    // silence: say so, and where it is saved instead.
-                    showStatusMessage(LOC(droppedMidiEdit ? "inputs.messages.midiBindingNotSaved"
-                                                          : "inputs.messages.scopeConfigured"));
-                }
-                else if (result == CloseResult::ScopeUpdated)
-                {
-                    // Long-press: write the scope into the snapshot file (with backup;
-                    // OnSave scopes also trim the stored values) and refresh the cache.
-                    auto& fileManager = parameters.getFileManager();
-                    if (fileManager.updateInputSnapshotScope(selectedSnapshot, *working))
-                    {
-                        snapshotScopes[selectedSnapshot] = *working;
-                        showStatusMessage(LOC("inputs.messages.snapshotScopeUpdated").replace("{name}", selectedSnapshot));
-                        updateSnapshotButtonStates();  // applyMode drives "Reload w/o Scope" enablement
-
-                        // The scope carries the MIDI binding, so this is the
-                        // normal way a note is armed or cleared.
-                        if (onSnapshotsChanged)
-                            onSnapshotsChanged();
-                    }
-                    else
-                    {
-                        showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
-                    }
-                }
-                // Cancel / X / any other close: do nothing — working copy is discarded
-                // together with this lambda when the window is destroyed.
-                //
-                // Defer the window destruction: onWindowClosed is called from deep inside
-                // the OK button's click handler stack. Destroying the window synchronously
-                // here tears down the button while its click handler is still executing,
-                // which corrupts subsequent scope-window sessions.
-                juce::MessageManager::callAsync ([this]()
-                {
-                    snapshotScopeWindow.reset();
-                });
-            };
-        }
-        else
-        {
-            snapshotScopeWindow->toFront(true);
-        }
-    }
-
-    void deleteSnapshot()
-    {
-        auto selectedSnapshot = snapshotSelector.getText();
-        if (snapshotSelector.getSelectedId() <= 1)
-        {
-            showStatusMessage(LOC("inputs.messages.noSnapshotSelected"));
-            return;
-        }
-
-        auto& fileManager = parameters.getFileManager();
-        if (fileManager.deleteInputSnapshot(selectedSnapshot))
-        {
-            snapshotScopes.erase(selectedSnapshot);
-            refreshSnapshotList();
-            updateSnapshotButtonStates();
-
-            if (onSnapshotsChanged)
-                onSnapshotsChanged();
-            showStatusMessage(LOC("inputs.messages.snapshotDeleted").replace("{name}", selectedSnapshot));
-        }
-        else
-        {
-            showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
-        }
-    }
-
-    void refreshSnapshotList()
-    {
-        // Remember the current selection so a rebuild does not silently clear it.
-        // Read it from the id, not the text: item 1 is the placeholder, and
-        // latching that as a name would make it look like a real snapshot.
-        auto previousSelection = snapshotSelector.getSelectedId() > 1
-                                   ? snapshotSelector.getText() : juce::String();
-
-        auto& fileManager = parameters.getFileManager();
-        auto names = fileManager.getInputSnapshotNames();
-
-        snapshotSelector.clear(juce::dontSendNotification);
-        snapshotSelector.addItem(LOC("inputs.snapshots.selectSnapshot"), 1);
-
-        int id = 2;
-        for (const auto& name : names)
-        {
-            snapshotSelector.addItem(name, id++);
-        }
-
-        // Keep the current selection if that snapshot still exists, otherwise
-        // fall back to the placeholder so the box is never blank. ComboBox::clear
-        // leaves the selection at -1, which is what used to blank the selector
-        // (and disable every snapshot button) after a recall or a config reload.
-        if (previousSelection.isNotEmpty() && names.contains(previousSelection))
-            snapshotSelector.setText(previousSelection, juce::dontSendNotification);
-        else
-            snapshotSelector.setSelectedId(1, juce::dontSendNotification);
-
-        updateSnapshotButtonStates();
-    }
-
     //==============================================================================
     // Stage bounds helper methods for constraint enforcement
 
@@ -7843,13 +7277,6 @@ private:
         helpTextMap[&reloadBackupButton] = LOC("inputs.help.reloadBackup");
         helpTextMap[&importButton] = LOC("inputs.help.importConfig");
         helpTextMap[&exportButton] = LOC("inputs.help.exportConfig");
-        helpTextMap[&storeSnapshotButton] = LOC("inputs.help.storeSnapshot");
-        helpTextMap[&snapshotSelector] = LOC("inputs.help.snapshotSelector");
-        helpTextMap[&reloadSnapshotButton] = LOC("inputs.help.reloadSnapshot");
-        helpTextMap[&reloadWithoutScopeButton] = LOC("inputs.help.reloadWithoutScope");
-        helpTextMap[&updateSnapshotButton] = LOC("inputs.help.updateSnapshot");
-        helpTextMap[&editScopeButton] = LOC("inputs.help.editScope");
-        helpTextMap[&deleteSnapshotButton] = LOC("inputs.help.deleteSnapshot");
     }
 
     void setupOscMethods()
@@ -8006,29 +7433,14 @@ private:
 
     void valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property) override
     {
-        // Update gradient map input marker when position changes
-        if ((property == WFSParameterIDs::inputPositionX || property == WFSParameterIDs::inputPositionY)
-            && currentChannel > 0 && gradientMapEditor.isVisible())
-        {
-            juce::MessageManager::callAsync ([this]()
-            {
-                float posX = static_cast<float> (parameters.getInputParam (channelSlot(), "inputPositionX"));
-                float posY = static_cast<float> (parameters.getInputParam (channelSlot(), "inputPositionY"));
-                gradientMapEditor.setInputPosition (posX, posY, channelSlot());
-            });
-        }
+        // The gradient map's input marker is not driven from here: MainComponent
+        // pushes the composite position to it at 50 Hz while it is showing.
 
-        // Check if project folder changed — refresh snapshot list
+        // A project-folder change is the snapshot row's business: the
+        // SnapshotSession forgets its scopes and re-reads the folder
+        // (MainComponent wires it to WFSFileManager::onProjectFolderChanged).
         if (property == juce::Identifier ("ProjectFolder"))
-        {
-            juce::MessageManager::callAsync([this]()
-            {
-                snapshotScopes.clear();   // they belong to the previous project's files
-                refreshSnapshotList();
-                updateSnapshotButtonStates();
-            });
             return;
-        }
 
         // A channel's mono/stereo type changed (per-channel property, set by
         // the structural ops from ANY source — UI, MCP, config load): the
@@ -8207,8 +7619,19 @@ private:
         }
     }
 
-    void valueTreeChildAdded(juce::ValueTree&, juce::ValueTree&) override {}
-    void valueTreeChildRemoved(juce::ValueTree&, juce::ValueTree&, int) override {}
+    void valueTreeChildAdded(juce::ValueTree& parent, juce::ValueTree&) override        { effectCountMayHaveChanged(parent); }
+    void valueTreeChildRemoved(juce::ValueTree& parent, juce::ValueTree&, int) override { effectCountMayHaveChanged(parent); }
+
+    /** An effect channel appeared or went: the Effect Sends sub-tab exists only
+        while the session has some. Synchronous, so a count set from anywhere
+        (System Config, OSC, MCP, a self-test) shows or hides the tab at once;
+        updateSubTabSet compares first, so the other channels of one resize
+        cost a vector compare each. */
+    void effectCountMayHaveChanged(const juce::ValueTree& parent)
+    {
+        if (parent.hasType(WFSParameterIDs::Effects))
+            updateSubTabSet();
+    }
     void valueTreeChildOrderChanged(juce::ValueTree&, int, int) override {}
     void valueTreeParentChanged(juce::ValueTree&) override {}
 
@@ -8384,9 +7807,10 @@ private:
             samplerToggleButton.setBaseColour(juce::Colour());  // Default
     }
 
-    /** The sub-tab set is a function of (channel type, sampler state):
-        stereo-pair channels drop Live Source & Hackoustics, Gradient Maps and
-        Sampler (handoff doc §5 rules those features out for stereo). The bar
+    /** The sub-tab set is a function of (channel type, sampler state, effect
+        count): stereo-pair channels drop Live Source & Hackoustics, Gradient
+        Maps and Sampler (handoff doc §5 rules those features out for stereo),
+        and Effect Sends exists only while the session has effect channels. The bar
         is rebuilt from scratch in canonical order only when the desired set
         actually differs, preserving the current selection when it survives
         (falling back to Params otherwise). */
@@ -8407,6 +7831,8 @@ private:
         desired.push_back({ InputSubTab::Visualisation, "inputs.tabs.visualisation" });
         if (samplerOn)
             desired.push_back({ InputSubTab::Sampler, "inputs.tabs.sampler" });
+        if (parameters.getNumEffectChannels() > 0)
+            desired.push_back({ InputSubTab::EffectSends, "inputs.tabs.effectSends" });
 
         bool same = desired.size() == subTabIds.size();
         for (size_t i = 0; same && i < desired.size(); ++i)
@@ -8715,6 +8141,7 @@ private:
     juce::ValueTree ioTree;
     juce::ValueTree binauralTree;
     juce::ValueTree outputsTree;  // speaker capabilities (drives per-input feature warnings)
+    juce::ValueTree effectsTree;  // gates the Effect Sends sub-tab (exists only with effect channels)
     bool isLoadingParameters = false;
     bool suppressParameterReload = false;  // Prevent feedback loop during joystick/Z slider continuous updates
     bool isSelfWriting = false;            // True while this tab writes the tree itself (controls already up to date, skip reload)
@@ -8746,6 +8173,7 @@ private:
     juce::TextButton mapVisibilityButton;
     LongPressButton samplerToggleButton { 800 };
     SamplerSubTab samplerSubTab;
+    InputEffectSendsSubTab effectSendsSubTab;
     bool samplerMasterEnabled = false;
     // Logical ids of the sub-tabs currently in the bar, in bar order. This is the
     // single source of truth for "which tab is at which position"; the bar itself
@@ -8757,14 +8185,6 @@ private:
     juce::TextButton soloModeButton;
     LongPressButton setAllInputsButton;
     std::unique_ptr<SetAllInputsWindow> setAllInputsWindow;
-
-    // Snapshot scope
-    std::unique_ptr<SnapshotScopeWindow> snapshotScopeWindow;
-    std::map<juce::String, WFSFileManager::ExtendedSnapshotScope> snapshotScopes;
-    WFSFileManager::ExtendedSnapshotScope currentScope;  // Used when no snapshot selected
-    bool currentScopeInitialized = false;
-    bool writeToQLabEnabled = false;  // Set by scope window's QLab radio
-    bool writeSnapshotLoadCueEnabled = false;  // Set by scope window's QLab load cue checkbox
 
     // Sub-tab bar
     juce::TabbedButtonBar subTabBar { juce::TabbedButtonBar::TabsAtTop };
@@ -9079,64 +8499,8 @@ private:
     //==========================================================================
     // Triangle level indicators for trigger threshold and reset level
     //==========================================================================
-    class TriangleIndicator : public juce::Component, private juce::Timer
-    {
-    public:
-        enum Direction { Up, Down };
-
-        TriangleIndicator (Direction dir, juce::Colour activeCol)
-            : direction (dir), activeColour (activeCol) {}
-
-        void setActive (bool shouldBeActive)
-        {
-            if (shouldBeActive)
-            {
-                active = true;
-                lastActiveTime = juce::Time::getMillisecondCounter();
-                if (! isTimerRunning()) startTimer (50);
-                repaint();
-            }
-        }
-
-        void paint (juce::Graphics& g) override
-        {
-            auto bounds = getLocalBounds().toFloat().reduced (1.0f);
-            juce::Path tri;
-            if (direction == Up)
-            {
-                tri.startNewSubPath (bounds.getCentreX(), bounds.getY());
-                tri.lineTo (bounds.getRight(), bounds.getBottom());
-                tri.lineTo (bounds.getX(), bounds.getBottom());
-            }
-            else
-            {
-                tri.startNewSubPath (bounds.getX(), bounds.getY());
-                tri.lineTo (bounds.getRight(), bounds.getY());
-                tri.lineTo (bounds.getCentreX(), bounds.getBottom());
-            }
-            tri.closeSubPath();
-            g.setColour (active ? activeColour : juce::Colour (0xFF1A1A1A));
-            g.fillPath (tri);
-        }
-
-    private:
-        void timerCallback() override
-        {
-            if (! active) { stopTimer(); return; }
-            auto now = juce::Time::getMillisecondCounter();
-            if (now - lastActiveTime >= 250)
-            {
-                active = false;
-                stopTimer();
-                repaint();
-            }
-        }
-
-        Direction direction;
-        juce::Colour activeColour;
-        bool active = false;
-        juce::uint32 lastActiveTime = 0;
-    };
+    // TriangleIndicator moved to Source/gui/TriangleIndicator.h so the
+    // effects AutomOtion block can show the same two indicators.
 
     TriangleIndicator otomoTriggerIndicator { TriangleIndicator::Up, juce::Colour (0xFF4CAF50) };
     TriangleIndicator otomoResetIndicator { TriangleIndicator::Down, juce::Colour (0xFF42A5F5) };
@@ -9183,17 +8547,12 @@ private:
     LongPressButton importButton;
     LongPressButton exportButton;
 
-    // Footer buttons - Snapshot
-    LongPressButton storeSnapshotButton;
-    RefreshableComboBox snapshotSelector;
-    LongPressButton reloadSnapshotButton;
-    LongPressButton reloadWithoutScopeButton;
-    LongPressButton updateSnapshotButton;
-    LongPressButton editScopeButton { 1 };
-    LongPressButton deleteSnapshotButton;
+    // Footer - the snapshot row (the SnapshotSession's; see snapshots/SnapshotRow.h)
+    SnapshotRow snapshotRow;
 
     // Tab navigation circuits (one loop per section, invisible labels auto-skipped)
     std::vector<std::vector<juce::Component*>> inputCircuits;
+    juce::String labelTextBeforeEdit;      // what a value label showed when its editor opened
 
     // KeyListener that intercepts Tab from Label TextEditors to navigate within
     // the correct circuit column. Labels override createKeyboardFocusTraverser()

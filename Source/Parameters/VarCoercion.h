@@ -1,6 +1,8 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <cmath>
+#include <optional>
 
 /**
     Coercing reads for values that came out of a ValueTree.
@@ -53,5 +55,52 @@ namespace WFSVar
         const juce::String s = v.toString().trim();
         return s.isNotEmpty() && s.containsOnly ("0123456789+-.eE")
                && s.containsAnyOf ("0123456789");
+    }
+
+    /** The number a string spells, when it spells a finite one: an optional
+        sign, digits with at most one point, and an optional exponent ("1.5",
+        "-3", ".5", "1.2e-16"). The exponent matters because a project load
+        hands every property back as text, and JUCE writes |x| >= 1e6 and
+        0 < |x| <= 1e-5 in scientific notation. "inf", "nan", "0x10", "12abc",
+        "e" and "" are not numbers here, although String::getDoubleValue reads
+        the first two as the IEEE values and the rest as 12 or 0.
+
+        Unlike the readers above this is a gate, not a coercion: it is for
+        text that must be a finite number before anything uses it (the
+        store's write rule, the MCP tools' number arguments). */
+    inline std::optional<double> parseFiniteNumber (const juce::String& text)
+    {
+        const juce::String trimmed = text.trim();
+        auto p = trimmed.getCharPointer();
+
+        if (*p == '+' || *p == '-')
+            ++p;
+
+        int mantissaDigits = 0;
+        while (juce::CharacterFunctions::isDigit (*p)) { ++p; ++mantissaDigits; }
+        if (*p == '.')
+        {
+            ++p;
+            while (juce::CharacterFunctions::isDigit (*p)) { ++p; ++mantissaDigits; }
+        }
+        if (mantissaDigits == 0)
+            return std::nullopt;
+
+        if (*p == 'e' || *p == 'E')
+        {
+            ++p;
+            if (*p == '+' || *p == '-')
+                ++p;
+            int exponentDigits = 0;
+            while (juce::CharacterFunctions::isDigit (*p)) { ++p; ++exponentDigits; }
+            if (exponentDigits == 0)
+                return std::nullopt;
+        }
+
+        if (! p.isEmpty())
+            return std::nullopt;
+
+        const double value = trimmed.getDoubleValue();   // "1e999" is infinite
+        return std::isfinite (value) ? std::optional<double> (value) : std::nullopt;
     }
 }

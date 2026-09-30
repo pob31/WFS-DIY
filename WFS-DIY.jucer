@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="k6c2zA" name="WFS-DIY" projectType="guiapp" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" version="1.0.0beta51"
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" version="1.0.0beta52"
               bundleIdentifier="com.wfsdiy.app" companyEmail="contact@pixetbel.org"
               companyName="Pix et Bel" companyWebsite="wfs-diy.net"
               microphonePermissionNeeded="1"
@@ -41,6 +41,10 @@
               file="Source/Parameters/WFSFileManager.cpp"/>
         <FILE id="paramDirtyTracker" name="ParameterDirtyTracker.h" compile="0"
               resource="0" file="Source/Parameters/ParameterDirtyTracker.h"/>
+        <FILE id="wfsFxEdit" name="EffectParamEdit.h" compile="0" resource="0"
+              file="Source/Parameters/EffectParamEdit.h"/>
+        <FILE id="wfsFxSnapScope" name="EffectsSnapshotScope.h" compile="0" resource="0"
+              file="Source/Parameters/EffectsSnapshotScope.h"/>
       </GROUP>
       <GROUP id="{GUIGROUP1}" name="gui">
         <FILE id="guiStatus" name="StatusBar.h" compile="0" resource="0" file="Source/gui/StatusBar.h"/>
@@ -56,9 +60,46 @@
               file="Source/gui/ChannelIdentityGate.h"/>
         <FILE id="guiOutTab" name="OutputsTab.h" compile="0" resource="0" file="Source/gui/OutputsTab.h"/>
         <FILE id="guiInpTab" name="InputsTab.h" compile="0" resource="0" file="Source/gui/InputsTab.h"/>
+        <GROUP id="{GUISNAPGROUP}" name="snapshots">
+          <FILE id="guiSnapSession" name="SnapshotSession.h" compile="0" resource="0"
+                file="Source/gui/snapshots/SnapshotSession.h"/>
+          <FILE id="guiSnapRow" name="SnapshotRow.h" compile="0" resource="0"
+                file="Source/gui/snapshots/SnapshotRow.h"/>
+        </GROUP>
         <FILE id="guiCluTab" name="ClustersTab.h" compile="0" resource="0"
               file="Source/gui/ClustersTab.h"/>
         <FILE id="guiRevTab" name="ReverbTab.h" compile="0" resource="0" file="Source/gui/ReverbTab.h"/>
+        <FILE id="guiTabIdx" name="TabIndex.h" compile="0" resource="0" file="Source/gui/TabIndex.h"/>
+        <FILE id="guiTriInd" name="TriangleIndicator.h" compile="0" resource="0"
+              file="Source/gui/TriangleIndicator.h"/>
+        <GROUP id="{GUIFXGROUP}" name="effects">
+          <FILE id="guiFxCtx" name="EffectsTabContext.h" compile="0" resource="0"
+                file="Source/gui/effects/EffectsTabContext.h"/>
+          <FILE id="guiFxTab" name="EffectsTab.h" compile="0" resource="0"
+                file="Source/gui/effects/EffectsTab.h"/>
+          <FILE id="guiFxChan" name="EffectsChannelPanel.h" compile="0" resource="0"
+                file="Source/gui/effects/EffectsChannelPanel.h"/>
+          <FILE id="guiFxMove" name="EffectsMovementsPanel.h" compile="0" resource="0"
+                file="Source/gui/effects/EffectsMovementsPanel.h"/>
+          <FILE id="guiFxSends" name="EffectsSendsPanel.h" compile="0" resource="0"
+                file="Source/gui/effects/EffectsSendsPanel.h"/>
+          <FILE id="guiFxChain" name="EffectsChainPanel.h" compile="0" resource="0"
+                file="Source/gui/effects/EffectsChainPanel.h"/>
+          <FILE id="guiFxSettings" name="EffectsSettingsPanel.h" compile="0" resource="0"
+                file="Source/gui/effects/EffectsSettingsPanel.h"/>
+          <FILE id="guiFxModPanel" name="EffectsModulePanel.h" compile="0" resource="0"
+                file="Source/gui/effects/EffectsModulePanel.h"/>
+          <FILE id="guiFxModDesc" name="EffectsModuleDescriptors.h" compile="0" resource="0"
+                file="Source/gui/effects/EffectsModuleDescriptors.h"/>
+          <FILE id="guiFxSendsShim" name="EffectsSendMatrixShim.cpp" compile="1" resource="0"
+                file="Source/gui/effects/EffectsSendMatrixShim.cpp"/>
+          <FILE id="coreSendCfgH" name="SendMatrixConfig.h" compile="0" resource="0"
+                file="spatcore/ui/sends/SendMatrixConfig.h"/>
+          <FILE id="coreSendMatH" name="SendMatrixComponent.h" compile="0" resource="0"
+                file="spatcore/ui/sends/SendMatrixComponent.h"/>
+          <FILE id="coreSendMatCpp" name="SendMatrixComponent.cpp" compile="1" resource="0"
+                file="spatcore/ui/sends/SendMatrixComponent.cpp"/>
+        </GROUP>
         <FILE id="guiMapTab" name="MapTab.h" compile="0" resource="0" file="Source/gui/MapTab.h"/>
         <FILE id="guiMapTabWin" name="MapTabWindow.h" compile="0" resource="0"
               file="Source/gui/MapTabWindow.h"/>
@@ -325,6 +366,8 @@
                   file="Source/Controllers/DialsAndButtons/pages/MapTabPages.h"/>
             <FILE id="sdRevPages" name="ReverbTabPages.h" compile="0" resource="0"
                   file="Source/Controllers/DialsAndButtons/pages/ReverbTabPages.h"/>
+            <FILE id="sdFxPages" name="EffectsTabPages.h" compile="0" resource="0"
+                  file="Source/Controllers/DialsAndButtons/pages/EffectsTabPages.h"/>
             <FILE id="sdCluPages" name="ClustersTabPages.h" compile="0" resource="0"
                   file="Source/Controllers/DialsAndButtons/pages/ClustersTabPages.h"/>
             <FILE id="sdPatchPages" name="PatchWindowPages.h" compile="0" resource="0"
@@ -446,6 +489,8 @@
               file="spatcore/dsp/StereoDecomposer.h"/>
         <FILE id="stChMgr" name="StereoChannelManager.h" compile="0" resource="0"
               file="Source/DSP/StereoChannelManager.h"/>
+        <FILE id="fxHost" name="EffectsHost.h" compile="0" resource="0"
+              file="Source/DSP/EffectsHost.h"/>
         <FILE id="outAlg" name="OutputBufferAlgorithm.h" compile="0" resource="0"
               file="spatcore/wfs/OutputBufferAlgorithm.h"/>
         <FILE id="ngpuPipe" name="GpuAsyncPipeline.h" compile="0" resource="0"

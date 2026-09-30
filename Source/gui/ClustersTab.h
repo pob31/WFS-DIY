@@ -16,6 +16,7 @@
 #include "dials/WfsLFOIndicators.h"
 #include "StatusBar.h"
 #include "../Localization/LocalizationManager.h"
+#include "../Helpers/TypedValue.h"
 #include "../DSP/ClusterLFOProcessor.h"
 #include "../AppSettings.h"
 #include "buttons/LongPressButton.h"
@@ -312,6 +313,9 @@ public:
         positionJoystick.setOuterColour(juce::Colour(0xFF3A3A3A));
         positionJoystick.setThumbColour(juce::Colour(0xFF4CAF50));
         positionJoystick.setReportingIntervalHz(50.0);
+        positionJoystick.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction("Cluster Param");
+        };
 
         // Z slider label
         addAndMakeVisible(zSliderLabel);
@@ -778,6 +782,9 @@ public:
         positionJoystick.setThumbPosition (x, y);
     }
 
+    /** The self-test checks that a drag opens an undo step. */
+    WfsJoystickComponent& getPositionJoystickForTest() { return positionJoystick; }
+
     std::function<void (int)> onClusterSelected;
     std::function<bool()> isQLabAvailable;
     std::function<void(int clusterId, int presetNumber, const juce::String& presetName)> onQLabPresetCueRequested;
@@ -848,6 +855,7 @@ private:
     float previousDialAngle = 0.0f;
     float layoutScale = 1.0f;
     bool isLoadingParameters = false;
+    juce::String labelTextBeforeEdit;      // what a value label showed when its editor opened
 
     /** Scale a reference pixel value by layoutScale with a 65% minimum floor */
     int scaled(int ref) const { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * layoutScale)); }
@@ -1834,6 +1842,8 @@ private:
 
     void editorShown (juce::Label* label, juce::TextEditor& editor) override
     {
+        labelTextBeforeEdit = label->getText();
+
         for (auto& col : lfoCircuits)
             if (std::find (col.begin(), col.end(), static_cast<juce::Component*>(label)) != col.end())
             {
@@ -1846,8 +1856,15 @@ private:
     {
         if (isLoadingParameters) return;
 
-        // Extract numeric value from text (strips units)
-        float val = label->getText().retainCharacters("0123456789.-").getFloatValue();
+        // Read as the label shows it (TypedValue); text with no number in it
+        // puts the label back
+        const auto typed = TypedValue::number (label->getText());
+        if (! typed.has_value())
+        {
+            label->setText (labelTextBeforeEdit, juce::dontSendNotification);
+            return;
+        }
+        float val = *typed;
 
         // Period value label
         if (label == &lfoPeriodValueLabel)

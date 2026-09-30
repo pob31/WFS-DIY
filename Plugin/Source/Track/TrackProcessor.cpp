@@ -137,6 +137,12 @@ namespace wfs::plugin
 
     TrackProcessor::~TrackProcessor()
     {
+        // releaseResources is where the bridge registration normally ends, but
+        // a host need not call it before deleting the plugin (JUCE's LV2
+        // wrapper never does), and the Master then kept calling a freed Track.
+        // First, so no dispatch is still inside this object when it goes.
+        TrackProcessor::releaseResources();
+
         state.removeParameterListener ("inputId", this);
 
         for (const auto& spec : getSharedTrackParams())

@@ -106,7 +106,10 @@ protected:
 private:
     void mouseDown(const juce::MouseEvent& e) override
     {
-        handlePointer(e.position);  // Same as base class mouseDown
+        // The base class's mouseDown, which this replaces: the gesture hook
+        // first - a drag of an auto-centering slider is one undo step too.
+        if (onGestureStart) onGestureStart();
+        handlePointer(e.position);
         // Start timer for continuous polling while dragging
         if (onPositionPolled != nullptr)
         {

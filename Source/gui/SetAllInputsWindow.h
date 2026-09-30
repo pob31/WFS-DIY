@@ -5,8 +5,10 @@
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
 #include "../Localization/LocalizationManager.h"
+#include "../Helpers/TypedValue.h"
 #include "ColorScheme.h"
 #include "WindowUtils.h"
+#include "ScreenShareRendering.h"
 #include "dials/WfsBasicDial.h"
 
 /**
@@ -233,6 +235,7 @@ private:
     juce::Label heightFactorLabel;
     WfsBasicDial heightFactorDial;
     juce::Label heightFactorValueLabel;
+    juce::String labelTextBeforeEdit;      // what a value label showed when its editor opened
     juce::Label heightFactorUnitLabel;
 
     // Distance attenuation section
@@ -634,10 +637,24 @@ private:
         applyTheme();
     }
 
+    void editorShown (juce::Label* label, juce::TextEditor&) override
+    {
+        labelTextBeforeEdit = label->getText();
+    }
+
     void labelTextChanged(juce::Label* label) override
     {
         juce::String text = label->getText();
-        float value = text.retainCharacters("-0123456789.").getFloatValue();
+
+        // Read as the label shows it (TypedValue); text with no number in it
+        // puts the label back
+        const auto typed = TypedValue::number (text);
+        if (! typed.has_value())
+        {
+            label->setText (labelTextBeforeEdit, juce::dontSendNotification);
+            return;
+        }
+        float value = *typed;
 
         if (label == &heightFactorValueLabel)
         {
@@ -899,6 +916,7 @@ public:
         float ds = (disp && !disp->userBounds.isEmpty()) ? disp->userBounds.getHeight() / 1080.0f : 1.0f;
         auto dsc = [ds](int ref) { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * ds)); };
         centreWithSize(dsc(370), dsc(880));
+        ScreenShareRendering::apply(*this);
         setVisible(true);
         WindowUtils::enableDarkTitleBar(this);
         WindowUtils::enableRawMultiTouch(this);

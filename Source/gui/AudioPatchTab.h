@@ -6,6 +6,7 @@
 #include "../WfsParameters.h"
 #include "../DSP/TestSignalGenerator.h"
 #include "../Localization/LocalizationManager.h"
+#include "../Helpers/TypedValue.h"
 #include "buttons/LongPressButton.h"
 
 /**
@@ -182,6 +183,7 @@ private:
     juce::TextButton holdButton;
     WfsStandardSlider levelSlider;
     juce::Label levelValueLabel;
+    juce::String labelTextBeforeEdit;      // what a value label showed when its editor opened
     WfsStandardSlider frequencySlider;  // For Tone mode (after level)
     juce::Label frequencyValueLabel;
 
@@ -196,6 +198,7 @@ private:
     void updateFrequencyVisibility();
     void updateFrequencySliderColor();
     void labelTextChanged(juce::Label* label) override;
+    void editorShown (juce::Label* label, juce::TextEditor&) override { labelTextBeforeEdit = label->getText(); }
     float sliderValueToDb(float sliderValue) const;
     float dbToSliderValue(float dB) const;
     float sliderValueToFrequency(float sliderValue) const;

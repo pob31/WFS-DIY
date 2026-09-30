@@ -8,6 +8,7 @@
 #include "Parameters/ParameterDirtyTracker.h"
 #include "Parameters/ClusterParamEdit.h"
 #include "Parameters/ArrayParamEdit.h"
+#include "Parameters/EffectParamEdit.h"
 
 /**
  * WFS Parameters - Backward Compatible Wrapper
@@ -149,6 +150,25 @@ public:
         valueTreeState.setReverbParameter (channelIndex, id, value);
     }
 
+    /** Get effects channel parameter. Resolves on the channel's non-instanced
+        children, so it answers nothing for FxEq1/2, FxDyn1/2, EQ bands and
+        delay taps - those have typed accessors on the state for the reason
+        getEffectParameter documents. */
+    juce::var getEffectParam (int channelIndex, const juce::String& paramName) const
+    {
+        auto id = mapParamNameToIdentifier (paramName);
+        return valueTreeState.getEffectParameter (channelIndex, id);
+    }
+
+    /** Set effects channel parameter WITHOUT link-group propagation. A GUI
+        edit should go through getEffectEdit() instead; this is for the
+        internal writes that must reach one channel only. */
+    void setEffectParam (int channelIndex, const juce::String& paramName, const juce::var& value)
+    {
+        auto id = mapParamNameToIdentifier (paramName);
+        valueTreeState.setEffectParameter (channelIndex, id, value);
+    }
+
     //==============================================================================
     // Channel Management (backward compatible API)
     //==============================================================================
@@ -168,9 +188,15 @@ public:
         valueTreeState.setNumReverbChannels (numChannels);
     }
 
+    void setNumEffectChannels (int numChannels)
+    {
+        valueTreeState.setNumEffectChannels (numChannels);
+    }
+
     int getNumInputChannels() const { return valueTreeState.getNumInputChannels(); }
     int getNumOutputChannels() const { return valueTreeState.getNumOutputChannels(); }
     int getNumReverbChannels() const { return valueTreeState.getNumReverbChannels(); }
+    int getNumEffectChannels() const { return valueTreeState.getNumEffectChannels(); }
 
     void updateHardwareChannelCount (int hwInputs, int hwOutputs)
     {
@@ -186,6 +212,7 @@ public:
     juce::ValueTree getInputTree() { return valueTreeState.getInputsState(); }
     juce::ValueTree getOutputTree() { return valueTreeState.getOutputsState(); }
     juce::ValueTree getReverbTree() { return valueTreeState.getReverbsState(); }
+    juce::ValueTree getEffectTree() { return valueTreeState.getEffectsState(); }
 
     //==============================================================================
     // Save (backward compatible API)
@@ -250,6 +277,11 @@ public:
         propagating to its array) */
     ArrayParamEdit& getArrayEdit() { return arrayEdit; }
 
+    /** Get the effects link-group editing funnel (Ctrl/Cmd during a user edit
+        limits the change to the edited effects channel instead of propagating
+        to the rest of its link group) */
+    EffectParamEdit& getEffectEdit() { return effectEdit; }
+
     /** Get undo manager for the active domain */
     juce::UndoManager* getUndoManager() { return valueTreeState.getUndoManager(); }
 
@@ -265,6 +297,7 @@ private:
     ParameterDirtyTracker dirtyTracker;
     ClusterParamEdit clusterEdit { valueTreeState };
     ArrayParamEdit arrayEdit { valueTreeState };
+    EffectParamEdit effectEdit { valueTreeState };
 
     //==============================================================================
     // Parameter Name Mapping

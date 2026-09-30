@@ -7,7 +7,13 @@ Segment A (WFS_MCP_AI_ENABLED=1):
   2. tools/list                 -> census: count >= 350 (hard assert),
                                    tier ordering contract (tier DESC,
                                    name ASC — hard assert), per-tier counts
-  3. tier-1 write + read-back   (input_position_set_x / wfs_get_parameter)
+  3. tier-1 write + read-back   (input_position_set_x / wfs_get_parameter),
+                                   then the same call as a web page would send
+                                   it (foreign Host, page Origin, text/plain
+                                   or form body): refused with 403/415, no
+                                   CORS header, input 1 unmoved; a loopback
+                                   origin gets its own origin back (hard
+                                   asserts, not in the golden)
   4. tier-2 confirm round-trip  (input_set_attenuation: awaiting_confirmation
                                    envelope with normalized token, then the
                                    confirmed execution)
@@ -28,8 +34,23 @@ Segment A (WFS_MCP_AI_ENABLED=1):
                                    value refused; describe lists all ten with
                                    their tool_args; undo reverts the batch,
                                    then the single write)
+ 11. effect sends              (input_set_effect_send_level, tier 2, and
+                                   input_set_effect_send_on, tier 1, address
+                                   ONE input x effect cell of the effect's
+                                   packed send rows, keyed by the input's
+                                   permanent number; input_get_effect_sends
+                                   reads an input's row; the switch keeps the
+                                   level; neighbours stay put; out-of-range
+                                   effect / level / missing switch / dead
+                                   input refused; undo puts the row back on
+                                   the EFFECT. The temp fixture is rewritten
+                                   to carry two effect channels for this, the
+                                   OSC driver's gate - see
+                                   common.set_fixture_effect_channels)
 
-Segment B (env var absent): one tier-1 call -> ai_disabled envelope.
+Segment B (env var absent): one tier-1 call -> ai_disabled envelope; then
+900 000 nested brackets as an MCP body (-32700) and as an OSCQuery WebSocket
+message, and the app must still answer both (hard asserts).
 
 The normalized transcript is compared against a committed golden
 (--update regenerates it). Hard asserts fail the run even in --update mode.
@@ -47,11 +68,16 @@ import json
 import os
 import shutil
 import sys
+import time
+import urllib.request
 from pathlib import Path
 
 import common
 
 GOLDEN = common.GOLDENS_DIR / "mcp_replay.json"
+
+# How many effect channels the temp fixture is rewritten to carry (segment A).
+EFFECT_CHANNELS = 2
 
 # 16 writes: X and Y for inputs 1..8, all binary-exact values.
 BATCH_WRITES = (
@@ -71,8 +97,19 @@ def read_positions(app: common.App):
     payload = common.tool_payload(app.tool("wfs_get_parameters",
                                            {"reads": READS}))
     assert isinstance(payload, dict), f"batch read failed: {payload}"
-    return [(r["variable"], r["channel_id"], round(float(r["value"]), 6))
+    return [(r["variable"], r["channel_id"], _position_value(r["value"]))
             for r in payload["results"]]
+
+
+def _position_value(value):
+    """A read-back position as a rounded float. A value stored as text reads
+    back as a string, as it always did; a NaN reads back as JSON null and is
+    kept as it is, so a comparison names it instead of the driver dying on
+    float(None)."""
+    try:
+        return round(float(value), 6)
+    except (TypeError, ValueError):
+        return value
 
 
 def main() -> int:
@@ -100,6 +137,7 @@ def main() -> int:
 
     # ---------------- Segment A: AI enabled --------------------------------
     project = common.copy_fixture_to_temp(work_root)
+    common.set_fixture_effect_channels(project, EFFECT_CHANNELS)
     common.kill_stale_instances()
     app = common.App(exe, common.fixture_wfs(project), ai_enabled=True)
     try:
@@ -219,6 +257,68 @@ def main() -> int:
         if not (isinstance(rb_payload, dict)
                 and float(rb_payload.get("value", 0)) == -5.0):
             hard_failures.append(f"tier-1 read-back wrong: {rb_payload}")
+
+        # ---- what only a web page sends (audit M2) ----
+        # A page open on the show machine could call every tool: a text/plain
+        # POST needs no preflight, `Access-Control-Allow-Origin: *` let it
+        # read the replies, and DNS rebinding reached the port under a
+        # foreign Host name. Each is refused before the dispatcher, so the
+        # call below never moves input 1 off the -5.0 just written.
+        page_call = json.dumps({
+            "jsonrpc": "2.0", "id": 9001, "method": "tools/call",
+            "params": {"name": "input_position_set_x",
+                       "arguments": {"input_id": 1, "value": 7.25}},
+        }).encode("utf-8")
+        loopback_host = ("Host", f"127.0.0.1:{common.MCP_PORT}")
+        json_type = ("Content-Type", "application/json")
+        page_requests = [
+            ("a rebinding host name",
+             [("Host", f"evil.example:{common.MCP_PORT}"), json_type], 403),
+            ("a page's origin",
+             [loopback_host, json_type, ("Origin", "http://evil.example")], 403),
+            ("a sandboxed page's origin",
+             [loopback_host, json_type, ("Origin", "null")], 403),
+            ("a text/plain body",
+             [loopback_host, ("Content-Type", "text/plain")], 415),
+            ("a form body",
+             [loopback_host,
+              ("Content-Type", "application/x-www-form-urlencoded")], 415),
+        ]
+        for what, headers, want in page_requests:
+            status, reply_headers, _ = app.mcp_raw(headers, page_call)
+            if status != want:
+                hard_failures.append(
+                    f"MCP answered {what} with HTTP {status}, want {want}")
+            if "access-control-allow-origin" in reply_headers:
+                hard_failures.append(f"MCP sent a CORS header to {what}")
+        x_after = common.tool_payload(
+            app.tool("wfs_get_parameter",
+                     {"variable": "inputPositionX", "channel_id": 1}))
+        if _position_value(x_after.get("value")) != -5.0:
+            hard_failures.append(
+                f"a refused page request moved input 1: {x_after}")
+
+        status, reply_headers, _ = app.mcp_raw(
+            [loopback_host, ("Origin", "http://evil.example"),
+             ("Access-Control-Request-Method", "POST"),
+             ("Access-Control-Request-Headers", "content-type")],
+            method="OPTIONS")
+        if status != 403 or "access-control-allow-origin" in reply_headers:
+            hard_failures.append(
+                f"a page's preflight got HTTP {status} "
+                f"{reply_headers.get('access-control-allow-origin')!r}")
+
+        # A page on a loopback origin (the MCP Inspector's) gets its own
+        # origin back, never `*`.
+        status, reply_headers, _ = app.mcp_raw(
+            [loopback_host, json_type, ("Origin", "http://localhost:6274")],
+            json.dumps({"jsonrpc": "2.0", "id": 9002,
+                        "method": "tools/list"}).encode("utf-8"))
+        if status != 200 or reply_headers.get(
+                "access-control-allow-origin") != "http://localhost:6274":
+            hard_failures.append(
+                f"a loopback origin got HTTP {status} "
+                f"{reply_headers.get('access-control-allow-origin')!r}")
 
         # ---- tier-2 confirm round-trip ----
         first, final = app.tool_confirmed("input_set_attenuation",
@@ -375,6 +475,91 @@ def main() -> int:
         if get_level(10, 3) != 0.0:
             hard_failures.append("undo did not revert the inputArrayAtten10 write")
 
+        # ---- effect sends: one cell of an effect's packed send rows --------
+        # No generated tool reaches effectSendLevels / effectSendOns (the
+        # codegen reads no effects CSV, and a row is a string the generic
+        # setter would take whole). The three hand-written tools address one
+        # input x effect cell through the typed accessors, as the Inputs tab's
+        # Effect Sends strips and /wfs/effect/sendLevel do. Placed before the
+        # generic nudge for the same reason the array attenuation is.
+        def get_sends(input_id: int):
+            payload = common.tool_payload(app.tool("input_get_effect_sends",
+                                                   {"input_id": input_id}))
+            if not isinstance(payload, dict):
+                return payload
+            return {f"fx{s['effect_id']}": [bool(s["on"]),
+                                             round(float(s["level_db"]), 6)]
+                    for s in payload.get("sends", [])}
+
+        silent = {"fx1": [False, 0.0], "fx2": [False, 0.0]}
+        record("effect_sends_initial",
+               app.tool("input_get_effect_sends", {"input_id": 3}))
+        if get_sends(3) != silent:
+            hard_failures.append(
+                f"input 3 did not start with two silent, off sends: {get_sends(3)}")
+
+        es_first, es_final = app.tool_confirmed(
+            "input_set_effect_send_level",
+            {"input_id": 3, "effect_id": 2, "level_db": -6.5})
+        record("effect_send_level_awaiting_confirmation", es_first)
+        record("effect_send_level_confirmed", es_final)
+        es_payload = common.tool_payload(es_final)
+        if not (isinstance(es_payload, dict)
+                and es_payload.get("effect_id") == 2
+                and float(es_payload.get("level_db", 0)) == -6.5
+                and es_payload.get("on") is False):
+            hard_failures.append(
+                f"input_set_effect_send_level did not write the cell: {es_payload}")
+
+        es_on = record("effect_send_on",
+                       app.tool("input_set_effect_send_on",
+                                {"input_id": 3, "effect_id": 2, "on": True}))
+        es_on_payload = common.tool_payload(es_on)
+        if not (isinstance(es_on_payload, dict)
+                and es_on_payload.get("on") is True
+                and float(es_on_payload.get("level_db", 0)) == -6.5):
+            hard_failures.append(
+                f"input_set_effect_send_on did not keep the level: {es_on_payload}")
+
+        routed = {"fx1": [False, 0.0], "fx2": [True, -6.5]}
+        sends = {"input3": get_sends(3), "input2": get_sends(2)}
+        transcript.append({"step": "effect_sends_readback", "values": sends})
+        if sends != {"input3": routed, "input2": silent}:
+            hard_failures.append(f"effect send landed on the wrong cell: {sends}")
+
+        for label, tool, call_args in (
+                ("effect_3", "input_set_effect_send_level",
+                 {"input_id": 3, "effect_id": 3, "level_db": -3.0}),
+                ("effect_0", "input_set_effect_send_on",
+                 {"input_id": 3, "effect_id": 0, "on": True}),
+                ("effect_1_5", "input_set_effect_send_on",
+                 {"input_id": 3, "effect_id": 1.5, "on": True}),
+                ("level_minus_100", "input_set_effect_send_level",
+                 {"input_id": 3, "effect_id": 1, "level_db": -100.0}),
+                ("level_plus_3", "input_set_effect_send_level",
+                 {"input_id": 3, "effect_id": 1, "level_db": 3.0}),
+                ("on_missing", "input_set_effect_send_on",
+                 {"input_id": 3, "effect_id": 1}),
+                ("input_99", "input_set_effect_send_on",
+                 {"input_id": 99, "effect_id": 1, "on": True})):
+            _, refused = app.tool_confirmed(tool, call_args)
+            record(f"effect_send_refused_{label}", refused)
+            if not common.envelope_result(refused).get("isError"):
+                hard_failures.append(f"{tool} accepted {call_args}")
+        if get_sends(3) != routed:
+            hard_failures.append("a refused effect-send write changed a cell")
+
+        # Undo resolves the EFFECT from the record's sub-write, not the
+        # input from its input_id: the row goes back where it was read.
+        record("effect_send_undo_on", app.tool("mcp_undo_last_ai_change", {}))
+        if get_sends(3) != {"fx1": [False, 0.0], "fx2": [False, -6.5]}:
+            hard_failures.append(
+                f"undo did not switch the send back off at its level: {get_sends(3)}")
+        record("effect_send_undo_level", app.tool("mcp_undo_last_ai_change", {}))
+        if get_sends(3) != silent:
+            hard_failures.append(
+                f"undo did not revert the send level: {get_sends(3)}")
+
         # ---- generic tools now carry the validation the named tools had ----
         # wfs_set_parameter used to range-check only against the permissive
         # OSCParameterBounds table; it now also honours the registry's
@@ -403,6 +588,41 @@ def main() -> int:
                                   "channel_id": 1}))
         if common.envelope_result(nudged).get("isError"):
             hard_failures.append("wfs_nudge_parameter failed on a tier-1 param")
+
+        # ---- AUDIT 2026-09-28, M4: a number that is not one -----------------
+        # The hand-written tools read their numbers with static_cast<float>,
+        # which reads the text "nan" as NaN, and clamped with jlimit, which
+        # passes NaN through; the nudge's amount did the same, and a missing
+        # coordinate read as 0. Each call must be refused and move nothing.
+        def get_value(variable: str, channel: int):
+            payload = common.tool_payload(app.tool(
+                "wfs_get_parameter", {"variable": variable, "channel_id": channel}))
+            return payload.get("value") if isinstance(payload, dict) else payload
+
+        watched = [("inputAttenuation", 1), ("outputPositionX", 1), ("reverbPositionY", 1)]
+        before = (read_positions(app), [get_value(v, c) for v, c in watched])
+        for label, tool, call_args in (
+                ("input_pos_nan", "input_position_set_cartesian",
+                 {"input_id": 1, "x": "nan", "y": 0.0, "z": 0.0}),
+                ("input_pos_missing_z", "input_position_set_cartesian",
+                 {"input_id": 1, "x": 1.0, "y": 0.0}),
+                ("input_atten_inf", "input_set_attenuation",
+                 {"input_id": 1, "db": "inf"}),
+                ("output_pos_inf", "output_position_set_cartesian",
+                 {"output_id": 1, "x": "inf", "y": 0.0, "z": 0.0}),
+                ("reverb_pos_nan", "reverb_position_set_cartesian",
+                 {"reverb_id": 1, "x": 0.0, "y": "nan", "z": 0.0}),
+                ("nudge_nan", "wfs_nudge_parameter",
+                 {"variable": "inputPositionY", "direction": "inc",
+                  "amount": "nan", "channel_id": 1})):
+            _, refused = app.tool_confirmed(tool, call_args)
+            record(f"not_a_number_refused_{label}", refused)
+            if not common.envelope_result(refused).get("isError"):
+                hard_failures.append(f"{tool} accepted {call_args} (audit M4)")
+        after = (read_positions(app), [get_value(v, c) for v, c in watched])
+        if after != before:
+            hard_failures.append(
+                f"a refused not-a-number call changed a value (audit M4): {before} -> {after}")
 
         # ---- describe_parameters: group overview + summary/full modes ------
         groups = record("describe_groups",
@@ -453,6 +673,51 @@ def main() -> int:
             hard_failures.append(
                 "undo after session_save changed nothing - it should have "
                 "skipped the non-undoable save record and reverted the nudge")
+
+        # ---- RE-AUDIT 2026-09-29, M3: channel structure is not undoable ----
+        # Undo replayed the count into the tree alone: no processing refusal,
+        # no topology callback, so the engine kept its old shape until the next
+        # snapshot recall stopped processing mid-show (R4), and an undone
+        # delete came back as a new default mono channel. The record stays in
+        # the history, flagged, and undo steps over it. Kept out of the
+        # transcript so the golden does not move.
+        def input_total():
+            payload = common.tool_payload(
+                app.tool("wfs_get_parameter", {"variable": "inputChannels"}))
+            try:
+                return int(float(payload.get("value")))
+            except (AttributeError, TypeError, ValueError):
+                return None
+
+        def newest_record():
+            payload = common.tool_payload(
+                app.tool("mcp_get_ai_change_history", {"limit": 1, "compact": False}))
+            return (payload.get("records") or [{}])[-1] \
+                if isinstance(payload, dict) else {}
+
+        total_before = input_total()
+        _, created = app.tool_confirmed("input_create", {})
+        if common.envelope_result(created).get("isError"):
+            hard_failures.append(f"input_create failed: {common.tool_payload(created)}")
+        newest = newest_record()
+        if newest.get("tool_name") != "input_create" or newest.get("undoable") is not False:
+            hard_failures.append(
+                f"input_create was not filed as a non-undoable record ({newest}) (re-audit M3)")
+        app.tool("mcp_undo_last_ai_change", {})
+        total_after = input_total()
+        if total_before is None or total_after != total_before + 1:
+            hard_failures.append(
+                f"after input_create and an undo the input count is {total_after} "
+                f"(was {total_before}): the undo took the channel out of the tree "
+                "alone (re-audit M3)")
+
+        _, deleted = app.tool_confirmed("output_delete", {})
+        if common.envelope_result(deleted).get("isError"):
+            hard_failures.append(f"output_delete failed: {common.tool_payload(deleted)}")
+        newest = newest_record()
+        if newest.get("tool_name") != "output_delete" or newest.get("undoable") is not False:
+            hard_failures.append(
+                f"output_delete was not filed as a non-undoable record ({newest}) (re-audit M3)")
     finally:
         app.close()
 
@@ -468,6 +733,45 @@ def main() -> int:
         if not dis_info.get("ai_disabled"):
             hard_failures.append(
                 f"run without WFS_MCP_AI_ENABLED was not refused: {dis_info}")
+
+        # ---- JSON nested past any limit (audit M1) ----
+        # juce::JSON recursed once per bracket, so a body of them overflowed
+        # the stack before any check ran, AI on or off. The MCP server now
+        # refuses it before parsing; the OSCQuery WebSocket, which any web
+        # page can open, parses through the same guard.
+        app_b.wait_for_oscquery()
+        brackets = 900_000   # under SimpleWeb's 1 MB request cap
+        try:
+            status, _, text = app_b.mcp_raw(
+                [("Host", f"127.0.0.1:{common.MCP_PORT}"),
+                 ("Content-Type", "application/json")], b"[" * brackets)
+            if status != 200 or "-32700" not in text:
+                hard_failures.append(
+                    f"a nested MCP body got HTTP {status}: {text[:120]}")
+        except OSError as exc:
+            hard_failures.append(f"a nested MCP body: {exc!r}")
+        time.sleep(0.5)
+        if not app_b.alive():
+            hard_failures.append("the app died on a nested MCP body")
+        else:
+            try:
+                common.websocket_send_text(common.OSCQUERY_HTTP_PORT,
+                                           "[" * brackets)
+            except OSError as exc:
+                hard_failures.append(f"OSCQuery WebSocket: {exc!r}")
+            time.sleep(1.5)
+            if not app_b.alive():
+                hard_failures.append(
+                    "the app died on a nested OSCQuery WebSocket message")
+            else:
+                try:
+                    app_b.mcp("tools/list")
+                    urllib.request.urlopen(
+                        f"http://127.0.0.1:{common.OSCQUERY_HTTP_PORT}/?VALUE",
+                        timeout=5.0).close()
+                except OSError as exc:
+                    hard_failures.append(
+                        f"the app stopped answering after nested JSON: {exc!r}")
     finally:
         app_b.close()
 

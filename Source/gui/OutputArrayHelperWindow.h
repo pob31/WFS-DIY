@@ -7,6 +7,7 @@
 #include "../Localization/LocalizationManager.h"
 #include "ColorScheme.h"
 #include "WindowUtils.h"
+#include "ScreenShareRendering.h"
 #include "ColumnFocusTraverser.h"
 
 //==============================================================================
@@ -318,6 +319,7 @@ public:
 
         setResizeLimits(dsc(700), dsc(500), userArea.getWidth(), userArea.getHeight());
         centreWithSize(windowWidth, windowHeight);
+        ScreenShareRendering::apply(*this);
         setVisible(true);
         WindowUtils::enableDarkTitleBar(this);
         WindowUtils::enableRawMultiTouch(this);

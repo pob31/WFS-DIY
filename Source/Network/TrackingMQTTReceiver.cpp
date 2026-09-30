@@ -2,6 +2,7 @@
 #include "../../spatcore/dsp/TrackingPositionFilter.h"
 #include "OSCLogger.h"
 #include "../../spatcore/control/osc/NetworkStringUtils.h"
+#include "../../spatcore/control/osc/NetworkJson.h"
 
 namespace WFSNetwork
 {
@@ -170,11 +171,17 @@ void TrackingMQTTReceiver::run()
 
                 while (! shouldStop.load() && ! threadShouldExit() && socket.isConnected())
                 {
-                    // Check for incoming data
-                    if (socket.waitUntilReady (true, 100)) // 100ms timeout
-                    {
-                        processIncomingData();
-                    }
+                    // Check for incoming data. -1 is an error, and readable
+                    // with nothing to read is the broker closing the
+                    // connection: both go to the reconnect below. The old
+                    // test took -1 as ready and ignored a 0-byte read, so a
+                    // broker that closed cleanly left this loop spinning at
+                    // 100% CPU, never reconnecting (re-audit 2026-09-29, N3).
+                    const int ready = socket.waitUntilReady (true, 100); // 100ms timeout
+                    if (ready < 0)
+                        break;
+                    if (ready > 0 && ! processIncomingData())
+                        break;
 
                     // Send keepalive ping
                     auto now = juce::Time::getMillisecondCounter();
@@ -287,15 +294,17 @@ bool TrackingMQTTReceiver::sendSubscribe()
     return true;
 }
 
-void TrackingMQTTReceiver::processIncomingData()
+bool TrackingMQTTReceiver::processIncomingData()
 {
     // Read available data into buffer
     int space = READ_BUFFER_SIZE - readBufferPos;
     if (space <= 0) { readBufferPos = 0; space = READ_BUFFER_SIZE; }
 
+    // Called only once the socket reported readable, so nothing here is the
+    // end of the stream (or an error): the connection is gone.
     int bytesRead = socket.read (readBuffer + readBufferPos, space, false);
     if (bytesRead <= 0)
-        return;
+        return false;
 
     readBufferPos += bytesRead;
 
@@ -339,6 +348,8 @@ void TrackingMQTTReceiver::processIncomingData()
     {
         readBufferPos = 0;
     }
+
+    return true;
 }
 
 void TrackingMQTTReceiver::handlePublish (const uint8_t* data, int dataSize)
@@ -422,8 +433,8 @@ void TrackingMQTTReceiver::processJsonPayload (const juce::String& topic, const 
         logger->logEntry (entry);
     }
 
-    // Parse JSON
-    auto json = juce::JSON::parse (payload);
+    // Parse JSON (nesting capped: the payload is whatever the broker relays)
+    auto json = spatcore::control::osc::parseNetworkJson (payload);
     if (! json.isObject())
         return;
 
@@ -605,9 +616,11 @@ void TrackingMQTTReceiver::routePositionToInput (int inputIndex, float x, float 
     // Phase 5b: tag as Tracking-origin for the MCP staleness/notifications path.
     OriginTagScope originScope { OriginTag::Tracking };
     ParameterDirtyTracker::ScopedInternalWrite guard (dirtyTracker);
-    posSection.setProperty (WFSParameterIDs::inputOffsetX, fx, nullptr);
-    posSection.setProperty (WFSParameterIDs::inputOffsetY, fy, nullptr);
-    posSection.setProperty (WFSParameterIDs::inputOffsetZ, fz, nullptr);
+    // Through the store (no undo), so its range clamp and its NaN refusal hold
+    // for tracking as for every other writer; the listeners fire as they did.
+    state.setParameterWithoutUndo (WFSParameterIDs::inputOffsetX, fx, inputIndex);
+    state.setParameterWithoutUndo (WFSParameterIDs::inputOffsetY, fy, inputIndex);
+    state.setParameterWithoutUndo (WFSParameterIDs::inputOffsetZ, fz, inputIndex);
 
     ++positionsRouted;
 }

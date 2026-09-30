@@ -15,6 +15,7 @@
 #include "../AppSettings.h"
 #include "../Network/ADMOSCMapping.h"
 #include "HelpCard.h"
+#include "ScreenShareRendering.h"
 
 #if JUCE_WINDOWS
     #include <winsock2.h>
@@ -498,7 +499,8 @@ private:
         menu.addItem (2, "ADM Y", true, cfg.axes[axis].axisSwap == 1);
         menu.addItem (3, "ADM Z", true, cfg.axes[axis].axisSwap == 2);
 
-        menu.showMenuAsync (juce::PopupMenu::Options(),
+        // A target, so Compatible rendering can open the menu inside the window
+        menu.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (this).withMousePosition(),
             [this, axis] (int result)
             {
                 if (result > 0)
@@ -4372,7 +4374,10 @@ private:
         options.useNativeTitleBar = false;
         options.resizable = false;
 
-        auto* dialog = options.launchAsync();
+        // launchAsync() without the show, so Compatible rendering applies before it
+        auto* dialog = options.create();
+        ScreenShareRendering::apply (*dialog);
+        dialog->enterModalState (true, nullptr, true);
 
         if (dialog != nullptr)
         {
@@ -5396,6 +5401,7 @@ private:
         alertWindow->addButton(LOC("common.ok"), 1, juce::KeyPress(juce::KeyPress::returnKey));
         alertWindow->addButton(LOC("common.cancel"), 0, juce::KeyPress(juce::KeyPress::escapeKey));
 
+        ScreenShareRendering::apply(*alertWindow);
         alertWindow->enterModalState(true, juce::ModalCallbackFunction::create(
             [this, alertWindow](int result)
             {
@@ -5685,15 +5691,18 @@ private:
             if (!oscManager->isOSCQueryRunning())
             {
                 oscManager->startOSCQuery(oscPort, httpPort);
-            }
 
-            // Phase 7: re-run the MCP OSCQuery cross-check now that the
-            // server is up. The auditor handles its own threading + logging.
-            if (mcpServer != nullptr && oscManager->isOSCQueryRunning())
-            {
-                const auto port = oscManager->getOSCQueryHttpPort();
-                if (port > 0)
-                    mcpServer->runOSCQueryAudit ("http://127.0.0.1:" + juce::String (port) + "/");
+                // Phase 7: re-run the MCP OSCQuery cross-check now that the
+                // server is up. The auditor handles its own threading + logging.
+                // Only when it has just come up: this runs on every refresh,
+                // snapshot recalls included, and each audit fetches the whole
+                // tree (about 750 kB) and replaced the one still in flight.
+                if (mcpServer != nullptr && oscManager->isOSCQueryRunning())
+                {
+                    const auto port = oscManager->getOSCQueryHttpPort();
+                    if (port > 0)
+                        mcpServer->runOSCQueryAudit ("http://127.0.0.1:" + juce::String (port) + "/");
+                }
             }
         }
         else

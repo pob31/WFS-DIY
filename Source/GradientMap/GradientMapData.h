@@ -289,9 +289,11 @@ struct Layer
                 l.shapes.push_back (Shape::fromValueTree (child));
         }
 
-        // Sort shapes by order for consistent rendering
-        std::sort (l.shapes.begin(), l.shapes.end(),
-                   [] (const Shape& a, const Shape& b) { return a.order < b.order; });
+        // Sort shapes by order for consistent rendering. Stable, so ties keep the
+        // file order on every platform (projects saved before the editor
+        // renumbered on save can carry duplicate orders).
+        std::stable_sort (l.shapes.begin(), l.shapes.end(),
+                          [] (const Shape& a, const Shape& b) { return a.order < b.order; });
 
         return l;
     }

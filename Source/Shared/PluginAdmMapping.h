@@ -58,11 +58,15 @@ namespace PluginAdmMapping
         float distCenter     = 0.0f;
     };
 
+    // To (-180, 180]. std::remainder is exact at any size: a subtract-360
+    // loop never ends above about 8.6e9, and an ADM-OSC azimuth is whatever
+    // the packet says. An azimuth that is not finite reads as 0.
     inline float normalizeAngleDeg (float degrees)
     {
-        while (degrees > 180.0f)   degrees -= 360.0f;
-        while (degrees <= -180.0f) degrees += 360.0f;
-        return degrees;
+        if (! std::isfinite (degrees))
+            return 0.0f;
+        const float wrapped = std::remainder (degrees, 360.0f);
+        return wrapped <= -180.0f ? wrapped + 360.0f : wrapped;
     }
 
     inline float mapCartesianAxis (float v, const AxisConfig& cfg)

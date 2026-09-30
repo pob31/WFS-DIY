@@ -119,7 +119,7 @@ inline ToolDescriptor describe (WFSValueTreeState& state)
 /** session.save — persist the full session to the current project folder.
     Same code path as the SystemConfig tab's Save button
     (WFSFileManager::saveCompleteConfig → system/network/inputs/outputs/
-    reverbs .xml, each with a rolling backup). Tier 2: it overwrites the
+    reverbs/effects .xml, each with a rolling backup). Tier 2: it overwrites the
     operator's saved show on disk, so it needs the confirm round-trip. */
 inline ToolResult save (WFSFileManager& fileManager, ChangeRecord* record)
 {
@@ -156,7 +156,7 @@ inline ToolDescriptor describeSave (WFSFileManager& fileManager)
     ToolDescriptor d;
     d.name        = "session_save";
     d.description = "Save the complete current session (system, network, inputs, "
-                    "outputs, reverbs) to the open project folder - identical to "
+                    "outputs, reverbs, effects) to the open project folder - identical to "
                     "the operator pressing Save in the System Config tab. "
                     "Overwrites the project's config files on disk (a rolling "
                     "backup of each file is kept in backups/). Fails if no "

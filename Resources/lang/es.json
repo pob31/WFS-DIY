@@ -92,6 +92,7 @@
       "haasEffect": "Efecto Haas a aplicar al sistema. Tiene en cuenta las compensaciones de latencia (sistema, entrada y salida).",
       "colorScheme": "Seleccione el esquema de color: Por defecto (gris oscuro), Negro (negro puro para pantallas OLED), o Claro (uso diurno).",
       "quickLongPress": "Duración de la pulsación larga. En lugar de ventanas de confirmación, este software utiliza pulsaciones largas.",
+      "screenRendering": "Accelerated dibuja las ventanas con la tarjeta gráfica. Compatible las dibuja con la CPU, para que una videollamada que comparte una sola ventana (como Zoom) las muestre en directo, y abre los menús dentro de la ventana. Compatible usa más CPU: vuelva a Accelerated para los espectáculos. Siempre Accelerated al iniciar.",
       "screenReader": "Activa o desactiva los anuncios del lector de pantalla. Cuando está activado, los nombres y valores de los parámetros se anuncian al pasar el cursor, y el texto de ayuda se lee después de unos segundos.",
       "selectProjectFolder": "Seleccione la ubicación de la carpeta del proyecto actual para almacenar archivos.",
       "storeComplete": "Guarda la configuración completa en archivos (con respaldo).",
@@ -293,7 +294,7 @@
   },
   "audioPatch": {
     "deviceSettings": {
-      "midiTooltip": "Solo para recuperar snapshots. Este puerto se abre únicamente como entrada y no se usa para nada más: WFS-DIY no le envía MIDI, y los únicos mensajes a los que responde son los note-on que recuperan un snapshot de entrada. Asigne un canal y una nota a un snapshot en la ventana Edit Scope de la pestaña Inputs; un note-on con velocidad superior a 64 lo recupera."
+      "midiTooltip": "Solo para recuperar snapshots. Este puerto se abre únicamente como entrada y no se usa para nada más: WFS-DIY no le envía MIDI, y los únicos mensajes a los que responde son los note-on que recuperan un snapshot (entradas y efectos). Asigne un canal y una nota a un snapshot en la ventana Edit Scope de la pestaña Inputs o Effects; un note-on con velocidad superior a 64 lo recupera."
     },
     "dialogs": {
       "unpatchInputsTitle": "Desconectar todas las entradas",
@@ -552,7 +553,50 @@
       "returnOffset3": "Desplazamiento de retorno de reverberación {name} ({unit})."
     }
   },
+  "effects": {
+    "dialogs": {
+      "importTitle": "Importar configuración de efectos",
+      "exportTitle": "Exportar configuración de efectos"
+    },
+    "messages": {
+      "configSaved": "Configuración de efectos guardada.",
+      "cleared": "Cadena de efectos vaciada.",
+      "clearedAll": "Todas las cadenas de efectos vaciadas.",
+      "groupMuteNeedsGroup": "Este efecto no está en un grupo de enlace, así que no hay grupo que silenciar.",
+      "assignedGroup": "Efecto {channel} asignado a {group}",
+      "unlinked": "Efecto {channel} retirado de su grupo de enlace",
+      "configLoaded": "Configuración de efectos cargada.",
+      "selectFolderFirst": "Seleccione primero una carpeta de proyecto.",
+      "error": "Error: {error}"
+    },
+    "help": {
+      "channelSelector": "Seleccionar el canal de efectos a editar.",
+      "name": "Nombre mostrado de este canal de efectos.",
+      "linkGroup": "Enlazar este efecto a un grupo para que las ediciones de módulos se propaguen a los demás miembros.",
+      "linkMode": "Cómo recibe este canal las ediciones del grupo: desactivado, absoluto o relativo.",
+      "groupMute": "Pulsación larga para silenciar o reactivar a la vez todos los miembros de este grupo de enlace.",
+      "mute": "Silenciar este retorno de efecto.",
+      "solo": "Pulsación larga para poner en solo este retorno de efecto.",
+      "mapVisible": "Mostrar u ocultar los marcadores de retorno de efectos en la pestaña Map.",
+      "editOnMap": "Activar la edición de las posiciones de los efectos desde la pestaña Map.",
+      "soloEffects": "Pulsación larga para poner en solo los retornos de efectos: la señal directa se silencia.",
+      "clear": "Pulsación larga para vaciar esta cadena de efectos; mantenga Ctrl para vaciar todos los efectos.",
+      "loopGuard": "La protección de bucle ha silenciado la alimentación de efecto a efecto de este canal.",
+      "cycle": "Este efecto forma parte de un bucle de realimentación en la cuadrícula de envíos.",
+      "entry": "Este efecto recibe señal de una entrada, por lo que es un punto de entrada de su conjunto.",
+      "storeConfig": "Guardar la configuración de efectos en archivo (sobrescribir con confirmación).",
+      "reloadConfig": "Recargar la configuración de efectos desde archivo (con confirmación).",
+      "reloadBackup": "Recargar la configuración de efectos desde archivo de respaldo (con confirmación).",
+      "import": "Importar la configuración de efectos desde archivo (con explorador de archivos).",
+      "export": "Exportar la configuración de efectos a archivo (con explorador de archivos)."
+    },
+    "noChannels": "No hay canales de efectos. Defina el número en System Config o importe una configuración de efectos."
+  },
   "inputs": {
+    "effectSends": {
+      "hint": "Una tira por efecto: el fader fija el nivel de envío de esta entrada al efecto; el botón activa o corta el envío sin cambiar el nivel.",
+      "none": "No hay canales de efecto. Defina un número de Effects Channels en System Config."
+    },
     "gradientMap": {
       "help": {
         "layerSelect": "Seleccionar esta capa para editar",
@@ -566,6 +610,10 @@
         "shapeEnable": "Activar/desactivar forma",
         "shapeLock": "Bloquear posición de la forma",
         "shapeDelete": "Eliminar forma(s) seleccionada(s)",
+        "shapeToBack": "Enviar la(s) forma(s) seleccionada(s) al fondo: la forma superior cubre las de abajo (Fin; Av Pág = un paso)",
+        "shapeToFront": "Traer la(s) forma(s) seleccionada(s) al frente: la forma superior cubre las de abajo (Inicio; Re Pág = un paso)",
+        "shapeBackward": "Enviar la(s) forma(s) seleccionada(s) un paso atrás, bajo la forma siguiente (Av Pág)",
+        "shapeForward": "Traer la(s) forma(s) seleccionada(s) un paso adelante, sobre la forma siguiente (Re Pág)",
         "selectTool": "Seleccionar y mover formas",
         "rectTool": "Dibujar rectángulo",
         "ellipseTool": "Dibujar elipse",
@@ -612,6 +660,7 @@
       "snapshotStored": "Snapshot '{name}' guardado.",
       "snapshotLoaded": "Snapshot '{name}' cargado.",
       "snapshotEntriesSkipped": "Snapshot «{name}» cargado; {n} entradas omitidas, no existe el canal {numbers}",
+      "snapshotEffectsSkipped": "Snapshot «{name}»: {n} entradas de efecto omitidas, no existe el canal de efecto {ids}",
       "snapshotPatchMismatchApplied": "Snapshot «{name}» aplicado, pero se guardó con otro patch ({n} canal(es) difieren) — revise la lista de canales",
       "snapshotLoadedWithoutScope": "Snapshot '{name}' cargado (sin alcance).",
       "snapshotUpdated": "Snapshot '{name}' actualizado.",
@@ -634,6 +683,10 @@
       "clusterEditAbsolute": "Edición con Ctrl+Shift: valor copiado a {count} otra(s) entrada(s) del Grupo {cluster}"
     },
     "help": {
+      "effectSendLevel": "Nivel del envío de esta entrada al efecto (-92 a 0 dB). Arrastre el fader; la rueda lo ajusta con precisión.",
+      "effectSendToggle": "Activa o corta el envío de esta entrada al efecto. El nivel se conserva.",
+      "effectSendsAllOn": "Activa el envío de esta entrada a todos los efectos.",
+      "effectSendsAllOff": "Corta el envío de esta entrada a todos los efectos.",
       "solo": "Escuchar el renderizado binaural de este canal.",
       "soloMode": "Único: una entrada a la vez. Múltiple: varias entradas simultáneamente.",
       "storeConfig": "Guardar la configuración de entrada en archivo (con copia de seguridad).",
@@ -641,13 +694,13 @@
       "reloadBackup": "Recargar la configuración de entrada desde archivo de copia de seguridad.",
       "importConfig": "Importar la configuración de entrada desde archivo (con explorador de archivos).",
       "exportConfig": "Exportar la configuración de entrada a archivo (con explorador de archivos).",
-      "storeSnapshot": "Guardar nuevo snapshot de entrada para todos los objetos.",
-      "snapshotSelector": "Seleccionar snapshot de entrada sin cargarlo.",
-      "reloadSnapshot": "Recargar el snapshot de entrada seleccionado para todos los objetos teniendo en cuenta el filtro.",
-      "reloadWithoutScope": "Recargar el snapshot de entrada seleccionado para todos los objetos sin el filtro.",
-      "updateSnapshot": "Actualizar el snapshot de entrada seleccionado (con copia de seguridad).",
-      "editScope": "Abrir la ventana de filtro del snapshot de entrada seleccionado.",
-      "deleteSnapshot": "Eliminar el snapshot de entrada seleccionado con confirmación.",
+      "storeSnapshot": "Guardar un nuevo snapshot de todas las entradas y efectos.",
+      "snapshotSelector": "Seleccionar un snapshot sin cargarlo.",
+      "reloadSnapshot": "Recargar el snapshot seleccionado (entradas y efectos) teniendo en cuenta el filtro.",
+      "reloadWithoutScope": "Recargar el snapshot seleccionado (entradas y efectos) sin el filtro.",
+      "updateSnapshot": "Actualizar el snapshot seleccionado, entradas y efectos (con copia de seguridad).",
+      "editScope": "Abrir la ventana de filtro del snapshot seleccionado.",
+      "deleteSnapshot": "Eliminar el snapshot seleccionado con confirmación.",
       "channelSelector": "Número y selección del canal de entrada.",
       "nameEditor": "Nombre mostrado del canal de entrada (editable).",
       "clusterSelector": "El objeto forma parte de un cluster.",
@@ -762,7 +815,8 @@
     "midi": {
       "tooltip": "Un note-on con velocidad superior a 64 en este canal y esta nota recupera este snapshot. Los note-off y las notas más suaves se ignoran. Elija la entrada MIDI en Audio Interface ▸ Device Settings.",
       "conflict": "En uso por '{name}' (canal {ch}, nota {note}) — elija otra nota para guardar."
-    }
+    },
+    "noEffectChannels": "Esta sesión no tiene canales de efectos."
   },
   "fileManager": {
     "dialogs": {
@@ -801,13 +855,17 @@
     "guide": "Seleccione una celda en la cuadrícula para editar sus propiedades.\nDoble clic para cargar una muestra.\nUse Ctrl+Clic para asignar celdas al set activo."
   },
   "help": {
+    "inputEffectSends": {
+      "title": "Envíos a efectos",
+      "body": "Los envíos de esta entrada a los canales de efecto, una tira por efecto: las mismas celdas que la matriz Post-Processing de la pestaña Effects, vistas desde la entrada.\nEl fader fija el nivel de envío (-92 a 0 dB) y el botón activa o corta el envío sin tocar el nivel, de modo que un envío puede silenciarse y recuperarse al nivel que tenía. Los dos botones de arriba actúan sobre todos los envíos de esta entrada a la vez.\nUn efecto alimentado por esta entrada es un punto de entrada de su grupo. Lo que el efecto hace después - su cadena, su posición en el escenario y sus envíos a otros efectos - se ajusta en la pestaña Effects."
+    },
     "diagnostics": {
       "title": "Diagnóstico y comentarios",
       "body": "Las herramientas de diagnóstico están ocultas por defecto: una pulsación larga sobre el botón Diagnostics las muestra u oculta. Aparecen automáticamente si la sesión anterior no se cerró correctamente.\nPara enviar comentarios o informar de un problema, haga clic en «Reportar problema» (Report Issue): se abre el gestor de incidencias de GitHub del proyecto en su navegador. Describa qué ocurrió, qué esperaba y los pasos para reproducirlo, y adjunte los datos de diagnóstico exportados.\n«Exportar registros» (Export Logs) copia los datos útiles en una carpeta WFS-DIY-logs en la ubicación que elija: los registros de la sesión actual y de hasta cinco sesiones anteriores, más el archivo de ajustes de la aplicación. Adjunte esta carpeta (o un zip de ella) a su informe.\nLos registros de sesión contienen información de arranque (versión de la aplicación, sistema operativo, CPU, número de canales), la carga de proyectos, la actividad de red y los errores. Nunca se graba audio.\n«Abrir carpeta de registros» (Open Log Folder) muestra los registros en bruto en el disco (carpeta WFS-DIY/logs de los datos de aplicación del usuario), útil para localizar una sesión concreta.\n«Copiar info del sistema» (Copy System Info) coloca un breve resumen en el portapapeles — versión de la aplicación, sistema operativo, CPU y el dispositivo de audio actual con su frecuencia de muestreo y tamaño de búfer — listo para pegar en una incidencia."
     },
     "shortcuts": {
       "title": "Atajos de teclado",
-      "body": "*H* abre la tarjeta de ayuda más cercana al puntero.\n*I*, *O* y *R* abren respectivamente las pestañas Inputs (entradas), Outputs (salidas) y Reverb; durante unos segundos después puede escribir un número de canal para seleccionarlo (confirme con *Enter*).\n*N* abre la pestaña Network (red).\n*C* abre la pestaña Clusters (grupos).\n*M* abre la pestaña Map (mapa).\n*L* bloquea o desbloquea la orientación de la imagen estéreo de los pares seleccionados en la pestaña Map.\nLa *barra espaciadora* pasa al canal siguiente y *Mayús+Espacio* al anterior en las pestañas Inputs, Outputs y Reverb. En la pestaña Clusters recorren los grupos.\n*Ctrl/Cmd* mientras se ajusta un parámetro de una salida que forma parte de un array ajusta el parámetro solo para el canal seleccionado, desactivando temporalmente la propagación al resto del array.\n*F1* a *F10* asignan las entradas al grupo correspondiente en las pestañas Inputs y Map, asignan las salidas al array correspondiente en la pestaña Outputs y seleccionan el grupo correspondiente en la pestaña Clusters. *F11* devuelve el canal a Single.\n*Mayús* mientras se ajusta un parámetro de una entrada que forma parte de un grupo ajusta ese parámetro para las demás entradas del grupo en modo relativo: la variación afecta a todas las entradas del grupo, pero se conservan las diferencias relativas. *Ctrl/Cmd+Mayús* cambia el parámetro en modo absoluto: el valor pasa a ser idéntico en todas las entradas del grupo.\n*Ctrl/Cmd+Z* deshace el último cambio; *Ctrl/Cmd+Y* o *Ctrl/Cmd+Mayús+Z* lo rehace."
+      "body": "*H* abre la tarjeta de ayuda más cercana al puntero.\n*I*, *O* y *R* abren respectivamente las pestañas Inputs (entradas), Outputs (salidas) y Reverb; durante unos segundos después puede escribir un número de canal para seleccionarlo (confirme con *Enter*).\n*N* abre la pestaña Network (red).\n*C* abre la pestaña Clusters (grupos).\n*M* abre la pestaña Map (mapa).\n*L* bloquea o desbloquea la orientación de la imagen estéreo de los pares seleccionados en la pestaña Map.\nLa *barra espaciadora* pasa al canal siguiente y *Mayús+Espacio* al anterior en las pestañas Inputs, Outputs, Reverb y Effects. En la pestaña Clusters recorren los grupos.\n*Ctrl/Cmd* mientras se ajusta un parámetro de una salida que forma parte de un array ajusta el parámetro solo para el canal seleccionado, desactivando temporalmente la propagación al resto del array.\n*F1* a *F10* asignan las entradas al grupo correspondiente en las pestañas Inputs y Map, asignan las salidas al array correspondiente en la pestaña Outputs y seleccionan el grupo correspondiente en la pestaña Clusters. *F11* devuelve el canal a Single. En la pestaña Effects, *F1* a *F8* colocan el efecto en el grupo de enlace correspondiente y *F11* lo desenlaza; estos grupos de enlace son independientes de los grupos de entradas (Clusters).\n*Mayús* mientras se ajusta un parámetro de una entrada que forma parte de un grupo ajusta ese parámetro para las demás entradas del grupo en modo relativo: la variación afecta a todas las entradas del grupo, pero se conservan las diferencias relativas. *Ctrl/Cmd+Mayús* cambia el parámetro en modo absoluto: el valor pasa a ser idéntico en todas las entradas del grupo.\n*Ctrl/Cmd+Z* deshace el último cambio; *Ctrl/Cmd+Y* o *Ctrl/Cmd+Mayús+Z* lo rehace."
     },
     "binaural": {
       "title": "Binaural Renderer",
@@ -883,8 +941,8 @@
       "body": "Al iniciar una sesión, seleccione la carpeta de trabajo donde el sistema colocará los archivos y eventuales archivos de audio. Para proyectos nuevos, cree una carpeta nueva. Para recargar una sesión anterior, navegue a la carpeta correspondiente.\nCada sección tiene un archivo xml separado (Configuración del sistema, Red, Salidas, Reverberación, Entradas) y copias de seguridad. Las respuestas al impulso de reverberación por convolución y las muestras de audio se almacenarán en subdirectorios.\nCada sección puede almacenarse y recuperarse individualmente o en su totalidad.\nCada sección también puede exportar e importar archivos de otros proyectos."
     },
     "snapshotScope": {
-      "title": "Snapshots de Entrada y Alcance",
-      "body": "Los snapshots almacenan parámetros de entrada, pero pueden tener un alcance para ser recuperados durante una actuación.\nEl Alcance indica al sistema qué datos almacenar o recuperar.\nHay varios métodos disponibles:\n- Registrar solo los datos necesarios en archivos locales. El filtro se aplica al almacenar.\n- Registrar todos los datos y un filtro en archivos locales. El filtro se aplica al recuperar.\n- Registrar todos los datos en cues de QLab. No recomendado para configuraciones grandes.\nEl alcance puede mostrar y preseleccionar automáticamente los parámetros modificados manualmente. Los cambios se marcan en amarillo."
+      "title": "Snapshots y Alcance",
+      "body": "Los snapshots almacenan parámetros de entrada y de efectos, pero pueden tener un alcance para ser recuperados durante una actuación.\nEl Alcance indica al sistema qué datos almacenar o recuperar.\nHay varios métodos disponibles:\n- Registrar solo los datos necesarios en archivos locales. El filtro se aplica al almacenar.\n- Registrar todos los datos y un filtro en archivos locales. El filtro se aplica al recuperar.\n- Registrar todos los datos en cues de QLab. No recomendado para configuraciones grandes.\nEl alcance puede mostrar y preseleccionar automáticamente los parámetros modificados manualmente. Los cambios se marcan en amarillo.\nUn snapshot contiene las entradas y los canales de efectos. La ventana de alcance tiene una pestaña para las entradas y otra para los efectos, una cuadrícula por familia; en la cuadrícula de efectos, cada módulo de la cadena es una fila, con sus bandas y taps. Las pestañas Entradas y Efectos muestran la misma fila de snapshots: un snapshot guardado o recuperado desde cualquiera de ellas abarca ambas, y una nota MIDI o un cue OSC recupera ambas."
     },
     "network": {
       "title": "Red",
@@ -944,6 +1002,10 @@
       "body": "Servidor IA / MCP\n\nEl MCP Server permite que un asistente de IA (Claude Desktop, Claude Code, ChatGPT con conectores personalizados) lea y escriba los parámetros de esta sesión de WFS-DIY a través de una conexión de red local.\n\nLo que la IA puede hacer:\n• Leer el estado en vivo: número de canales, nombres, posiciones, atenuaciones, EQ, snapshots, clusters, toda la superficie de parámetros.\n• Mover fuentes, renombrar canales, establecer asignaciones de clusters, ajustar el diseño de arrays, colocar salidas y reverberaciones.\n• Ejecutar flujos guiados (asistentes de afinación de sistema, resolución de localización, gestión de snapshots) mediante plantillas de prompts preparadas.\n\nControles del operador en esta fila:\n• IA: ON / OFF — interruptor principal. En OFF, cada llamada de herramienta de IA se rechaza; en ON, la IA trabaja según las reglas siguientes.\n• Acciones críticas de IA: bloqueadas / PERMITIDAS — las acciones destructivas (eliminar snapshots, restablecer DSP, cambiar el número de canales) están bloqueadas por defecto. Hacer clic para permitirlas durante 10 minutos; el relleno rojo se descarga al expirar la ventana, luego se bloquean automáticamente de nuevo.\n• Abrir Historial de IA — cronología desplazable de cada cambio de IA reciente con deshacer/rehacer por fila y cursor paso a paso.\n• El botón URL MCP copia la URL del servidor al portapapeles para clientes de IA que acepten una URL directamente.\n\nConciencia del operador:\n• Cada acción de IA se registra con etiquetas de origen. La ventana de Historial de IA muestra la cronología completa; la × por fila revierte una acción con sus dependencias.\n• Si ajusta manualmente un parámetro que la IA acaba de mover, la IA es notificada y no reintentará a ciegas. Siempre tiene la última palabra.\n• Los atajos Cmd/Ctrl+Alt+Z y Cmd/Ctrl+Alt+Y deshacen y rehacen el último cambio de IA sin afectar a sus ediciones manuales (que usan Ctrl+Z normal).\n\nPara añadir este servidor a Claude Desktop:\n  1. Abrir Configuración → Desarrollador → Editar configuración.\n  2. Pegar el fragmento JSON siguiente en claude_desktop_config.json (fusionar en el bloque mcpServers existente si ya tiene uno).\n  3. Reiniciar Claude Desktop. El servidor aparece como 'wfs-diy' en el menú de herramientas.\n\nPara añadir a Claude Code, ejecutar:\n  claude mcp add wfs-diy <url> -t http\n\nLa URL cambia si cambia de Network Interface o si el servidor cae en un puerto diferente. El botón URL en esta fila siempre refleja la URL en vivo.",
       "copyButton": "Copiar configuración",
       "copyConfirm": "Configuración MCP JSON copiada al portapapeles"
+    },
+    "effects": {
+      "title": "Efectos",
+      "body": "Un canal de efectos es una cadena de once módulos (distorsión, dos EQ, dos dinámicas, chorus/flanger, phaser, trémolo, reverberación, delay multitap, bitcrusher) alimentada por las entradas y por otros efectos a través de la matriz de envíos. Su salida es un RETORNO situado en el escenario como una entrada: se reproduce por los arreglos WFS desde su propia posición, con la misma orientación, ley de atenuación y mutes que una entrada.\nLa cabecera replica la de la pestaña Reverb: selector de canal, nombre, visibilidad en el mapa, Edit on Map, Solo Effects, Mute, Solo y Clear de emergencia (pulsación larga; mantenga Ctrl para vaciar todas las cadenas). Los tres indicadores dan el estado del motor para este canal: protección de bucle activada, parte de un bucle de realimentación, alimentado por una entrada (punto de entrada de su conjunto).\nLos grupos de enlace no son como las reverbs, que forman un único sistema: un canal de un grupo comparte su cadena (orden, bypass, parámetros de los módulos) con los demás miembros según el modo de enlace de cada uno —Absolute copia, Relative conserva la diferencia, Off no recibe nada—, mientras que sus movimientos, envíos, mutes y posición nunca se propagan. Arrastre con Ctrl cualquier control para editar solo este canal. Mute Group silencia una vez a cada miembro y deja a cada uno editable por separado."
     }
   },
   "ai": {

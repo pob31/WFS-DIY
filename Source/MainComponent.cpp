@@ -1,14 +1,19 @@
 #include "MainComponent.h"
 #include "../spatcore/wfs/RenderSourceMap.h"
+#include "../spatcore/effects/EffectPresets.h"
 #include "WFSLogger.h"
 #include "Parameters/VarCoercion.h"
 #include "gui/ChannelIdentityGate.h"
 #include "AppSettings.h"
 #include "Parameters/WFSParameterIDs.h"
+#include "Parameters/EffectsSnapshotScope.h"
 #include "Localization/LocalizationManager.h"
 #include "Accessibility/TTSManager.h"
 #include "Network/QLabCueBuilder.h"
 #include "Network/OSCMessageRouter.h"
+#include "Helpers/CoordinateConverter.h"
+#include "Helpers/ArrayGeometryCalculator.h"
+#include "Shared/PluginAdmMapping.h"
 #include "Network/MCP/tools/ChannelLifecycleTools.h"
 #include "Network/MCP/MCPSurfaceAudit.h"
 #include "Controllers/DialsAndButtons/pages/InputsTabPages.h"
@@ -18,6 +23,7 @@
 #include "Controllers/DialsAndButtons/pages/SystemConfigTabPages.h"
 #include "Controllers/DialsAndButtons/pages/MapTabPages.h"
 #include "Controllers/DialsAndButtons/pages/ReverbTabPages.h"
+#include "Controllers/DialsAndButtons/pages/EffectsTabPages.h"
 #include "Controllers/DialsAndButtons/pages/ClustersTabPages.h"
 #include "Controllers/DialsAndButtons/pages/PatchWindowPages.h"
 #include "../spatcore/controllers/spacemouse/SpaceMouseDevice.h"
@@ -62,6 +68,21 @@ namespace
                      .getParentDirectory()   // Builds
                      .getParentDirectory()   // project root
                      .getChildFile ("Source/Network/MCP/generated_tools.json");
+    }
+
+    /** An attenuation read back from the tree (master, output, reverb return:
+        all -92..0 dB), as the linear gain the audio thread multiplies by. The
+        store clamps out-of-range values and refuses non-finite ones, but the
+        master level never passes through it (setConfigParam writes the tree
+        directly), and this is the last step before the speakers, so it holds
+        the range itself: never louder than unity, and silence for NaN. A
+        string that got past the store used to read back as +60 dB, or as
+        infinity. */
+    float attenuationDbToGain (float dB)
+    {
+        if (std::isnan (dB))
+            return 0.0f;
+        return juce::Decibels::decibelsToGain (juce::jlimit (-92.0f, 0.0f, dB), -92.0f);
     }
 }
 
@@ -310,10 +331,12 @@ MainComponent::MainComponent()
     // MIDI note belongs to the previous project. Wired before the restore below
     // so later folder changes are covered; the initial index build happens
     // explicitly once midiSnapshotTrigger exists (this fires before that).
+    snapshotSession = std::make_unique<SnapshotSession> (parameters);
+
     parameters.getFileManager().onProjectFolderChanged = [this]() {
         refreshMidiSnapshotBindings();
-        if (inputsTab != nullptr)
-            inputsTab->forgetSnapshotScopes();
+        if (snapshotSession != nullptr)
+            snapshotSession->projectFolderChanged();
     };
 
     // Restore project folder from AppSettings (persists across sessions)
@@ -327,9 +350,10 @@ MainComponent::MainComponent()
     systemConfigTab = new SystemConfigTab(parameters);
     networkTab = new NetworkTab(parameters);
     outputsTab = new OutputsTab(parameters);
-    inputsTab = new InputsTab(parameters);
+    inputsTab = new InputsTab(parameters, *snapshotSession);
     clustersTab = new ClustersTab(parameters);
     reverbTab = new ReverbTab(parameters);
+    effectsTab = new EffectsTab(parameters, *snapshotSession);
     mapTab = std::make_unique<MapTab>(parameters);
 
     // Set accessible names for screen readers (prevents "Custom" announcement)
@@ -339,6 +363,7 @@ MainComponent::MainComponent()
     inputsTab->setName("Inputs");
     clustersTab->setName("Clusters");
     reverbTab->setName("Reverb");
+    effectsTab->setName("Effects");
     mapTab->setName("Map");
 
     // Pass status bar to tabs that support it
@@ -348,6 +373,7 @@ MainComponent::MainComponent()
     outputsTab->setStatusBar(statusBar);
     inputsTab->setStatusBar(statusBar);
     reverbTab->setStatusBar(statusBar);
+    effectsTab->setStatusBar(statusBar);
     clustersTab->setStatusBar(statusBar);
     mapTab->setStatusBar(statusBar);
 
@@ -361,8 +387,8 @@ MainComponent::MainComponent()
             streamDeckManager->refreshCurrentPage();
     });
 
-    systemConfigTab->setChannelCountCallback([this](int inputs, int outputs, int reverbs) {
-        handleChannelCountChange(inputs, outputs, reverbs);
+    systemConfigTab->setChannelCountCallback([this] {
+        handleChannelCountChange();
     });
 
     systemConfigTab->setAlgorithmChangedCallback([this](int selectedId) {
@@ -514,32 +540,45 @@ MainComponent::MainComponent()
     // A relabel or rearrangement done from an identity dialog on the Inputs
     // tab: the one funnel that also re-sends the remote channel inventory.
     inputsTab->onStructureChanged = [this]() {
-        handleChannelCountChange (parameters.getNumInputChannels(), numOutputChannels,
-                                  parameters.getNumReverbChannels());
+        handleChannelCountChange();
     };
 
     inputsTab->onConfigReloaded = [this]() {
         handleConfigReloaded();
     };
 
-    // The Inputs "Reload Snapshot" long-press goes through the same seam as OSC
-    // and MIDI, so the recall logic exists in exactly one place.
-    inputsTab->onSnapshotRecallRequested = [this](const juce::String& snapshotName) {
+    // The snapshot row's "Reload Snapshot" long-press (on the Inputs tab or the
+    // Effects tab) goes through the same seam as OSC and MIDI, so the recall
+    // logic exists in exactly one place.
+    snapshotSession->onSnapshotRecallRequested = [this](const juce::String& snapshotName) {
         recallSnapshotByName (snapshotName);
     };
 
     // Any snapshot created / updated / deleted / re-scoped can change a binding.
-    inputsTab->onSnapshotsChanged = [this]() {
+    snapshotSession->onSnapshotsChanged = [this]() {
         refreshMidiSnapshotBindings();
     };
 
-    inputsTab->isQLabAvailable = [this]() {
+    snapshotSession->onConfigReloaded = [this]() {
+        handleConfigReloaded();
+    };
+
+    snapshotSession->onStructureChanged = [this]() {
+        handleChannelCountChange();
+    };
+
+    snapshotSession->showStatus = [this](const juce::String& text) {
+        if (statusBar != nullptr)
+            statusBar->showTemporaryMessage (text, 3000);
+    };
+
+    snapshotSession->isQLabAvailable = [this]() {
         return oscManager && oscManager->hasQLabTarget();
     };
 
-    // QLab export callback for InputsTab
-    inputsTab->onQLabExportRequested = [this](const juce::String& snapshotName,
-                                               const WFSFileManager::ExtendedSnapshotScope& scope) {
+    // QLab export callback for the snapshot row
+    snapshotSession->onQLabExportRequested = [this](const juce::String& snapshotName,
+                                                     const WFSFileManager::ExtendedSnapshotScope& scope) {
         if (!oscManager || !oscManager->hasQLabTarget())
         {
             if (inputsTab != nullptr)
@@ -548,7 +587,7 @@ MainComponent::MainComponent()
         }
 
         auto& fileManager = parameters.getFileManager();
-        auto snapshotFile = fileManager.getInputSnapshotsFolder().getChildFile (snapshotName + ".xml");
+        auto snapshotFile = WFSFileManager::getNamedXmlFile (fileManager.getInputSnapshotsFolder(), snapshotName);
         auto xml = juce::XmlDocument::parse (snapshotFile);
 
         if (xml == nullptr)
@@ -560,8 +599,9 @@ MainComponent::MainComponent()
 
         auto snapshot = juce::ValueTree::fromXml (*xml);
         auto inputsData = snapshot.getChildWithName (WFSParameterIDs::Inputs);
+        auto effectsData = snapshot.getChildWithName (WFSParameterIDs::Effects);   // one file, both families
 
-        if (!inputsData.isValid())
+        if (!inputsData.isValid() && !effectsData.isValid())
         {
             if (inputsTab != nullptr)
                 inputsTab->showStatusMessage ("QLab export: no input data in snapshot");
@@ -583,7 +623,10 @@ MainComponent::MainComponent()
         auto& vts = parameters.getValueTreeState();
         const auto numberToSlot = [&vts] (int number) { return vts.getSlotForChannelNumber (number); };
 
-        int cueCount = WFSNetwork::QLabCueBuilder::countCues (inputsData, effScope, numChannels, numberToSlot);
+        const int numEffects = parameters.getNumEffectChannels();
+        const int numOutputs = parameters.getNumOutputChannels();
+        int cueCount = WFSNetwork::QLabCueBuilder::countCues (inputsData, effScope, numChannels, numberToSlot,
+                                                             effectsData, numEffects, numOutputs);
 
         if (cueCount == 0)
         {
@@ -594,7 +637,20 @@ MainComponent::MainComponent()
 
         auto sequence = WFSNetwork::QLabCueBuilder::buildSnapshotCues (
             snapshotName, inputsData, effScope, numChannels, patchNumber, numberToSlot,
-            parameters.getNumOutputChannels());
+            numOutputs, effectsData, numEffects);
+
+        // A one-output rig's per-output mute row of an effect is a lone number,
+        // which the receiver refuses as a row: say so rather than drop it silently.
+        {
+            int skippedRows = 0;
+            WFSNetwork::QLabCueBuilder::collectEffectCues (effectsData, effScope.effects, numEffects,
+                                                           numOutputs, &skippedRows);
+            if (skippedRows > 0)
+                WFSLogger::getInstance().logWarning ("QLab export of '" + snapshotName + "': "
+                                                     + juce::String (skippedRows) + " effect mute row(s) not exported"
+                                                     " (one output: a one-token row is not sendable; the snapshot"
+                                                     " load cue still recalls them)");
+        }
 
         oscManager->sendToQLab (sequence, [this, cueCount](int /*sentCount*/) {
             if (inputsTab != nullptr)
@@ -608,7 +664,7 @@ MainComponent::MainComponent()
     };
 
     // QLab snapshot load cue callback
-    inputsTab->onQLabSnapshotLoadCueRequested = [this](const juce::String& snapshotName) {
+    snapshotSession->onQLabSnapshotLoadCueRequested = [this](const juce::String& snapshotName) {
         if (!oscManager || !oscManager->hasQLabTarget())
             return;
 
@@ -741,6 +797,7 @@ MainComponent::MainComponent()
     juce::String tabNetwork = LOC("tabs.network");
     juce::String tabOutputs = LOC("tabs.outputs");
     juce::String tabReverb = LOC("tabs.reverb");
+    juce::String tabEffects = LOC("tabs.effects");
     juce::String tabInputs = LOC("tabs.inputs");
     juce::String tabClusters = LOC("tabs.clusters");
     juce::String tabMap = LOC("tabs.map");
@@ -749,45 +806,51 @@ MainComponent::MainComponent()
     tabbedComponent.addTab(tabNetwork, ColorScheme::get().chromeBackground, networkTab, true);
     tabbedComponent.addTab(tabOutputs, ColorScheme::get().chromeBackground, outputsTab, true);
     tabbedComponent.addTab(tabReverb, ColorScheme::get().chromeBackground, reverbTab, true);
+    tabbedComponent.addTab(tabEffects, ColorScheme::get().chromeBackground, effectsTab, true);
     tabbedComponent.addTab(tabInputs, ColorScheme::get().chromeBackground, inputsTab, true);
     tabbedComponent.addTab(tabClusters, ColorScheme::get().chromeBackground, clustersTab, true);
     tabbedComponent.addTab(tabMap, ColorScheme::get().chromeBackground, mapTab.get(), false);
 
     // Wire per-tab undo domain: Ctrl+Z only affects the currently focused tab
     tabbedComponent.onTabChanged = [this](int tabIndex) {
-        static const UndoDomain domainForTab[] = {
-            UndoDomain::Config,   // 0: SystemConfig
-            UndoDomain::Config,   // 1: Network
-            UndoDomain::Output,   // 2: Outputs
-            UndoDomain::Reverb,   // 3: Reverb
-            UndoDomain::Input,    // 4: Inputs
-            UndoDomain::Clusters, // 5: Clusters
-            UndoDomain::Map       // 6: Map
+        // Indexed by TabIndex::*, sized by TabIndex::Count - the order here is
+        // the order of the addTab calls above and nothing else may set it.
+        static const UndoDomain domainForTab[TabIndex::Count] = {
+            UndoDomain::Config,   // SystemConfig
+            UndoDomain::Config,   // Network
+            UndoDomain::Output,   // Outputs
+            UndoDomain::Reverb,   // Reverb
+            UndoDomain::Effects,  // Effects
+            UndoDomain::Input,    // Inputs
+            UndoDomain::Clusters, // Clusters
+            UndoDomain::Map       // Map
         };
-        if (tabIndex >= 0 && tabIndex < 7)
+        if (tabIndex >= 0 && tabIndex < TabIndex::Count)
             parameters.getValueTreeState().setActiveDomain (domainForTab[tabIndex]);
         if (controllerManager)
             controllerManager->activeTab = tabIndex;
         if (streamDeckManager)
         {
             // Sync subtab + channel state atomically before page render
-            if (tabIndex == 3 && reverbTab != nullptr)
+            if (tabIndex == TabIndex::Reverb && reverbTab != nullptr)
                 streamDeckManager->syncNavigation (tabIndex, reverbTab->getCurrentSubTab(), reverbTab->getCurrentChannel());
-            else if (tabIndex == 2 && outputsTab != nullptr)
+            else if (tabIndex == TabIndex::Effects && effectsTab != nullptr)
+                streamDeckManager->syncNavigation (tabIndex, effectsTab->getCurrentSubTab(), effectsTab->getCurrentChannel());
+            else if (tabIndex == TabIndex::Outputs && outputsTab != nullptr)
                 streamDeckManager->syncNavigation (tabIndex, 0, outputsTab->getCurrentChannel());
-            else if (tabIndex == 4 && inputsTab != nullptr)
+            else if (tabIndex == TabIndex::Inputs && inputsTab != nullptr)
                 streamDeckManager->syncNavigation (tabIndex, 0, inputsTab->getCurrentChannel());
             else
                 streamDeckManager->setMainTab (tabIndex);
         }
         // Ownership rule: only the MAP tab latches position ownership — merely
-        // looking at the Inputs/Outputs/Reverb tabs does not (editing a
+        // looking at the Inputs/Outputs/Reverb/Effects tabs does not (editing a
         // position there latches it via the parameter setters instead).
         // Channel NUMBER ownership deliberately does NOT latch on tab visits:
         // merely looking at the numbers keeps the session fresh. It is spent by
         // the acts that commit them — a project save/load, an actual patch
         // edit, snapshots, or any wire message naming a channel by number.
-        if (tabIndex == 6 && systemConfigTab != nullptr)
+        if (tabIndex == TabIndex::Map && systemConfigTab != nullptr)
             systemConfigTab->setMapTabVisited();
         resetHelpCycle();
     };
@@ -818,29 +881,35 @@ MainComponent::MainComponent()
     mapTab->onDetachRequested = [this]() { detachMapTab(); };
 
     // Set up navigation callback from Map tab to other tabs via long-press gesture
-    // Parameters: (tabType, index) where tabType is: 0=Input, 1=Cluster, 2=Output, 3=Reverb
+    // Parameters: (tabType, index) where tabType is:
+    //   0=Input, 1=Cluster, 2=Output, 3=Reverb, 4=Effect
     mapTab->setNavigateToItemCallback([this](int tabType, int index) {
         switch (tabType)
         {
             case 0:  // Input
-                tabbedComponent.setCurrentTabIndex(4);  // Inputs tab
+                tabbedComponent.setCurrentTabIndex(TabIndex::Inputs);
                 // The Map hands out a SLOT; the selector holds permanent
                 // channel NUMBERS, which have gaps and are not in slot order
-                // after a reorder. Cluster/output/reverb ids below ARE dense
-                // slot positions, so their + 1 stays.
+                // after a reorder. Cluster/output/reverb/effect ids below ARE
+                // dense slot positions, so their + 1 stays.
                 inputsTab->selectChannel (parameters.getValueTreeState().getInputChannelNumber (index));
                 break;
             case 1:  // Cluster
-                tabbedComponent.setCurrentTabIndex(5);  // Clusters tab
+                tabbedComponent.setCurrentTabIndex(TabIndex::Clusters);
                 clustersTab->setSelectedCluster(index);
                 break;
             case 2:  // Output
-                tabbedComponent.setCurrentTabIndex(2);  // Outputs tab
+                tabbedComponent.setCurrentTabIndex(TabIndex::Outputs);
                 outputsTab->selectChannel(index + 1);   // Convert 0-based to 1-based
                 break;
             case 3:  // Reverb
-                tabbedComponent.setCurrentTabIndex(3);  // Reverb tab
+                tabbedComponent.setCurrentTabIndex(TabIndex::Reverb);
                 reverbTab->selectChannel(index + 1);    // Convert 0-based to 1-based
+                break;
+            case 4:  // Effect
+                tabbedComponent.setCurrentTabIndex(TabIndex::Effects);
+                if (effectsTab != nullptr)
+                    effectsTab->selectChannel(index + 1);
                 break;
         }
     });
@@ -947,9 +1016,7 @@ MainComponent::MainComponent()
 
     mcpServer->setChannelTopologyChangedCallback ([this]
     {
-        handleChannelCountChange (parameters.getNumInputChannels(),
-                                  parameters.getNumOutputChannels(),
-                                  parameters.getNumReverbChannels());
+        handleChannelCountChange();
     });
 
     // Automation hook (control-replay harnesses): WFS_MCP_AI_ENABLED=1 in the
@@ -989,6 +1056,15 @@ MainComponent::MainComponent()
     // persisted app settings (spatcore's manager no longer reads AppSettings).
     streamDeckManager->getConnectBrightness = [] { return AppSettings::getStreamDeckBrightness(); };
 
+    // One undo step per deck gesture - the GUI's rule for a drag. The manager
+    // announces a run of turns of one dial, a press or a confirmed choice
+    // before its first write; the step opens in the active tab's history,
+    // which is where the deck's page writes (the deck follows the tab).
+    streamDeckManager->onEditGestureStart = [this] (const juce::String& what)
+    {
+        parameters.getValueTreeState().beginUndoTransaction ("Stream Deck: " + what);
+    };
+
     // Apply initial Dials & Buttons device selection (default Off)
     {
         int dbDevice = static_cast<int> (parameters.getConfigParam ("DialsAndButtonsDevice"));
@@ -1017,7 +1093,39 @@ MainComponent::MainComponent()
         movCB.resumeMotion = [this](int ch) { if (automOtionProcessor) automOtionProcessor->resumeClusterMotion (ch); };
         movCB.stopAll      = [this]()       { if (automOtionProcessor) automOtionProcessor->stopAllMotion(); };
 
-        for (int subTab = 0; subTab < 5; ++subTab)
+        // The Effect Sends page: which four effects the deck holds, shared
+        // across rebuilds like the Chain page's bank. A shift lays the page out
+        // again on the next turn (never from inside the press), and the GUI's
+        // strips mark the four - only while the Dials & Buttons device is the
+        // Stream Deck, so a bare GUI shows no phantom deck.
+        auto inputSendsWindow = std::make_shared<int> (0);
+        InputsTabPages::EffectSendsCallbacks sendsCB;
+        sendsCB.requestRebuild = [this]
+        {
+            juce::MessageManager::callAsync ([this]
+            {
+                if (streamDeckManager && streamDeckManager->getCurrentMainTab() == InputsTabPages::INPUTS_MAIN_TAB_INDEX)
+                    streamDeckManager->refreshCurrentPage();
+            });
+        };
+        sendsCB.onWindowChanged = [this] (int first, int count)
+        {
+            const bool deckSelected = static_cast<int> (parameters.getConfigParam ("DialsAndButtonsDevice")) == 1;
+            auto mark = [this, first, count, deckSelected]
+            {
+                if (inputsTab)
+                    inputsTab->getEffectSendsSubTab().setDeckWindow (deckSelected ? first : -1, count);
+            };
+            // The page is built on the message thread (the manager polls its
+            // device from a timer), so the mark lands with the page; anything
+            // else waits for the next turn.
+            if (juce::MessageManager::getInstance()->isThisTheMessageThread())
+                mark();
+            else
+                juce::MessageManager::callAsync (mark);
+        };
+
+        for (int subTab : { 0, 1, 2, 3, 4, 6 })     // 5 is the Sampler, which has no page
         {
             if (subTab == 3)
             {
@@ -1035,7 +1143,7 @@ MainComponent::MainComponent()
             {
                 streamDeckManager->registerPage (
                     InputsTabPages::INPUTS_MAIN_TAB_INDEX, subTab,
-                    InputsTabPages::createPage (subTab, vts, parameters.getClusterEdit(), 0, flipModeState, stereoParamsState, lfoSubModeState, movCB));
+                    InputsTabPages::createPage (subTab, vts, parameters.getClusterEdit(), 0, flipModeState, stereoParamsState, lfoSubModeState, movCB, inputSendsWindow, sendsCB));
             }
         }
 
@@ -1118,6 +1226,114 @@ MainComponent::MainComponent()
                     nullptr, nullptr,
                     onSoloReverbSD, onMutePreSD, onMutePostSD, onEditOnMapSD));
         }
+
+        // The Effects pages: shared toggles the GUI mirrors, the LFO sub-mode
+        // and the chain's selected module, and the callbacks that reach the
+        // engine, the movement processor, the map and the sends widget. Every
+        // per-channel write on the deck goes through the effect funnel, so a
+        // hardware edit propagates to the link group like a GUI one.
+        auto effectsSoloState     = std::make_shared<bool> (false);
+        auto effectsEditOnMapState = std::make_shared<bool> (false);
+        auto effectsLfoSubMode    = std::make_shared<int> (0);
+        auto effectsChainSlot     = std::make_shared<int> (effectsTab != nullptr ? effectsTab->getChainSlot() : 0);   // the tab's first tile
+        auto effectsChainBank     = std::make_shared<int> (0);    // which twelve of the module's controls
+
+        EffectsTabPages::EffectsCallbacks fxCB;
+        fxCB.onSoloEffectsChanged = [this] (bool active)
+        {
+            soloEffects.store (active, std::memory_order_relaxed);
+            juce::MessageManager::callAsync ([this, active] { if (effectsTab) effectsTab->setSoloEffectsFromExternal (active); });
+        };
+        fxCB.onEditOnMapChanged = [this] (bool enabled)
+        {
+            juce::MessageManager::callAsync ([this, enabled]
+            {
+                if (effectsTab) effectsTab->setEditOnMapFromExternal (enabled);
+                if (mapTab) mapTab->setEffectEditMode (enabled);
+            });
+        };
+        fxCB.onClear = [this] (int fx) { if (effectsHost != nullptr) effectsHost->requestClear (fx); };
+        fxCB.onChainSlotSelected = [this] (int slot)
+        {
+            juce::MessageManager::callAsync ([this, slot] { if (effectsTab) effectsTab->selectChainSlot (slot); });
+        };
+        fxCB.onRelayout = [this]
+        {
+            juce::MessageManager::callAsync ([this]
+            {
+                auto& vts = parameters.getValueTreeState();
+                vts.redistributeAllEffectPositions();
+                vts.getEffectsState().setProperty (WFSParameterIDs::effectPositionsUserOwned, 0, nullptr);
+            });
+        };
+        fxCB.startMotion  = [this] (int fx) { if (effectOtomoProcessor) effectOtomoProcessor->startMotion (fx); };
+        fxCB.stopMotion   = [this] (int fx) { if (effectOtomoProcessor) effectOtomoProcessor->stopMotion (fx); };
+        fxCB.pauseMotion  = [this] (int fx) { if (effectOtomoProcessor) effectOtomoProcessor->pauseMotion (fx); };
+        fxCB.resumeMotion = [this] (int fx) { if (effectOtomoProcessor) effectOtomoProcessor->resumeMotion (fx); };
+        fxCB.stopAll      = [this]         { if (effectOtomoProcessor) effectOtomoProcessor->stopAllMotion(); };
+        fxCB.sendsMove       = [this] (int dx, int dy) { juce::MessageManager::callAsync ([this, dx, dy] { if (effectsTab) effectsTab->sendsMove (dx, dy); }); };
+        fxCB.sendsToggle     = [this]                  { juce::MessageManager::callAsync ([this] { if (effectsTab) effectsTab->sendsToggle(); }); };
+        fxCB.sendsLevelDb    = [this]                  { return effectsTab ? effectsTab->sendsLevelDb() : 0.0f; };
+        fxCB.sendsSetLevelDb = [this] (float db)       { juce::MessageManager::callAsync ([this, db] { if (effectsTab) effectsTab->sendsSetLevelDb (db); }); };
+        fxCB.sendsSetAll     = [this] (bool on)        { juce::MessageManager::callAsync ([this, on] { if (effectsTab) effectsTab->sendsSetAll (on); }); };
+
+        // The reverb's model decides which of its controls the Chain page
+        // shows: when it moves - from the deck or from anywhere the GUI sees -
+        // the page is laid out again, on the next message-loop turn rather
+        // than from inside the dial or the panel that moved it.
+        auto relayoutEffectsDeck = [this]
+        {
+            juce::MessageManager::callAsync ([this]
+            {
+                if (streamDeckManager && streamDeckManager->getCurrentMainTab() == EffectsTabPages::EFFECTS_MAIN_TAB_INDEX)
+                    streamDeckManager->refreshCurrentPage();
+            });
+        };
+        fxCB.onModuleLayoutChanged = relayoutEffectsDeck;
+        effectsTab->onModuleLayoutChanged = relayoutEffectsDeck;
+
+        for (int subTab : { 0, 1, 2, 3, 4 })
+        {
+            streamDeckManager->registerPage (
+                EffectsTabPages::EFFECTS_MAIN_TAB_INDEX, subTab,
+                EffectsTabPages::createPage (subTab, vts, parameters.getEffectEdit(), 0,
+                    effectsSoloState, effectsEditOnMapState, effectsLfoSubMode, effectsChainSlot, effectsChainBank, fxCB));
+        }
+
+        // Wire EffectsTab GUI callbacks to the engine and the calculation mask.
+        // Solo is a mask the calculation engine applies to the direct rows, so
+        // it costs one atomic and never touches the audio thread; Clear reaches
+        // the engine, which honours it at the next batch boundary. The two
+        // toggles also land in the deck's shared state, so its buttons follow.
+        effectsTab->onSoloEffectsChanged = [this, effectsSoloState] (bool active)
+        {
+            soloEffects.store (active, std::memory_order_relaxed);
+            *effectsSoloState = active;
+        };
+        effectsTab->onClearRequested = [this] (int fx)
+        {
+            if (effectsHost != nullptr)
+                effectsHost->requestClear (fx);
+        };
+        effectsTab->onMapEditChanged = [this, effectsEditOnMapState] (bool enabled)
+        {
+            if (mapTab)
+                mapTab->setEffectEditMode (enabled);
+            *effectsEditOnMapState = enabled;
+        };
+        effectsTab->onChainSlotSelected = [this, effectsChainSlot, effectsChainBank] (int slot)
+        {
+            if (*effectsChainSlot == slot)
+                return;
+            *effectsChainSlot = slot;
+            *effectsChainBank = 0;          // another module: its first twelve
+            if (streamDeckManager && streamDeckManager->getCurrentMainTab() == EffectsTabPages::EFFECTS_MAIN_TAB_INDEX)
+                streamDeckManager->refreshCurrentPage();
+        };
+        effectsTab->onConfigReloaded = [this]()
+        {
+            handleChannelCountChange();
+        };
 
         // Wire ReverbTab GUI callbacks to sync audio engine + shared state for StreamDeck
         reverbTab->onSoloReverbsChanged = [this, reverbSoloState, reverbMutePreState, reverbMutePostState] (bool active)
@@ -1363,7 +1579,7 @@ MainComponent::MainComponent()
         };
 
         // Set page rebuild callback for channel changes and binding swaps
-        streamDeckManager->onPageNeedsRebuild = [this, flipModeState, stereoParamsState, lfoSubModeState, movCB, outputEqBandState, onEqBandSelectedGui, netCB, sysCB, mapCB, mapQ, mapPosOffsetMode, reverbPreEqBandState, reverbPreDynMode, reverbPostEqBandState, reverbPostDynMode, reverbSoloState, reverbMutePreState, reverbMutePostState, reverbEditOnMapState, reverbAlgoSubMode, reverbIRDuration, onSoloReverbSD, onMutePreSD, onMutePostSD, onEditOnMapSD, clusterLfoSubMode, presetCol, presetRow, clusterCB](int mainTab, int subTab, int channel)
+        streamDeckManager->onPageNeedsRebuild = [this, flipModeState, stereoParamsState, lfoSubModeState, movCB, inputSendsWindow, sendsCB, outputEqBandState, onEqBandSelectedGui, netCB, sysCB, mapCB, mapQ, mapPosOffsetMode, reverbPreEqBandState, reverbPreDynMode, reverbPostEqBandState, reverbPostDynMode, reverbSoloState, reverbMutePreState, reverbMutePostState, reverbEditOnMapState, reverbAlgoSubMode, reverbIRDuration, onSoloReverbSD, onMutePreSD, onMutePostSD, onEditOnMapSD, clusterLfoSubMode, presetCol, presetRow, clusterCB, effectsSoloState, effectsEditOnMapState, effectsLfoSubMode, effectsChainSlot, effectsChainBank, fxCB](int mainTab, int subTab, int channel)
         {
             if (mainTab == InputsTabPages::INPUTS_MAIN_TAB_INDEX)
             {
@@ -1389,7 +1605,7 @@ MainComponent::MainComponent()
                     if (inputSlot < 0)
                         return;
                     streamDeckManager->registerPage (mainTab, subTab,
-                        InputsTabPages::createPage (subTab, vts, parameters.getClusterEdit(), inputSlot, flipModeState, stereoParamsState, lfoSubModeState, movCB));
+                        InputsTabPages::createPage (subTab, vts, parameters.getClusterEdit(), inputSlot, flipModeState, stereoParamsState, lfoSubModeState, movCB, inputSendsWindow, sendsCB));
                 }
             }
             else if (mainTab == OutputsTabPages::OUTPUTS_MAIN_TAB_INDEX)
@@ -1428,6 +1644,13 @@ MainComponent::MainComponent()
                         reverbAlgoSubMode, reverbIRDuration,
                         nullptr, nullptr,
                         onSoloReverbSD, onMutePreSD, onMutePostSD, onEditOnMapSD));
+            }
+            else if (mainTab == EffectsTabPages::EFFECTS_MAIN_TAB_INDEX)
+            {
+                auto& vts = parameters.getValueTreeState();
+                streamDeckManager->registerPage (mainTab, subTab,
+                    EffectsTabPages::createPage (subTab, vts, parameters.getEffectEdit(), channel - 1,
+                        effectsSoloState, effectsEditOnMapState, effectsLfoSubMode, effectsChainSlot, effectsChainBank, fxCB));
             }
             else if (mainTab == ClustersTabPages::CLUSTERS_MAIN_TAB_INDEX)
             {
@@ -1504,7 +1727,7 @@ MainComponent::MainComponent()
         auto resolveControllerTargets = [this]()
         {
             std::set<int> targets;
-            if (tabbedComponent.getCurrentTabIndex() == 4)   // Inputs tab
+            if (tabbedComponent.getCurrentTabIndex() == TabIndex::Inputs)
             {
                 if (inputsTab)
                 {
@@ -1783,6 +2006,14 @@ MainComponent::MainComponent()
             });
         };
 
+        // One undo step per push of the puck, as a map drag is one: the step
+        // opens on the tick the push starts, before its writes are queued, in
+        // the active tab's history - the tab the manager drives.
+        controllerManager->callbacks.onEditGestureStart = [this]()
+        {
+            parameters.getValueTreeState().beginUndoTransaction ("Space Mouse");
+        };
+
         // Add SpaceMouse device
         controllerManager->addDevice (std::make_unique<SpaceMouseDevice>());
 
@@ -1983,12 +2214,40 @@ MainComponent::MainComponent()
     reverbEngine = std::make_unique<ReverbEngine>();
     reverbEngine->setWorkgroupCoordinator(&workgroupCoordinator);
 
+    // The effects engine host. Prepared by setupSharedInputFeed once the rings
+    // exist and effect channels do (an empty session runs no engine), released
+    // wherever the rings are cleared. The trace hook is a diagnostic: with
+    // WFS_EFFECTS_TRACE set, the engine's telemetry is logged once per second,
+    // which is how an audio check reads without a GUI.
+    effectsHost = std::make_unique<EffectsHost>(parameters.getValueTreeState());
+    effectsHost->setWorkgroupCoordinator(&workgroupCoordinator);
+    effectsTraceEnabled = std::getenv("WFS_EFFECTS_TRACE") != nullptr;
+
     // Initialize LFO Processor for input position modulation
     lfoProcessor = std::make_unique<LFOProcessor>(parameters.getValueTreeState(), 64);
 
     // Initialize AutomOtion Processor for programmed input position movement
     automOtionProcessor = std::make_unique<AutomOtionProcessor>(parameters.getValueTreeState(), 64);
     automOtionProcessor->setDirtyTracker(&parameters.getDirtyTracker());
+
+    // The same processor over the effect returns, in offset mode: an effect's
+    // authored position is where the operator put that room in the show, so a
+    // movement travels as an offset the calculation engine adds and the
+    // position itself is never written. No dirty tracker for the same reason -
+    // this instance does not write the tree at all.
+    effectOtomoProcessor = std::make_unique<AutomOtionProcessor> (
+        parameters.getValueTreeState(),
+        AutomOtionFamily::effects (parameters.getValueTreeState(),
+                                   [this] (int fx, float x, float y, float z)
+                                   {
+                                       if (calculationEngine != nullptr)
+                                           calculationEngine->setEffectOtomoOffset (fx, x, y, z);
+                                   }));
+
+    // The LFO's effects twin: the same waveform engine over effectLFO*, no
+    // gyrophone, published per tick to the engine's second offset slot.
+    effectLfoProcessor = std::make_unique<LFOProcessor> (
+        LFOFamily::effects (parameters.getValueTreeState()));
 
     // Initialize Input Speed Limiter for smooth position movement
     speedLimiter = std::make_unique<InputSpeedLimiter>();
@@ -1997,12 +2256,16 @@ MainComponent::MainComponent()
     // Pass AutomOtionProcessor to InputsTab for UI control
     if (inputsTab != nullptr)
         inputsTab->setAutoMotionProcessor(automOtionProcessor.get());
+    if (effectsTab != nullptr)
+        effectsTab->setOtomoProcessor(effectOtomoProcessor.get());
 
     // Initialize Live Source Tamer engine for per-speaker gain reduction.
     // Row dimension is maxRenderSources, NOT maxInputChannels: lsGains is indexed
     // with the calculation engine's matrixIdx, whose rows cover derived stereo
-    // slice sources too. Sizing this smaller than the engine's matrix is an
-    // out-of-bounds read on the 50 Hz path.
+    // slice sources and effect returns too. Sizing this smaller than the
+    // engine's matrix is an out-of-bounds read on the 50 Hz path. The return
+    // rows have no Live Source section, so they read lsActive = false and stay
+    // at unity - 32 no-op lookups per tick, paid for the bounds guarantee.
     lsTamerEngine = std::make_unique<LiveSourceTamerEngine>(
         parameters.getValueTreeState(),
         *calculationEngine,
@@ -2019,6 +2282,20 @@ MainComponent::MainComponent()
             if (calculationEngine != nullptr)
             {
                 auto offset = calculationEngine->getLFOOffset(inputIndex);
+                x = offset.x;
+                y = offset.y;
+                z = offset.z;
+            }
+        });
+
+        // The effects twin. An effect return's AutomOtion and LFO travel as
+        // offsets the engine adds and the tree never carries, so the Map's grey
+        // dot can only come from here - and it shows the SUM, which is where
+        // the return renders.
+        mapTab->setEffectOtomoOffsetCallback([this](int effectIndex, float& x, float& y, float& z) {
+            if (calculationEngine != nullptr)
+            {
+                auto offset = calculationEngine->getEffectMovementOffset(effectIndex);
                 x = offset.x;
                 y = offset.y;
                 z = offset.z;
@@ -2252,26 +2529,39 @@ MainComponent::MainComponent()
     // Connect OutputsTab channel and subtab selection to StreamDeck
     outputsTab->onChannelSelected = [this](int channelId)
     {
-        if (streamDeckManager && tabbedComponent.getCurrentTabIndex() == 2)
+        if (streamDeckManager && tabbedComponent.getCurrentTabIndex() == TabIndex::Outputs)
             streamDeckManager->setChannel (channelId);
     };
 
     outputsTab->onSubTabChanged = [this](int subTabIndex)
     {
-        if (streamDeckManager && tabbedComponent.getCurrentTabIndex() == 2)
+        if (streamDeckManager && tabbedComponent.getCurrentTabIndex() == TabIndex::Outputs)
             streamDeckManager->setSubTab (subTabIndex);
     };
 
     // Connect ReverbTab channel and subtab selection to StreamDeck
     reverbTab->onChannelSelected = [this](int channelId)
     {
-        if (streamDeckManager && tabbedComponent.getCurrentTabIndex() == 3)
+        if (streamDeckManager && tabbedComponent.getCurrentTabIndex() == TabIndex::Reverb)
             streamDeckManager->setChannel (channelId);
     };
 
     reverbTab->onSubTabChanged = [this](int subTabIndex)
     {
-        if (streamDeckManager && tabbedComponent.getCurrentTabIndex() == 3)
+        if (streamDeckManager && tabbedComponent.getCurrentTabIndex() == TabIndex::Reverb)
+            streamDeckManager->setSubTab (subTabIndex);
+    };
+
+    // The Effects tab, likewise
+    effectsTab->onChannelSelected = [this](int channelId)
+    {
+        if (streamDeckManager && tabbedComponent.getCurrentTabIndex() == TabIndex::Effects)
+            streamDeckManager->setChannel (channelId);
+    };
+
+    effectsTab->onSubTabChanged = [this](int subTabIndex)
+    {
+        if (streamDeckManager && tabbedComponent.getCurrentTabIndex() == TabIndex::Effects)
             streamDeckManager->setSubTab (subTabIndex);
     };
 
@@ -2312,6 +2602,37 @@ MainComponent::MainComponent()
     // operator re-picks the project folder or stores a snapshot.
     refreshMidiSnapshotBindings();
 
+    // An accepted channel-count write over OSC (/wfs/config/effectChannels, the
+    // only one there is) reconfigures through the SAME funnel as the System
+    // Config editor and the MCP lifecycle tools. OSCManager refuses the write
+    // outright while processing runs, so this only ever fires from a stopped
+    // engine.
+    oscManager->onChannelTopologyChanged = [this] {
+        handleChannelCountChange();
+    };
+
+    // The Effects tab verbs. Selection and the map toggle are GUI state, so
+    // they go through the tab's external setters on the message thread; Clear
+    // goes to the engine, which honours it at the next batch boundary.
+    oscManager->onEffectSelected = [this] (int effectId) {
+        juce::MessageManager::callAsync ([this, effectId] {
+            if (effectsTab == nullptr) return;
+            effectsTab->selectChannel (effectId);
+            if (streamDeckManager && tabbedComponent.getCurrentTabIndex() == TabIndex::Effects)
+                streamDeckManager->setChannel (effectsTab->getCurrentChannel());
+        });
+    };
+    oscManager->onEffectEditOnMap = [this] (bool enabled) {
+        juce::MessageManager::callAsync ([this, enabled] {
+            if (effectsTab) effectsTab->setEditOnMapFromExternal (enabled);
+            if (mapTab) mapTab->setEffectEditMode (enabled);
+        });
+    };
+    oscManager->onEffectClear = [this] (int effectIdOrMinusOne) {
+        if (effectsHost != nullptr)
+            effectsHost->requestClear (effectIdOrMinusOne > 0 ? effectIdOrMinusOne - 1 : -1);
+    };
+
     // Snapshot OSC command callbacks
     // Both external trigger paths and the Inputs long-press funnel through the
     // one seam, so the recall logic cannot drift into three copies again.
@@ -2323,7 +2644,8 @@ MainComponent::MainComponent()
         auto& fileManager = parameters.getFileManager();
         if (!fileManager.hasValidProjectFolder())
         {
-            DBG ("OSC snapshot/store: no project folder configured");
+            WFSLogger::getInstance().logWarning ("OSC snapshot store of '" + snapshotName
+                                                 + "' failed: no project folder is open");
             return;
         }
 
@@ -2335,7 +2657,7 @@ MainComponent::MainComponent()
 
             if (inputsTab != nullptr)
             {
-                inputsTab->refreshSnapshotSelector();
+                snapshotSession->refreshList();
                 inputsTab->showStatusMessage (
                     LOC("inputs.messages.snapshotUpdated").replace ("{name}", snapshotName));
             }
@@ -2346,7 +2668,10 @@ MainComponent::MainComponent()
         }
         else
         {
-            DBG ("OSC snapshot/store: failed to save: " << fileManager.getLastError());
+            // A refused name included: a cue that stores nothing has to say so
+            // somewhere a Release build shows.
+            WFSLogger::getInstance().logWarning ("OSC snapshot store of '" + snapshotName
+                                                 + "' failed: " + fileManager.getLastError());
         }
     };
 
@@ -2566,7 +2891,8 @@ MainComponent::MainComponent()
 
     // Configure the visualisation component with user-configured channel counts
     inputsTab->configureVisualisation(parameters.getNumOutputChannels(),
-                                      parameters.getNumReverbChannels());
+                                      parameters.getNumReverbChannels(),
+                                      parameters.getValueTreeState().getNumEffectChannels());
 
     // Make sure you set the size of the component after
     // you add any child components.
@@ -2670,7 +2996,7 @@ MainComponent::MainComponent()
     {
         float masterLevelDb = (float)parameters.getConfigParam("MasterLevel");
         masterLevelGainTarget.store(
-            juce::Decibels::decibelsToGain(masterLevelDb, -92.0f),
+            attenuationDbToGain(masterLevelDb),
             std::memory_order_relaxed);
     }
 
@@ -2721,6 +3047,241 @@ MainComponent::MainComponent()
     // it touched, but latches the channel numbers: run it in a throwaway session.
     if (std::getenv("WFS_TEST_MUTES_PERSIST") != nullptr)
         runInputMutesPersistSelfTest();
+
+    // Hidden diagnostic: WFS_TEST_VALUE_GATES=1 checks the value gates of the
+    // 2026-09-28 audit (N2, S1) without the network, 8 s after launch so that
+    // a project given on the command line has loaded (it needs an input, an
+    // output and a reverb). Restores what it touched.
+    if (std::getenv("WFS_TEST_VALUE_GATES") != nullptr)
+    {
+        juce::Timer::callAfterDelay (8000, [safe = juce::Component::SafePointer<MainComponent> (this)]
+        {
+            if (safe != nullptr)
+                safe->runValueGatesSelfTest();
+        });
+    }
+
+    // Hidden diagnostic: WFS_TEST_ENGINE_RECONFIG=1 reshapes the engine while
+    // the device calls back (audit 2026-09-28, A1-A4). 10 s after launch, so
+    // that WFS_TEST_AUTOSTART_PROCESSING has had its project open and its
+    // processing started.
+    if (std::getenv("WFS_TEST_ENGINE_RECONFIG") != nullptr)
+    {
+        juce::Timer::callAfterDelay (10000, [safe = juce::Component::SafePointer<MainComponent> (this)]
+        {
+            if (safe != nullptr)
+                safe->runEngineReconfigSelfTest();
+        });
+    }
+
+    // Hidden diagnostic: WFS_TEST_RENDER_UI=<folder> renders every main tab and
+    // the Snapshot Scope window (both family grids) to PNG files in that folder,
+    // 8 s after launch - after a project given on the command line has loaded.
+    // A component snapshot paints offscreen, so this still works behind a locked
+    // workstation, where screen captures and injected clicks do not.
+    if (const char* renderDir = std::getenv("WFS_TEST_RENDER_UI"))
+    {
+        const juce::File dir (juce::String::fromUTF8 (renderDir));
+        MainComponent* const self = this;
+        juce::Timer::callAfterDelay (8000, [safe = juce::Component::SafePointer<MainComponent> (self), dir]
+        {
+            if (safe != nullptr)
+                safe->renderUiSnapshots (dir);
+        });
+    }
+}
+
+void MainComponent::renderUiSnapshots (const juce::File& dir)
+{
+    dir.createDirectory();
+
+    auto save = [&dir] (juce::Component& c, const juce::String& name)
+    {
+        if (c.getWidth() <= 0 || c.getHeight() <= 0)
+        {
+            WFSLogger::getInstance().logInfo ("RENDER-UI skipped " + name + " (no size)");
+            return;
+        }
+
+        auto image = c.createComponentSnapshot (c.getLocalBounds(), true, 1.0f);
+        auto file = dir.getChildFile (juce::File::createLegalFileName (name) + ".png");
+        file.deleteFile();
+        juce::FileOutputStream out (file);
+        if (out.openedOk() && juce::PNGImageFormat().writeImageToStream (image, out))
+            WFSLogger::getInstance().logInfo ("RENDER-UI wrote " + file.getFullPathName());
+    };
+
+    for (int i = 0; i < tabbedComponent.getNumTabs(); ++i)
+        if (auto* content = tabbedComponent.getTabContentComponent (i))
+            save (*content, "tab-" + juce::String (i) + "-" + tabbedComponent.getTabNames()[i]);
+
+    // Every sub-tab of the Effects tab, switched as a click on its bar would.
+    if (effectsTab != nullptr)
+    {
+        for (auto* child : effectsTab->getChildren())
+        {
+            if (auto* bar = dynamic_cast<juce::TabbedButtonBar*> (child))
+            {
+                const int original = bar->getCurrentTabIndex();
+                for (int s = 0; s < bar->getNumTabs(); ++s)
+                {
+                    bar->setCurrentTabIndex (s, false);
+                    bar->sendSynchronousChangeMessage();
+                    save (*effectsTab, "effects-subtab-" + juce::String (s) + "-" + bar->getTabNames()[s]);
+                }
+                bar->setCurrentTabIndex (original, false);
+                bar->sendSynchronousChangeMessage();
+                break;
+            }
+        }
+
+        // The reverb module's panel once per model, on the first effect: the
+        // rows each model shows. The model is put back as it was, and a
+        // session with no effect channel gets one for the render only.
+        auto& vts = parameters.getValueTreeState();
+        const int effectsBefore = vts.getNumEffectChannels();
+        if (effectsBefore == 0)
+            vts.setNumEffectChannels (1);
+        {
+            auto reverb = vts.getEffectModuleSection (0, WFSParameterIDs::FxReverb);
+            const juce::var storedModel = reverb.getProperty (WFSParameterIDs::effectReverbModel);
+            auto& panel = effectsTab->getModulePanel (8);
+            if (panel.getWidth() <= 0 || panel.getHeight() <= 0)
+                panel.setSize (juce::jmax (800, effectsTab->getWidth()), juce::jmax (640, effectsTab->getHeight() - 120));
+
+            for (const auto& model : EffectsModulePanel::reverbControl (WFSParameterIDs::effectReverbModel).items)
+            {
+                reverb.setProperty (WFSParameterIDs::effectReverbModel, model.value, nullptr);
+                panel.loadParameters();
+                save (panel, "effects-reverb-model-" + juce::String (model.value) + "-" + juce::String (model.slug));
+            }
+
+            reverb.setProperty (WFSParameterIDs::effectReverbModel, storedModel, nullptr);
+            panel.loadParameters();
+        }
+
+        // Every module's panel as stored and switched on, then the Chain
+        // sub-tab with every module on: the greying, the header line and the
+        // colours. Each bypass is put back as it was.
+        {
+            std::vector<std::pair<juce::ValueTree, std::pair<juce::Identifier, juce::var>>> bypasses;
+            for (int slot = 0; slot < WFSParameterDefaults::numEffectModuleSlots; ++slot)
+            {
+                auto& panel = effectsTab->getModulePanel (slot);
+                if (panel.getWidth() <= 0 || panel.getHeight() <= 0)
+                    panel.setSize (juce::jmax (800, effectsTab->getWidth()), juce::jmax (640, effectsTab->getHeight() - 120));
+
+                const auto controls = EffectsUi::controlsForSlot (slot);
+                auto module = vts.getEffectModuleSection (0, WFSValueTreeState::getEffectModuleType (slot));
+                const juce::String name = "effects-module-" + juce::String (slot) + "-"
+                                          + spatcore::effects::kSlots[static_cast<size_t> (slot)].token;
+                panel.loadParameters();
+                save (panel, name + "-stored");
+
+                for (int k = 0; k < controls.count; ++k)
+                    if (controls.controls[k].kind == EffectsUi::Kind::Bypass && module.isValid())
+                    {
+                        const auto& id = controls.controls[k].id;
+                        bypasses.push_back ({ module, { id, module.getProperty (id) } });
+                        module.setProperty (id, 0, nullptr);
+                    }
+                panel.loadParameters();
+                save (panel, name + "-on");
+            }
+
+            for (auto* child : effectsTab->getChildren())
+                if (auto* bar = dynamic_cast<juce::TabbedButtonBar*> (child))
+                {
+                    const int original = bar->getCurrentTabIndex();
+                    bar->setCurrentTabIndex (1, false);                 // Chain
+                    bar->sendSynchronousChangeMessage();
+                    save (*effectsTab, "effects-chain-all-on");
+                    bar->setCurrentTabIndex (original, false);
+                    bar->sendSynchronousChangeMessage();
+                    break;
+                }
+
+            for (auto& [module, prop] : bypasses)
+            {
+                if (prop.second.isVoid())
+                    module.removeProperty (prop.first, nullptr);
+                else
+                    module.setProperty (prop.first, prop.second, nullptr);
+            }
+            for (int slot = 0; slot < WFSParameterDefaults::numEffectModuleSlots; ++slot)
+                effectsTab->getModulePanel (slot).loadParameters();
+        }
+
+        if (effectsBefore == 0)
+            vts.setNumEffectChannels (0);
+    }
+
+    // Every sub-tab of the Inputs tab the same way. The Effect Sends bank has a
+    // strip per effect, so a session with no effect channel gets one for the
+    // render only, as the reverb-model render above does.
+    if (inputsTab != nullptr)
+    {
+        auto& vts = parameters.getValueTreeState();
+        const int effectsBefore = vts.getNumEffectChannels();
+        if (effectsBefore == 0)
+            vts.setNumEffectChannels (1);
+
+        // The deck follows the bar as it does when the operator is on the
+        // Inputs tab, so a sub-tab whose page marks the GUI (Effect Sends
+        // outlines the four strips its page holds) renders as the operator
+        // sees it; the deck is put back where it was afterwards.
+        const int deckMain = streamDeckManager ? streamDeckManager->getCurrentMainTab() : 0;
+        const int deckSub = streamDeckManager ? streamDeckManager->getCurrentSubTab() : 0;
+        const int deckChannel = streamDeckManager ? streamDeckManager->getChannel() : 0;
+        if (streamDeckManager)
+            streamDeckManager->syncNavigation (InputsTabPages::INPUTS_MAIN_TAB_INDEX, 0, inputsTab->getCurrentChannel());
+
+        for (auto* child : inputsTab->getChildren())
+        {
+            if (auto* bar = dynamic_cast<juce::TabbedButtonBar*> (child))
+            {
+                const int original = bar->getCurrentTabIndex();
+                for (int s = 0; s < bar->getNumTabs(); ++s)
+                {
+                    bar->setCurrentTabIndex (s, false);
+                    bar->sendSynchronousChangeMessage();
+                    save (*inputsTab, "inputs-subtab-" + juce::String (s) + "-" + bar->getTabNames()[s]);
+                }
+                bar->setCurrentTabIndex (original, false);
+                bar->sendSynchronousChangeMessage();
+                break;
+            }
+        }
+
+        if (streamDeckManager)
+            streamDeckManager->syncNavigation (deckMain, deckSub, deckChannel);
+        if (effectsBefore == 0)
+            vts.setNumEffectChannels (0);
+    }
+
+    // The Scope window, opened as the Effects tab's row opens it, then switched
+    // to the inputs grid as the Inputs tab's row would switch it.
+    if (snapshotSession != nullptr)
+    {
+        snapshotSession->editScope (WFSFileManager::SnapshotFamily::Effects);
+
+        for (int i = juce::Desktop::getInstance().getNumComponents(); --i >= 0;)
+        {
+            if (auto* window = dynamic_cast<SnapshotScopeWindow*> (juce::Desktop::getInstance().getComponent (i)))
+            {
+                if (auto* content = window->getContentComponent())
+                {
+                    save (*content, "scope-effects");
+                    snapshotSession->editScope (WFSFileManager::SnapshotFamily::Inputs);
+                    save (*content, "scope-inputs");
+                }
+                window->closeButtonPressed();
+                break;
+            }
+        }
+    }
+
+    WFSLogger::getInstance().logInfo ("RENDER-UI done");
 }
 
 void MainComponent::runLiveSourcePersistSelfTest()
@@ -2791,6 +3352,607 @@ void MainComponent::runLiveSourcePersistSelfTest()
             ls.setProperty(toggles[i], original[i], nullptr);
     }
     file.deleteFile();
+
+    logLine(failures == 0 ? "SELF-TEST RESULT: ALL PASS"
+                          : "SELF-TEST RESULT: FAIL (" + juce::String(failures) + ")");
+}
+
+void MainComponent::runValueGatesSelfTest()
+{
+    using namespace WFSParameterIDs;
+    using Router = WFSNetwork::OSCMessageRouter;
+    auto& vts = parameters.getValueTreeState();
+    auto& fm = parameters.getFileManager();
+    int failures = 0;
+
+    auto logLine = [](const juce::String& s) { WFSLogger::getInstance().logInfo(s); };
+    auto check = [&](bool ok, const juce::String& what)
+    {
+        if (! ok) ++failures;
+        logLine(juce::String("SELF-TEST ") + (ok ? "PASS " : "FAIL ") + what);
+    };
+
+    logLine("SELF-TEST begin (value gates: audit 2026-09-28 N2, S1; re-audit 2026-09-29 F1-F3, R1, B1, B2, B5, R8, S2)");
+
+    if (vts.getNumInputChannels() < 1 || vts.getNumOutputChannels() < 1 || vts.getNumReverbChannels() < 1)
+    {
+        logLine("SELF-TEST SKIP V: this session needs an input, an output and a reverb");
+        logLine("SELF-TEST RESULT: SKIPPED");
+        return;
+    }
+
+    //--------------------------------------------------------------------------
+    // G1: the OSC and tablet value reader, on messages built here.
+    auto osc = [](const char* address, std::initializer_list<juce::OSCArgument> args)
+    {
+        juce::OSCMessage m { juce::OSCAddressPattern (address) };
+        for (const auto& a : args)
+            m.addArgument (a);
+        return m;
+    };
+    auto num  = [](int v)         { return juce::OSCArgument (static_cast<juce::int32> (v)); };
+    auto real = [](float v)       { return juce::OSCArgument (v); };
+    auto text = [](const char* t) { return juce::OSCArgument (juce::String (t)); };
+
+    {
+        const auto out60 = Router::parseOutputMessage (osc ("/wfs/output/attenuation", { num (1), text ("60") }));
+        check (! out60.valid && out60.invalidReason.isNotEmpty(),
+               "G1: /wfs/output/attenuation 1 \"60\" is refused with a reason (it was read back as +60 dB)");
+        const auto outInf = Router::parseOutputMessage (osc ("/wfs/output/1/attenuation", { text ("inf") }));
+        check (! outInf.valid && outInf.invalidReason.contains ("takes a number"),
+               "G1: /wfs/output/1/attenuation \"inf\" is refused as not a number");
+        const auto outText = Router::parseOutputMessage (osc ("/wfs/output/attenuation", { num (2), text ("-9.5") }));
+        check (outText.valid && outText.value.isDouble() && static_cast<double> (outText.value) == -9.5,
+               "G1: a numeric string still sets an output (QLab types its arguments as strings)");
+        const auto rev60 = Router::parseReverbMessage (osc ("/wfs/reverb/attenuation", { num (1), text ("60") }));
+        check (! rev60.valid, "G1: /wfs/reverb/attenuation 1 \"60\" is refused");
+        const auto revInf = Router::parseReverbMessage (osc ("/wfs/reverb/1/attenuation", { text ("inf") }));
+        check (! revInf.valid, "G1: /wfs/reverb/1/attenuation \"inf\" is refused");
+        const auto inInc = Router::parseInputMessage (osc ("/wfs/input/attenuation", { num (2), text ("inc"), real (3.0f) }));
+        check (! inInc.valid && inInc.invalidReason.contains ("takes a number"),
+               "G1: /wfs/input/attenuation 2 inc 3 is refused (the word was stored and read as 0 dB)");
+        const auto inText = Router::parseInputMessage (osc ("/wfs/input/attenuation", { num (2), text ("-12.5") }));
+        check (inText.valid && static_cast<double> (inText.value) == -12.5, "G1: a numeric string still sets an input");
+        const auto inName = Router::parseInputMessage (osc ("/wfs/input/name", { num (3), text ("inf") }));
+        check (inName.valid && inName.value.toString() == "inf", "G1: a name is text, whatever it spells");
+        const auto remInf = Router::parseRemoteInputMessage (osc ("/remoteInput/attenuation", { num (2), text ("inf") }));
+        check (! remInf.valid && remInf.invalidReason.isNotEmpty(),
+               "G1: /remoteInput/attenuation 2 \"inf\" is refused (it was stored as an infinite gain)");
+        const auto rem60 = Router::parseRemoteInputMessage (osc ("/remoteInput/attenuation", { num (2), text ("60") }));
+        check (! rem60.valid, "G1: /remoteInput/attenuation 2 \"60\" is refused as out of range");
+        const auto remName = Router::parseRemoteInputMessage (osc ("/remoteInput/inputName", { num (2), text ("Lead vocal") }));
+        check (remName.valid && remName.value.toString() == "Lead vocal", "G1: the tablet still renames an input");
+        const auto remInc = Router::parseRemoteInputMessage (osc ("/remoteInput/attenuation", { num (2), text ("inc"), real (1.0f) }));
+        check (remInc.valid && remInc.type == Router::ParsedRemoteInput::Type::ParameterDelta,
+               "G1: the tablet's inc directive is still a delta");
+    }
+
+    //--------------------------------------------------------------------------
+    // G2: the store's rule, through the setters every writer uses.
+    {
+        WFSValueTreeState::ScopedUndoSuppression noUndo (vts);
+        const juce::var originalOutAtten = vts.getOutputParameter (0, outputAttenuation);
+        const juce::var originalRevAtten = vts.getReverbParameter (0, reverbAttenuation);
+        const juce::var originalPosX     = vts.getInputParameter (0, inputPositionX);
+        const juce::var originalPhaseX   = vts.getInputParameter (0, inputLFOphaseX);
+        auto outAtten = [&] { return vts.getOutputParameter (0, outputAttenuation); };
+
+        vts.setOutputParameter (0, outputAttenuation, -6.5);
+        check (static_cast<double> (outAtten()) == -6.5, "G2: a number lands");
+
+        for (const char* junk : { "inf", "-inf", "nan", "12abc", "", "0x10", "1e999" })
+        {
+            vts.setOutputParameter (0, outputAttenuation, juce::String (junk));
+            check (outAtten().isDouble() && static_cast<double> (outAtten()) == -6.5,
+                   "G2: the text \"" + juce::String (junk) + "\" at an output attenuation is refused and the value kept");
+        }
+        vts.setOutputParameter (0, outputAttenuation, std::numeric_limits<double>::quiet_NaN());
+        check (static_cast<double> (outAtten()) == -6.5, "G2: NaN is refused (it failed both comparisons of the clamp)");
+        vts.setOutputParameter (0, outputAttenuation, std::numeric_limits<double>::infinity());
+        check (static_cast<double> (outAtten()) == -6.5, "G2: infinity is refused, not clamped to a bound");
+
+        vts.setOutputParameter (0, outputAttenuation, juce::String ("60"));
+        check (outAtten().isDouble() && static_cast<double> (outAtten()) == 0.0,
+               "G2: the text \"60\" is clamped like the number 60, to 0 dB (it was stored and read as +60 dB)");
+        vts.setOutputParameter (0, outputAttenuation, juce::String ("-12.5"));
+        check (outAtten().isString() && static_cast<double> (outAtten()) == -12.5,
+               "G2: a numeric string in range is stored as it came (loads and recalls write text)");
+
+        vts.setInputParameter (0, inputPositionX, juce::String ("1.5e-6"));
+        check (std::abs (static_cast<double> (vts.getInputParameter (0, inputPositionX)) - 1.5e-6) < 1e-12,
+               "G2: scientific notation is a number (a load reads 1.5e-6 back that way, and MCP undo replays it)");
+        vts.setInputParameter (0, inputPositionX, juce::String ("1e3"));
+        check (static_cast<double> (vts.getInputParameter (0, inputPositionX)) == 50.0,
+               "G2: ...and one out of range is clamped");
+
+        vts.setReverbParameter (0, reverbAttenuation, -3.5);
+        vts.setReverbParameter (0, reverbAttenuation, juce::String ("inf"));
+        check (static_cast<double> (vts.getReverbParameter (0, reverbAttenuation)) == -3.5,
+               "G2: a reverb return refuses \"inf\" too");
+
+        vts.setInputParameter (0, inputLFOphaseX, juce::String ("500"));
+        check (static_cast<int> (vts.getInputParameter (0, inputLFOphaseX)) == 140,
+               "G2: an LFO phase string out of range still wraps (500 -> 140)");
+        vts.setInputParameter (0, inputLFOphaseX, std::numeric_limits<double>::quiet_NaN());
+        check (static_cast<int> (vts.getInputParameter (0, inputLFOphaseX)) == 140,
+               "G2: an LFO phase refuses NaN (roundToInt of it was undefined)");
+
+        vts.setOutputParameter (0, outputAttenuation, originalOutAtten);
+        vts.setReverbParameter (0, reverbAttenuation, originalRevAtten);
+        vts.setInputParameter (0, inputPositionX, originalPosX);
+        vts.setInputParameter (0, inputLFOphaseX, originalPhaseX);
+    }
+
+    //--------------------------------------------------------------------------
+    // G3: where an attenuation becomes the gain the audio thread multiplies by.
+    check (attenuationDbToGain (std::numeric_limits<float>::quiet_NaN()) == 0.0f, "G3: NaN dB is silence");
+    check (attenuationDbToGain (60.0f) == 1.0f, "G3: +60 dB is held to unity");
+    check (attenuationDbToGain (std::numeric_limits<float>::infinity()) == 1.0f, "G3: +inf dB is held to unity");
+    check (attenuationDbToGain (-std::numeric_limits<float>::infinity()) == 0.0f, "G3: -inf dB is silence");
+    check (std::abs (attenuationDbToGain (-6.0f) - juce::Decibels::decibelsToGain (-6.0f)) < 1e-7f,
+           "G3: in range it is the plain conversion");
+
+    //--------------------------------------------------------------------------
+    // G4: snapshot and template names are file names, never paths. In a
+    // scratch project folder: at a cold start the project folder is the user's
+    // last project, and a regression here would write into it.
+    {
+        const auto previousFolder = fm.getProjectFolder();
+        auto scratch = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("wfs-selftest-valuegates");
+        scratch.deleteRecursively();
+        scratch.createDirectory();
+        fm.setProjectFolder (scratch);
+        fm.createProjectFolderStructure();
+        const auto base = fm.getInputSnapshotsFolder();
+
+        for (const char* bad : { "../../system", "..\\..\\system", "C:evil", "sub/name", "", "   " })
+            check (WFSFileManager::getNamedXmlFile (base, bad) == juce::File(),
+                   "G4: the snapshot name \"" + juce::String (bad) + "\" is refused");
+        check (WFSFileManager::getNamedXmlFile (juce::File(), "Scene 1") == juce::File(),
+               "G4: with no project folder there is no file (it resolved against the drive root)");
+        for (const char* good : { "Scene #3", "Act 1, part 2", "..", "~home" })
+        {
+            const auto file = WFSFileManager::getNamedXmlFile (base, good);
+            check (file != juce::File() && file.getParentDirectory() == base,
+                   "G4: the snapshot name \"" + juce::String (good) + "\" is a file in the snapshots folder");
+        }
+
+        // OSC /wfs/input/snapshot/store "../vg-canary" wrote <project>/snapshots/vg-canary.xml.
+        const auto canary = base.getParentDirectory().getChildFile ("vg-canary.xml");
+        const bool stored = fm.saveInputSnapshotWithExtendedScope ("../vg-canary",
+                                                                   fm.getExtendedSnapshotScope ("../vg-canary"));
+        check (! stored && fm.getLastError().contains ("vg-canary"),
+               "G4: a store under a traversing name fails and says which name");
+        check (! canary.existsAsFile(), "G4: ...and writes nothing outside the snapshots folder");
+        check (fm.saveInputSnapshotWithExtendedScope ("Scene #3", fm.getExtendedSnapshotScope ("Scene #3"))
+                   && base.getChildFile ("Scene #3.xml").existsAsFile(),
+               "G4: a plain name with a # still stores");
+
+        // Re-audit 2026-09-29, B5: names Windows cannot hold as a file.
+        for (const juce::String bad : { "CON", "nul", "Com1", "LPT9.backup", "AUX .old", "a<b", "why?",
+                                        "pipe|name", "quote\"d", "tab\tname" })
+            check (WFSFileManager::getNamedXmlFile (base, bad) == juce::File(),
+                   "G4 B5: the snapshot name \"" + bad + "\" is refused (Windows cannot hold it)");
+        for (const char* ordinary : { "CONSOLE", "COM10", "nullify", "Aux Send" })
+            check (WFSFileManager::getNamedXmlFile (base, ordinary) != juce::File(),
+                   "G4 B5: ...while \"" + juce::String (ordinary) + "\" is an ordinary name");
+
+        // S2: a Store over an existing name keeps a copy, and apart from the
+        // section backups.
+        check (fm.saveInputSnapshotWithExtendedScope ("Scene #3", fm.getExtendedSnapshotScope ("Scene #3"))
+                   && fm.getSnapshotBackupFolder().findChildFiles (juce::File::findFiles, false,
+                                                                   "Scene #3_*.xml").size() == 1,
+               "G4 S2: a Store over an existing snapshot keeps a backup in backups/snapshots");
+        check (fm.getBackups ("Scene #3").isEmpty(), "G4 S2: ...not among the section backups");
+        check (fm.saveScopeTemplate ("tpl", WFSFileManager::ExtendedSnapshotScope())
+                   && fm.saveScopeTemplate ("tpl", WFSFileManager::ExtendedSnapshotScope())
+                   && fm.getTemplateBackupFolder().findChildFiles (juce::File::findFiles, false,
+                                                                   "tpl_*.xml").size() == 1,
+               "G4 S2: a template Save As over an existing one keeps a backup in backups/templates");
+
+        // R8: a save's temp file left by a crash is not a snapshot.
+        base.getChildFile (".Scene #3_temp1a2b3c4d.xml").replaceWithText ("<InputSnapshot midiChannel=\"1\" midiNote=\"60\"/>");
+        const auto listed = fm.getInputSnapshotNames();
+        check (listed.contains ("Scene #3") && ! listed.contains (".Scene #3_temp1a2b3c4d"),
+               "G4 R8: a leftover save temp file is not listed as a snapshot");
+
+        fm.setProjectFolder (previousFolder);
+        scratch.deleteRecursively();
+    }
+
+    //--------------------------------------------------------------------------
+    // G5: re-audit 2026-09-29, F1. An angle wrap that ends at any size: the
+    // subtract-360 loops never finished above about 8.6e9, so one OSC packet
+    // hung the message thread. On a build without the fix this phase hangs.
+    {
+        using WFSCoordinates::normalizeAngle;
+        const float huge = 1.0e10f;
+        const float wrapped = normalizeAngle (huge);
+        check (wrapped > -180.0f && wrapped <= 180.0f, "G5 F1: a 1e10 degree azimuth wraps into (-180, 180]");
+        check (normalizeAngle (540.0f) == 180.0f && normalizeAngle (-180.0f) == 180.0f
+                   && normalizeAngle (190.0f) == -170.0f && normalizeAngle (-190.0f) == 170.0f
+                   && normalizeAngle (-3600.0f) == 0.0f,
+               "G5 F1: ...and the ordinary wraps land where the loop put them");
+        check (normalizeAngle (std::numeric_limits<float>::infinity()) == 0.0f
+                   && normalizeAngle (std::numeric_limits<float>::quiet_NaN()) == 0.0f,
+               "G5 F1: an angle that is not finite reads as 0");
+        const float arrayWrapped = ArrayGeometry::normalizeAngle (-huge);
+        check (arrayWrapped >= -180.0f && arrayWrapped <= 180.0f && ArrayGeometry::normalizeAngle (-180.0f) == -180.0f,
+               "G5 F1: the array helper's wrap ends too, and keeps -180");
+        const float admWrapped = PluginAdmMapping::normalizeAngleDeg (huge);
+        check (admWrapped > -180.0f && admWrapped <= 180.0f && PluginAdmMapping::normalizeAngleDeg (-180.0f) == 180.0f,
+               "G5 F1: ...and the ADM-OSC one");
+    }
+
+    //--------------------------------------------------------------------------
+    // G6: re-audit 2026-09-29, F2. The front mute cone holds for any Angle On
+    // below 180. The shortcut "On >= 90 hears everything" switched it off, so
+    // at On 90 / Off 90 a source straight in front of a speaker played at full
+    // level. Read from the level matrix itself: output 1 is put 2 m upstage
+    // of input 1 (the source is in front of it: orientation 0 faces the
+    // audience) or 2 m downstage (the source is behind it, the control).
+    if (auto* calc = calculationEngine.get())
+    {
+        WFSValueTreeState::ScopedUndoSuppression noUndo (vts);
+        const juce::Identifier outIds[] = { outputPositionX, outputPositionY, outputPositionZ, outputOrientation,
+                                            outputPitch, outputAngleOn, outputAngleOff };
+        const juce::Identifier revIds[] = { reverbPositionX, reverbPositionY, reverbPositionZ, reverbOrientation,
+                                            reverbPitch, reverbAngleOn, reverbAngleOff };
+        std::vector<juce::var> outBefore, revBefore;
+        for (const auto& param : outIds) outBefore.push_back (vts.getOutputParameter (0, param));
+        for (const auto& param : revIds) revBefore.push_back (vts.getReverbParameter (0, param));
+
+        calc->recalculateAllInputPositions();
+        const auto src = calc->getCompositeInputPosition (0);
+
+        auto outputLevel = [&] (float dy, int angleOn, int angleOff)
+        {
+            vts.setOutputParameter (0, outputPositionX, src.x);
+            vts.setOutputParameter (0, outputPositionY, src.y + dy);
+            vts.setOutputParameter (0, outputPositionZ, src.z);
+            vts.setOutputParameter (0, outputOrientation, 0);
+            vts.setOutputParameter (0, outputPitch, 0);
+            vts.setOutputParameter (0, outputAngleOn, angleOn);
+            vts.setOutputParameter (0, outputAngleOff, angleOff);
+            calc->recalculateAllListenerPositions();
+            calc->recalculateMatrix (nullptr);
+            return calc->getLevel (0, 0);
+        };
+        auto reverbFeedLevel = [&] (float dy, int angleOn, int angleOff)
+        {
+            vts.setReverbParameter (0, reverbPositionX, src.x);
+            vts.setReverbParameter (0, reverbPositionY, src.y + dy);
+            vts.setReverbParameter (0, reverbPositionZ, src.z);
+            vts.setReverbParameter (0, reverbOrientation, 0);
+            vts.setReverbParameter (0, reverbPitch, 0);
+            vts.setReverbParameter (0, reverbAngleOn, angleOn);
+            vts.setReverbParameter (0, reverbAngleOff, angleOff);
+            calc->recalculateAllReverbPositions();
+            calc->recalculateMatrix (nullptr);
+            return calc->getInputReverbLevels()[0];
+        };
+
+        const float behind = outputLevel (-2.0f, 86, 90);
+        check (behind > 0.0f, "G6 F2: control - input 1 reaches output 1 from behind it (level " + juce::String (behind) + ")");
+        check (outputLevel (2.0f, 86, 90) == 0.0f, "G6 F2: in front of it at the default On 86 / Off 90 it is muted");
+        check (outputLevel (2.0f, 90, 90) == 0.0f,
+               "G6 F2: ...and still muted at On 90 / Off 90 (the shortcut played it at full level)");
+        check (outputLevel (2.0f, 120, 40) == 0.0f, "G6 F2: On 120 / Off 40 mutes the 40 degree front cone");
+        check (outputLevel (-2.0f, 120, 40) > 0.0f, "G6 F2: ...and not what is behind");
+        check (outputLevel (2.0f, 180, 0) > 0.0f, "G6 F2: On 180 still takes in every direction");
+
+        if (reverbFeedLevel (-2.0f, 86, 90) > 0.0f)
+        {
+            check (reverbFeedLevel (2.0f, 90, 90) == 0.0f, "G6 F2: a reverb feed keeps its front mute cone at On 90 / Off 90");
+            check (reverbFeedLevel (2.0f, 120, 40) == 0.0f, "G6 F2: ...and at On 120 / Off 40");
+        }
+        else
+        {
+            logLine ("SELF-TEST SKIP G6 F2 reverb: input 1 does not feed reverb 1 in this session");
+        }
+
+        for (size_t i = 0; i < std::size (outIds); ++i) vts.setOutputParameter (0, outIds[i], outBefore[i]);
+        for (size_t i = 0; i < std::size (revIds); ++i) vts.setReverbParameter (0, revIds[i], revBefore[i]);
+        calc->recalculateAllListenerPositions();
+        calc->recalculateAllReverbPositions();
+        calc->markMatrixDirty();
+    }
+
+    //--------------------------------------------------------------------------
+    // G7: re-audit 2026-09-29, F3. A relatively linked array member follows
+    // an orientation round the circle. The delta across the wrap (179 -> -179)
+    // was -358 and the member was clamped to the end stop.
+    if (vts.getNumOutputChannels() >= 2)
+    {
+        WFSValueTreeState::ScopedUndoSuppression noUndo (vts);
+
+        // An array nobody else is in, so the propagation reaches these two only.
+        std::set<int> usedArrays;
+        for (int o = 0; o < vts.getNumOutputChannels(); ++o)
+            usedArrays.insert (WFSVar::toInt (vts.getOutputParameter (o, outputArray)));
+        int freeArray = 0;
+        for (int a = WFSParameterDefaults::outputArrayMax; a >= 1 && freeArray == 0; --a)
+            if (usedArrays.count (a) == 0)
+                freeArray = a;
+
+        if (freeArray == 0)
+        {
+            logLine ("SELF-TEST SKIP G7 F3: every array number is in use in this session");
+        }
+        else
+        {
+            const juce::Identifier ids[] = { outputArray, outputApplyToArray, outputOrientation };
+            std::vector<juce::var> before;
+            for (int o = 0; o < 2; ++o)
+                for (const auto& param : ids)
+                    before.push_back (vts.getOutputParameter (o, param));
+
+            for (int o = 0; o < 2; ++o)
+            {
+                vts.setOutputParameter (o, outputArray, freeArray);
+                vts.setOutputParameter (o, outputApplyToArray, 2);   // RELATIVE
+            }
+            auto member = [&] { return WFSVar::toInt (vts.getOutputParameter (1, outputOrientation)); };
+
+            vts.setOutputParameter (0, outputOrientation, 179);
+            vts.setOutputParameter (1, outputOrientation, 170);
+            vts.setOutputParameterWithArrayPropagation (0, outputOrientation, -179, true);
+            check (member() == 172, "G7 F3: a 2 degree turn across 180 turns the member 2 degrees (170 -> "
+                                        + juce::String (member()) + "; clamping sent it to the end stop)");
+            vts.setOutputParameterWithArrayPropagation (0, outputOrientation, 179, true);
+            check (member() == 170, "G7 F3: ...and back");
+
+            vts.setOutputParameter (0, outputOrientation, 0);
+            vts.setOutputParameter (1, outputOrientation, 175);
+            vts.setOutputParameterWithArrayPropagation (0, outputOrientation, 10, true);
+            check (member() == -175, "G7 F3: a member pushed past 180 comes round the other side (175 + 10 -> "
+                                         + juce::String (member()) + ")");
+
+            size_t k = 0;
+            for (int o = 0; o < 2; ++o)
+                for (const auto& param : ids)
+                    vts.setOutputParameter (o, param, before[k++]);
+        }
+    }
+
+    //--------------------------------------------------------------------------
+    // G8: re-audit 2026-09-29, R1 + B2. The OSC-writable numbers that had no
+    // bounds entry kept a numeric STRING as text, so a QLab "1" to a gradient
+    // map layer enable switched the layer OFF (its handler takes a number).
+    {
+        const auto layerOn = Router::parseInputMessage (osc ("/wfs/input/gmLayer0Enabled", { num (1), text ("1") }));
+        check (layerOn.valid && layerOn.value.isDouble() && static_cast<double> (layerOn.value) == 1.0,
+               "G8 R1: /wfs/input/gmLayer0Enabled 1 \"1\" is the number 1 (it stayed text and read as off)");
+        const auto layerTwo = Router::parseInputMessage (osc ("/wfs/input/gmLayer2Enabled", { num (1), real (2.0f) }));
+        check (! layerTwo.valid, "G8 B2: a layer enable of 2 is refused as out of range");
+        const auto macro = Router::parseInputMessage (osc ("/wfs/input/muteMacro", { num (1), text ("3") }));
+        check (macro.valid && macro.value.isDouble(), "G8 B2: a mute macro sent as text is a number");
+        const auto sends = Router::parseInputMessage (osc ("/wfs/input/muteReverbSends", { num (1), text ("x") }));
+        check (! sends.valid, "G8 B2: the reverb-send mute refuses a word");
+        const auto link = Router::parseOutputMessage (osc ("/wfs/output/applyToArray", { num (1), text ("2") }));
+        check (link.valid && link.value.isDouble() && static_cast<double> (link.value) == 2.0,
+               "G8 B2: an output's array link mode sent as text is a number");
+        const auto linkBad = Router::parseOutputMessage (osc ("/wfs/output/applyToArray", { num (1), real (3.0f) }));
+        check (! linkBad.valid, "G8 B2: ...and 3 is refused");
+        const auto revMacro = Router::parseReverbMessage (osc ("/wfs/reverb/muteMacro", { num (1), real (26.0f) }));
+        check (! revMacro.valid, "G8 B2: a reverb mute macro past 25 is refused");
+        const auto numericName = Router::parseInputMessage (osc ("/wfs/input/name", { num (1), text ("1") }));
+        check (numericName.valid && numericName.value.isString(), "G8: a name that spells a number stays text");
+    }
+
+    //--------------------------------------------------------------------------
+    // G9: re-audit 2026-09-29, B1. The cluster LFO's OSC handler wrote the tree
+    // as sent, past the store gate. It now writes through setClusterLFOParameter
+    // (the OSC half, the refusal with a reason, is in osc_replay.py).
+    {
+        auto lfo = vts.getClusterLFOSection (1);
+        if (lfo.isValid())
+        {
+            const juce::Identifier ids[] = { clusterLFOamplitudeX, clusterLFOrateX, clusterLFOphaseX };
+            std::vector<juce::var> before;
+            for (const auto& param : ids) before.push_back (lfo.getProperty (param));
+
+            vts.setClusterLFOParameter (1, clusterLFOamplitudeX, 2.5);
+            vts.setClusterLFOParameter (1, clusterLFOamplitudeX, std::numeric_limits<double>::quiet_NaN());
+            check (static_cast<double> (lfo.getProperty (clusterLFOamplitudeX)) == 2.5,
+                   "G9 B1: a cluster LFO amplitude refuses NaN");
+            vts.setClusterLFOParameter (1, clusterLFOamplitudeX, 1.0e30);
+            check (static_cast<double> (lfo.getProperty (clusterLFOamplitudeX))
+                       == static_cast<double> (WFSParameterDefaults::clusterLFOamplitudeXYZMax),
+                   "G9 B1: ...and holds 1e30 to its range");
+            vts.setClusterLFOParameter (1, clusterLFOphaseX, 270);
+            check (WFSVar::toInt (lfo.getProperty (clusterLFOphaseX)) == -90, "G9 B1: a cluster LFO phase wraps (270 -> -90)");
+
+            for (size_t i = 0; i < std::size (ids); ++i)
+                lfo.setProperty (ids[i], before[i], nullptr);
+        }
+        else
+        {
+            logLine ("SELF-TEST SKIP G9 B1: this session has no cluster 1");
+        }
+    }
+
+    logLine(failures == 0 ? "SELF-TEST RESULT: ALL PASS"
+                          : "SELF-TEST RESULT: FAIL (" + juce::String(failures) + ")");
+}
+
+void MainComponent::runEngineReconfigSelfTest()
+{
+    auto& vts = parameters.getValueTreeState();
+    int failures = 0;
+
+    auto logLine = [](const juce::String& s) { WFSLogger::getInstance().logInfo(s); };
+    auto check = [&](bool ok, const juce::String& what)
+    {
+        if (! ok) ++failures;
+        logLine(juce::String("SELF-TEST ") + (ok ? "PASS " : "FAIL ") + what);
+    };
+
+    logLine("SELF-TEST begin (engine reconfiguration: audit 2026-09-28 A1-A4)");
+
+    // The device thread keeps calling back while this thread sleeps.
+    struct Blocks { uint32_t processed = 0, heldOut = 0; };
+    auto blocksDuring = [this] (int ms)
+    {
+        const uint32_t p0 = audioBlocksProcessed.load(), h0 = audioBlocksHeldOut.load();
+        juce::Thread::sleep (ms);
+        return Blocks { audioBlocksProcessed.load() - p0, audioBlocksHeldOut.load() - h0 };
+    };
+
+    if (! isProcessingActive() || blocksDuring (300).processed == 0)
+    {
+        logLine ("SELF-TEST SKIP E: processing is not running on a live device "
+                 "(WFS_TEST_AUTOSTART_PROCESSING=1 and a project on the command line)");
+        logLine ("SELF-TEST RESULT: SKIPPED");
+        return;
+    }
+
+    // Every buffer the callback reads, at the shape the counts say.
+    auto shapeHolds = [this]
+    {
+        const size_t matrix = (size_t) numRenderSources * (size_t) numOutputChannels;
+        return numOutputChannels == parameters.getNumOutputChannels()
+            && delayTimesMs.size() == matrix && targetDelayTimesMs.size() == matrix
+            && levels.size() == matrix && frLevels.size() == matrix
+            && (int) outputAttenuationGains.size() == numOutputChannels
+            && outputAttenuationTargetsCount == numOutputChannels
+            && (! audioEngineStarted || (int) sharedInputBuffers.size() == numRenderSources);
+    };
+
+    // The Start button's route: the flag, then the change handler.
+    auto restart = [this]
+    {
+        parameters.setConfigParam ("ProcessingEnabled", true);
+        handleProcessingChange (true);
+    };
+
+    // --- E2: the gate, from both sides ---------------------------------------
+    {
+        Blocks held;
+        {
+            const ScopedAudioStructureChange structureChange (*this);
+            held = blocksDuring (250);
+        }
+        const auto after = blocksDuring (250);
+        check (held.processed == 0 && held.heldOut > 0,
+               "E2: while a structure change is held no block runs; " + juce::String (held.heldOut)
+               + " were held out");
+        check (after.processed > 0 && after.heldOut == 0, "E2: once it ends, blocks run again");
+    }
+
+    // --- E3: a reload that changes no shape (every snapshot recall) ----------
+    {
+        const auto patchBefore = inputPatchMap;
+        const uint32_t heldBefore = audioBlocksHeldOut.load();
+        handleConfigReloaded();
+        check (isProcessingActive(), "E3: a reload with the same shape keeps processing");
+        check (audioBlocksHeldOut.load() == heldBefore, "E3: ...holds no block out, so a cue cannot drop out");
+        check (inputPatchMap == patchBefore, "E3: ...and leaves the patch map as it was");
+        check (shapeHolds(), "E3: the shape holds");
+    }
+
+    // --- E4/E5: a reload that changes the output count (A1) ------------------
+    const int originalOutputs = numOutputChannels;
+    vts.setNumOutputChannels (originalOutputs + 1);
+    handleConfigReloaded();
+    check (! audioEngineStarted,
+           "E4: a reload that changes the output count stops processing (it used to resize the "
+           "matrices under the running workers)");
+    check (numOutputChannels == originalOutputs + 1 && shapeHolds(),
+           "E4: ...and every buffer the callback reads has the new shape");
+
+    restart();
+    {
+        const auto flow = blocksDuring (300);
+        check (isProcessingActive() && flow.processed > 0 && shapeHolds(),
+               "E5: restarted at " + juce::String (numOutputChannels) + " outputs, blocks flow");
+    }
+
+    // --- E6: an algorithm switch while running (A4: the teardown handshake) --
+    {
+        const int algoBefore = juce::jmax (1, (int) parameters.getConfigParam ("ProcessingAlgorithm"));
+        const int otherCpu = (currentAlgorithm == ProcessingAlgorithm::InputBuffer) ? 2 : 1;
+        for (int id : { otherCpu, algoBefore })
+        {
+            parameters.setConfigParam ("ProcessingAlgorithm", id);
+            handleAlgorithmSelectionChange (id);
+            const auto flow = blocksDuring (300);
+            check (isProcessingActive() && flow.processed > 0 && shapeHolds(),
+                   "E6: switched to algorithm " + juce::String (id) + " while running; blocks flow at the right shape");
+        }
+    }
+
+    // --- E7: reshape cycles with processing on (A1, A3, A4) ------------------
+    {
+        bool allHeld = true;
+        for (int cycle = 0; cycle < 10; ++cycle)
+        {
+            vts.setNumOutputChannels (numOutputChannels + 1);     // a load that grows them
+            handleConfigReloaded();
+            allHeld = allHeld && ! audioEngineStarted && shapeHolds();
+            restart();
+
+            vts.setNumOutputChannels (numOutputChannels - 1);     // an edit that shrinks them
+            handleChannelCountChange();
+            allHeld = allHeld && ! audioEngineStarted && shapeHolds();
+            restart();
+
+            allHeld = allHeld && isProcessingActive() && shapeHolds();
+        }
+        check (allHeld && blocksDuring (300).processed > 0,
+               "E7: ten grow-and-shrink cycles while processing: stopped with the right shape at "
+               "every step, running again after each, blocks flow");
+    }
+
+    // --- E8: count changes under the binaural-only path (A2) -----------------
+    {
+        parameters.setConfigParam ("ProcessingEnabled", false);
+        handleProcessingChange (false);
+
+        const bool binauralBefore = vts.getBinauralEnabled();
+        const int binauralChannelBefore = vts.getBinauralOutputChannel();
+        vts.setBinauralOutputChannel (0);
+        vts.setBinauralEnabled (true);
+
+        // The timer syncs binaural on every fourth tick: tick until it has.
+        for (int tick = 0; tick < 8 && ! (binauralProcessor != nullptr && binauralProcessor->isEnabled()); ++tick)
+            timerCallback();
+
+        const bool live = binauralProcessor != nullptr && binauralProcessor->isEnabled()
+                       && binauralCalcEngine != nullptr && binauralCalcEngine->getBinauralOutputChannel() >= 0;
+        check (live, "E8: binaural on, processing off: the callback's binaural-only branch is live");
+
+        bool allHeld = live;
+        for (int cycle = 0; live && cycle < 10; ++cycle)
+        {
+            vts.setNumOutputChannels (numOutputChannels + ((cycle % 2) == 0 ? 1 : -1));
+            handleChannelCountChange();
+            allHeld = allHeld && binauralProcessor->isEnabled() && binauralProcessor->isThreadRunning()
+                   && shapeHolds();
+        }
+        check (allHeld && blocksDuring (300).processed > 0,
+               "E8: ten count changes re-prepare binaural while its branch is live; it stays enabled "
+               "and running, blocks flow");
+
+        vts.setBinauralEnabled (binauralBefore);
+        vts.setBinauralOutputChannel (binauralChannelBefore);
+        for (int tick = 0; tick < 8 && binauralProcessor != nullptr && binauralProcessor->isEnabled() != binauralBefore; ++tick)
+            timerCallback();
+    }
+
+    // --- E9: back as found ----------------------------------------------------
+    vts.setNumOutputChannels (originalOutputs);
+    handleChannelCountChange();
+    restart();
+    check (isProcessingActive() && numOutputChannels == originalOutputs && shapeHolds()
+               && blocksDuring (300).processed > 0,
+           "E9: back to " + juce::String (originalOutputs) + " outputs with processing running");
+
+    // Left stopped, so the session can quit without the "processing is
+    // running" prompt - and so the harness's graceful close also proves the
+    // shutdown after all of the above.
+    parameters.setConfigParam ("ProcessingEnabled", false);
+    handleProcessingChange (false);
 
     logLine(failures == 0 ? "SELF-TEST RESULT: ALL PASS"
                           : "SELF-TEST RESULT: FAIL (" + juce::String(failures) + ")");
@@ -3580,13 +4742,12 @@ void MainComponent::runChannelListSelfTest()
 
         check(numbersUnique, juce::String(label) + ": numbers unique and positive");
         check(rows.size() == n, juce::String(label) + ": patch rows == live channels");
-        check(renderSourceMap.count == n + 5 * vts.getNumStereoInputChannels(),
-              juce::String(label) + ": render sources = N + 5*stereo");
+        check(renderSourceMap.count == n + 5 * vts.getNumStereoInputChannels() + vts.getNumEffectChannels(),
+              juce::String(label) + ": render sources = N + 5*stereo + effects");
     };
 
     logLine("SELF-TEST begin (channel list flow)");
-    const int reverbs = parameters.getNumReverbChannels();
-    auto reconfig = [&]() { handleChannelCountChange(vts.getNumInputChannels(), numOutputChannels, reverbs); };
+    auto reconfig = [&]() { handleChannelCountChange(); };
 
     auto numbersInSlotOrder = [&]() -> juce::String
     {
@@ -4171,6 +5332,1874 @@ void MainComponent::runChannelListSelfTest()
                   juce::String("T: '") + e.name + "' is still deliberately excluded");
     }
 
+    // ---- Q: every per-effect property is either snapshotted or explicitly not --
+    // T's twin for the effects half of a snapshot (plan revision 8: one file
+    // carries both families). The same trap applies - store and recall read the
+    // same table, so an omission round-trips perfectly green - and one more: the
+    // effects scope is NODE-driven for the eleven modules, so the walk visits
+    // every direct child of an <Effect> AND their <Band>/<Tap> children, asking
+    // the predicate the store, the recall and the trim all use.
+    {
+        namespace ESS = EffectsSnapshotScope;
+
+        const int effectsBefore = vts.getNumEffectChannels();
+        if (effectsBefore == 0)
+            vts.setNumEffectChannels(1);
+
+        auto effect = vts.getEffectState(0);
+        check(effect.isValid(), "Q: an effect channel to walk");
+
+        int walked = 0;
+        int uncovered = 0;
+
+        std::function<void (const juce::ValueTree&, const juce::Identifier&)> walk;
+        walk = [&](const juce::ValueTree& node, const juce::Identifier& childOfEffect)
+        {
+            for (int i = 0; i < node.getNumProperties(); ++i)
+            {
+                const auto prop = node.getPropertyName(i);
+                if (prop == WFSParameterIDs::id)
+                    continue;
+
+                ++walked;
+                if (ESS::isEffectPropertyCovered(childOfEffect, prop))
+                    continue;
+
+                bool listed = false;
+                for (const auto& e : ESS::notSnapshotted())
+                    if (prop.toString() == e.name) { listed = true; break; }
+
+                if (! listed)
+                {
+                    ++uncovered;
+                    logLine("SELF-TEST FAIL Q: <" + childOfEffect.toString() + "> property '"
+                            + prop.toString() + "' is in no effects scope item and is not on the "
+                            "deliberately-not-snapshotted list - it will be silently absent "
+                            "from every snapshot");
+                }
+            }
+
+            for (int c = 0; c < node.getNumChildren(); ++c)
+                walk(node.getChild(c), childOfEffect);
+        };
+
+        for (int c = 0; c < effect.getNumChildren(); ++c)
+            walk(effect.getChild(c), effect.getChild(c).getType());
+
+        // 257 today; the floor only says the walk reached the modules at all.
+        check(walked > 200 && uncovered == 0,
+              "Q: every per-effect property (" + juce::String(walked)
+              + " walked, bands and taps included) is either snapshotted or explicitly excluded");
+
+        // The other direction, asked of the node each excluded property LIVES
+        // on (any module node answers "covered" for any name, since a module is
+        // carried whole) - and an exclusion whose property no node carries any
+        // more is a stale claim, so that fails too.
+        for (const auto& e : ESS::notSnapshotted())
+        {
+            const juce::Identifier prop (e.name);
+            juce::ValueTree home;
+            for (int c = 0; c < effect.getNumChildren() && ! home.isValid(); ++c)
+                if (effect.getChild(c).hasProperty(prop))
+                    home = effect.getChild(c);
+
+            check(home.isValid() && ! ESS::isEffectPropertyCovered(home.getType(), prop),
+                  juce::String("Q: '") + e.name + "' is still deliberately excluded (on <"
+                  + (home.isValid() ? home.getType().toString() : juce::String("no node")) + ">)");
+        }
+
+        // And the table names nothing the channel lacks: a mistyped property in
+        // an item would be carried by no snapshot while the grid offered it.
+        int ghosts = 0;
+        for (const auto& item : WFSFileManager::effectScopeTable().items)
+        {
+            if (item.nodeType.isValid())
+            {
+                if (! effect.getChildWithName(item.nodeType).isValid())
+                {
+                    ++ghosts;
+                    logLine("SELF-TEST FAIL Q: item '" + item.itemId + "' names module node <"
+                            + item.nodeType.toString() + "> which the channel does not have");
+                }
+                continue;
+            }
+
+            for (const auto& p : item.parameterIds)
+            {
+                bool found = false;
+                for (int c = 0; c < effect.getNumChildren() && ! found; ++c)
+                    found = ESS::isFlatNode(effect.getChild(c).getType()) && effect.getChild(c).hasProperty(p);
+
+                if (! found)
+                {
+                    ++ghosts;
+                    logLine("SELF-TEST FAIL Q: item '" + item.itemId + "' names '" + p.toString()
+                            + "', which no flat node of the channel carries");
+                }
+            }
+        }
+        check(ghosts == 0, "Q: every effects scope item names a node or property the channel has");
+
+        // The walk above takes a module's word for its properties: a module is
+        // carried whole, so the predicate answers "covered" for any name on it.
+        // That hides the one mistake a flat node cannot make - a property that
+        // is not a setting (a meter, a run-state flag) stamped onto a module
+        // node would be stored and recalled like one. So every module property
+        // must be one of that module's CSV controls, bands and taps included.
+        {
+            std::set<juce::String> bandControls, tapControls;
+            for (const auto* d : { &EffectsUi::descEQshape(), &EffectsUi::descEQfreq(), &EffectsUi::descEQgain(),
+                                   &EffectsUi::descEQq(), &EffectsUi::descEQslope() })
+                bandControls.insert(d->id.toString());
+            for (const auto* d : { &EffectsUi::descDelayTapTime(), &EffectsUi::descDelayTapLevel() })
+                tapControls.insert(d->id.toString());
+            const std::set<juce::String> noControls;
+
+            int strays = 0;
+            auto vet = [&](const juce::ValueTree& node, const std::set<juce::String>& controls, const juce::String& where)
+            {
+                for (int i = 0; i < node.getNumProperties(); ++i)
+                {
+                    const auto prop = node.getPropertyName(i);
+                    if (prop == WFSParameterIDs::id || controls.count(prop.toString()) > 0)
+                        continue;
+
+                    ++strays;
+                    logLine("SELF-TEST FAIL Q: <" + where + "> carries '" + prop.toString() + "', which is not one "
+                            "of its module's CSV controls - every snapshot would store and recall it as a setting");
+                }
+            };
+
+            for (int slot = 0; slot < WFSParameterDefaults::numEffectModuleSlots; ++slot)
+            {
+                const auto& type = WFSValueTreeState::getEffectModuleType(slot);
+                const auto module = effect.getChildWithName(type);
+                const auto own = EffectsUi::controlsForSlot(slot);
+
+                std::set<juce::String> ownControls;
+                for (int k = 0; k < own.count; ++k)
+                    ownControls.insert(own.controls[k].id.toString());
+
+                vet(module, ownControls, type.toString());
+                for (int c = 0; c < module.getNumChildren(); ++c)
+                {
+                    const auto child = module.getChild(c);
+                    vet(child,
+                        child.hasType(WFSParameterIDs::Band) ? bandControls
+                            : child.hasType(WFSParameterIDs::Tap) ? tapControls : noControls,
+                        type.toString() + "><" + child.getType().toString());
+                }
+            }
+            check(strays == 0, "Q: every module property is one of its module's CSV controls, bands and taps included");
+        }
+
+        if (effectsBefore == 0)
+            vts.setNumEffectChannels(0);
+    }
+
+    // ---- RP: the reverb's presets are an action, and Custom means edited -----
+    // Plan revision 9, section 9. A preset writes its fifteen values and then
+    // its type, from every surface; a real edit to one of those fifteen makes
+    // the reverb Custom first, on the source and on each linked member; OSC
+    // expands without propagating, and a burst reads "preset, then tweaks";
+    // snapshot recall writes raw.
+    {
+        namespace P = WFSParameterIDs;
+        namespace FX = spatcore::effects;
+        WFSValueTreeState::ScopedUndoDomain undoScope (vts, UndoDomain::Effects);
+
+        const int effectsBefore = vts.getNumEffectChannels();
+        vts.setNumEffectChannels(3);
+
+        auto reverbOf = [&](int ch) { return vts.getEffectModuleSection(ch, P::FxReverb); };
+        auto num = [](const juce::var& v) { return static_cast<double> (v); };
+        auto approxEq = [](double a, double b) { return std::abs(a - b) <= 1.0e-4 * juce::jmax(1.0, std::abs(b)); };
+        const int custom = static_cast<int>(FX::ReverbType::Custom);
+
+        // What a row owns, as the tree must hold it after an expansion.
+        auto holdsRow = [&](int ch, int type, juce::String& why)
+        {
+            const auto* row = FX::findReverbPreset(type);
+            auto r = reverbOf(ch);
+            if (row == nullptr || ! r.isValid()) { why = "no row / no node"; return false; }
+
+            const std::pair<juce::Identifier, double> want[] = {
+                { P::effectReverbModel, row->model }, { P::effectReverbERProfile, row->erProfile },
+                { P::effectReverbERLevel, row->erLevelDb }, { P::effectReverbPredelay, row->predelayMs },
+                { P::effectReverbRT60, row->rt60 }, { P::effectReverbRT60LowMult, row->rt60LowMult },
+                { P::effectReverbRT60HighMult, row->rt60HighMult }, { P::effectReverbCrossoverLow, row->crossoverLow },
+                { P::effectReverbCrossoverHigh, row->crossoverHigh }, { P::effectReverbDiffusion, row->diffusion },
+                { P::effectReverbSize, row->size }, { P::effectReverbModRate, row->modRateHz },
+                { P::effectReverbModDepth, row->modDepth }, { P::effectReverbShimmerPitch, row->shimmerPitch },
+                { P::effectReverbShimmerAmount, row->shimmerAmount } };
+
+            for (const auto& [id, v] : want)
+                if (! approxEq(num(r.getProperty(id)), v))
+                {
+                    why = id.toString() + " is " + r.getProperty(id).toString() + ", the row says " + juce::String(v);
+                    return false;
+                }
+            if (static_cast<int>(r.getProperty(P::effectReverbType)) != type)
+            {
+                why = "type is " + r.getProperty(P::effectReverbType).toString();
+                return false;
+            }
+            return true;
+        };
+
+        auto typeOf = [&](int ch) { return static_cast<int>(reverbOf(ch).getProperty(P::effectReverbType)); };
+        auto gui = [&](int ch, const juce::Identifier& id, const juce::var& v, bool propagate = false)
+        {
+            vts.setEffectModuleParameterWithLinkPropagation(ch, P::FxReverb, id, v, propagate);
+        };
+
+        // RP1: the owned set is the reverb's CSV controls minus bypass, type,
+        // tone and mix - and exactly what spatcore's expansion writes (15).
+        {
+            const auto controls = EffectsUi::controlsForSlot(8);
+            int owned = 0, wrong = 0;
+            for (int k = 0; k < controls.count; ++k)
+            {
+                const auto& id = controls.controls[k].id;
+                const bool taste = id == P::effectReverbBypass || id == P::effectReverbType
+                                || id == P::effectReverbTone || id == P::effectReverbMix;
+                const bool isOwned = WFSValueTreeState::isEffectReverbPresetOwned(id);
+                owned += isOwned ? 1 : 0;
+                if (isOwned == taste)
+                {
+                    ++wrong;
+                    logLine("SELF-TEST FAIL RP1: '" + id.toString() + "' is " + (isOwned ? "" : "not ")
+                            + "preset-owned");
+                }
+            }
+            check(wrong == 0 && owned == 15, "RP1: a preset owns the reverb's controls but bypass, type, tone and mix (15)");
+        }
+
+        // RP2: the Preset combo is spatcore's table: 23 ids, 5 alone without a row.
+        {
+            const auto& d = EffectsModulePanel::reverbControl (P::effectReverbType);
+            bool table = d.id == P::effectReverbType && static_cast<int>(d.items.size()) == static_cast<int>(FX::ReverbType::Count);
+            for (int k = 0; table && k < static_cast<int>(d.items.size()); ++k)
+                table = d.items[static_cast<size_t>(k)].value == k
+                     && ((k == custom) == (FX::findReverbPreset(k) == nullptr));
+            check(table, "RP2: the Preset combo lists spatcore's 23 ids, Custom the only one without a row");
+        }
+
+        // RP3: a fresh channel is Medium Hall, and holds it.
+        {
+            juce::String why;
+            check(holdsRow(0, static_cast<int>(FX::ReverbType::MediumHall), why) && typeOf(1) == 6,
+                  "RP3: a fresh channel is Medium Hall and holds its row (" + why + ")");
+        }
+
+        // RP4: the GUI funnel expands a preset, and one undo takes all of it
+        // back - and nothing else: an edit made just before, in the step that
+        // was open (a deck turn, an OSC value), must not go with it, so the
+        // preset opens a step of its own.
+        {
+            vts.beginUndoTransaction("self-test: the mix before a preset");
+            gui(0, P::effectReverbMix, 41.0);
+            gui(0, P::effectReverbType, static_cast<int>(FX::ReverbType::VocalPlate));
+            juce::String why;
+            check(holdsRow(0, static_cast<int>(FX::ReverbType::VocalPlate), why), "RP4: Vocal Plate lands whole (" + why + ")");
+
+            vts.undo();
+            check(holdsRow(0, static_cast<int>(FX::ReverbType::MediumHall), why),
+                  "RP4: ...and one undo restores Medium Hall, all fifteen (" + why + ")");
+            check(approxEq(num(reverbOf(0).getProperty(P::effectReverbMix)), 41.0),
+                  "RP4: ...and only the preset: the edit made just before it stays");
+
+            // The generic funnel - a plain per-channel write, which a single-
+            // instance module's property may also take - expands and flips
+            // the same way.
+            vts.setEffectParameterWithLinkPropagation(0, P::effectReverbType, static_cast<int>(FX::ReverbType::DrumPlate), false);
+            const bool expands = holdsRow(0, static_cast<int>(FX::ReverbType::DrumPlate), why);
+            vts.setEffectParameterWithLinkPropagation(0, P::effectReverbPredelay, 37.0, false);
+            check(expands && typeOf(0) == custom && approxEq(num(reverbOf(0).getProperty(P::effectReverbPredelay)), 37.0),
+                  "RP4: the generic funnel expands a preset, and an owned edit through it makes Custom (" + why + ")");
+        }
+
+        // RP5: only a REAL edit to an owned value flips; taste never does.
+        {
+            gui(0, P::effectReverbType, static_cast<int>(FX::ReverbType::VocalPlate));
+            gui(0, P::effectReverbRT60, FX::findReverbPreset(static_cast<int>(FX::ReverbType::VocalPlate))->rt60);
+            check(typeOf(0) == 15, "RP5: re-sending a preset's own value keeps the preset");
+            gui(0, P::effectReverbMix, 44.0);
+            gui(0, P::effectReverbTone, 7000.0);
+            check(typeOf(0) == 15, "RP5: tone and mix are taste - editing them keeps the preset");
+            gui(0, P::effectReverbRT60, 2.3);
+            check(typeOf(0) == custom && approxEq(num(reverbOf(0).getProperty(P::effectReverbRT60)), 2.3),
+                  "RP5: a real RT60 edit makes it Custom and lands");
+            gui(0, P::effectReverbType, 15);
+            gui(0, P::effectReverbModel, static_cast<int>(FX::ReverbModel::ModulatedHall));
+            check(typeOf(0) == custom, "RP5: so does changing the model by hand");
+        }
+
+        // RP6: the Stream Deck's write (EffectParamEdit, the object its dials
+        // hold) expands and flips the same way.
+        {
+            auto& edit = parameters.getEffectEdit();
+            edit.writeModule(1, P::FxReverb, P::effectReverbType, static_cast<int>(FX::ReverbType::DarkPlate));
+            juce::String why;
+            check(holdsRow(1, static_cast<int>(FX::ReverbType::DarkPlate), why), "RP6: a deck preset expands (" + why + ")");
+            edit.writeModule(1, P::FxReverb, P::effectReverbSize, 1.55);
+            check(typeOf(1) == custom, "RP6: a deck edit to an owned value flips");
+        }
+
+        // RP7: a link group - an ABSOLUTE and a RELATIVE member take the exact
+        // row (never a delta), a member set OFF takes nothing; then an owned
+        // edit flips every member whose own value moved.
+        {
+            for (int ch = 0; ch < 3; ++ch)
+            {
+                vts.setEffectParameter(ch, P::effectLinkGroup, 1);
+                gui(ch, P::effectReverbType, static_cast<int>(FX::ReverbType::SmallRoom));
+            }
+            vts.setEffectParameter(0, P::effectLinkMode, 1);    // ABSOLUTE
+            vts.setEffectParameter(1, P::effectLinkMode, 2);    // RELATIVE
+            vts.setEffectParameter(2, P::effectLinkMode, 0);    // OFF
+
+            gui(1, P::effectReverbRT60, 0.9);                   // member 1 off its row: relative offset
+            gui(0, P::effectReverbType, static_cast<int>(FX::ReverbType::StoneCathedral), true);
+            juce::String why0, why1, why2;
+            check(holdsRow(0, static_cast<int>(FX::ReverbType::StoneCathedral), why0)
+                      && holdsRow(1, static_cast<int>(FX::ReverbType::StoneCathedral), why1),
+                  "RP7: the ABSOLUTE and the RELATIVE member both hold Stone Cathedral exactly (" + why0 + why1 + ")");
+            check(holdsRow(2, static_cast<int>(FX::ReverbType::SmallRoom), why2),
+                  "RP7: the member set OFF keeps its own preset (" + why2 + ")");
+
+            gui(0, P::effectReverbDiffusion, 0.66, true);
+            check(typeOf(0) == custom && typeOf(1) == custom && typeOf(2) == 7,
+                  "RP7: a propagated owned edit flips the members it moved, not the one set OFF");
+
+            for (int ch = 0; ch < 3; ++ch)
+                vts.setEffectParameter(ch, P::effectLinkGroup, 0);
+        }
+
+        // RP8: OSC - a type expands on its channel alone, and a burst of a
+        // preset and a tweak ends Custom in either order (presets drain first).
+        if (oscManager != nullptr)
+        {
+            auto msg = [](const juce::String& address, int effectId, const juce::var& v)
+            {
+                juce::OSCMessage m { juce::OSCAddressPattern { address } };
+                m.addInt32 (effectId);
+                if (v.isInt()) m.addInt32 (static_cast<int> (v));
+                else           m.addFloat32 (static_cast<float> (static_cast<double> (v)));
+                return m;
+            };
+
+            vts.setEffectParameter(0, P::effectLinkGroup, 1);
+            vts.setEffectParameter(1, P::effectLinkGroup, 1);
+            vts.setEffectParameter(0, P::effectLinkMode, 1);
+            vts.setEffectParameter(1, P::effectLinkMode, 1);
+            gui(1, P::effectReverbType, static_cast<int>(FX::ReverbType::LiveChamber));
+
+            oscManager->receiveBurstForSelfTest({ msg("/wfs/effect/reverbType", 1, static_cast<int>(FX::ReverbType::ShimmerOctave)) });
+            juce::String why0, why1;
+            check(holdsRow(0, static_cast<int>(FX::ReverbType::ShimmerOctave), why0)
+                      && holdsRow(1, static_cast<int>(FX::ReverbType::LiveChamber), why1),
+                  "RP8: an OSC preset expands on its channel and reaches no linked member (" + why0 + why1 + ")");
+
+            oscManager->receiveBurstForSelfTest({ msg("/wfs/effect/reverbRT60", 1, 2.5),
+                                                  msg("/wfs/effect/reverbType", 1, static_cast<int>(FX::ReverbType::ConcertHall)) });
+            const bool tweakFirst = typeOf(0) == custom && approxEq(num(reverbOf(0).getProperty(P::effectReverbRT60)), 2.5)
+                                 && static_cast<int>(reverbOf(0).getProperty(P::effectReverbModel)) == 4;
+            oscManager->receiveBurstForSelfTest({ msg("/wfs/effect/reverbType", 1, static_cast<int>(FX::ReverbType::ConcertHall)),
+                                                  msg("/wfs/effect/reverbRT60", 1, 2.7) });
+            const bool presetFirst = typeOf(0) == custom && approxEq(num(reverbOf(0).getProperty(P::effectReverbRT60)), 2.7);
+            check(tweakFirst && presetFirst, "RP8: a {tweak, preset} burst ends Custom with the tweak, in either order");
+
+            // A QLab-style replay of a preset's own state lands exactly and
+            // stays that preset: the values it re-sends are the row's.
+            const auto* lush = FX::findReverbPreset(static_cast<int>(FX::ReverbType::LushHall));
+            oscManager->receiveBurstForSelfTest({ msg("/wfs/effect/reverbModel", 1, static_cast<int>(lush->model)),
+                                                  msg("/wfs/effect/reverbRT60", 1, lush->rt60),
+                                                  msg("/wfs/effect/reverbSize", 1, lush->size),
+                                                  msg("/wfs/effect/reverbType", 1, static_cast<int>(FX::ReverbType::LushHall)) });
+            check(holdsRow(0, static_cast<int>(FX::ReverbType::LushHall), why0),
+                  "RP8: replaying a preset's own values over OSC leaves that preset, unflipped (" + why0 + ")");
+
+            vts.setEffectParameter(0, P::effectLinkGroup, 0);
+            vts.setEffectParameter(1, P::effectLinkGroup, 0);
+        }
+        else
+        {
+            check(false, "RP8: the OSC manager exists");
+        }
+
+        // RP9: a snapshot recall writes raw - no expansion, no flip - even a
+        // state the funnels could never have produced (a preset label over a
+        // value that is not its row's).
+        {
+            auto& fm = parameters.getFileManager();
+            const auto previousProject = fm.getProjectFolder();
+            auto tempProject = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                                   .getChildFile("wfs-selftest-reverb-presets");
+            tempProject.deleteRecursively();
+            fm.setProjectFolder(tempProject);
+            fm.createProjectFolderStructure();
+
+            gui(0, P::effectReverbType, static_cast<int>(FX::ReverbType::VocalPlate));
+            reverbOf(0).setProperty(P::effectReverbRT60, 3.3, nullptr);        // raw: under the funnels
+            const bool stored = fm.saveInputSnapshotWithExtendedScope("rp-raw", WFSFileManager::ExtendedSnapshotScope());
+
+            gui(0, P::effectReverbType, static_cast<int>(FX::ReverbType::ConcertHall));
+            const bool recalled = fm.loadInputSnapshotWithExtendedScope("rp-raw", fm.getExtendedSnapshotScope("rp-raw"));
+            check(stored && recalled && typeOf(0) == 15
+                      && approxEq(num(reverbOf(0).getProperty(P::effectReverbRT60)), 3.3)
+                      && static_cast<int>(reverbOf(0).getProperty(P::effectReverbModel)) == 1,
+                  "RP9: a recall restores the reverb raw - the preset label, the odd value, the model");
+
+            fm.setProjectFolder(previousProject);
+            tempProject.deleteRecursively();
+        }
+
+        vts.setNumEffectChannels(effectsBefore);
+    }
+
+    // ---- RD: the reverb shows what its model uses, on screen and on the deck --
+    // Plan revision 9, section 8. The panel's rows follow the model (the CSV's
+    // Models column, the model resolved as the engine resolves it) and never
+    // overlap; the deck's Chain page reaches every control of every module
+    // exactly once across its banks - Distortion, Delay and Dynamics included,
+    // which a twelve-dial page used to cut short - and a deck turn that moves
+    // the reverb's model asks for the page to be laid out again.
+    {
+        namespace P = WFSParameterIDs;
+        namespace FX = spatcore::effects;
+
+        const int effectsBefore = vts.getNumEffectChannels();
+        vts.setNumEffectChannels(1);
+        auto reverb = vts.getEffectModuleSection(0, P::FxReverb);
+        const juce::var modelBefore = reverb.getProperty(P::effectReverbModel);
+
+        const auto all = EffectsUi::controlsForReverb();
+        auto expectedFor = [&](int storedModel)
+        {
+            std::vector<juce::Identifier> ids;
+            const int m = FX::resolveReverbModel(storedModel);
+            for (int k = 0; k < all.count; ++k)
+                if (EffectsUi::isVisibleForModel(all.controls[k], m))
+                    ids.push_back(all.controls[k].id);
+            return ids;
+        };
+
+        // RD1 / RD2: the panel, for every stored model id 0..5.
+        {
+            EffectsTabContext rdCtx (parameters);
+            rdCtx.currentChannel = 1;
+            EffectsModulePanel panel (rdCtx, 8);
+            panel.setSize(1100, 640);
+
+            const int expectedCount[] = { 15, 17, 15, 15, 17, 19 };     // bypass included
+            bool rows = true, noOverlap = true, menu = true, presetFirst = true;
+            int lowestRow[6] = {};
+            for (int model = 0; model <= 5; ++model)
+            {
+                reverb.setProperty(P::effectReverbModel, model, nullptr);
+                panel.loadParameters();
+                const auto shown = panel.getShownRowIds();
+                const auto preset = std::find(shown.begin(), shown.end(), P::effectReverbType);
+                if (preset == shown.end() || std::find(shown.begin(), preset, P::effectReverbModel) != preset)
+                {
+                    presetFirst = false;
+                    logLine("SELF-TEST FAIL RD1: model " + juce::String(model) + " does not show Preset above Model");
+                }
+                const int menuId = panel.getComboSelectedId(P::effectReverbModel);
+                if (menuId != FX::resolveReverbModel(model) + 1)
+                {
+                    menu = false;
+                    logLine("SELF-TEST FAIL RD1: stored model " + juce::String(model) + " shows menu id " + juce::String(menuId));
+                }
+                if (shown != expectedFor(model) || static_cast<int>(shown.size()) != expectedCount[model])
+                {
+                    rows = false;
+                    logLine("SELF-TEST FAIL RD1: model " + juce::String(model) + " shows "
+                            + juce::String(static_cast<int>(shown.size())) + " rows");
+                }
+
+                const auto bounds = panel.getShownRowBounds();
+                for (size_t a = 0; a < bounds.size(); ++a)
+                {
+                    lowestRow[model] = juce::jmax (lowestRow[model], bounds[a].getBottom());
+                    noOverlap = noOverlap && ! bounds[a].isEmpty();
+                    for (size_t b = a + 1; b < bounds.size(); ++b)
+                        if (bounds[a].intersects(bounds[b]))
+                        {
+                            noOverlap = false;
+                            logLine("SELF-TEST FAIL RD2: model " + juce::String(model) + ": rows "
+                                    + juce::String(static_cast<int>(a)) + " and " + juce::String(static_cast<int>(b)) + " overlap");
+                        }
+                }
+            }
+            check(rows, "RD1: the reverb shows its model's rows - 15 FDN, 17 Plate and Hall, 19 Shimmer; 2 and 3 the FDN's");
+            check(menu, "RD1: the Model menu names what runs - the FDN for the reserved 2 and 3");
+            check(presetFirst, "RD1: Preset sits above Model - a preset sets the model");
+            check(noOverlap, "RD2: no two rows overlap, for any model");
+            check(lowestRow[0] < lowestRow[5] && lowestRow[1] == lowestRow[4],
+                  "RD2: hidden rows take no room - the FDN's columns end above the shimmer's");
+        }
+
+        // RD3: the deck's banks reach every control of every module exactly
+        // once, in CSV order; for the reverb, every model's own set.
+        {
+            auto& edit = parameters.getEffectEdit();
+            auto chainSlot = std::make_shared<int>(0);
+            auto chainBank = std::make_shared<int>(0);
+            EffectsTabPages::EffectsCallbacks noCallbacks;
+
+            auto dialNames = [&](int slot)
+            {
+                // Every bank, in order, collected until the page wraps.
+                std::vector<juce::String> names;
+                *chainSlot = slot;
+                *chainBank = 0;
+                for (int guard = 0; guard < 8; ++guard)
+                {
+                    auto page = EffectsTabPages::createPage(1, vts, edit, 0, nullptr, nullptr, nullptr, chainSlot, chainBank, noCallbacks);
+                    for (int s = 1; s < 4; ++s)
+                        for (int d = 0; d < 4; ++d)
+                            if (page.sections[s].dials[d].setValue != nullptr)
+                                names.push_back(page.sections[s].dials[d].paramName);
+
+                    auto& pageButton = page.sections[1].buttons[3];
+                    if (pageButton.onPress == nullptr)
+                        break;                                  // one bank
+                    pageButton.onPress();
+                    if (*chainBank == 0)
+                        break;                                  // wrapped: every bank seen
+                }
+                return names;
+            };
+
+            auto wanted = [&](int slot)
+            {
+                std::vector<juce::String> names;
+                for (const auto* d : EffectsTabPages::chainPageControls(vts, 0, slot))
+                    names.push_back(LOC("effects.labels." + juce::String(d->key)).trimCharactersAtEnd(":"));
+                return names;
+            };
+
+            bool every = true, banked = true;
+            for (int slot = 0; slot < WFSParameterDefaults::numEffectModuleSlots; ++slot)
+            {
+                const auto got = dialNames(slot);
+                if (got != wanted(slot))
+                {
+                    every = false;
+                    logLine("SELF-TEST FAIL RD3: slot " + juce::String(slot) + " reached "
+                            + juce::String(static_cast<int>(got.size())) + " of "
+                            + juce::String(static_cast<int>(wanted(slot).size())) + " controls");
+                }
+                if (slot == 0 || slot == 3 || slot == 9)
+                    banked = banked && got.size() > 12;         // the three a single page used to cut short
+            }
+            const std::pair<int, size_t> reverbDials[] = { { 0, 14 }, { 1, 16 }, { 4, 16 }, { 5, 18 } };
+            for (const auto& [model, count] : reverbDials)
+            {
+                reverb.setProperty(P::effectReverbModel, model, nullptr);
+                const auto got = dialNames(8);
+                every = every && got == wanted(8) && got.size() == count;
+            }
+            check(every, "RD3: across its banks the deck reaches every control of every module once, and the reverb's per model (14 / 16 / 16 / 18)");
+            check(banked, "RD3: ...Distortion, Dynamics and Delay included, past twelve dials");
+
+            // A module change starts at the first bank.
+            *chainSlot = 3;
+            *chainBank = 1;
+            auto page = EffectsTabPages::createPage(1, vts, edit, 0, nullptr, nullptr, nullptr, chainSlot, chainBank, noCallbacks);
+            if (page.sections[0].buttons[1].onPress != nullptr)
+                page.sections[0].buttons[1].onPress();          // Next module
+            check(*chainSlot == 4 && *chainBank == 0, "RD3: the next module opens at its first bank");
+
+            // Prev / Next walk the chain as the strip shows it, not the slot
+            // numbers: Distortion is followed by the Bitcrusher, the ends
+            // wrap, and a reordered chain is followed at the press.
+            {
+                auto press = [&](int from, int button)
+                {
+                    *chainSlot = from;
+                    auto p = EffectsTabPages::createPage(1, vts, edit, 0, nullptr, nullptr, nullptr, chainSlot, chainBank, noCallbacks);
+                    if (p.sections[0].buttons[button].onPress != nullptr)
+                        p.sections[0].buttons[button].onPress();
+                    return *chainSlot;
+                };
+                auto chain = vts.getEffectChainSection(0);
+                const juce::var orderBefore = chain.getProperty(P::effectChainOrder);
+
+                chain.setProperty(P::effectChainOrder, WFSParameterDefaults::effectChainOrderDefault, nullptr);
+                const bool defaultWalk = press(0, 1) == 10 && press(10, 0) == 0     // dist -> crush -> dist
+                                      && press(1, 0) == 8 && press(8, 1) == 1;      // eq1 <- wraps -> reverb
+                chain.setProperty(P::effectChainOrder, "crush,delay,reverb,trem,phaser,mod,dyn2,dyn1,eq2,eq1,dist", nullptr);
+                const bool reorderedWalk = press(9, 1) == 8 && press(10, 0) == 0;  // delay -> reverb; crush <- wraps -> dist
+
+                chain.setProperty(P::effectChainOrder, orderBefore, nullptr);
+                check(defaultWalk && reorderedWalk, "RD3: Prev / Next walk the chain order the strip shows, wrapping at the ends");
+            }
+        }
+
+        // RD4: a deck turn that moves the reverb's model - the Model dial, or a
+        // preset of another model - asks for a relayout; one that does not
+        // move it asks for nothing.
+        {
+            auto& edit = parameters.getEffectEdit();
+            auto chainSlot = std::make_shared<int>(8);
+            auto chainBank = std::make_shared<int>(0);
+            int relayouts = 0;
+            EffectsTabPages::EffectsCallbacks cb;
+            cb.onModuleLayoutChanged = [&relayouts] { ++relayouts; };
+
+            vts.setEffectModuleParameterWithLinkPropagation(0, P::FxReverb, P::effectReverbType,
+                                                            static_cast<int>(FX::ReverbType::MediumHall), false);
+
+            auto findDial = [&](StreamDeckPage& page, const juce::Identifier& id) -> DialBinding*
+            {
+                juce::String key;
+                for (int k = 0; k < all.count; ++k)
+                    if (all.controls[k].id == id)
+                        key = all.controls[k].key;
+                const auto name = LOC("effects.labels." + key).trimCharactersAtEnd(":");
+                for (int s = 1; s < 4; ++s)
+                    for (int d = 0; d < 4; ++d)
+                        if (page.sections[s].dials[d].paramName == name && page.sections[s].dials[d].setValue != nullptr)
+                            return &page.sections[s].dials[d];
+                return nullptr;
+            };
+
+            auto page = EffectsTabPages::createPage(1, vts, edit, 0, nullptr, nullptr, nullptr, chainSlot, chainBank, cb);
+            auto* modelDial = findDial(page, P::effectReverbModel);
+            bool ok = modelDial != nullptr;
+            if (ok)
+            {
+                modelDial->setValue(1.0f);                      // the Plate: index 1 of FDN, Plate, Hall, Shimmer
+                ok = relayouts == 1 && static_cast<int>(reverb.getProperty(P::effectReverbModel)) == 1;
+            }
+            check(ok, "RD4: turning the deck's Model dial relays the page out");
+
+            page = EffectsTabPages::createPage(1, vts, edit, 0, nullptr, nullptr, nullptr, chainSlot, chainBank, cb);
+            relayouts = 0;
+            if (auto* presetDial = findDial(page, P::effectReverbType))
+            {
+                // Index 16 of the combo is id 16, Bright Plate: still a plate.
+                presetDial->setValue(static_cast<float>(FX::ReverbType::BrightPlate));
+                const bool samePlate = relayouts == 0 && static_cast<int>(reverb.getProperty(P::effectReverbType)) == 16;
+                presetDial->setValue(static_cast<float>(FX::ReverbType::ConcertHall));
+                check(samePlate && relayouts == 1 && static_cast<int>(reverb.getProperty(P::effectReverbModel)) == 4,
+                      "RD4: a deck preset relays out only when its model differs (Bright Plate no, Concert Hall yes)");
+            }
+            else
+            {
+                check(false, "RD4: the deck shows the reverb's Preset dial");
+            }
+        }
+
+        reverb.setProperty(P::effectReverbModel, modelBefore, nullptr);
+        vts.setNumEffectChannels(effectsBefore);
+    }
+
+    // ---- SD: a Stream Deck gesture is one undo step ----------------------------
+    // The GUI's rule for a drag, on the deck: the manager announces each
+    // gesture - a run of turns of one dial, a press - and MainComponent opens a
+    // step in the active tab's history before its first write. Driven through
+    // the manager's own device callbacks on the Effects tab's Channel
+    // Parameters page, whose first section has four dials and two toggles; no
+    // device is needed (nothing is sent to one).
+    if (streamDeckManager != nullptr)
+    {
+        namespace P = WFSParameterIDs;
+
+        const int effectsBefore = vts.getNumEffectChannels();
+        const int mainBefore = streamDeckManager->getCurrentMainTab();
+        const int subBefore = streamDeckManager->getCurrentSubTab();
+        const int channelBefore = streamDeckManager->getChannel();
+        vts.setNumEffectChannels(1);
+
+        {
+            WFSValueTreeState::ScopedUndoDomain undoScope (vts, UndoDomain::Effects);
+            auto* effectsUndo = vts.getUndoManagerForDomain(UndoDomain::Effects);
+            effectsUndo->clearUndoHistory();
+
+            streamDeckManager->syncNavigation(EffectsTabPages::EFFECTS_MAIN_TAB_INDEX, 0, 1);
+            streamDeckManager->refreshCurrentPage();
+            streamDeckManager->setActiveSection(0);
+            auto& dev = streamDeckManager->getDevice();
+
+            auto dial = [this](int d) -> const DialBinding*
+            {
+                auto* page = streamDeckManager->getCurrentPage();
+                return page != nullptr && page->sections[0].dials[d].isValid() ? &page->sections[0].dials[d] : nullptr;
+            };
+            auto value = [&](int d) { const auto* b = dial(d); return b != nullptr ? b->getValue() : -1.0e9f; };
+            auto away = [&](int d) { const auto* b = dial(d); return b != nullptr && b->getValue() + b->step > b->maxValue ? -1 : +1; };
+            auto latency = [&] { return static_cast<int>(vts.getEffectParameter(0, P::effectMinimalLatency)); };
+
+            const int dirA = away(0), dirB = away(1);
+            const float a0 = value(0), b0 = value(1);
+            const int latency0 = latency();
+
+            // Three turns of one dial are one run; another dial is another.
+            dev.onDialRotated(0, dirA);
+            dev.onDialRotated(0, dirA);
+            dev.onDialRotated(0, dirA);
+            dev.onDialRotated(1, dirB);
+            const float a3 = value(0);
+            check(dial(0) != nullptr && dial(1) != nullptr && a3 != a0 && value(1) != b0,
+                  "SD: the deck's turns reach their parameters");
+            vts.undo();
+            const bool lastRunOnly = value(1) == b0 && value(0) == a3;
+            vts.undo();
+            check(lastRunOnly && value(0) == a0,
+                  "SD: one undo takes back one run of turns - the other dial's, then all three of the first");
+
+            // A pause longer than the idle time starts a new step.
+            streamDeckManager->setGestureIdleMs(40);
+            dev.onDialRotated(0, dirA);
+            const float afterFirst = value(0);
+            juce::Thread::sleep(120);
+            dev.onDialRotated(0, dirA);
+            vts.undo();
+            const bool pauseSplits = value(0) == afterFirst;
+            vts.undo();
+            streamDeckManager->setGestureIdleMs(800);
+            check(pauseSplits && value(0) == a0, "SD: a pause longer than the idle time starts a new step");
+
+            // Navigation ends a run: the app re-selecting the section splits
+            // it, and so does the deck's own section button (device button 0,
+            // this page's first section).
+            dev.onDialRotated(0, dirA);
+            const float beforeSync = value(0);
+            streamDeckManager->setActiveSection(0);
+            dev.onDialRotated(0, dirA);
+            vts.undo();
+            const bool syncSplits = value(0) == beforeSync;
+            vts.undo();
+            check(syncSplits && value(0) == a0, "SD: the app selecting a section ends a run of turns");
+
+            dev.onDialRotated(0, dirA);
+            const float beforeButton = value(0);
+            dev.onButtonPressed(0);
+            dev.onButtonReleased(0);
+            dev.onDialRotated(0, dirA);
+            vts.undo();
+            const bool buttonSplits = value(0) == beforeButton;
+            vts.undo();
+            check(buttonSplits && value(0) == a0, "SD: the deck's section button ends a run of turns");
+
+            // Each press of a toggle (Minimal Latency, the second button of
+            // the section: device button 5) is a step of its own...
+            dev.onButtonPressed(5);
+            dev.onButtonReleased(5);
+            dev.onButtonPressed(5);
+            dev.onButtonReleased(5);
+            vts.undo();
+            const bool pressAlone = latency() != latency0;
+            vts.undo();
+            check(pressAlone && latency() == latency0, "SD: each press is its own step");
+
+            // ...and a turn right after a press is another, even with nothing
+            // between them: the press ended the run.
+            dev.onDialRotated(0, dirA);
+            const float beforePress = value(0);
+            dev.onButtonPressed(5);
+            dev.onButtonReleased(5);
+            dev.onDialRotated(0, dirA);
+            vts.undo();
+            const bool turnAlone = value(0) == beforePress && latency() != latency0;
+            vts.undo();
+            const bool pressNext = value(0) == beforePress && latency() == latency0;
+            vts.undo();
+            check(turnAlone && pressNext && value(0) == a0, "SD: a turn after a press is a step of its own");
+
+            effectsUndo->clearUndoHistory();
+        }
+
+        streamDeckManager->syncNavigation(mainBefore, subBefore, channelBefore);
+        vts.setNumEffectChannels(effectsBefore);
+    }
+    else
+    {
+        check(false, "SD: the Stream Deck manager exists");
+    }
+
+    // ---- SA: every click of a turn counts, and a fast turn goes further --------
+    // The deck reports a turning dial every 50 ms with the clicks of that window
+    // - up to 16 on a flick. Each click counts; a report of more than a couple
+    // multiplies the step, up to the dial's ceiling (StreamDeckDialAcceleration);
+    // press + turn stays the exact fine step. Driven through the device
+    // callbacks as SD is, on the same page's widest dial, from the middle of its
+    // range; the expected moves come from the helper itself, so tuning its
+    // constants never breaks the phase.
+    {
+        // A copied binding keeps every field: the pages copy some they build.
+        DialBinding original;
+        original.maxAcceleration = 7;
+        original.invertDirection = true;
+        int presses = 0;
+        original.onPress = [&presses] { ++presses; };
+        original.altBinding = std::make_unique<DialBinding>();
+        original.altBinding->paramName = "alt";
+        original.altBinding->maxAcceleration = 3;
+
+        DialBinding copied (original);
+        DialBinding assigned;
+        assigned = original;
+        bool kept = true;
+        for (auto* c : { &copied, &assigned })
+        {
+            kept = kept && c->maxAcceleration == 7 && c->invertDirection && c->onPress != nullptr
+                        && c->altBinding != nullptr && c->altBinding.get() != original.altBinding.get()
+                        && c->altBinding->paramName == "alt" && c->altBinding->maxAcceleration == 3;
+            if (c->onPress != nullptr)
+                c->onPress();
+        }
+        check(kept && presses == 2, "SA: a copied dial binding keeps its cap, its direction, its press and a copy of its alternate");
+    }
+
+    if (streamDeckManager != nullptr)
+    {
+        using Acceleration = spatcore::controllers::StreamDeckDialAcceleration;
+
+        const int effectsBefore = vts.getNumEffectChannels();
+        const int mainBefore = streamDeckManager->getCurrentMainTab();
+        const int subBefore = streamDeckManager->getCurrentSubTab();
+        const int channelBefore = streamDeckManager->getChannel();
+        vts.setNumEffectChannels(1);
+
+        {
+            WFSValueTreeState::ScopedUndoDomain undoScope (vts, UndoDomain::Effects);
+            auto* effectsUndo = vts.getUndoManagerForDomain(UndoDomain::Effects);
+            effectsUndo->clearUndoHistory();
+
+            streamDeckManager->syncNavigation(EffectsTabPages::EFFECTS_MAIN_TAB_INDEX, 0, 1);
+            streamDeckManager->refreshCurrentPage();
+            streamDeckManager->setActiveSection(0);
+            auto& dev = streamDeckManager->getDevice();
+
+            auto binding = [this](int d) -> DialBinding*
+            {
+                auto* page = streamDeckManager->getCurrentPage();
+                return page != nullptr && page->sections[0].dials[d].isValid() ? &page->sections[0].dials[d] : nullptr;
+            };
+            auto ceilingOf = [](const DialBinding& b)
+            {
+                return Acceleration::ceilingFor (b.maxAcceleration, b.minValue, b.maxValue, b.step, b.isExponential);
+            };
+
+            // The widest dial of the section: the one a fast turn speeds up most.
+            int d = -1;
+            for (int i = 0; i < 4; ++i)
+                if (auto* b = binding(i); b != nullptr && b->type != DialBinding::ComboBox
+                                          && (d < 0 || ceilingOf(*b) > ceilingOf(*binding(d))))
+                    d = i;
+            const int ceiling = d >= 0 ? ceilingOf(*binding(d)) : 0;
+            check(ceiling >= 3, "SA: the page has a dial wide enough to speed up (ceiling " + juce::String(ceiling) + ")");
+
+            if (ceiling >= 3)
+            {
+                const float step = binding(d)->step;
+                const float mid = 0.5f * (binding(d)->minValue + binding(d)->maxValue);
+                auto value = [&] { return binding(d)->getValue(); };
+                auto closeTo = [&](float v, float expected) { return std::abs(v - expected) < 0.1f * step; };
+                auto from = [&](int steps, bool fine) { return binding(d)->applyStep(steps, fine); };
+                auto start = [&]
+                {
+                    binding(d)->setValue(mid);
+                    effectsUndo->clearUndoHistory();
+                };
+
+                start();
+                float expected = from(1, false);
+                dev.onDialRotated(d, 1);
+                check(closeTo(value(), expected), "SA: a report of one click moves one step");
+
+                start();
+                expected = from(2, false);
+                dev.onDialRotated(d, 2);
+                check(closeTo(value(), expected), "SA: a report of two clicks moves two steps - no click is lost");
+
+                start();
+                const int fastSteps = 12 * Acceleration::multiplier(12, ceiling);
+                expected = from(fastSteps, false);
+                dev.onDialRotated(d, 12);
+                check(fastSteps > 12 && closeTo(value(), expected),
+                      "SA: a report of twelve clicks moves " + juce::String(fastSteps) + " steps");
+
+                start();
+                expected = from(12, true);
+                dev.onDialPressed(d);
+                dev.onDialRotated(d, 12);
+                dev.onDialReleased(d);
+                check(closeTo(value(), expected), "SA: pressed, twelve clicks are twelve fine steps - never faster");
+
+                // The wrong-way turn the operator saw: a flick, then two slow
+                // clicks back. Counting reports, not clicks, it came out one
+                // step BELOW where it started.
+                start();
+                dev.onDialRotated(d, 11);
+                dev.onDialRotated(d, -1);
+                dev.onDialRotated(d, -1);
+                check(value() > mid + 8.5f * step, "SA: a flick then two clicks back ends ahead of the start");
+
+                binding(d)->maxAcceleration = 1;
+                start();
+                expected = from(12, false);
+                dev.onDialRotated(d, 12);
+                const bool neverFaster = closeTo(value(), expected);
+                binding(d)->maxAcceleration = 2;
+                start();
+                const int cappedSteps = 12 * Acceleration::multiplier(12, 2);
+                expected = from(cappedSteps, false);
+                dev.onDialRotated(d, 12);
+                const bool capped = cappedSteps > 12 && closeTo(value(), expected);
+                binding(d)->maxAcceleration = 0;
+                check(neverFaster && capped, "SA: a dial's own cap holds - 1 never speeds up, 2 at most doubles");
+
+                start();
+                dev.onDialRotated(d, 5);
+                dev.onDialRotated(d, 12);
+                dev.onDialRotated(d, 3);
+                const bool moved = value() > mid + 20.0f * step;
+                vts.undo();
+                check(moved && closeTo(value(), mid), "SA: one undo takes back a fast run, as it does a slow one");
+            }
+
+            effectsUndo->clearUndoHistory();
+        }
+
+        streamDeckManager->syncNavigation(mainBefore, subBefore, channelBefore);
+        vts.setNumEffectChannels(effectsBefore);
+    }
+    else
+    {
+        check(false, "SA: the Stream Deck manager exists");
+    }
+
+    // ---- ES: the deck's Effect Sends page holds four effects of one input --------
+    // The Inputs tab's Effect Sends sub-tab on the deck: four dials for four
+    // effects' send levels from the shown input, four switches under them that
+    // keep the level, and a top row moving the window by one or by four. Built
+    // and driven without a device, as the RD3 bank checks are.
+    {
+        const int effectsBefore = vts.getNumEffectChannels();
+        vts.setNumEffectChannels(6);
+
+        // The sub-tab itself exists only while the session has effect channels.
+        auto inputsBarHasEffectSends = [this]
+        {
+            if (inputsTab == nullptr)
+                return false;
+            for (auto* child : inputsTab->getChildren())
+                if (auto* bar = dynamic_cast<juce::TabbedButtonBar*>(child))
+                    return bar->getTabNames().contains(LOC("inputs.tabs.effectSends"));
+            return false;
+        };
+        check(inputsBarHasEffectSends(), "ES0: with effect channels the Inputs tab shows its Effect Sends sub-tab, last");
+
+        auto window = std::make_shared<int>(0);
+        InputsTabPages::EffectSendsCallbacks cb;
+        int rebuilds = 0;
+        int seenFirst = -1, seenCount = -1;
+        cb.requestRebuild  = [&rebuilds] { ++rebuilds; };
+        cb.onWindowChanged = [&seenFirst, &seenCount] (int f, int c) { seenFirst = f; seenCount = c; };
+
+        const int slot = 0;
+        const int number = vts.getInputChannelNumber(slot);
+        auto build = [&]
+        {
+            return InputsTabPages::createPage(6, vts, parameters.getClusterEdit(), slot,
+                                              nullptr, nullptr, nullptr, {}, window, cb);
+        };
+
+        auto page = build();
+        check(page.numSections == 1 && seenFirst == 0 && seenCount == 4 && page.lcdMessage.isEmpty()
+              && page.topRowButtons[0].onPress != nullptr && page.topRowButtons[3].onPress != nullptr,
+              "ES1: the Effect Sends page opens on effects 1-4 with its four shift buttons");
+
+        auto& sec = page.sections[0];
+        const bool bound = sec.dials[2].setValue != nullptr && sec.dials[2].getValue != nullptr
+                        && sec.buttons[2].onPress != nullptr && sec.buttons[2].getState != nullptr;
+        check(bound, "ES2: dial 3 and switch 3 are bound");
+        if (bound)
+        {
+            sec.dials[2].setValue(-18.0f);
+            check(juce::approximatelyEqual(vts.getEffectSendLevelFromInput(2, number), -18.0f)
+                  && juce::approximatelyEqual(sec.dials[2].getValue(), -18.0f)
+                  && juce::approximatelyEqual(vts.getEffectSendLevelFromInput(1, number), 0.0f)
+                  && juce::approximatelyEqual(vts.getEffectSendLevelFromInput(3, number), 0.0f),
+                  "ES2: dial 3 sets effect 3's send from this input, and only that cell");
+            sec.buttons[2].onPress();
+            check(vts.getEffectSendOnFromInput(2, number) && sec.buttons[2].getState()
+                  && juce::approximatelyEqual(vts.getEffectSendLevelFromInput(2, number), -18.0f),
+                  "ES2: switch 3 turns the send on and keeps its level");
+            sec.buttons[2].onPress();
+            check(! vts.getEffectSendOnFromInput(2, number) && ! sec.buttons[2].getState(),
+                  "ES2: ...and off again");
+        }
+
+        page.topRowButtons[2].onPress();
+        check(*window == 1 && rebuilds == 1, "ES3: one step right moves the window to effects 2-5 and asks for the page again");
+        page.topRowButtons[3].onPress();
+        check(*window == 2 && rebuilds == 2, "ES3: a page right stops at the last four (3-6)");
+        page.topRowButtons[0].onPress();
+        check(*window == 0 && rebuilds == 3, "ES3: a page left goes back to the first four");
+        page.topRowButtons[1].onPress();
+        check(*window == 0 && rebuilds == 3, "ES3: at the first effect a step left asks for nothing");
+
+        *window = 2;
+        page = build();
+        check(seenFirst == 2 && seenCount == 4 && page.sections[0].dials[0].getValue != nullptr
+              && juce::approximatelyEqual(page.sections[0].dials[0].getValue(), -18.0f),
+              "ES4: after the shift the first dial is effect 3, at the level set above");
+
+        *window = 9;
+        page = build();
+        check(*window == 2 && seenFirst == 2, "ES4: a window past the end is pulled back to the last four");
+
+        vts.setNumEffectChannels(0);
+        page = build();
+        check(page.lcdMessage.isNotEmpty() && page.sections[0].dials[0].getValue == nullptr
+              && page.sections[0].buttons[0].onPress == nullptr,
+              "ES5: without effect channels the page says so and binds nothing");
+        check(! inputsBarHasEffectSends(), "ES5: ...and the Inputs tab hides the sub-tab");
+
+        vts.setNumEffectChannels(effectsBefore);
+    }
+
+    // ---- SM: one push of the Space Mouse is one undo step --------------------
+    // The map's rule - one drag, one step - for the puck, the joysticks and the
+    // auto-centering sliders. The manager runs without a device or a message
+    // loop: events as a device delivers them, 50 Hz ticks by hand, and the move
+    // callbacks swapped for synchronous ones while the test runs (the real ones
+    // post their writes to the message loop). The gesture announcement stays
+    // MainComponent's own.
+    if (controllerManager != nullptr && inputsTab != nullptr && clustersTab != nullptr && mapTab != nullptr
+        && parameters.getNumInputChannels() > 0)
+    {
+        auto& cm = *controllerManager;
+        constexpr int testDevice = 9901;
+        const int ch = 0;
+
+        const auto savedCallbacks = cm.callbacks;
+        const int savedTab = cm.activeTab;
+        const bool savedEnabled = cm.isEnabled();
+
+        {
+            WFSValueTreeState::ScopedUndoDomain undoScope (vts, UndoDomain::Input);
+            auto* inputUndo = vts.getUndoManagerForDomain(UndoDomain::Input);
+            inputUndo->clearUndoHistory();
+
+            auto approx = [](float a, float b) { return std::abs(a - b) < 1.0e-4f; };
+            auto posX = [&] { return static_cast<float>(parameters.getInputParam(ch, "inputPositionX")); };
+
+            cm.callbacks.moveCurrentChannel = [this, ch](float dx, float dy, float dz) { mapTab->moveInputByDelta(ch, dx, dy, dz); };
+            cm.callbacks.moveSelectedDelta = [this, ch](float dx, float dy, float dz) { mapTab->moveInputByDelta(ch, dx, dy, dz); };
+            cm.callbacks.getSelectedInputs = [ch] { return std::set<int> { ch }; };
+            cm.callbacks.getSelectedClusterRef = [] { return 0; };
+            cm.callbacks.rotateSelected = nullptr;
+            cm.callbacks.axisDeflection = nullptr;
+            cm.callbacks.panMap = nullptr;
+            cm.callbacks.zoomMap = nullptr;
+            cm.callbacks.fitAllInputs = nullptr;
+            cm.callbacks.fitStage = nullptr;
+            cm.setEnabled(true);
+            cm.activeTab = TabIndex::Inputs;
+
+            ControllerEvent connect;
+            connect.type = ControllerEvent::Connected;
+            connect.deviceId = testDevice;
+            connect.deviceName = "SpaceMouse (self-test)";
+            cm.injectEventForTest(connect);
+
+            // Push along X towards the stage centre, so no constraint stops it.
+            const float dir = posX() > 0.0f ? -0.5f : 0.5f;
+            auto axisX = [&](float v)
+            {
+                ControllerEvent e;
+                e.type = ControllerEvent::AxisMoved;
+                e.deviceId = testDevice;
+                e.axisOrButton = 0;
+                e.value = v;
+                cm.injectEventForTest(e);
+            };
+            auto push = [&](int ticks) { axisX(dir); for (int i = 0; i < ticks; ++i) cm.tickForTest(); };
+            auto rest = [&](int ticks) { axisX(0.0f); for (int i = 0; i < ticks; ++i) cm.tickForTest(); };
+
+            rest(ControllerManager::kGestureRestTicks);
+            const float x0 = posX();
+            push(5);
+            const float x1 = posX();
+            rest(ControllerManager::kGestureRestTicks);
+            push(3);
+            const float x2 = posX();
+            check(! approx(x1, x0) && ! approx(x2, x1), "SM: a push of the puck moves the input");
+            vts.undo();
+            const bool secondOnly = approx(posX(), x1);
+            vts.undo();
+            check(secondOnly && approx(posX(), x0), "SM: one undo takes back one push - the second, then the first");
+
+            // A return to rest shorter than the rest time is the same push.
+            rest(ControllerManager::kGestureRestTicks);
+            push(4);
+            rest(3);
+            push(4);
+            const float flickered = posX();
+            vts.undo();
+            check(! approx(flickered, x0) && approx(posX(), x0), "SM: a return to rest shorter than the rest time stays in one step");
+
+            // The same push driving another tab is another step.
+            rest(ControllerManager::kGestureRestTicks);
+            push(4);
+            const float onInputs = posX();
+            cm.activeTab = TabIndex::Map;
+            push(4);
+            vts.undo();
+            const bool mapPushOnly = approx(posX(), onInputs);
+            vts.undo();
+            check(mapPushOnly && approx(posX(), x0), "SM: a change of tab starts a new step");
+
+            rest(1);
+            cm.forgetDeviceForTest(testDevice);
+
+            // The joystick and the auto-centering slider fire their gesture
+            // hook when pressed...
+            {
+                WfsJoystickComponent joystick;
+                WfsAutoCenterSlider slider { WfsAutoCenterSlider::Orientation::vertical };
+                joystick.setSize(100, 100);
+                slider.setSize(30, 100);
+                int joystickGestures = 0, sliderGestures = 0;
+                joystick.onGestureStart = [&] { ++joystickGestures; };
+                slider.onGestureStart = [&] { ++sliderGestures; };
+
+                auto press = [](juce::Component& c, juce::Point<float> at)
+                {
+                    const auto now = juce::Time::getCurrentTime();
+                    const juce::MouseEvent e (juce::Desktop::getInstance().getMainMouseSource(), at, juce::ModifierKeys(),
+                                              juce::MouseInputSource::defaultPressure, juce::MouseInputSource::defaultOrientation,
+                                              juce::MouseInputSource::defaultRotation, juce::MouseInputSource::defaultTiltX,
+                                              juce::MouseInputSource::defaultTiltY, &c, &c, now, at, now, 1, false);
+                    c.mouseDown(e);
+                    c.mouseUp(e);
+                };
+                press(joystick, { 70.0f, 50.0f });
+                press(slider, { 15.0f, 20.0f });
+                check(joystickGestures == 1 && sliderGestures == 1,
+                      "SM: a press of a joystick or of an auto-centering slider starts a gesture");
+            }
+
+            // ...and the tabs open a step with it: a write made before the
+            // press survives the undo of the drag.
+            {
+                auto stepOpenedBy = [&](const std::function<void()>& hook)
+                {
+                    if (hook == nullptr)
+                        return false;
+                    const float att0 = static_cast<float>(parameters.getInputParam(ch, "inputAttenuation"));
+                    const float att1 = approx(att0, -7.0f) ? -8.0f : -7.0f;
+                    vts.beginUndoTransaction("self-test: before the drag");
+                    parameters.setInputParam(ch, "inputAttenuation", att1);
+                    hook();
+                    const float before = posX();
+                    parameters.setInputParam(ch, "inputPositionX", before + dir * 0.5f);
+                    vts.undo();
+                    const bool dragOnly = approx(posX(), before)
+                                       && approx(static_cast<float>(parameters.getInputParam(ch, "inputAttenuation")), att1);
+                    vts.undo();
+                    return dragOnly && approx(static_cast<float>(parameters.getInputParam(ch, "inputAttenuation")), att0);
+                };
+                check(stepOpenedBy(inputsTab->getPositionJoystickForTest().onGestureStart)
+                          && stepOpenedBy(inputsTab->getPositionZSliderForTest().onGestureStart)
+                          && stepOpenedBy(clustersTab->getPositionJoystickForTest().onGestureStart),
+                      "SM: the Inputs tab's joystick and Z slider and the Clusters tab's joystick each open a step");
+            }
+
+            inputUndo->clearUndoHistory();
+        }
+
+        cm.callbacks = savedCallbacks;
+        cm.activeTab = savedTab;
+        cm.setEnabled(savedEnabled);
+    }
+    else
+    {
+        check(false, "SM: the controller manager, the Inputs, Clusters and Map tabs and an input exist");
+    }
+
+    // ---- N: one snapshot carries the inputs AND the effects ------------------
+    // Plan revision 8. Every assertion reads a FILE the store wrote or a value
+    // a recall of that file wrote back, never the builder's own output: a
+    // store and a recall that agree with each other about a wrong table would
+    // round-trip green, which is what Q exists for; N checks the plumbing -
+    // that every node KIND survives (flat property, instanced module, band,
+    // tap, the two send-row shapes, the per-output row), that the scope is
+    // honoured in both directions and on disk, and that each half of a recall
+    // lands in its own tab's undo history.
+    {
+        namespace P = WFSParameterIDs;
+        using Scope = WFSFileManager::ExtendedSnapshotScope;
+
+        auto& fm = parameters.getFileManager();
+        const auto previousProject = fm.getProjectFolder();
+        auto tempProject = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                               .getChildFile("wfs-selftest-snapshots-project");
+        tempProject.deleteRecursively();
+        fm.setProjectFolder(tempProject);
+        check(fm.createProjectFolderStructure(), "N0: a throwaway project folder");
+
+        // A store and a recall both latch the channel numbers; put it back.
+        auto ioLatch = vts.getIOState();
+        const bool latchHadProperty = ioLatch.hasProperty(P::channelNumbersUserOwned);
+        const juce::var latchBefore = ioLatch.getProperty(P::channelNumbersUserOwned);
+
+        const int effectsBefore = vts.getNumEffectChannels();
+        vts.setNumEffectChannels(2);
+        const int numInputs = vts.getNumInputChannels();
+        const bool twoOutputs = vts.getNumOutputChannels() >= 2;
+
+        auto snapFile = [&](const juce::String& name)
+        {
+            return fm.getInputSnapshotsFolder().getChildFile(name + ".xml");
+        };
+
+        auto readSnap = [&](const juce::String& name) -> juce::ValueTree
+        {
+            if (auto xml = juce::XmlDocument::parse(snapFile(name)))
+                return juce::ValueTree::fromXml(*xml);
+            return {};
+        };
+
+        auto writeSnap = [&](const juce::String& name, const juce::ValueTree& tree)
+        {
+            if (auto xml = tree.createXml())
+                return xml->writeTo(snapFile(name));
+            return false;
+        };
+
+        auto effectEntry = [](const juce::ValueTree& snap, int effectId) -> juce::ValueTree
+        {
+            auto effects = snap.getChildWithName(P::Effects);
+            for (int i = 0; i < effects.getNumChildren(); ++i)
+                if (effects.getChild(i).hasType(P::Effect)
+                    && effects.getChild(i).getProperty(P::id).toString() == juce::String(effectId))
+                    return effects.getChild(i);
+            return {};
+        };
+
+        auto tokenOf = [](const juce::var& row, int col) -> juce::String
+        {
+            juce::StringArray t;
+            t.addTokens(row.toString(), ",", "");
+            return col < t.size() ? t[col].trim() : juce::String();
+        };
+
+        auto withToken = [](const juce::var& row, int col, const juce::String& token) -> juce::String
+        {
+            juce::StringArray t;
+            t.addTokens(row.toString(), ",", "");
+            if (col < t.size())
+                t.set(col, token);
+            return t.joinIntoString(",");
+        };
+
+        auto num = [](const juce::var& v) { return static_cast<double>(v); };
+        auto approx = [](double a, double b) { return std::abs(a - b) < 1.0e-4; };
+
+        auto eq2band3 = [&] { return vts.getEffectEQBand(1, 1, 2); };
+        auto dyn2     = [&] { return vts.getEffectDynSection(1, 1); };
+        auto tap5     = [&] { return vts.getEffectDelayTap(1, 4); };
+
+        const juce::String orderA = "crush,delay,reverb,trem,phaser,mod,dyn2,dyn1,eq2,eq1,dist";
+        const juce::String orderB = "dist,eq1,eq2,dyn1,dyn2,mod,phaser,trem,reverb,delay,crush";
+
+        // Set A is what gets stored; set B disturbs it. Every node kind once:
+        // Channel, Position, Feed, Return (a scalar, an array trim and the
+        // per-output row), AutomOtion, LFO, Chain, an FxEq2 band, FxDyn2, an
+        // FxDelay tap, both send-row shapes - and the name, always carried.
+        auto stamp = [&](bool a)
+        {
+            vts.setEffectParameter(1, P::effectName, a ? "N-fx-2" : "disturbed");
+            vts.setEffectParameter(1, P::effectAttenuation, a ? -7.25 : -1.5);
+            vts.setEffectParameter(1, P::effectReturnOffsetX, a ? 0.75 : -0.5);
+            vts.setEffectParameter(1, P::effectAngleOn, a ? 77 : 40);
+            vts.setEffectParameter(1, P::effectArrayAtten3, a ? -4.5 : -0.5);
+            vts.setEffectParameter(1, P::effectOtomoR, a ? 3.5 : 1.0);
+            vts.setEffectParameter(1, P::effectLFOrateY, a ? 2.5 : 0.5);
+            vts.setEffectParameter(1, P::effectChainOrder, a ? orderA : orderB);
+            eq2band3().setProperty(P::effectEQgain, a ? 5.5 : -2.0, nullptr);
+            dyn2().setProperty(P::effectDynCompThreshold, a ? -31.0 : -12.0, nullptr);
+            tap5().setProperty(P::effectDelayTapTime, a ? 123.0 : 45.0, nullptr);
+            vts.setEffectSendLevelFromInput(1, 3, a ? -9.5f : -20.0f);
+            vts.setEffectFxSendOnFromEffect(1, 0, a);
+            if (twoOutputs)
+                vts.setEffectParameter(1, P::effectMutes,
+                                       withToken(vts.getEffectParameter(1, P::effectMutes), 1, a ? "1" : "0"));
+            vts.setEffectParameter(0, P::effectAttenuation, a ? -3.0 : -0.25);
+            vts.setEffectSendLevelFromInput(0, 3, a ? -8.0f : -30.0f);
+        };
+
+        // Empty when every value is set A (a) or set B (! a); otherwise the
+        // names of the ones that are not, so a failure says what it lost.
+        auto faults = [&](bool a) -> juce::String
+        {
+            juce::StringArray bad;
+            auto want = [&](bool ok, const char* what) { if (! ok) bad.add(what); };
+
+            want(vts.getEffectParameter(1, P::effectName).toString() == (a ? "N-fx-2" : "disturbed"), "name");
+            want(approx(num(vts.getEffectParameter(1, P::effectAttenuation)), a ? -7.25 : -1.5), "attenuation");
+            want(approx(num(vts.getEffectParameter(1, P::effectReturnOffsetX)), a ? 0.75 : -0.5), "returnOffsetX");
+            want(approx(num(vts.getEffectParameter(1, P::effectAngleOn)), a ? 77 : 40), "angleOn");
+            want(approx(num(vts.getEffectParameter(1, P::effectArrayAtten3)), a ? -4.5 : -0.5), "arrayAtten3");
+            want(approx(num(vts.getEffectParameter(1, P::effectOtomoR)), a ? 3.5 : 1.0), "otomoR");
+            want(approx(num(vts.getEffectParameter(1, P::effectLFOrateY)), a ? 2.5 : 0.5), "lfoRateY");
+            want(vts.getEffectParameter(1, P::effectChainOrder).toString() == (a ? orderA : orderB), "chainOrder");
+            want(approx(num(eq2band3().getProperty(P::effectEQgain)), a ? 5.5 : -2.0), "EQ2 band 3 gain");
+            want(approx(num(dyn2().getProperty(P::effectDynCompThreshold)), a ? -31.0 : -12.0), "Dyn2 threshold");
+            want(approx(num(tap5().getProperty(P::effectDelayTapTime)), a ? 123.0 : 45.0), "tap 5 time");
+            want(approx(vts.getEffectSendLevelFromInput(1, 3), a ? -9.5 : -20.0), "send from input 3");
+            want(vts.getEffectFxSendOnFromEffect(1, 0) == a, "send on from effect 1");
+            if (twoOutputs)
+                want(tokenOf(vts.getEffectParameter(1, P::effectMutes), 1) == (a ? "1" : "0"), "mutes output 2");
+            want(approx(num(vts.getEffectParameter(0, P::effectAttenuation)), a ? -3.0 : -0.25), "effect 1 attenuation");
+            want(approx(vts.getEffectSendLevelFromInput(0, 3), a ? -8.0 : -30.0), "effect 1 send from input 3");
+
+            return bad.joinIntoString(", ");
+        };
+
+        auto recall = [&](const juce::String& name)
+        {
+            return fm.loadInputSnapshotWithExtendedScope(name, fm.getExtendedSnapshotScope(name));
+        };
+
+        // ---- N1/N2: the whole channel round-trips, every node kind ----------
+        stamp(true);
+        check(faults(true).isEmpty(), "N0: set A reads back live (" + faults(true) + ")");
+        check(fm.saveInputSnapshotWithExtendedScope("nn-full", Scope()), "N1: a full snapshot is stored");
+        {
+            auto snap = readSnap("nn-full");
+            check(snap.hasType("InputSnapshot") && snap.getChildWithName(P::Effects).getNumChildren() == 2
+                      && effectEntry(snap, 2).isValid() && snap.getProperty(P::version).toString() == "2.1",
+                  "N1: the file is <InputSnapshot version=2.1> with <Effects> holding <Effect id=1> and <Effect id=2>");
+        }
+
+        stamp(false);
+        check(recall("nn-full"), "N2: the snapshot recalls");
+        check(faults(true).isEmpty(), "N2: every node kind came back (" + faults(true) + ")");
+
+        // ---- N3: a partial effects scope, read back off the file -------------
+        {
+            Scope partial;
+            partial.effects.setIncluded("fxEq2", 1, false);
+            partial.effects.setIncluded("fxSendsInputs", 0, false);
+            check(fm.saveInputSnapshotWithExtendedScope("nn-partial", partial), "N3: a partial-scope snapshot is stored");
+
+            stamp(false);
+            check(recall("nn-partial"), "N3: the partial snapshot recalls");
+            check(approx(num(eq2band3().getProperty(P::effectEQgain)), -2.0),
+                  "N3: an excluded module (EQ 2 on effect 2) stays as it was");
+            check(approx(vts.getEffectSendLevelFromInput(0, 3), -30.0),
+                  "N3: an excluded flat item (effect 1's sends from inputs) stays as it was");
+            check(approx(num(dyn2().getProperty(P::effectDynCompThreshold)), -31.0)
+                      && approx(num(vts.getEffectParameter(1, P::effectAttenuation)), -7.25)
+                      && approx(num(vts.getEffectParameter(0, P::effectAttenuation)), -3.0),
+                  "N3: ...while the included items beside them are recalled");
+        }
+
+        // ---- N4: a snapshot from before the effects touches none of them -----
+        {
+            stamp(true);
+            auto snap = readSnap("nn-full");
+            snap.removeChild(snap.getChildWithName(P::Effects), nullptr);
+            check(writeSnap("nn-old", snap), "N4: an old-format snapshot (no <Effects>) is written");
+
+            stamp(false);
+            check(recall("nn-old"), "N4: the old snapshot recalls");
+            check(faults(false).isEmpty(), "N4: every effect value stayed as it was (" + faults(false) + ")");
+        }
+
+        // ---- N5: entries beyond the live count are skipped and reported ------
+        {
+            stamp(true);
+            vts.setNumEffectChannels(4);
+            vts.setEffectParameter(2, P::effectAttenuation, -5.0);
+            check(fm.saveInputSnapshotWithExtendedScope("nn-four", Scope()), "N5: a four-effect snapshot is stored");
+            vts.setNumEffectChannels(2);
+
+            vts.setEffectParameter(1, P::effectAttenuation, -1.5);
+            check(recall("nn-four"), "N5: it recalls into a two-effect session");
+            const auto& skipped = fm.getLastRecallSkippedEffectIds();
+            check(skipped.size() == 2 && skipped[0] == 3 && skipped[1] == 4,
+                  "N5: effects 3 and 4 are reported skipped");
+            check(approx(num(vts.getEffectParameter(1, P::effectAttenuation)), -7.25),
+                  "N5: ...and effects 1 and 2 are applied");
+        }
+
+        // ---- N6: a stored row goes through the store's row guards ------------
+        // The file offers effect 1 a send from ITSELF (the diagonal) and from
+        // effect 2. The diagonal must come back off - it is forced where the row
+        // is written - and the real send must come back on, which proves the
+        // row was written at all.
+        {
+            auto snap = readSnap("nn-full");
+            auto sends = effectEntry(snap, 1).getChildWithName(P::Sends);
+            const auto crafted = withToken(withToken(sends.getProperty(P::effectFxSendOns), 0, "1"), 1, "1");
+            sends.setProperty(P::effectFxSendOns, crafted, nullptr);
+            check(writeSnap("nn-diag", snap), "N6: a snapshot with a self-send in effect 1's row is written");
+
+            vts.setEffectFxSendOnFromEffect(0, 1, false);
+            check(recall("nn-diag"), "N6: it recalls");
+            const auto row = vts.getEffectParameter(0, P::effectFxSendOns);
+            check(tokenOf(row, 1) == "1", "N6: the send from effect 2 came back on (the row was written)");
+            check(tokenOf(row, 0) == "0", "N6: the self-send came back OFF (the row went through the guard)");
+        }
+
+        // ---- N7: monitoring and run-state never reach the file ---------------
+        {
+            vts.setEffectParameter(0, P::effectSolo, 1);
+            vts.getEffectAutoMotionSection(0).setProperty(P::effectOtomoPauseResume, 0, nullptr);
+            check(fm.saveInputSnapshotWithExtendedScope("nn-transient", Scope()), "N7: a snapshot is stored");
+            const auto text = snapFile("nn-transient").loadFileAsString();
+            check(text.contains("<Effect ") && ! text.contains("effectSolo") && ! text.contains("effectOtomoPauseResume"),
+                  "N7: effectSolo and effectOtomoPauseResume are in no snapshot");
+            vts.setEffectParameter(0, P::effectSolo, 0);
+            vts.getEffectAutoMotionSection(0).setProperty(P::effectOtomoPauseResume,
+                                                          WFSParameterDefaults::effectOtomoPauseResumeDefault, nullptr);
+        }
+
+        // ---- N8: the effects grid survives the file --------------------------
+        {
+            Scope s;
+            s.setIncluded("position", 0, false);
+            s.effects.setAllItemsForChannel(0, false);
+            s.effects.setIncluded("fxDist", 1, false);
+            s.effects.setIncluded("fxLfoX", 1, false);
+            check(fm.updateInputSnapshotScope("nn-full", s), "N8: a scope with an effects grid is written into a snapshot");
+
+            const auto back = fm.getExtendedSnapshotScope("nn-full");
+            check(back.isEquivalentTo(s, numInputs, 2), "N8: it reads back equivalent, both grids");
+            check(back.effects.getChannelState(0) == Scope::InclusionState::AllExcluded
+                      && ! back.effects.isIncluded("fxDist", 1) && ! back.effects.isIncluded("fxLfoX", 1)
+                      && back.effects.isIncluded("fxEq1", 1) && ! back.isIncluded("position", 0),
+                  "N8: ...cell for cell: effect 1 out, effect 2 partial, the input cell kept");
+        }
+
+        // ---- N9: an OnSave scope trims the stored effects --------------------
+        {
+            check(fm.saveInputSnapshotWithExtendedScope("nn-trim", Scope()), "N9: a full snapshot to trim");
+
+            Scope t;
+            t.applyMode = Scope::ApplyMode::OnSave;
+            t.effects.setIncluded("fxEq2", 0, false);
+            t.effects.setIncluded("fxLevel", 0, false);
+            check(fm.updateInputSnapshotScope("nn-trim", t), "N9: re-scoped to OnSave");
+
+            auto snap = readSnap("nn-trim");
+            auto e1 = effectEntry(snap, 1);
+            auto e2 = effectEntry(snap, 2);
+            check(e1.isValid() && ! e1.getChildWithName(P::FxEq2).isValid() && e1.getChildWithName(P::FxEq1).isValid(),
+                  "N9: effect 1 lost its EQ 2 and kept its EQ 1");
+            check(e1.getChildWithName(P::Channel).hasProperty(P::effectName)
+                      && ! e1.getChildWithName(P::Channel).hasProperty(P::effectAttenuation),
+                  "N9: effect 1 kept its name and lost its attenuation");
+            check(e2.getChildWithName(P::FxEq2).isValid() && e2.getChildWithName(P::Channel).hasProperty(P::effectAttenuation),
+                  "N9: effect 2 was not touched");
+
+            Scope u;
+            u.applyMode = Scope::ApplyMode::OnSave;
+            u.effects.setIncluded("fxDelay", 1, false);
+            check(fm.saveInputSnapshotWithExtendedScope("nn-onsave", u), "N9: an OnSave snapshot is stored");
+            auto stored = readSnap("nn-onsave");
+            check(! effectEntry(stored, 2).getChildWithName(P::FxDelay).isValid()
+                      && effectEntry(stored, 1).getChildWithName(P::FxDelay).isValid(),
+                  "N9: an OnSave store leaves out what the grid excludes, for that channel only");
+        }
+
+        // ---- N10: each half of a recall lands in its own tab's undo history ---
+        {
+            stamp(true);
+            check(fm.saveInputSnapshotWithExtendedScope("nn-undo", Scope()), "N10: a snapshot is stored");
+
+            auto inputChannel = vts.getInputChannelSection(0);
+            const juce::var storedInputAtten = inputChannel.getProperty(P::inputAttenuation);
+
+            auto disturbBoth = [&]
+            {
+                inputChannel.setProperty(P::inputAttenuation, -33.0, nullptr);
+                vts.getEffectChannelSection(1).setProperty(P::effectAttenuation, -1.5, nullptr);
+            };
+
+            disturbBoth();
+            vts.clearAllUndoHistories();
+            check(fm.loadInputSnapshotWithExtendedScope("nn-undo", Scope()), "N10: a manual recall");
+            check(vts.getUndoManagerForDomain(UndoDomain::Input)->canUndo()
+                      && vts.getUndoManagerForDomain(UndoDomain::Effects)->canUndo(),
+                  "N10: a manual recall is undoable on the Inputs tab AND on the Effects tab");
+
+            disturbBoth();
+            vts.clearAllUndoHistories();
+            {
+                WFSValueTreeState::ScopedUndoSuppression noUndo (vts);
+                check(fm.loadInputSnapshotWithExtendedScope("nn-undo", Scope()), "N10: a cue-driven recall");
+            }
+            check(! vts.getUndoManagerForDomain(UndoDomain::Input)->canUndo()
+                      && ! vts.getUndoManagerForDomain(UndoDomain::Effects)->canUndo(),
+                  "N10: a cue-driven recall writes no undo entry in either");
+            check(approx(num(vts.getEffectParameter(1, P::effectAttenuation)), -7.25)
+                      && inputChannel.getProperty(P::inputAttenuation).toString() == storedInputAtten.toString(),
+                  "N10: ...and still applied both halves");
+            vts.clearAllUndoHistories();
+        }
+
+        // ---- N14: a ghost's scope travels with its data ----------------------
+        // The file keeps an <Effect> the session lacks today (N5), so it has to
+        // keep that effect's column of the grid too. Shrink the count, write the
+        // scope back while the effects are absent, grow the count again: what the
+        // operator excluded must still be excluded, and the recall must say so.
+        {
+            vts.setNumEffectChannels(4);
+            vts.setEffectParameter(2, P::effectAttenuation, -6.0);
+            vts.setEffectParameter(3, P::effectAttenuation, -6.0);
+
+            Scope g;
+            g.effects.setAllItemsForChannel(3, false);
+            g.effects.setIncluded("fxEq2", 2, false);
+            check(fm.saveInputSnapshotWithExtendedScope("nn-ghost", g),
+                  "N14: a four-effect snapshot with effect 4 excluded and effect 3 partial");
+
+            vts.setNumEffectChannels(2);
+            const auto shrunk = fm.getExtendedSnapshotScope("nn-ghost");
+            check(! shrunk.effects.isIncluded("fxLevel", 3) && ! shrunk.effects.isIncluded("fxEq2", 2)
+                      && shrunk.effects.isIncluded("fxEq1", 2),
+                  "N14: read into a two-effect session, the scope still holds effects 3 and 4's cells");
+            check(fm.updateInputSnapshotScope("nn-ghost", shrunk), "N14: the scope is written back while they are absent");
+
+            vts.setNumEffectChannels(4);
+            const auto regrown = fm.getExtendedSnapshotScope("nn-ghost");
+            check(regrown.effects.getChannelState(3) == Scope::InclusionState::AllExcluded
+                      && ! regrown.effects.isIncluded("fxEq2", 2) && regrown.effects.isIncluded("fxEq1", 2),
+                  "N14: grown back to four, effect 4 is still out and effect 3 still partial");
+
+            vts.setEffectParameter(2, P::effectAttenuation, -1.0);
+            vts.setEffectParameter(3, P::effectAttenuation, -1.0);
+            check(recall("nn-ghost"), "N14: it recalls");
+            check(approx(num(vts.getEffectParameter(2, P::effectAttenuation)), -6.0)
+                      && approx(num(vts.getEffectParameter(3, P::effectAttenuation)), -1.0),
+                  "N14: ...recalling effect 3 and leaving the excluded effect 4 alone");
+
+            // A Store over the same name, with a scope built for two effects,
+            // says nothing about effects 3 and 4: their columns come over with
+            // the data the store carries for them.
+            vts.setNumEffectChannels(2);
+            check(fm.saveInputSnapshotWithExtendedScope("nn-ghost", Scope()),
+                  "N14: stored over with a fresh scope while effects 3 and 4 are absent");
+            vts.setNumEffectChannels(4);
+            const auto overwritten = fm.getExtendedSnapshotScope("nn-ghost");
+            check(overwritten.effects.getChannelState(3) == Scope::InclusionState::AllExcluded
+                      && ! overwritten.effects.isIncluded("fxEq2", 2) && overwritten.effects.isIncluded("fxEq1", 2)
+                      && overwritten.effects.getChannelState(0) == Scope::InclusionState::AllIncluded,
+                  "N14: ...effect 4 is still out and effect 3 still partial, the live effects as the new scope says");
+            vts.setNumEffectChannels(2);
+        }
+
+        // ---- N15: a template with no effects grid leaves the effects grid ----
+        // A template saved before the effects existed has no <EffectsScope>; it
+        // has no opinion about them, so loading it must not include them all.
+        {
+            Scope both;
+            both.setIncluded("position", 0, false);
+            both.effects.setIncluded("fxDist", 1, false);
+            check(fm.saveScopeTemplate("nn-tpl-both", both), "N15: a template with both grids is saved");
+
+            auto templateFile = [&](const juce::String& name)
+            {
+                return fm.getScopeTemplatesFolder().getChildFile(name + WFSFileManager::snapshotExtension);
+            };
+            juce::ValueTree tpl;
+            if (auto xml = juce::XmlDocument::parse(templateFile("nn-tpl-both")))
+                tpl = juce::ValueTree::fromXml(*xml);
+            auto scopeTree = tpl.getChildWithName("ExtendedScope");
+            check(scopeTree.getChildWithName("EffectsScope").isValid(), "N15: ...and it carries <EffectsScope>");
+            scopeTree.removeChild(scopeTree.getChildWithName("EffectsScope"), nullptr);
+            auto oldXml = tpl.createXml();
+            check(oldXml != nullptr && oldXml->writeTo(templateFile("nn-tpl-inputs")),
+                  "N15: the same template as a build without effects wrote it");
+
+            Scope target;
+            target.effects.setIncluded("fxChain", 0, false);
+            check(fm.loadScopeTemplateGrid("nn-tpl-inputs", target), "N15: the inputs-only template loads");
+            check(! target.isIncluded("position", 0) && ! target.effects.isIncluded("fxChain", 0)
+                      && target.effects.isIncluded("fxDist", 1),
+                  "N15: it sets the input grid and leaves the effects grid as it was");
+
+            check(fm.loadScopeTemplateGrid("nn-tpl-both", target), "N15: the template with both grids loads");
+            check(target.effects.isIncluded("fxChain", 0) && ! target.effects.isIncluded("fxDist", 1),
+                  "N15: ...and that one replaces the effects grid");
+        }
+
+        // Leave nothing behind.
+        vts.setNumEffectChannels(effectsBefore);
+        if (latchHadProperty)
+            ioLatch.setProperty(P::channelNumbersUserOwned, latchBefore, nullptr);
+        else
+            ioLatch.removeProperty(P::channelNumbersUserOwned, nullptr);
+        fm.setProjectFolder(previousProject);
+        tempProject.deleteRecursively();
+    }
+
+    // ---- N11: an effect edit marks ITS effects scope item dirty --------------
+    // What the Scope window's "auto-preselect modified" and "Select modified"
+    // read. A module is one item whatever node inside it moved - a band reports
+    // its EQ instance, never the other one - and monitoring state marks nothing.
+    {
+        namespace P = WFSParameterIDs;
+        auto& tracker = parameters.getDirtyTracker();
+
+        const int effectsBefore = vts.getNumEffectChannels();
+        vts.setNumEffectChannels(2);
+        tracker.endSuppressionAndClear();
+
+        vts.getEffectModuleSection(1, P::FxDist).setProperty(P::effectDistDrive, 7.0, nullptr);
+        check(tracker.isDirty("fxDist", 1) && ! tracker.isDirty("fxDist", 0),
+              "N11: a module write marks that module, on that effect only");
+
+        vts.getEffectEQBand(1, 1, 2).setProperty(P::effectEQgain, 3.0, nullptr);
+        check(tracker.isDirty("fxEq2", 1) && ! tracker.isDirty("fxEq1", 1),
+              "N11: a band write on EQ 2 marks EQ 2, not EQ 1");
+
+        vts.setEffectParameter(1, P::effectAttenuation, -2.0);
+        check(tracker.isDirty("fxLevel", 1), "N11: a flat write marks its property item");
+
+        tracker.clearAll();
+        vts.setEffectParameter(1, P::effectSolo, 1);
+        check(! tracker.hasAnyDirty(), "N11: effectSolo marks nothing");
+        vts.setEffectParameter(1, P::effectSolo, 0);
+
+        tracker.clearAll();
+        vts.setNumEffectChannels(effectsBefore);
+    }
+
+    // ---- N12: the QLab export carries the effects, each value in its own shape --
+    // Built from a stored file, as the export reads it, and every effect cue sent
+    // back through the /wfs/effect/ parser the way QLab would send it: a cue in
+    // the wrong shape is a cue that does nothing on show night.
+    {
+        namespace P = WFSParameterIDs;
+        using Scope = WFSFileManager::ExtendedSnapshotScope;
+
+        auto& fm = parameters.getFileManager();
+        const auto previousProject = fm.getProjectFolder();
+        auto tempProject = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                               .getChildFile("wfs-selftest-qlab-effects-project");
+        tempProject.deleteRecursively();
+        fm.setProjectFolder(tempProject);
+        check(fm.createProjectFolderStructure(), "N12: a throwaway project folder");
+
+        auto ioLatch = vts.getIOState();
+        const bool latchHadProperty = ioLatch.hasProperty(P::channelNumbersUserOwned);
+        const juce::var latchBefore = ioLatch.getProperty(P::channelNumbersUserOwned);
+
+        const int effectsBefore = vts.getNumEffectChannels();
+        vts.setNumEffectChannels(2);
+        vts.getEffectEQBand(1, 1, 2).setProperty(P::effectEQgain, 5.5, nullptr);
+        vts.getEffectDynSection(1, 1).setProperty(P::effectDynCompThreshold, -31.0, nullptr);
+        vts.getEffectDelayTap(1, 4).setProperty(P::effectDelayTapTime, 123.0, nullptr);
+        vts.setEffectSendLevelFromInput(1, 3, -9.5f);
+
+        check(fm.saveInputSnapshotWithExtendedScope("nq-cues", Scope()), "N12: a snapshot to export");
+
+        juce::ValueTree inputsData, effectsData;
+        if (auto xml = juce::XmlDocument::parse(fm.getInputSnapshotsFolder().getChildFile("nq-cues.xml")))
+        {
+            const auto snap = juce::ValueTree::fromXml(*xml);
+            inputsData = snap.getChildWithName(P::Inputs);
+            effectsData = snap.getChildWithName(P::Effects);
+        }
+        check(effectsData.isValid(), "N12: the stored snapshot has its <Effects>");
+
+        const int numInputs = vts.getNumInputChannels();
+        const int numOutputs = vts.getNumOutputChannels();
+        const auto numberToSlot = [&vts](int number) { return vts.getSlotForChannelNumber(number); };
+
+        auto effectCueStrings = [](const WFSNetwork::QLabCueSequence& sequence)
+        {
+            juce::StringArray out;
+            for (const auto& cue : sequence.networkCues)
+                for (const auto& m : cue.messages)
+                    if (m.getAddressPattern().toString() == "/cue/selected/customString"
+                        && m.size() > 0 && m[0].isString() && m[0].getString().startsWith("/wfs/effect/"))
+                        out.add(m[0].getString());
+            return out;
+        };
+        auto hasPrefix = [](const juce::StringArray& strings, const juce::String& prefix)
+        {
+            for (const auto& s : strings)
+                if (s.startsWith(prefix))
+                    return true;
+            return false;
+        };
+
+        // What QLab does with a custom string: split at spaces outside quotes,
+        // send a quoted token as a string, a bare number as a number.
+        auto sendLikeQLab = [](const juce::String& customString)
+        {
+            std::vector<std::pair<juce::String, bool>> tokens;
+            juce::String current;
+            bool inQuotes = false, quoted = false;
+            for (int ci = 0; ci < customString.length(); ++ci)
+            {
+                const auto c = customString[ci];
+                if (c == '"') { inQuotes = ! inQuotes; quoted = true; continue; }
+                if (c == ' ' && ! inQuotes)
+                {
+                    if (current.isNotEmpty() || quoted) tokens.push_back({ current, quoted });
+                    current.clear(); quoted = false;
+                    continue;
+                }
+                current += c;
+            }
+            if (current.isNotEmpty() || quoted) tokens.push_back({ current, quoted });
+
+            juce::OSCMessage msg (juce::OSCAddressPattern (tokens.empty() ? juce::String("/") : tokens.front().first));
+            for (size_t i = 1; i < tokens.size(); ++i)
+            {
+                const auto& [text, wasQuoted] = tokens[i];
+                const bool isInt = ! wasQuoted && text.isNotEmpty()
+                                   && text.trimCharactersAtStart("-+").containsOnly("0123456789")
+                                   && text.trimCharactersAtStart("-+").isNotEmpty();
+                const bool isFloat = ! wasQuoted && ! isInt && text.containsAnyOf("0123456789")
+                                     && text.containsOnly("0123456789.-+eE");
+                if (isInt)        msg.addInt32(text.getIntValue());
+                else if (isFloat) msg.addFloat32(text.getFloatValue());
+                else              msg.addString(text);
+            }
+            return msg;
+        };
+
+        const Scope all;
+        const auto sequence = WFSNetwork::QLabCueBuilder::buildSnapshotCues("nq-cues", inputsData, all, numInputs, 1,
+                                                                            numberToSlot, numOutputs, effectsData, 2);
+        const auto strings = effectCueStrings(sequence);
+
+        check(hasPrefix(strings, "/wfs/effect/EQgain 2 2 3 5.5"),
+              "N12: an EQ band cue is <ID> <instance> <band> <value> (effect 2, EQ 2, band 3)");
+        check(hasPrefix(strings, "/wfs/effect/dynCompThreshold 2 2 -31"),
+              "N12: a dynamics cue is <ID> <instance> <value>");
+        check(hasPrefix(strings, "/wfs/effect/delayTapTime 2 5 123"),
+              "N12: a delay tap cue is <ID> <tap> <value>");
+        check(hasPrefix(strings, "/wfs/effect/sendLevels 2 \"") && hasPrefix(strings, "/wfs/effect/chainOrder 1 \""),
+              "N12: a row goes out whole, as one quoted string");
+        check(WFSNetwork::QLabCueBuilder::countCues(inputsData, all, numInputs, numberToSlot, effectsData, 2, numOutputs)
+                  == static_cast<int>(sequence.networkCues.size()),
+              "N12: countCues agrees with the " + juce::String(static_cast<int>(sequence.networkCues.size())) + " cues built");
+
+        int parsedBack = 0;
+        juce::StringArray refused;
+        const auto& mappings = WFSNetwork::OSCMessageBuilder::getEffectMappings();
+        for (const auto& s : strings)
+        {
+            const auto msg = sendLikeQLab(s);
+            const auto parsed = WFSNetwork::OSCMessageRouter::parseEffectMessage(msg);
+            const auto it = mappings.find(parsed.paramId);
+            if (parsed.valid && it != mappings.end() && it->second.oscPath == msg.getAddressPattern().toString())
+                ++parsedBack;
+            else if (refused.size() < 8)
+                refused.add(s + (parsed.invalidReason.isNotEmpty() ? " (" + parsed.invalidReason + ")" : ""));
+        }
+        check(strings.size() > 200 && parsedBack == strings.size(),
+              "N12: every one of the " + juce::String(strings.size()) + " effect cues parses back through the router"
+              + (refused.isEmpty() ? juce::String() : ": " + refused.joinIntoString(" | ")));
+
+        // The other direction: every value the file stores gets its cue. The
+        // builder skips a parameter the address map lacks in silence, so the
+        // check above - which only sees the cues that were built - cannot miss
+        // one; a count can.
+        {
+            int stored = 0;
+            juce::StringArray unaddressed;
+            std::function<void (const juce::ValueTree&)> tally = [&](const juce::ValueTree& node)
+            {
+                for (int p = 0; p < node.getNumProperties(); ++p)
+                {
+                    const auto prop = node.getPropertyName(p);
+                    if (prop == P::id || prop == P::effectName)
+                        continue;
+                    ++stored;
+                    if (mappings.find(prop) == mappings.end())
+                        unaddressed.addIfNotAlreadyThere(prop.toString());
+                }
+                for (int c = 0; c < node.getNumChildren(); ++c)
+                    tally(node.getChild(c));
+            };
+            tally(effectsData);
+
+            int oneTokenRows = 0;
+            const auto built = WFSNetwork::QLabCueBuilder::collectEffectCues(effectsData, all.effects, 2, numOutputs, &oneTokenRows);
+            check(stored > 400 && stored == static_cast<int>(built.size()) + oneTokenRows && unaddressed.isEmpty(),
+                  "N12: every one of the " + juce::String(stored) + " stored effect values gets a cue"
+                  + (unaddressed.isEmpty() ? juce::String() : " - no address for " + unaddressed.joinIntoString(", ")));
+        }
+
+        // The grid decides what is exported, per item and per channel.
+        Scope partial;
+        partial.effects.setIncluded("fxEq2", 1, false);
+        const auto partialStrings = effectCueStrings(WFSNetwork::QLabCueBuilder::buildSnapshotCues(
+            "nq-cues", inputsData, partial, numInputs, 1, numberToSlot, numOutputs, effectsData, 2));
+        check(! hasPrefix(partialStrings, "/wfs/effect/EQgain 2 2 ") && ! hasPrefix(partialStrings, "/wfs/effect/EQBypass 2 2 ")
+                  && hasPrefix(partialStrings, "/wfs/effect/EQgain 2 1 ") && hasPrefix(partialStrings, "/wfs/effect/EQgain 1 2 "),
+              "N12: an excluded module (EQ 2 of effect 2) exports nothing, its neighbours still do");
+
+        // N13: one address per parameter, and none for a cell or a global.
+        juce::StringArray paths;
+        for (const auto& [paramId, mapping] : mappings)
+            paths.add(mapping.oscPath);
+        paths.removeDuplicates(false);
+        check(static_cast<int>(mappings.size()) == paths.size()
+                  && mappings.count(P::effectSendLevel) == 0 && mappings.count(P::effectFxSendOn) == 0
+                  && mappings.count(P::effectsMapVisible) == 0 && mappings.count(P::effectEQgain) == 1,
+              "N13: the effect address map has one path per parameter and none for a cell or a global");
+
+        vts.setNumEffectChannels(effectsBefore);
+        if (latchHadProperty)
+            ioLatch.setProperty(P::channelNumbersUserOwned, latchBefore, nullptr);
+        else
+            ioLatch.removeProperty(P::channelNumbersUserOwned, nullptr);
+        fm.setProjectFolder(previousProject);
+        tempProject.deleteRecursively();
+    }
+
+    // ---- N16: dismissing the Scope window keeps the QLab toggles -------------
+    // Cancel and the close box hand the session the window's DEFAULTS (both
+    // off), not what its toggles showed; adopting them switched Write to QLab
+    // off every time the window was dismissed. Driven through the real session
+    // and window, as the Effects tab's Edit Scope opens it.
+    if (snapshotSession != nullptr)
+    {
+        namespace P = WFSParameterIDs;
+        auto show = vts.getConfigState().getChildWithName(P::Show);
+        const bool hadQLab = show.hasProperty(P::writeToQLab);
+        const bool hadLoadCue = show.hasProperty(P::writeSnapshotLoadCue);
+        const juce::var qlabBefore = show.getProperty(P::writeToQLab);
+        const juce::var loadCueBefore = show.getProperty(P::writeSnapshotLoadCue);
+        show.setProperty(P::writeToQLab, true, nullptr);
+        show.setProperty(P::writeSnapshotLoadCue, true, nullptr);
+
+        snapshotSession->editScope(WFSFileManager::SnapshotFamily::Effects);
+        SnapshotScopeWindow* window = nullptr;
+        for (int i = juce::Desktop::getInstance().getNumComponents(); --i >= 0 && window == nullptr;)
+            window = dynamic_cast<SnapshotScopeWindow*>(juce::Desktop::getInstance().getComponent(i));
+        check(window != nullptr && window->isVisible(), "N16: Edit Scope opens the Scope window");
+        if (window != nullptr)
+            window->closeButtonPressed();
+
+        check(show.isValid() && (bool) show.getProperty(P::writeToQLab) && (bool) show.getProperty(P::writeSnapshotLoadCue),
+              "N16: closing it with X leaves Write to QLab and the load cue as they were (on)");
+
+        if (hadQLab) show.setProperty(P::writeToQLab, qlabBefore, nullptr);
+        else         show.removeProperty(P::writeToQLab, nullptr);
+        if (hadLoadCue) show.setProperty(P::writeSnapshotLoadCue, loadCueBefore, nullptr);
+        else            show.removeProperty(P::writeSnapshotLoadCue, nullptr);
+    }
+
     // ---- I: channel identity gate --------------------------------------------
     // Position is not identity: a file's <Input> entries merge BY NUMBER, the
     // inventory rebuilds the list BY NUMBER, and patch rows land BY POSITION.
@@ -4578,6 +7607,3482 @@ void MainComponent::runChannelListSelfTest()
         }
     }
 
+    // ---- X: the effects family survives a save and a load -------------------
+    // The commit that put <Effects> in the tree could gate none of this: nothing
+    // could set a non-zero count, so the channel builder, the ring layout, add,
+    // remove and the whole per-channel path were compile-verified and never run.
+    //
+    // Every shape assertion below is made AFTER a save and a reload, never on a
+    // freshly built tree. A fresh tree is built by the very builder the
+    // assertions describe, so it agrees with itself whatever the file path does;
+    // only a reloaded one can see the merge appending a duplicate, the backfill
+    // matching the wrong sibling, or the eviction hook failing to run.
+    {
+        namespace P = WFSParameterIDs;
+        namespace D = WFSParameterDefaults;
+
+        auto& fm = parameters.getFileManager();
+        const auto previousProject = fm.getProjectFolder();
+
+        auto tempProject = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                               .getChildFile("wfs-selftest-effects-project");
+        tempProject.deleteRecursively();
+        fm.setProjectFolder(tempProject);
+        check(fm.createProjectFolderStructure(), "X0: a throwaway project folder");
+
+        auto effectsFile = [&] { return fm.getEffectsConfigFile(); };
+
+        auto occurrences = [](const juce::String& haystack, const juce::String& needle)
+        {
+            int n = 0;
+            for (int at = haystack.indexOf(needle); at >= 0;
+                 at = haystack.indexOf(at + needle.length(), needle))
+                ++n;
+            return n;
+        };
+
+        auto childrenOfType = [](const juce::ValueTree& parent, const juce::Identifier& type)
+        {
+            int n = 0;
+            for (int i = 0; i < parent.getNumChildren(); ++i)
+                if (parent.getChild(i).hasType(type))
+                    ++n;
+            return n;
+        };
+
+        // THE LOG IS EVIDENCE HERE, not decoration. stripObsoleteEffectProperties
+        // passes nullptr for the UndoManager on purpose - a schema change is not
+        // a user edit - so a wrong eviction cannot be undone, and the warning is
+        // the only trace one will ever leave. A warning nothing asserts is a
+        // warning that can silently stop being emitted, which is exactly the
+        // state this family was in before it existed, so both warnings are read
+        // back off disk. WFSLogger writes through juce::FileLogger, which opens,
+        // appends and closes per line, so everything a load emitted is on disk by
+        // the time the load returns.
+        auto logMark = [] { return WFSLogger::getInstance().getCurrentLogFile().getSize(); };
+
+        auto logSince = [](juce::int64 mark) -> juce::String
+        {
+            juce::FileInputStream in (WFSLogger::getInstance().getCurrentLogFile());
+            if (! in.openedOk() || ! in.setPosition (mark))
+                return {};
+            return in.readEntireStreamAsString();
+        };
+
+        // The whole node shape of one channel, read off the tree. Returns an
+        // empty string when the channel is exactly right, otherwise the first
+        // thing wrong with it - so a failure names the defect instead of just
+        // saying "false".
+        auto faultInChannel = [&](int ch) -> juce::String
+        {
+            const juce::String who = "effect " + juce::String(ch + 1) + ": ";
+            auto effect = vts.getEffectState(ch);
+            if (! effect.isValid())
+                return who + "no <Effect> node";
+
+            // Dense ids: id == index + 1, no gaps, no reuse.
+            if (static_cast<int>(effect.getProperty(P::id, -1)) != ch + 1)
+                return who + "id is " + effect.getProperty(P::id).toString()
+                           + ", expected " + juce::String(ch + 1);
+
+            // The seven flat sections and the sends node, exactly once each.
+            const juce::Identifier flat[] = { P::Channel, P::Position, P::Feed, P::ReverbReturn,
+                                              P::AutomOtion, P::LFO, P::Chain, P::Sends };
+            for (const auto& type : flat)
+            {
+                const int n = childrenOfType(effect, type);
+                if (n != 1)
+                    return who + juce::String(n) + " <" + type.toString() + "> nodes, expected 1";
+            }
+
+            // The eleven module types, exactly once each. Named from the slot
+            // table rather than listed here, so a slot added to the chain is
+            // covered without touching this test.
+            for (int slot = 0; slot < D::numEffectModuleSlots; ++slot)
+            {
+                const auto& type = WFSValueTreeState::getEffectModuleType(slot);
+                const int n = childrenOfType(effect, type);
+                if (n != 1)
+                    return who + juce::String(n) + " <" + type.toString() + "> nodes, expected 1";
+            }
+            if (effect.getNumChildren() != 8 + D::numEffectModuleSlots)
+                return who + juce::String(effect.getNumChildren()) + " child nodes, expected "
+                           + juce::String(8 + D::numEffectModuleSlots);
+
+            // Six <Band id="1".."6"> under EACH of the two EQ instances. The two
+            // are different node TYPES carrying identical property names, which
+            // is exactly the arrangement a by-name merge or backfill collapses
+            // into one - so both are counted, not just the first.
+            const juce::Identifier eqs[] = { P::FxEq1, P::FxEq2 };
+            for (const auto& eqType : eqs)
+            {
+                auto eq = effect.getChildWithName(eqType);
+                const int bands = childrenOfType(eq, P::Band);
+                if (bands != D::numEffectEQBands)
+                    return who + "<" + eqType.toString() + "> has " + juce::String(bands)
+                               + " <Band> nodes, expected " + juce::String(D::numEffectEQBands);
+                for (int b = 0; b < D::numEffectEQBands; ++b)
+                    if (static_cast<int>(eq.getChild(b).getProperty(P::id, -1)) != b + 1)
+                        return who + "<" + eqType.toString() + "> band ids are not dense 1.."
+                                   + juce::String(D::numEffectEQBands);
+            }
+
+            // Eight <Tap id="1".."8"> under <FxDelay>.
+            auto delay = effect.getChildWithName(P::FxDelay);
+            const int taps = childrenOfType(delay, P::Tap);
+            if (taps != D::numEffectDelayTaps)
+                return who + "<FxDelay> has " + juce::String(taps) + " <Tap> nodes, expected "
+                           + juce::String(D::numEffectDelayTaps);
+            for (int t = 0; t < D::numEffectDelayTaps; ++t)
+                if (static_cast<int>(delay.getChild(t).getProperty(P::id, -1)) != t + 1)
+                    return who + "<FxDelay> tap ids are not dense 1.."
+                               + juce::String(D::numEffectDelayTaps);
+
+            return {};
+        };
+
+        // Every live channel, plus the two bookkeeping copies of the count and
+        // the container's child list. Asserting the count in three places is the
+        // point: mergeTreeRecursive only ever appends, so a list that grew past
+        // <Effects count> and Config/IO/effectChannels is exactly the drift
+        // getNumReverbChannels' counting loop exists to paper over.
+        auto verifyFamily = [&](const char* label, int expected)
+        {
+            auto effects = vts.getEffectsState();
+            check(effects.isValid(), juce::String(label) + ": the <Effects> container is present");
+            check(vts.getNumEffectChannels() == expected,
+                  juce::String(label) + ": " + juce::String(expected) + " live effect channels");
+            check(effects.getNumChildren() == expected,
+                  juce::String(label) + ": no orphan children beside them");
+            check(static_cast<int>(effects.getProperty(P::count, -1)) == expected,
+                  juce::String(label) + ": <Effects count> agrees");
+            check(static_cast<int>(vts.getIOState().getProperty(P::effectChannels, -1)) == expected,
+                  juce::String(label) + ": Config/IO/effectChannels agrees");
+
+            juce::String fault;
+            for (int ch = 0; ch < expected && fault.isEmpty(); ++ch)
+                fault = faultInChannel(ch);
+            check(fault.isEmpty(), juce::String(label) + ": every channel is nineteen nodes deep"
+                                 + (fault.isEmpty() ? juce::String() : " - " + fault));
+        };
+
+        // X0: an ABSENT effects.xml is SUCCESS. Every project this application
+        // has ever saved has none, and a false here would not merely show an
+        // error: loadCompleteConfig gates markChannelNumbersUserOwned on
+        // success, so every one of those opens would go unlatched.
+        check(! effectsFile().existsAsFile(), "X0: the throwaway project has no effects.xml");
+        check(fm.loadEffectsConfig(), "X0: an absent effects.xml loads as SUCCESS");
+        verifyFamily("X0", 0);
+        check(fm.loadEffectsConfigBackup(0), "X0: an empty effects backup set is SUCCESS too");
+
+        // ...but the same missing file named through the IMPORT primitive is an
+        // error, because the caller named it. The distinction is the divergence.
+        check(! fm.importEffectsConfig(effectsFile()),
+              "X0: importEffectsConfig on a file that is not there is an ERROR");
+
+        // X1: create channels and write them out.
+        vts.setNumEffectChannels(3);
+        check(vts.getNumEffectChannels() == 3, "X1: three effect channels created");
+        check(fm.saveEffectsConfig(), "X1: save effects.xml");
+        check(effectsFile().existsAsFile(), "X1: effects.xml appears");
+        check(occurrences(effectsFile().loadFileAsString(), "<Effect ") == 3,
+              "X1: the file holds exactly three <Effect> nodes");
+
+        // X2: empty the family in memory, then bring it back from the file. The
+        // shape assertions run on THIS tree, not the one X1 built.
+        vts.setNumEffectChannels(0);
+        check(vts.getNumEffectChannels() == 0, "X2: the family is emptied in memory");
+        check(fm.loadEffectsConfig(), "X2: reload effects.xml");
+        verifyFamily("X2 (after save + reload)", 3);
+
+        // X3: raising then lowering the count leaves no orphan - in memory, and
+        // then through a full round trip so a stale child cannot hide in the file.
+        vts.setNumEffectChannels(5);
+        verifyFamily("X3: raised to five", 5);
+        vts.setNumEffectChannels(2);
+        verifyFamily("X3: lowered to two", 2);
+        check(fm.saveEffectsConfig(), "X3: save the lowered family");
+        check(occurrences(effectsFile().loadFileAsString(), "<Effect ") == 2,
+              "X3: the three removed channels are not in the file");
+        vts.setNumEffectChannels(0);
+        check(fm.loadEffectsConfig(), "X3: reload it");
+        verifyFamily("X3 (after save + reload)", 2);
+
+        // X4: a file that holds MORE channels than the session re-syncs the count
+        // from the child list. mergeTreeRecursive appends and never removes, so
+        // without the outputs-style re-sync the list would grow while both copies
+        // of the count stayed at the session's smaller number.
+        vts.setNumEffectChannels(4);
+        check(fm.saveEffectsConfig(), "X4: save four channels");
+        vts.setNumEffectChannels(1);
+        check(vts.getNumEffectChannels() == 1, "X4: the session drops to one");
+        check(fm.loadEffectsConfig(), "X4: load the four-channel file over it");
+        verifyFamily("X4 (file longer than the session)", 4);
+
+        // X5: a PRESENT but malformed effects.xml is an error, like every other
+        // section file. Both shapes: well-formed XML with no <Effects> in it, and
+        // something that is not XML at all.
+        {
+            const juce::String good = effectsFile().loadFileAsString();
+
+            effectsFile().replaceWithText("<?xml version=\"1.0\"?>\n<EffectsConfig version=\"1.0\"/>\n");
+            fm.clearError();
+            check(! fm.loadEffectsConfig(), "X5: an effects.xml with no <Effects> is an ERROR");
+            check(fm.getLastError().isNotEmpty(), "X5: ...and says why");
+
+            effectsFile().replaceWithText("this is not xml at all\n");
+            fm.clearError();
+            check(! fm.loadEffectsConfig(), "X5: an unparseable effects.xml is an ERROR");
+
+            effectsFile().replaceWithText(good);
+            check(fm.loadEffectsConfig(), "X5: the good file still loads");
+            verifyFamily("X5", 4);
+        }
+
+        // X6: the eviction hook. Nothing removes a property on the load path -
+        // mergeTreeRecursive and backfillFromTemplate both only ever ADD - so
+        // without stripObsoleteEffectProperties a retired attribute would ride
+        // along in the live tree and be re-saved for ever. Planted at three
+        // depths, because the walk has to match id'd and id-less children by
+        // different rules.
+        {
+            static const juce::Identifier ghost("effectRetiredGhost");
+            juce::String xml = effectsFile().loadFileAsString();
+            xml = xml.replace("<Effect id=", "<Effect effectRetiredGhost=\"1\" id=");
+            xml = xml.replace("<FxDist ", "<FxDist effectRetiredGhost=\"1\" ");
+            xml = xml.replace("<Band id=", "<Band effectRetiredGhost=\"1\" id=");
+            // Two shapes X6 never covered: a CHANNEL-section node (<Chain> - id-less
+            // like <FxDist>, but not a chain module) and an id'd <Tap>, matched by
+            // type AND id exactly as <Band> is. Structurally identical to what is
+            // already here, which is the point: a rule asserted on two of the four
+            // shapes it has to handle is a rule half asserted.
+            xml = xml.replace("<Chain ", "<Chain effectRetiredGhost=\"1\" ");
+            xml = xml.replace("<Tap id=", "<Tap effectRetiredGhost=\"1\" id=");
+            effectsFile().replaceWithText(xml);
+            check(occurrences(effectsFile().loadFileAsString(), "effectRetiredGhost") > 0,
+                  "X6: the file carries a retired attribute the schema no longer declares");
+
+            const auto beforeGhostLoad = logMark();
+            check(fm.loadEffectsConfig(), "X6: load it");
+            verifyFamily("X6 (after the ghost load)", 4);
+
+            auto effect = vts.getEffectState(0);
+            check(! effect.hasProperty(ghost), "X6: the retired attribute is evicted from <Effect>");
+            check(! effect.getChildWithName(P::FxDist).hasProperty(ghost),
+                  "X6: ...from an id-less module node");
+            check(! effect.getChildWithName(P::FxEq2).getChild(0).hasProperty(ghost),
+                  "X6: ...and from an id'd <Band> under the SECOND EQ instance");
+            check(! effect.getChildWithName(P::Chain).hasProperty(ghost),
+                  "X6: ...from a channel-section node, not only a chain module");
+            check(! effect.getChildWithName(P::FxDelay).getChild(0).hasProperty(ghost),
+                  "X6: ...and from an id'd <Tap>");
+
+            // The eviction SAYS what it took. Nothing else does: it is not
+            // undoable, it trips no flag a user can see, and the next save simply
+            // writes the shorter file.
+            const juce::String ghostLog = logSince(beforeGhostLoad);
+            check(ghostLog.contains("Effects schema: dropped")
+                      && ghostLog.contains("effectRetiredGhost"),
+                  "X6: the eviction is not silent - one warning, naming what went");
+
+            check(fm.saveEffectsConfig(), "X6: save again");
+            check(occurrences(effectsFile().loadFileAsString(), "effectRetiredGhost") == 0,
+                  "X6: and it is gone from the file rather than re-saved for ever");
+        }
+
+        // X7: THE BACKWARD-COMPATIBILITY CASE, through the complete orchestration
+        // rather than the section primitive - a project folder written before this
+        // family existed. It must open with SUCCESS, with the family present, and
+        // it must latch the channel numbers, which loadCompleteConfig does only
+        // when every section reported success.
+        //
+        // Deleting effects.xml is NOT enough to make the folder look old: this
+        // version's system.xml still carries effectChannels, effectsMapVisible
+        // and <EffectsGlobal>, none of which a pre-effects save ever wrote. The
+        // case that matters is all four absent together, so strip the three as
+        // well - otherwise this gate passes on a folder no existing show
+        // resembles.
+        {
+            vts.setNumEffectChannels(0);
+            check(fm.saveCompleteConfig(), "X7: save a complete project");
+            check(effectsFile().existsAsFile(), "X7: the save wrote effects.xml");
+
+            check(effectsFile().deleteFile(), "X7: delete effects.xml");
+
+            const auto systemFile = fm.getSystemConfigFile();
+            if (auto sys = juce::XmlDocument::parse(systemFile))
+            {
+                if (auto* cfg = sys->getChildByName("Config"))
+                {
+                    if (auto* io = cfg->getChildByName("IO"))
+                        io->removeAttribute(P::effectChannels);
+                    if (auto* master = cfg->getChildByName("Master"))
+                        master->removeAttribute(P::effectsMapVisible);
+                    cfg->removeChildElement(cfg->getChildByName(P::EffectsGlobal.toString()), true);
+                }
+                check(sys->writeTo(systemFile),
+                      "X7: strip system.xml of all three things this version added - NOW the "
+                      "folder looks like every project ever saved");
+            }
+            else
+            {
+                check(false, "X7: system.xml parses");
+            }
+
+            const juce::String preEffects = systemFile.loadFileAsString();
+            check(! preEffects.contains("effectChannels") && ! preEffects.contains("effectsMapVisible")
+                      && ! preEffects.contains("EffectsGlobal"),
+                  "X7: the pre-effects system.xml names none of the three");
+
+            fm.clearError();
+            check(fm.loadCompleteConfig(), "X7: a project with no effects.xml loads with SUCCESS");
+            check(fm.getLastError().isEmpty(), "X7: ...and reports no error");
+            verifyFamily("X7 (no effects.xml)", 0);
+            check(vts.areChannelNumbersUserOwned(),
+                  "X7: the load latched the channel numbers - the thing a false here would have cost");
+            reconfig();
+
+            check(fm.saveCompleteConfig(), "X7: save the project again");
+            check(effectsFile().existsAsFile(), "X7: effects.xml is back");
+            const juce::String upgraded = systemFile.loadFileAsString();
+            check(upgraded.contains("effectChannels") && upgraded.contains("EffectsGlobal"),
+                  "X7: ...and one save upgrades the old show to this version's baseline");
+        }
+
+        // X8: THE COUNT MAY NOT LIE. <IO>/effectChannels is the config section's
+        // statement of how many effect channels the show has, and every other
+        // family is BUILT from its equivalent by applyConfigSection before its
+        // own file is merged. Effects were not, so a system.xml naming four
+        // beside a project with no effects.xml - which is exactly what "Load
+        // System Config" on its own leaves behind, and what the exit auto-save
+        // writes, since that saves system.xml alone - produced a session
+        // claiming four channels with none in the tree, and the two stayed at
+        // odds through every later save. The load has to materialise them.
+        {
+            vts.setNumEffectChannels(4);
+            check(fm.saveCompleteConfig(), "X8: save a four-channel project");
+            check(effectsFile().deleteFile(),
+                  "X8: delete effects.xml, leaving system.xml alone to say four");
+
+            vts.setNumEffectChannels(0);
+            check(vts.getNumEffectChannels() == 0, "X8: the session is emptied first");
+
+            fm.clearError();
+            check(fm.loadCompleteConfig(), "X8: it loads with SUCCESS");
+            check(fm.getLastError().isEmpty(), "X8: ...and reports no error");
+            verifyFamily("X8 (count from system.xml, no effects.xml)", 4);
+            reconfig();
+
+            check(fm.saveCompleteConfig(), "X8: save it back");
+            check(occurrences(effectsFile().loadFileAsString(), "<Effect ") == 4,
+                  "X8: the regenerated effects.xml holds the four channels the count promised");
+        }
+
+        // X9: A FILE SHORT OF THE SCHEMA IS COMPLETED, not accepted half-built.
+        // mergeTreeRecursive appends an <Effect> the session does not have
+        // VERBATIM and adds nothing to it, so without the template backfill on
+        // this path an older or hand-edited file went live missing whatever it
+        // did not carry - and setEffectParameter writes only where some child
+        // already hasProperty(), which would make every later GUI/OSC/MCP write
+        // of the absent parameter a silent no-op for the life of that show.
+        // Planted at three depths, plus a channel that is nothing but an id.
+        {
+            vts.setNumEffectChannels(2);
+            check(fm.saveEffectsConfig(), "X9: save two channels");
+
+            if (auto doc = juce::XmlDocument::parse(effectsFile()))
+            {
+                auto* effectsEl = doc->getChildByName(P::Effects.toString());
+                auto* first = effectsEl != nullptr ? effectsEl->getChildByName(P::Effect.toString())
+                                                   : nullptr;
+                check(first != nullptr, "X9: the saved file holds an <Effect>");
+
+                if (first != nullptr)
+                {
+                    // A whole module node, one band of the SECOND EQ instance,
+                    // and a single property of <Channel>.
+                    first->removeChildElement(first->getChildByName(P::FxCrush.toString()), true);
+                    if (auto* eq2 = first->getChildByName(P::FxEq2.toString()))
+                        eq2->removeChildElement(eq2->getChildElement(D::numEffectEQBands - 1), true);
+                    if (auto* channel = first->getChildByName(P::Channel.toString()))
+                    {
+                        channel->removeAttribute(P::effectMute);
+
+                        // Values the file DOES carry, distinct from every
+                        // default: a backfill that overwrote instead of filling
+                        // in would reset them, and not one shape assertion in
+                        // this phase would notice.
+                        channel->setAttribute(P::effectName, "Alpha");
+                        channel->setAttribute(P::effectAttenuation, -12.5);
+                    }
+                    if (auto* position = first->getChildByName(P::Position.toString()))
+                        position->setAttribute(P::effectPositionX, 1.25);
+                }
+
+                if (effectsEl != nullptr)
+                {
+                    // ...and a third channel beyond the count, so the merge
+                    // appends it and nothing ever built it.
+                    effectsEl->createNewChildElement(P::Effect.toString())->setAttribute(P::id, 3);
+                    check(doc->writeTo(effectsFile()), "X9: write the short file back");
+                }
+            }
+            else
+            {
+                check(false, "X9: the saved file parses");
+            }
+
+            check(occurrences(effectsFile().loadFileAsString(), "<FxCrush") == 1,
+                  "X9: the file is one <FxCrush> short of the channels it describes");
+
+            vts.setNumEffectChannels(0);
+            check(fm.loadEffectsConfig(), "X9: load the short file");
+            verifyFamily("X9 (short file completed from the template)", 3);
+
+            auto shortChannel = vts.getEffectChannelSection(0);
+            check(shortChannel.hasProperty(P::effectMute),
+                  "X9: the missing <Channel> property is back");
+            check(static_cast<int>(shortChannel.getProperty(P::effectMute, -1))
+                      == static_cast<int>(D::effectMuteDefault),
+                  "X9: ...at its DEFAULT, not at a neighbour's value");
+
+            // The other half of "backfill", and the half no shape assertion can
+            // see: what the file DID carry has to come through untouched.
+            check(shortChannel.getProperty(P::effectName).toString() == "Alpha",
+                  "X9: a string the short file carried is not overwritten by the template");
+            check(std::abs(static_cast<double>(shortChannel.getProperty(P::effectAttenuation)) + 12.5) < 1.0e-6,
+                  "X9: ...nor is a float");
+            check(std::abs(static_cast<double>(vts.getEffectPositionSection(0)
+                                                   .getProperty(P::effectPositionX)) - 1.25) < 1.0e-6,
+                  "X9: ...nor one a node deeper, where the ring default would have landed");
+
+            check(fm.saveEffectsConfig(), "X9: save it again");
+            check(occurrences(effectsFile().loadFileAsString(), "<FxCrush") == 3,
+                  "X9: and the completed shape is what goes back to disk");
+        }
+
+        // X10: THE SEND ROWS ARE SCHEMA NOW, and the exemption that stood in
+        // for that is gone. While <Sends> was built EMPTY the four packed rows
+        // were declared, written at runtime, and therefore indistinguishable
+        // from RETIRED names by the only evidence stripObsoleteEffectProperties
+        // has - absence from a freshly built channel - so the hook had to name
+        // and skip them by hand, or the load after the first write would have
+        // deleted an operator's entire routing with no error and no undo entry.
+        //
+        // createEffectSendsSection stamps all four now, so the template carries
+        // them like any other property and that hand-maintained list is deleted.
+        // Three things change with it, and this phase asserts each: a row written
+        // from OUTSIDE the app still arrives intact and exact; a genuine ghost on
+        // <Sends> itself still goes; and a row NAME on a node that is not <Sends>
+        // is a ghost again rather than an exempt stowaway nothing could ever
+        // clean up. X6 above proves eviction works at all; this proves it stops
+        // in the right place.
+        {
+            auto packedRow = [](int width, const juce::String& idle,
+                                int at1, const juce::String& v1,
+                                int at2, const juce::String& v2)
+            {
+                juce::StringArray cells;
+                for (int i = 0; i < width; ++i)
+                    cells.add(idle);
+                cells.set(at1, v1);
+                cells.set(at2, v2);
+                return cells.joinIntoString(",");
+            };
+
+            // Plausible, and distinct from anything a default or a neighbour
+            // would produce: effectSend* are input-wide and keyed by permanent
+            // number, effectFxSend* are effect-wide, levels in dB and switches
+            // as 0/1.
+            const juce::String sendLevels   = packedRow(D::maxInputChannels,  "0",  2, "-6.5",  17, "-12.25");
+            const juce::String sendOns      = packedRow(D::maxInputChannels,  "0",  2, "1",     17, "1");
+            const juce::String fxSendLevels = packedRow(D::maxEffectChannels, "0",  1, "-3.75",  9, "-24");
+            const juce::String fxSendOns    = packedRow(D::maxEffectChannels, "0",  1, "1",      9, "1");
+
+            vts.setNumEffectChannels(2);
+            check(fm.saveEffectsConfig(), "X10: save two channels");
+
+            if (auto doc = juce::XmlDocument::parse(effectsFile()))
+            {
+                auto* effectsEl = doc->getChildByName(P::Effects.toString());
+                auto* first = effectsEl != nullptr ? effectsEl->getChildByName(P::Effect.toString())
+                                                   : nullptr;
+                auto* sends = first != nullptr ? first->getChildByName(P::Sends.toString()) : nullptr;
+                check(sends != nullptr, "X10: the saved channel carries a <Sends> node");
+                check(sends != nullptr && sends->hasAttribute(P::effectSendLevels)
+                          && sends->hasAttribute(P::effectSendOns)
+                          && sends->hasAttribute(P::effectFxSendLevels)
+                          && sends->hasAttribute(P::effectFxSendOns),
+                      "X10: ...with all four rows stamped on it, straight from the builder");
+
+                if (sends != nullptr)
+                {
+                    // An operator's routing, written by something that is not
+                    // this build - a hand edit, an older save, a show file from
+                    // another machine. Distinct from every default, so a row that
+                    // came back re-defaulted cannot pass for one that survived.
+                    sends->setAttribute(P::effectSendLevels,   sendLevels);
+                    sends->setAttribute(P::effectSendOns,      sendOns);
+                    sends->setAttribute(P::effectFxSendLevels, fxSendLevels);
+                    sends->setAttribute(P::effectFxSendOns,    fxSendOns);
+                    check(doc->writeTo(effectsFile()), "X10: write the operator's send routing back to the file");
+                }
+            }
+            else
+            {
+                check(false, "X10: the saved file parses");
+            }
+
+            vts.setNumEffectChannels(0);
+            check(fm.loadEffectsConfig(), "X10: load the routed file");
+            verifyFamily("X10 (Sends rows written at runtime)", 2);
+
+            auto sendsNode = vts.getEffectSendsSection(0);
+            check(sendsNode.isValid(), "X10: <Sends> is on the loaded channel");
+            check(sendsNode.getProperty(P::effectSendLevels).toString() == sendLevels,
+                  "X10: effectSendLevels survives the load with its EXACT value");
+            check(sendsNode.getProperty(P::effectSendOns).toString() == sendOns,
+                  "X10: ...and effectSendOns");
+            check(sendsNode.getProperty(P::effectFxSendLevels).toString() == fxSendLevels,
+                  "X10: ...and effectFxSendLevels");
+            check(sendsNode.getProperty(P::effectFxSendOns).toString() == fxSendOns,
+                  "X10: ...and effectFxSendOns");
+
+            // The other channel was never routed, so it carries the four
+            // DEFAULT rows - not an empty node, which is what it would have been
+            // before the builder stamped them, and not the first channel's
+            // routing either.
+            {
+                auto unrouted = vts.getEffectSendsSection(1);
+                check(unrouted.getNumProperties() == 4,
+                      "X10: an unrouted channel's <Sends> carries exactly the four rows");
+                check(unrouted.getProperty(P::effectSendLevels).toString()
+                          == juce::String::repeatedString("0,", D::maxInputChannels - 1) + "0",
+                      "X10: ...all of them at the default, every send at unity into a switch that is off");
+                check(unrouted.getProperty(P::effectSendOns).toString()
+                          != sendOns,
+                      "X10: ...and not the routing the OTHER channel was given");
+            }
+
+            check(fm.saveEffectsConfig(), "X10: save the routed session again");
+            const juce::String routed = effectsFile().loadFileAsString();
+            check(occurrences(routed, "effectSendLevels") == 2
+                      && occurrences(routed, "effectFxSendOns") == 2,
+                  "X10: the rows go back to disk, one of each per channel");
+            check(routed.contains(sendLevels) && routed.contains(fxSendLevels),
+                  "X10: ...with the operator's values, not a re-defaulted row");
+
+            // ...and a real ghost planted on that SAME node is still evicted.
+            // The exemption names four identifiers; it does not turn <Sends>
+            // into a place where retired attributes can hide.
+            {
+                static const juce::Identifier sendsGhost("effectSendRetiredGhost");
+                juce::String xml = effectsFile().loadFileAsString();
+                xml = xml.replace("<Sends ", "<Sends effectSendRetiredGhost=\"1\" ");
+                effectsFile().replaceWithText(xml);
+                check(occurrences(effectsFile().loadFileAsString(), "effectSendRetiredGhost") > 0,
+                      "X10: plant a retired attribute on the very node the exemption protects");
+
+                vts.setNumEffectChannels(0);
+                check(fm.loadEffectsConfig(), "X10: load it");
+                check(! vts.getEffectSendsSection(0).hasProperty(sendsGhost),
+                      "X10: the ghost is evicted from <Sends> anyway");
+                check(vts.getEffectSendsSection(0).getProperty(P::effectSendLevels).toString() == sendLevels,
+                      "X10: ...and the legitimate row beside it is untouched");
+            }
+
+            // WHAT THE EXEMPTION USED TO COST, and no longer does. It was keyed
+            // on the property NAME at every depth - one hand-maintained fact
+            // rather than two - so one of those four names used as junk on a node
+            // that is not <Sends> could never be evicted from anyone's file. It
+            // was not data loss, nothing was deleted, but it WAS a send row
+            // sitting where no reader would ever look, and the hook could only
+            // report it. With the rows in the template that whole trade is off:
+            // <Chain> has no effectSendLevels in a freshly built channel, so one
+            // in a file is a ghost like any other and goes.
+            {
+                check(fm.saveEffectsConfig(), "X10: write the cleaned tree back before the next plant");
+
+                juce::String xml = effectsFile().loadFileAsString();
+                xml = xml.replace("<Chain ", "<Chain effectSendLevels=\"JUNK-ON-CHAIN\" ");
+                effectsFile().replaceWithText(xml);
+
+                const auto beforeMisplaced = logMark();
+                vts.setNumEffectChannels(0);
+                check(fm.loadEffectsConfig(), "X10: load a send row planted on <Chain>");
+                const juce::String misplacedLog = logSince(beforeMisplaced);
+
+                check(! vts.getEffectChainSection(0).hasProperty(P::effectSendLevels),
+                      "X10: it is EVICTED - a row name off <Sends> is a ghost again");
+                check(misplacedLog.contains("Effects schema: dropped")
+                          && misplacedLog.contains("effectSendLevels"),
+                      "X10: ...and the eviction warning names it");
+                check(! misplacedLog.contains("exempt attribute(s) found outside <Sends>"),
+                      "X10: the exemption's own warning is gone with the exemption");
+                check(vts.getEffectSendsSection(0).getProperty(P::effectSendLevels).toString() == sendLevels,
+                      "X10: ...and the real row on <Sends>, the same NAME one node up, is untouched");
+            }
+
+            // THE UPGRADE PATH, which is every effects.xml this branch has saved
+            // so far: <Sends> with no rows on it at all. The template backfill
+            // has to put all four back, or every channel of every existing show
+            // goes live with a send matrix that no write can reach - setEffect-
+            // Parameter only writes where some child already hasProperty().
+            {
+                check(fm.saveEffectsConfig(), "X10: save before the empty-node plant");
+
+                juce::String xml = effectsFile().loadFileAsString();
+                const int at = xml.indexOf("<Sends ");
+                const int end = at >= 0 ? xml.indexOf(at, "/>") : -1;
+                check(at >= 0 && end > at, "X10: the file holds a <Sends> to empty out");
+                if (at >= 0 && end > at)
+                    xml = xml.substring(0, at) + "<Sends " + xml.substring(end);
+                effectsFile().replaceWithText(xml);
+                check(occurrences(effectsFile().loadFileAsString(), "effectSendLevels") == 1,
+                      "X10: one channel's <Sends> is now as empty as last commit wrote it");
+
+                vts.setNumEffectChannels(0);
+                check(fm.loadEffectsConfig(), "X10: load the pre-send-matrix file");
+                auto restored = vts.getEffectSendsSection(0);
+                check(restored.getNumProperties() == 4,
+                      "X10: the backfill puts all four rows back on the empty node");
+                check(juce::StringArray::fromTokens(
+                          restored.getProperty(P::effectSendOns).toString(), ",", "").size()
+                              == D::maxInputChannels,
+                      "X10: ...at the width the template declares, not at nothing");
+            }
+        }
+
+        // X11: THE COUNT AND THE ACCESSORS MUST AGREE ABOUT EVERY CHANNEL.
+        // getNumEffectChannels counts <Effect> children BY TYPE; getEffectState
+        // used to index the child list POSITIONALLY and return an invalid tree
+        // when the child at that index was not an <Effect>, treating the type
+        // test as a guard on an invariant rather than as a search. The invariant
+        // holds for everything this application writes - and a FILE is not this
+        // application: mergeTreeRecursive appends an unmatched source child
+        // verbatim, and applyEffectsSection is exactly the path a hand-edited or
+        // foreign effects.xml takes. <Effect id="1"/>, <Foo/>, <Effect id="2"/>
+        // made the count say two while getEffectState(1) returned invalid, so
+        // channel 2 was unreachable to every section accessor and to
+        // redistributeAllEffectPositions - while setNumEffectChannels wrote that
+        // same two into <Effects count> AND Config/IO/effectChannels.
+        //
+        // The foreign child is KEPT, not dropped: an unrecognised node is
+        // evidence of nothing, and deleting it on load would be a second silent
+        // data loss rather than a fix for the first.
+        {
+            static const juce::Identifier foreign("Foo");
+
+            vts.setNumEffectChannels(3);
+            check(fm.saveEffectsConfig(), "X11: save three channels");
+
+            if (auto doc = juce::XmlDocument::parse(effectsFile()))
+            {
+                auto* effectsEl = doc->getChildByName(P::Effects.toString());
+                check(effectsEl != nullptr, "X11: the saved file holds <Effects>");
+
+                if (effectsEl != nullptr)
+                {
+                    // BETWEEN the first channel and the second, never after the
+                    // last: an unknown node at the END leaves positional
+                    // indexing accidentally right for every live channel, and
+                    // this gate would then pass on the broken code.
+                    auto* intruder = new juce::XmlElement(foreign.toString());
+                    intruder->setAttribute("note", "a node written by a schema this build does not know");
+                    effectsEl->insertChildElement(intruder, 1);
+                    check(doc->writeTo(effectsFile()),
+                          "X11: write it back with a foreign child between channel 1 and channel 2");
+                }
+            }
+            else
+            {
+                check(false, "X11: the saved file parses");
+            }
+
+            vts.setNumEffectChannels(0);
+            check(fm.loadEffectsConfig(), "X11: load the foreign file");
+
+            auto effects = vts.getEffectsState();
+            check(effects.getNumChildren() == 4,
+                  "X11: the container holds the foreign child beside the three channels");
+            check(effects.getChild(1).hasType(foreign),
+                  "X11: ...and it sits in the middle, where it breaks positional indexing");
+            check(vts.getNumEffectChannels() == 3, "X11: the count by type says three");
+            check(static_cast<int>(effects.getProperty(P::count, -1)) == 3,
+                  "X11: <Effects count> says three");
+            check(static_cast<int>(vts.getIOState().getProperty(P::effectChannels, -1)) == 3,
+                  "X11: Config/IO/effectChannels says three");
+
+            // THE CRUX: every channel the count promises is reachable, IS the
+            // channel it claims to be, and has its sections. Shaped like
+            // faultInChannel so a failure names the defect.
+            juce::String unreachable;
+            for (int ch = 0; ch < 3 && unreachable.isEmpty(); ++ch)
+            {
+                const juce::String who = "channel " + juce::String(ch + 1) + " ";
+                auto e = vts.getEffectState(ch);
+
+                if (! e.isValid())
+                    unreachable = who + "is unreachable - getEffectState returns an invalid tree";
+                else if (! e.hasType(P::Effect))
+                    unreachable = who + "resolves to a <" + e.getType().toString() + ">";
+                else if (static_cast<int>(e.getProperty(P::id, -1)) != ch + 1)
+                    unreachable = who + "resolves to the channel with id "
+                                      + e.getProperty(P::id).toString();
+                else if (! vts.getEffectChannelSection(ch).isValid()
+                      || ! vts.getEffectPositionSection(ch).isValid()
+                      || ! vts.getEffectFeedSection(ch).isValid()
+                      || ! vts.getEffectSendsSection(ch).isValid()
+                      || ! vts.getEffectModuleSection(ch, 0).isValid())
+                    unreachable = who + "has sections the accessors cannot reach";
+
+                // getTreeForParameter is a SECOND resolver, not a caller of
+                // getEffectState, and it indexed the child list on its own - so
+                // it needs its own assertion or half this fix is ungated. It is
+                // the path every OSC, MCP and GUI write takes, and an invalid
+                // tree there makes canWriteParameter answer FALSE: a remote
+                // surface is told the channel cannot be written, forever.
+                else if (! vts.canWriteParameter(P::effectAttenuation, ch))
+                    unreachable = who + "is not writable through the generic "
+                                        "parameter path (getTreeForParameter)";
+            }
+            check(unreachable.isEmpty(),
+                  juce::String("X11: the count and every accessor agree about all three channels")
+                      + (unreachable.isEmpty() ? juce::String() : " - " + unreachable));
+
+            // Reachable is not the same as CORRECT: a resolver that is off by
+            // one is reachable for every channel and writes to the wrong one.
+            // Three distinct values, read back per channel through the same
+            // generic path, is what tells those two apart.
+            juce::String misrouted;
+            for (int ch = 0; ch < 3; ++ch)
+                vts.setParameterWithoutUndo(P::effectAttenuation, -3.0 - ch, ch);
+            for (int ch = 0; ch < 3 && misrouted.isEmpty(); ++ch)
+            {
+                const double want = -3.0 - ch;
+                const double got  = static_cast<double>(vts.getFloatParameter(P::effectAttenuation, ch));
+                if (std::abs(got - want) > 1.0e-4)
+                    misrouted = "channel " + juce::String(ch + 1) + " reads back "
+                              + juce::String(got) + " where " + juce::String(want) + " was written";
+            }
+            check(misrouted.isEmpty(),
+                  juce::String("X11: a generic write lands on the channel it names")
+                      + (misrouted.isEmpty() ? juce::String() : " - " + misrouted));
+
+            // redistributeAllEffectPositions walks 0..count-1 through that same
+            // accessor and silently skips whatever it cannot resolve, so an
+            // unreachable channel keeps the position it had while the ring is
+            // laid out around it. An invalid section is a fault outright;
+            // pairwise equality is the shape the failure actually takes.
+            vts.redistributeAllEffectPositions();
+            juce::String stacked;
+            for (int a = 0; a < 3 && stacked.isEmpty(); ++a)
+            {
+                auto pa = vts.getEffectPositionSection(a);
+                if (! pa.isValid())
+                {
+                    stacked = "channel " + juce::String(a + 1) + " has no <Position> to lay out";
+                    break;
+                }
+
+                for (int bb = a + 1; bb < 3 && stacked.isEmpty(); ++bb)
+                {
+                    auto pb = vts.getEffectPositionSection(bb);
+                    if (! pb.isValid())
+                    {
+                        stacked = "channel " + juce::String(bb + 1) + " has no <Position> to lay out";
+                        break;
+                    }
+
+                    const auto dx = static_cast<double>(pa.getProperty(P::effectPositionX))
+                                  - static_cast<double>(pb.getProperty(P::effectPositionX));
+                    const auto dy = static_cast<double>(pa.getProperty(P::effectPositionY))
+                                  - static_cast<double>(pb.getProperty(P::effectPositionY));
+                    if (std::abs(dx) < 1.0e-9 && std::abs(dy) < 1.0e-9)
+                        stacked = "channels " + juce::String(a + 1) + " and " + juce::String(bb + 1)
+                                              + " were laid on the same spot";
+                }
+            }
+            check(stacked.isEmpty(),
+                  juce::String("X11: the re-layout reaches all three returns")
+                      + (stacked.isEmpty() ? juce::String() : " - " + stacked));
+
+            // The remove path indexed that same child list AND renumbered it, so
+            // it is the other half of this fix: it reached for child 1, found
+            // the foreign node and refused the edit - and had it got past that,
+            // it would have stamped id="2" onto a node that is not a channel,
+            // which the merge then matches by type AND id for ever after.
+            check(vts.removeEffectChannel(1).wasOk(),
+                  "X11: removing channel 2 finds an <Effect>, not the foreign child");
+            check(vts.getNumEffectChannels() == 2, "X11: two channels remain");
+            check(static_cast<int>(vts.getEffectState(0).getProperty(P::id, -1)) == 1
+                      && static_cast<int>(vts.getEffectState(1).getProperty(P::id, -1)) == 2,
+                  "X11: the surviving ids are dense 1..2");
+            check(static_cast<int>(vts.getEffectsState().getProperty(P::count, -1)) == 2,
+                  "X11: <Effects count> says two, not the four children the container has");
+            check(static_cast<int>(vts.getIOState().getProperty(P::effectChannels, -1)) == 2,
+                  "X11: ...and so does Config/IO/effectChannels");
+
+            auto stranger = vts.getEffectsState().getChildWithName(foreign);
+            check(stranger.isValid(),
+                  "X11: the foreign child is still there - an unknown node is not a licence to delete it");
+            check(! stranger.hasProperty(P::id),
+                  "X11: ...and the renumber did not invent a channel by stamping an id on it");
+
+            // Leave the container as this phase found it.
+            vts.getEffectsState().removeChild(stranger, nullptr);
+        }
+
+        // X12: THE SAME DEFECT ONE LEVEL DOWN, where it stops being loud.
+        // X11 fixed the CHANNEL index. The band and tap indexes INSIDE a channel
+        // were still straight positional reads, on the same reasoning - <FxEq1>
+        // holds six <Band>s and <FxDelay> eight <Tap>s "by construction" - which
+        // is the same sentence that was wrong about <Effects>, wrong here for the
+        // same reason, and reachable through the same file: mergeTreeRecursive
+        // lays an unmatched source child down verbatim at EVERY depth, not only
+        // at the top of the container.
+        //
+        // AND IT IS WORSE DOWN HERE, which is why it gets a phase rather than a
+        // line in X11. A wrong CHANNEL index returns an INVALID tree: the write
+        // is refused and the remote surface is told so. A wrong BAND index
+        // returns a VALID tree - the foreign node - so setProperty succeeds, the
+        // reply says ok, the value is saved onto that node and read straight back
+        // off it on the next load. It round-trips perfectly. The only symptom is
+        // an EQ band that does not change the sound, for ever. That is also why
+        // the read-back below walks for the id instead of asking the accessor
+        // again: a write-then-read through one accessor passes on the broken code.
+        {
+            static const juce::Identifier eqIntruder("Bar");
+            static const juce::Identifier tapIntruder("Baz");
+
+            // Find a node by its id WITHOUT the accessor under test.
+            auto childById = [](const juce::ValueTree& parent, const juce::Identifier& type, int wantedId)
+            {
+                for (int i = 0; i < parent.getNumChildren(); ++i)
+                    if (auto c = parent.getChild(i);
+                        c.hasType(type) && static_cast<int>(c.getProperty(P::id, -1)) == wantedId)
+                        return c;
+                return juce::ValueTree();
+            };
+
+            vts.setNumEffectChannels(1);
+            check(fm.saveEffectsConfig(), "X12: save one channel");
+
+            if (auto doc = juce::XmlDocument::parse(effectsFile()))
+            {
+                auto* effectsEl = doc->getChildByName(P::Effects.toString());
+                auto* first = effectsEl != nullptr ? effectsEl->getChildByName(P::Effect.toString())
+                                                   : nullptr;
+                auto* eqEl    = first != nullptr ? first->getChildByName(P::FxEq1.toString())   : nullptr;
+                auto* delayEl = first != nullptr ? first->getChildByName(P::FxDelay.toString()) : nullptr;
+                check(eqEl != nullptr && delayEl != nullptr,
+                      "X12: the saved channel carries <FxEq1> and <FxDelay>");
+
+                if (eqEl != nullptr && delayEl != nullptr)
+                {
+                    // After the FIRST band and the FIRST tap, never at the end. An
+                    // intruder at the tail leaves positional indexing accidentally
+                    // right for every live band, and this gate would then pass on
+                    // the broken code.
+                    eqEl->insertChildElement(new juce::XmlElement(eqIntruder.toString()), 1);
+                    delayEl->insertChildElement(new juce::XmlElement(tapIntruder.toString()), 1);
+                    check(doc->writeTo(effectsFile()),
+                          "X12: write it back with a foreign node inside each module");
+                }
+            }
+            else
+            {
+                check(false, "X12: the saved file parses");
+            }
+
+            vts.setNumEffectChannels(0);
+            check(fm.loadEffectsConfig(), "X12: load it");
+
+            auto eqNode    = vts.getEffectModuleSection(0, P::FxEq1);
+            auto delayNode = vts.getEffectModuleSection(0, P::FxDelay);
+            check(eqNode.getChild(1).hasType(eqIntruder),
+                  "X12: the foreign node really is inside <FxEq1>, between band 1 and band 2");
+            check(delayNode.getChild(1).hasType(tapIntruder),
+                  "X12: ...and inside <FxDelay>, between tap 1 and tap 2");
+
+            juce::String wrongBand;
+            for (int b = 0; b < D::numEffectEQBands && wrongBand.isEmpty(); ++b)
+            {
+                auto band = vts.getEffectEQBand(0, 0, b);
+                if (! band.isValid())
+                    wrongBand = "band " + juce::String(b + 1) + " is unreachable";
+                else if (! band.hasType(P::Band))
+                    wrongBand = "band " + juce::String(b + 1) + " resolves to a <"
+                              + band.getType().toString() + ">";
+                else if (static_cast<int>(band.getProperty(P::id, -1)) != b + 1)
+                    wrongBand = "band " + juce::String(b + 1) + " resolves to the band with id "
+                              + band.getProperty(P::id).toString();
+            }
+            check(wrongBand.isEmpty(),
+                  juce::String("X12: every EQ band resolves to the band it names")
+                      + (wrongBand.isEmpty() ? juce::String() : " - " + wrongBand));
+
+            juce::String wrongTap;
+            for (int t = 0; t < D::numEffectDelayTaps && wrongTap.isEmpty(); ++t)
+            {
+                auto tap = vts.getEffectDelayTap(0, t);
+                if (! tap.isValid())
+                    wrongTap = "tap " + juce::String(t + 1) + " is unreachable";
+                else if (! tap.hasType(P::Tap))
+                    wrongTap = "tap " + juce::String(t + 1) + " resolves to a <"
+                             + tap.getType().toString() + ">";
+                else if (static_cast<int>(tap.getProperty(P::id, -1)) != t + 1)
+                    wrongTap = "tap " + juce::String(t + 1) + " resolves to the tap with id "
+                             + tap.getProperty(P::id).toString();
+            }
+            check(wrongTap.isEmpty(),
+                  juce::String("X12: every delay tap resolves to the tap it names")
+                      + (wrongTap.isEmpty() ? juce::String() : " - " + wrongTap));
+
+            // The write, read back BY ID rather than through the accessor. Values
+            // no default carries, so a coincidence cannot answer for a hit.
+            for (int b = 0; b < D::numEffectEQBands; ++b)
+                vts.getEffectEQBand(0, 0, b).setProperty(P::effectEQgain, -1.0 - b, nullptr);
+            for (int t = 0; t < D::numEffectDelayTaps; ++t)
+                vts.getEffectDelayTap(0, t).setProperty(P::effectDelayTapLevel, -0.5 - t, nullptr);
+
+            juce::String lost;
+            for (int b = 0; b < D::numEffectEQBands && lost.isEmpty(); ++b)
+            {
+                const double got = static_cast<double>(
+                    childById(eqNode, P::Band, b + 1).getProperty(P::effectEQgain, 999.0));
+                if (std::abs(got - (-1.0 - b)) > 1.0e-6)
+                    lost = "<Band id=" + juce::String(b + 1) + "> reads " + juce::String(got)
+                         + " where " + juce::String(-1.0 - b) + " was written";
+            }
+            for (int t = 0; t < D::numEffectDelayTaps && lost.isEmpty(); ++t)
+            {
+                const double got = static_cast<double>(
+                    childById(delayNode, P::Tap, t + 1).getProperty(P::effectDelayTapLevel, 999.0));
+                if (std::abs(got - (-0.5 - t)) > 1.0e-6)
+                    lost = "<Tap id=" + juce::String(t + 1) + "> reads " + juce::String(got)
+                         + " where " + juce::String(-0.5 - t) + " was written";
+            }
+            check(lost.isEmpty(),
+                  juce::String("X12: a write through the accessor lands on the node it named")
+                      + (lost.isEmpty() ? juce::String() : " - " + lost));
+
+            check(! eqNode.getChild(1).hasProperty(P::effectEQgain)
+                      && ! delayNode.getChild(1).hasProperty(P::effectDelayTapLevel),
+                  "X12: and nothing landed on the foreign nodes, where no reader would find it");
+
+            // Durable, and the intruders survive: an unknown node is no more a
+            // licence to delete it here than it is in <Effects>.
+            check(fm.saveEffectsConfig(), "X12: save the edited channel");
+            vts.setNumEffectChannels(0);
+            check(fm.loadEffectsConfig(), "X12: reload it");
+            eqNode    = vts.getEffectModuleSection(0, P::FxEq1);
+            delayNode = vts.getEffectModuleSection(0, P::FxDelay);
+            check(eqNode.getChildWithName(eqIntruder).isValid()
+                      && delayNode.getChildWithName(tapIntruder).isValid(),
+                  "X12: the foreign nodes are still there after a round trip");
+            check(std::abs(static_cast<double>(vts.getEffectEQBand(0, 0, 5)
+                                                  .getProperty(P::effectEQgain, 999.0)) + 6.0) < 1.0e-6,
+                  "X12: ...and band 6 - the one positional indexing pushed off the end - kept its gain");
+
+            // THE SAME RESOLVER, ON THE LIVE FAMILIES. getOutputEQBand,
+            // getReverbEQBand and getReverbPostEQBand carried the identical
+            // unguarded index, and unlike the effect pair they have callers
+            // TODAY: OSC (/wfs/reverb/n/eq/b/...), the MCP band tools and the GUI
+            // tabs all resolve a band through them. Driven in memory because this
+            // phase owns no reverb CHANNELS and must not move the session's reverb
+            // count; <ReverbPostEQ> is a global the container always carries, and
+            // output 1 always exists. getReverbEQBand is the same one-line call on
+            // the same helper with the same node type as getOutputEQBand - the one
+            // of the five this phase does not drive directly.
+            {
+                auto outEQ = vts.getOutputEQSection(0);
+                check(outEQ.isValid(), "X12: output 1 has an <EQ> section");
+                outEQ.addChild(juce::ValueTree(eqIntruder), 1, nullptr);
+
+                juce::String wrongOut;
+                for (int b = 0; b < D::numEQBands && wrongOut.isEmpty(); ++b)
+                {
+                    auto band = vts.getOutputEQBand(0, b);
+                    if (! band.hasType(P::Band)
+                        || static_cast<int>(band.getProperty(P::id, -1)) != b + 1)
+                        wrongOut = "output band " + juce::String(b + 1) + " resolves to <"
+                                 + band.getType().toString() + " id="
+                                 + band.getProperty(P::id).toString() + ">";
+                }
+                check(wrongOut.isEmpty(),
+                      juce::String("X12: an output EQ band resolves by type, not by position")
+                          + (wrongOut.isEmpty() ? juce::String() : " - " + wrongOut));
+
+                outEQ.removeChild(outEQ.getChildWithName(eqIntruder), nullptr);
+                check(outEQ.getNumChildren() == D::numEQBands,
+                      "X12: ...and the output EQ is left exactly as it was found");
+
+                auto postEQ = vts.ensureReverbPostEQSection();
+                check(postEQ.isValid(), "X12: the global <ReverbPostEQ> is present");
+                postEQ.addChild(juce::ValueTree(eqIntruder), 1, nullptr);
+
+                juce::String wrongPost;
+                for (int b = 0; b < D::numReverbPostEQBands && wrongPost.isEmpty(); ++b)
+                {
+                    auto band = vts.getReverbPostEQBand(b);
+                    if (! band.hasType(P::PostEQBand)
+                        || static_cast<int>(band.getProperty(P::id, -1)) != b + 1)
+                        wrongPost = "post-EQ band " + juce::String(b + 1) + " resolves to <"
+                                  + band.getType().toString() + " id="
+                                  + band.getProperty(P::id).toString() + ">";
+                }
+                check(wrongPost.isEmpty(),
+                      juce::String("X12: a reverb post-EQ band resolves by its OWN type, <PostEQBand>")
+                          + (wrongPost.isEmpty() ? juce::String() : " - " + wrongPost));
+
+                postEQ.removeChild(postEQ.getChildWithName(eqIntruder), nullptr);
+                check(postEQ.getNumChildren() == D::numReverbPostEQBands,
+                      "X12: ...and the post EQ is left exactly as it was found");
+            }
+        }
+
+        // X13: THE SEND MATRIX, AND THE MAINTENANCE THAT KEEPS IT POINTED AT THE
+        // RIGHT CHANNELS. Five packed rows per channel, and every one of them is
+        // a row of columns living in a single string property - which is the
+        // shape every bug in this branch has been about. The four defects the
+        // phase caught before this one were all the same mistake: code inferring
+        // what it may destroy from what it cannot see. These rows ARE that data.
+        //
+        // Every assertion is made after a save and a reload, like the rest of
+        // this phase: a freshly built tree agrees with the builder whatever the
+        // file path does, and the columns are exactly what a merge, a backfill or
+        // an eviction can quietly move.
+        {
+            // Read the row TEXT off the node, never through the accessor under
+            // test. X12's lesson: a write and a read through one accessor pass
+            // each other's mistakes, and a column that is off by one round-trips
+            // perfectly.
+            auto rowOf = [&](int ch, const juce::Identifier& rowId)
+            {
+                return juce::StringArray::fromTokens(
+                    vts.getEffectSendsSection(ch).getProperty(rowId).toString(), ",", "");
+            };
+            auto cell = [&](int ch, const juce::Identifier& rowId, int col) -> juce::String
+            {
+                auto tokens = rowOf(ch, rowId);
+                return (col >= 0 && col < tokens.size()) ? tokens[col] : juce::String("<none>");
+            };
+            auto levelAt = [&](int ch, const juce::Identifier& rowId, int col)
+            {
+                return cell(ch, rowId, col).getFloatValue();
+            };
+            auto isAt = [&](int ch, const juce::Identifier& rowId, int col, float wanted)
+            {
+                return std::abs(levelAt(ch, rowId, col) - wanted) < 1.0e-6f;
+            };
+            auto onAt = [&](int ch, int col) { return cell(ch, P::effectSendOns, col) == "1"; };
+
+            auto reloadEffects = [&](const char* what)
+            {
+                check(fm.saveEffectsConfig(), juce::String(what) + ": save the routed session");
+                vts.setNumEffectChannels(0);
+                check(fm.loadEffectsConfig(), juce::String(what) + ": read it back off disk");
+            };
+
+            // How many tokens of a row are NOT at the row's idle value. The
+            // strongest form of "the neighbours did not move": one number that
+            // catches a write which landed everywhere.
+            auto nonIdle = [&](int ch, const juce::Identifier& rowId)
+            {
+                auto tokens = rowOf(ch, rowId);
+                int n = 0;
+                for (const auto& t : tokens)
+                    if (t.getFloatValue() != 0.0f)
+                        ++n;
+                return n;
+            };
+
+            // ---- X13a: the rows exist, at their widths, at their defaults ----
+            // The builder used to return a bare <Sends>, so every channel of
+            // every show carried a send matrix that no writer could reach:
+            // setEffectParameter only writes where some child already
+            // hasProperty(), so an absent row swallows every write for the life
+            // of the session.
+            // From a CLEAN set: X12 above deliberately leaves a foreign node
+            // inside <FxEq1> and proves it survives a round trip, and this phase
+            // is about the rows rather than about that fixture. Emptying the
+            // family first drops it; the save inside reloadEffects then writes
+            // the clean tree over the file X12 left behind.
+            vts.setNumEffectChannels(0);
+            vts.setNumEffectChannels(3);
+            reloadEffects("X13a");
+            verifyFamily("X13a (three channels, send matrix stamped)", 3);
+
+            juce::String shapeFault;
+            for (int ch = 0; ch < 3 && shapeFault.isEmpty(); ++ch)
+            {
+                const juce::String who = "effect " + juce::String(ch + 1) + ": ";
+                auto sends = vts.getEffectSendsSection(ch);
+
+                if (sends.getNumProperties() != 4)
+                    shapeFault = who + "<Sends> carries " + juce::String(sends.getNumProperties())
+                               + " properties, expected 4";
+                else
+                {
+                    // THE WIDTHS ARE THE POINT. The input rows are as wide as the
+                    // PERMANENT NUMBER space, not as wide as the live channel
+                    // list: a number survives a delete, can leave gaps and can be
+                    // anything up to the maximum however few channels are live,
+                    // so a row fitted to a live count would drop the columns of
+                    // channels that still exist.
+                    const int widths[] = { rowOf(ch, P::effectSendLevels).size(),
+                                           rowOf(ch, P::effectSendOns).size(),
+                                           rowOf(ch, P::effectFxSendLevels).size(),
+                                           rowOf(ch, P::effectFxSendOns).size() };
+                    const int wanted[] = { D::maxInputChannels, D::maxInputChannels,
+                                           D::maxEffectChannels, D::maxEffectChannels };
+                    const char* names[] = { "effectSendLevels", "effectSendOns",
+                                            "effectFxSendLevels", "effectFxSendOns" };
+                    for (int r = 0; r < 4 && shapeFault.isEmpty(); ++r)
+                        if (widths[r] != wanted[r])
+                            shapeFault = who + names[r] + " is " + juce::String(widths[r])
+                                       + " columns wide, expected " + juce::String(wanted[r]);
+
+                    if (shapeFault.isEmpty()
+                        && (nonIdle(ch, P::effectSendLevels) != 0 || nonIdle(ch, P::effectSendOns) != 0
+                            || nonIdle(ch, P::effectFxSendLevels) != 0 || nonIdle(ch, P::effectFxSendOns) != 0))
+                        shapeFault = who + "a freshly built row is not all at its default";
+                }
+            }
+            check(shapeFault.isEmpty(),
+                  juce::String("X13a: every channel carries four rows at their declared widths")
+                      + (shapeFault.isEmpty() ? juce::String() : " - " + shapeFault));
+
+            // ---- X13b: one cell, at its exact value, with quiet neighbours ----
+            // The level rows hold dB. Run one through normaliseMuteList - the
+            // helper that sits right beside them and looks like it fits - and
+            // every send becomes 0 or 1: silence or unity on all 64 columns, with
+            // the row still the right width and the right shape.
+            check(vts.setEffectSendLevelFromInput(0, 2, -3.0f),  "X13b: a level on the neighbour below");
+            check(vts.setEffectSendLevelFromInput(0, 4, -40.0f), "X13b: ...and on the one above");
+            check(vts.setEffectSendLevelFromInput(0, 3, -6.5f),  "X13b: the cell between them");
+            check(vts.setEffectSendOnFromInput(0, 3, true),      "X13b: ...switched on");
+            check(vts.setEffectSendLevelFromInput(0, 17, -12.25f),
+                  "X13b: a second cell, far enough up the row to catch a width mistake");
+            reloadEffects("X13b");
+
+            check(isAt(0, P::effectSendLevels, 2, -6.5f),
+                  "X13b: the level survives the round trip at its EXACT value");
+            check(isAt(0, P::effectSendLevels, 1, -3.0f) && isAt(0, P::effectSendLevels, 3, -40.0f),
+                  "X13b: ...and both neighbours are exactly where they were left");
+            check(isAt(0, P::effectSendLevels, 16, -12.25f),
+                  "X13b: ...as is the cell at input 17");
+            check(nonIdle(0, P::effectSendLevels) == 4 && nonIdle(0, P::effectSendOns) == 1,
+                  "X13b: four levels and one switch moved, and nothing else in either row");
+            check(std::abs(vts.getEffectSendLevelFromInput(0, 3) + 6.5f) < 1.0e-6f
+                      && vts.getEffectSendOnFromInput(0, 3),
+                  "X13b: the accessor reads back what the row text says, keyed by the same number");
+            check(std::abs(vts.getEffectSendLevelFromInput(1, 3) - D::effectSendLevelDefault) < 1.0e-6f,
+                  "X13b: ...and the other channels were not routed by it");
+
+            // OUT OF RANGE is clamped, not refused and not stored: a level row is
+            // the one packed row with a declared range, and the range is what the
+            // cell pseudo-identifier's bounds entry promises every later surface.
+            check(vts.setEffectSendLevelFromInput(0, 5, -400.0f), "X13b: write a level far below the floor");
+            reloadEffects("X13b-clamp");
+            check(isAt(0, P::effectSendLevels, 4, D::effectSendLevelMin),
+                  "X13b: it lands at the floor, and the row still parses as a row");
+
+            // ---- X13c: a bare number may not eat a row ------------------------
+            // Six rows, one hole. inputMutes was guarded after mutes were lost to
+            // a QLab cue, an OSC scalar and an MCP enum, each writing a number
+            // over the whole list; reverbMutes has been destructible by exactly
+            // that route ever since and effectMutes would have inherited it. None
+            // of the five has a bounds entry, so the generic numeric clamp never
+            // even looks at them.
+            {
+                const int reverbsBefore = vts.getNumReverbChannels();
+                if (reverbsBefore == 0)
+                    vts.setNumReverbChannels(1);   // restored below
+                check(vts.getNumReverbChannels() > 0, "X13c: a reverb channel to guard");
+                check(vts.getNumInputChannels() > 0, "X13c: an input channel to guard");
+
+                const juce::Identifier* rows[] = { &P::inputMutes, &P::reverbMutes, &P::effectMutes,
+                                                  &P::effectSendLevels, &P::effectSendOns,
+                                                  &P::effectFxSendLevels, &P::effectFxSendOns };
+
+                auto readRow = [&](const juce::Identifier& rowId) -> juce::String
+                {
+                    if (rowId == P::inputMutes)  return vts.getInputParameter(0, rowId).toString();
+                    if (rowId == P::reverbMutes) return vts.getReverbParameter(0, rowId).toString();
+                    return vts.getEffectParameter(0, rowId).toString();
+                };
+
+                // COLUMN 0 IS ARMED FIRST, and the assertions below are worth
+                // nothing without it. A scalar written over a row lands on its
+                // FIRST column, and every one of these rows starts idle there, so
+                // a guard that refused the write and a guard that took it produce
+                // the same row - "0" either way - and the comparison passes for
+                // the wrong reason. Armed, the same write has somewhere to show.
+                {
+                    juce::StringArray armed;
+                    for (int i = 0; i < juce::jmax(1, vts.getNumOutputChannels()); ++i)
+                        armed.add(i == 0 ? "1" : "0");
+                    const juce::String armedRow = armed.joinIntoString(",");
+
+                    check(vts.setInputOutputMute(0, 0, true), "X13c: mute output 1 of input 1");
+                    vts.setParameter(P::reverbMutes, armedRow, 0);
+                    vts.setParameter(P::effectMutes, armedRow, 0);
+                    check(vts.setEffectSendLevelFromInput(0, 1, -2.0f)
+                              && vts.setEffectSendOnFromInput(0, 1, true),
+                          "X13c: route input 1 into effect 1, so the send rows have a first column too");
+                    check(readRow(P::inputMutes).startsWith("1,")
+                              && readRow(P::reverbMutes).startsWith("1,")
+                              && readRow(P::effectMutes).startsWith("1,")
+                              && readRow(P::effectSendOns).startsWith("1,"),
+                          "X13c: ...and the first column of all four really is armed");
+                }
+
+                juce::StringArray before;
+                for (const auto* rowId : rows)
+                    before.add(readRow(*rowId));
+
+                juce::String emptyRow;
+                for (int r = 0; r < numElementsInArray(rows); ++r)
+                    if (before[r].isEmpty())
+                        emptyRow = rows[r]->toString();
+                check(emptyRow.isEmpty(),
+                      juce::String("X13c: all seven rows are on their nodes to begin with")
+                          + (emptyRow.isEmpty() ? juce::String() : " - " + emptyRow + " is not"));
+
+                // THE ROUTE THAT DID THE DAMAGE, not a hand-written setProperty:
+                // getTreeForParameter resolves the row and writeProperty lands on
+                // it, which is where an OSC scalar, an MCP enum and a cue recall
+                // all arrive.
+                for (int r = 0; r < numElementsInArray(rows); ++r)
+                {
+                    const int channelIndex = 0;
+                    vts.setParameter(*rows[r], 7, channelIndex);      // an int
+                    vts.setParameter(*rows[r], 0.5, channelIndex);    // ...and a float
+                }
+
+                juce::StringArray eatenRows;
+                for (int r = 0; r < numElementsInArray(rows); ++r)
+                    if (readRow(*rows[r]) != before[r])
+                        eatenRows.add(rows[r]->toString() + " became \"" + readRow(*rows[r]) + "\"");
+                const juce::String eaten = eatenRows.joinIntoString("; ");
+                check(eaten.isEmpty(),
+                      juce::String("X13c: a bare number leaves every one of the seven rows exactly as it was")
+                          + (eaten.isEmpty() ? juce::String() : " - " + eaten));
+
+                // ...AND THE SAME SCALAR TYPED AS TEXT, which a clause that tests
+                // the TYPE of the write cannot see. reverb_set_mutes is advertised
+                // to every MCP client with its value as a STRING ENUM of "unmute"
+                // / "MUTE" (Source/Network/MCP/generated_tools.json), and the OSC
+                // list form accepts any non-numeric string, so this is the shipped
+                // route rather than a hypothesis. One junk token used to tokenise
+                // into a full row of DEFAULTS: well-formed, silent, and
+                // indistinguishable from a deliberate unmute-all - which is a
+                // worse loss than the number that started this guard, not a
+                // smaller one.
+                const char* notRows[] = { "MUTE", "unmute", "", "   ", "wibble",
+                                          "7", "0.5", "1;0;1", "--5",
+                                          "MUTE,MUTE", "x,y,z", "1,x,1" };
+                for (const auto* text : notRows)
+                    for (int r = 0; r < numElementsInArray(rows); ++r)
+                        vts.setParameter(*rows[r], juce::String(text), 0);
+
+                juce::StringArray eatenByText;
+                for (int r = 0; r < numElementsInArray(rows); ++r)
+                    if (readRow(*rows[r]) != before[r])
+                        eatenByText.add(rows[r]->toString() + " became \"" + readRow(*rows[r]) + "\"");
+                const juce::String eatenText = eatenByText.joinIntoString("; ");
+                check(eatenText.isEmpty(),
+                      juce::String("X13c: ...and so does a string that is not a row, on all seven")
+                          + (eatenText.isEmpty() ? juce::String() : " - " + eatenText));
+
+                // ...and it survives the save too, which is the half that made the
+                // original bug permanent: the scalar was written, then saved, and
+                // the list was gone from the file as well as from the session.
+                check(fm.saveCompleteConfig(), "X13c: save the whole project");
+                check(fm.loadCompleteConfig(), "X13c: load it back");
+                juce::StringArray lostRows;
+                for (int r = 0; r < numElementsInArray(rows); ++r)
+                    if (readRow(*rows[r]) != before[r])
+                        lostRows.add(rows[r]->toString() + " came back as \"" + readRow(*rows[r]) + "\"");
+                const juce::String lost = lostRows.joinIntoString("; ");
+                check(lost.isEmpty(),
+                      juce::String("X13c: ...and every row comes back off disk unchanged")
+                          + (lost.isEmpty() ? juce::String() : " - " + lost));
+
+                // A SHORT ROW NAMES THE COLUMNS IT HAS, and the rest of the row is
+                // none of its business. Padded out to the full width with defaults
+                // instead, a three-column write clears sixty-one sends nothing
+                // asked about - the one-token loss above with three tokens.
+                check(vts.setEffectSendLevelFromInput(0, 40, -18.0f)
+                          && vts.setEffectSendOnFromInput(0, 40, true),
+                      "X13c: route input 40 into effect 1");
+                vts.setParameter(P::effectSendLevels, juce::String("-1,-2,-3"), 0);
+                check(std::abs(vts.getEffectSendLevelFromInput(0, 40) + 18.0f) < 1.0e-6f,
+                      "X13c: a three-column row write leaves column 40 exactly where it was");
+                check(std::abs(vts.getEffectSendLevelFromInput(0, 1) + 1.0f) < 1.0e-6f
+                          && std::abs(vts.getEffectSendLevelFromInput(0, 3) + 3.0f) < 1.0e-6f,
+                      "X13c: ...and takes the three columns it does name as written");
+
+                if (reverbsBefore == 0)
+                    vts.setNumReverbChannels(0);
+            }
+
+            // ---- X13d: an input delete takes its column with it ---------------
+            // removeInputChannel retires a number and leaves a GAP that
+            // addInputChannel can hand back out later, and it is followed by a
+            // renumber only on a session that has not latched. Both regimes are
+            // driven below, because they fail differently: latched, the column is
+            // idle only if the delete ZEROED it; unlatched, the compaction must
+            // shift the survivors and the zeroing has to happen BEFORE it, or it
+            // clears whichever channel moved into the retired number instead.
+            const int monoBefore   = vts.getNumInputChannels() - vts.getNumStereoInputChannels();
+            const int stereoBefore = vts.getNumStereoInputChannels();
+            auto ioLatch = vts.getIOState();
+            const bool ownedBefore = static_cast<bool>(ioLatch.getProperty(P::channelNumbersUserOwned, false));
+            {
+                // Four inputs numbered 1..4, one distinguishable send each. The
+                // values matter: a column that moved has to say WHICH channel it
+                // belongs to, because a width assertion cannot tell a shift from
+                // a rotate and "not the default" cannot either.
+                auto armFourInputs = [&](const char* who)
+                {
+                    vts.setInputChannelCounts(4, 0);
+                    reconfig();
+                    check(vts.assignInputChannelNumbersBySlot({ 1, 2, 3, 4 }, "self-test X13").wasOk(),
+                          juce::String(who) + ": four inputs numbered 1..4");
+
+                    // Cleared through the ROW identifier - the generic path an OSC
+                    // or MCP row write takes, and the second way into the
+                    // interceptor beside the cell setters.
+                    vts.setParameter(P::effectSendLevels,
+                                     juce::String::repeatedString("0,", D::maxInputChannels - 1) + "0", 0);
+                    vts.setParameter(P::effectSendOns,
+                                     juce::String::repeatedString("0,", D::maxInputChannels - 1) + "0", 0);
+                    check(nonIdle(0, P::effectSendLevels) == 0 && nonIdle(0, P::effectSendOns) == 0,
+                          juce::String(who) + ": a row write through the generic path clears the row it names");
+
+                    for (int number = 1; number <= 4; ++number)
+                        check(vts.setEffectSendLevelFromInput(0, number, (float) -number)
+                                  && vts.setEffectSendOnFromInput(0, number, true),
+                              juce::String(who) + ": route input " + juce::String(number) + " into effect 1");
+                };
+
+                // LATCHED: nothing renumbers, so nothing shifts into the hole.
+                armFourInputs("X13d");
+                check(vts.areChannelNumbersUserOwned(), "X13d: the session is latched");
+                check(vts.removeInputChannel(2).wasOk(), "X13d: delete input #2");
+                reconfig();
+                check(vts.getNumInputChannels() == 3 && vts.getInputChannelNumber(1) == 3,
+                      "X13d: three inputs left, still numbered 1,3,4");
+                reloadEffects("X13d");
+
+                check(isAt(0, P::effectSendLevels, 1, D::effectSendLevelDefault) && ! onAt(0, 1),
+                      "X13d: the retired number's column is idle - the delete zeroed it");
+                check(isAt(0, P::effectSendLevels, 0, -1.0f) && isAt(0, P::effectSendLevels, 2, -3.0f)
+                          && isAt(0, P::effectSendLevels, 3, -4.0f),
+                      "X13d: ...and every survivor kept its own column, by value");
+                check(nonIdle(0, P::effectSendLevels) == 3 && nonIdle(0, P::effectSendOns) == 3,
+                      "X13d: one column went and no other moved");
+
+                // THE GAP IS REUSABLE, which is what makes the zeroing matter.
+                // addInputChannel takes an explicit number precisely so a retired
+                // one can be handed back out, and the operator is warned that
+                // snapshots and cues addressed to it will reach the new channel.
+                // Its sends must not be among them.
+                check(vts.addInputChannel(false, 2).wasOk(),
+                      "X13d: re-create a channel on the retired number");
+                reconfig();
+                reloadEffects("X13d-reuse");
+                check(isAt(0, P::effectSendLevels, 1, D::effectSendLevelDefault) && ! onAt(0, 1),
+                      "X13d: it starts unrouted, instead of inheriting a dead channel's sends");
+
+                // UNLATCHED: the delete is followed by the compaction, so the
+                // survivors' numbers move and their columns have to move with
+                // them. The latch is lifted for this and put back after - the
+                // flag IS the regime, and this session has latched (X7 loaded a
+                // project), so there is no other way to reach it here.
+                armFourInputs("X13d2");
+                ioLatch.setProperty(P::channelNumbersUserOwned, false, nullptr);
+                check(vts.removeInputChannel(2).wasOk(), "X13d2: delete input #2 on a fresh session");
+                reconfig();
+                ioLatch.setProperty(P::channelNumbersUserOwned, true, nullptr);
+
+                check(vts.getNumInputChannels() == 3, "X13d2: three inputs are left");
+                check(vts.getInputChannelNumber(0) == 1 && vts.getInputChannelNumber(1) == 2
+                          && vts.getInputChannelNumber(2) == 3,
+                      "X13d2: ...renumbered 1,2,3 by the compaction");
+
+                reloadEffects("X13d2");
+
+                // BY VALUE, not by width. The surviving columns must still name
+                // the channels they were written for: #3 became #2 and #4 became
+                // #3, so their levels have to be found at the new numbers.
+                check(isAt(0, P::effectSendLevels, 0, -1.0f), "X13d2: input #1 kept its own send");
+                check(isAt(0, P::effectSendLevels, 1, -3.0f),
+                      "X13d2: the channel that was #3 is now #2 and its send came with it");
+                check(isAt(0, P::effectSendLevels, 2, -4.0f),
+                      "X13d2: ...and the one that was #4 is now #3");
+                check(isAt(0, P::effectSendLevels, 3, D::effectSendLevelDefault) && ! onAt(0, 3),
+                      "X13d2: the column the compaction vacated is idle, not a copy of its old occupant");
+                check(nonIdle(0, P::effectSendLevels) == 3 && nonIdle(0, P::effectSendOns) == 3,
+                      "X13d2: three columns routed, one gone, and no fourth invented");
+
+                // ---- X13e: a relabel that PERMUTES, not one that shifts -------
+                // The operator-facing relabel exists so that snapshots, cues and
+                // OSC written against the file's numbers still reach the right
+                // channel afterwards; a send row keyed by number is one of those
+                // references. A SWAP is the case the dense compaction never
+                // produces and an incremental remap always loses: moving #1 to #3
+                // first overwrites the value #3 still needs, and both channels end
+                // up with one of them.
+                check(vts.assignInputChannelNumbersBySlot({ 3, 2, 1 }, "self-test X13e").wasOk(),
+                      "X13e: swap the numbers of the first and last input");
+                reconfig();
+                reloadEffects("X13e");
+
+                check(isAt(0, P::effectSendLevels, 0, -4.0f),
+                      "X13e: column #1 now holds the send of the channel that took that number");
+                check(isAt(0, P::effectSendLevels, 2, -1.0f),
+                      "X13e: ...and column #3 holds the other half of the swap");
+                check(isAt(0, P::effectSendLevels, 1, -3.0f),
+                      "X13e: the channel that kept its number kept its send");
+                check(nonIdle(0, P::effectSendLevels) == 3 && nonIdle(0, P::effectSendOns) == 3,
+                      "X13e: still three routed columns - a collapsed swap would leave two");
+            }
+
+            // ---- X13f: the fx diagonal is off, and stays off ------------------
+            // Effect n may not feed itself: that is not a routing choice, it is a
+            // unity-gain loop around a delay line. Forced where the row is
+            // WRITTEN - the builder, the cell setters, the interceptor and the
+            // column maintenance - because a rule enforced only where the row is
+            // read is a rule every other reader has to remember.
+            {
+                juce::String diagonalFault;
+                for (int ch = 0; ch < 3 && diagonalFault.isEmpty(); ++ch)
+                    if (cell(ch, P::effectFxSendOns, ch) != "0"
+                        || ! isAt(ch, P::effectFxSendLevels, ch, D::effectFxSendLevelDefault))
+                        diagonalFault = "effect " + juce::String(ch + 1) + " feeds itself out of the builder";
+                check(diagonalFault.isEmpty(),
+                      juce::String("X13f: the diagonal is off on every freshly built channel")
+                          + (diagonalFault.isEmpty() ? juce::String() : " - " + diagonalFault));
+
+                check(! vts.setEffectFxSendOnFromEffect(1, 1, true),
+                      "X13f: the cell setter REFUSES the diagonal rather than reporting a write it cannot make");
+                check(! vts.setEffectFxSendLevelFromEffect(1, 1, -6.0f),
+                      "X13f: ...and so does the level setter");
+
+                // The other door: a whole ROW, every switch on, straight down the
+                // generic parameter path an OSC or MCP row write takes.
+                vts.setParameter(P::effectFxSendOns,
+                                 juce::String::repeatedString("1,", D::maxEffectChannels - 1) + "1", 1);
+                reloadEffects("X13f");
+                check(cell(1, P::effectFxSendOns, 1) == "0",
+                      "X13f: a row write with the diagonal set is stored with it cleared");
+                check(cell(1, P::effectFxSendOns, 0) == "1" && cell(1, P::effectFxSendOns, 2) == "1",
+                      "X13f: ...and every other column of that row was taken as written");
+
+                // THE LEVEL ROW'S DIAGONAL, forced by the same clause of the same
+                // interceptor and asserted here for the first time: a dB sitting
+                // in a cell that can never sound is a number no reader may trust,
+                // and after a removal shifts the columns it is exactly what would
+                // land on the survivor's new diagonal.
+                vts.setParameter(P::effectFxSendLevels,
+                                 juce::String::repeatedString("-7,", D::maxEffectChannels - 1) + "-7", 1);
+                reloadEffects("X13f-levels");
+                check(isAt(1, P::effectFxSendLevels, 1, D::effectFxSendLevelDefault),
+                      "X13f: a LEVEL row written with the diagonal set is stored with that cell at the default");
+                check(isAt(1, P::effectFxSendLevels, 0, -7.0f) && isAt(1, P::effectFxSendLevels, 2, -7.0f),
+                      "X13f: ...and every other column of the level row was taken as written");
+
+                // Back to idle before the removal fixture below.
+                vts.setParameter(P::effectFxSendOns,
+                                 juce::String::repeatedString("0,", D::maxEffectChannels - 1) + "0", 1);
+                vts.setParameter(P::effectFxSendLevels,
+                                 juce::String::repeatedString("0,", D::maxEffectChannels - 1) + "0", 1);
+
+                // ---- and after a channel removal, at the NEW index ------------
+                // The fx rows are keyed by DENSE index, so a delete renumbers
+                // their columns exactly as it renumbers the channels. Leave them
+                // and every send above the hole re-points one channel down - the
+                // quietest kind of wrong, because the matrix still looks full.
+                check(vts.setEffectFxSendLevelFromEffect(1, 2, -3.0f) && vts.setEffectFxSendOnFromEffect(1, 2, true),
+                      "X13f: effect 2 is fed by effect 3");
+                check(vts.setEffectFxSendLevelFromEffect(2, 0, -6.0f) && vts.setEffectFxSendOnFromEffect(2, 0, true),
+                      "X13f: effect 3 is fed by effect 1");
+                check(vts.setEffectFxSendLevelFromEffect(2, 1, -12.0f) && vts.setEffectFxSendOnFromEffect(2, 1, true),
+                      "X13f: ...and by effect 2");
+
+                check(vts.removeEffectChannel(0).wasOk(), "X13f: delete effect 1");
+                reloadEffects("X13f-removal");
+                verifyFamily("X13f (after an effect channel removal)", 2);
+
+                // Old 2 is index 0 now, old 3 is index 1.
+                check(isAt(0, P::effectFxSendLevels, 1, -3.0f) && cell(0, P::effectFxSendOns, 1) == "1",
+                      "X13f: the send from old effect 3 followed it down to column 2");
+                check(isAt(1, P::effectFxSendLevels, 0, -12.0f) && cell(1, P::effectFxSendOns, 0) == "1",
+                      "X13f: the send from old effect 2 followed it down to column 1");
+                check(isAt(1, P::effectFxSendLevels, 1, D::effectFxSendLevelDefault)
+                          && cell(1, P::effectFxSendOns, 1) == "0",
+                      "X13f: the deleted channel's send did not shift onto the survivor's own diagonal");
+                check(cell(0, P::effectFxSendOns, 0) == "0",
+                      "X13f: ...and the other survivor's diagonal is off at its new index too");
+                check(nonIdle(0, P::effectFxSendLevels) == 1 && nonIdle(1, P::effectFxSendLevels) == 1,
+                      "X13f: one send each - the deleted column was removed, not blanked in place");
+            }
+
+            // ---- X13g: an output count change refits the per-output rows ------
+            // effectMutes and reverbMutes are the only two send-matrix rows that
+            // FOLLOW a live count, and neither was refitted before: a reverb's row
+            // stayed at whatever width it was built at and self-healed only
+            // because the reverb tab rewrites it whole, with a hard-coded 16.
+            {
+                const int outputsBefore = vts.getNumOutputChannels();
+                const int reverbsBefore = vts.getNumReverbChannels();
+                if (reverbsBefore == 0)
+                    vts.setNumReverbChannels(1);
+
+                auto widthOf = [&](juce::ValueTree node, const juce::Identifier& rowId)
+                {
+                    return juce::StringArray::fromTokens(node.getProperty(rowId).toString(), ",", "").size();
+                };
+                auto columnOf = [&](juce::ValueTree node, const juce::Identifier& rowId, int col)
+                {
+                    auto tokens = juce::StringArray::fromTokens(node.getProperty(rowId).toString(), ",", "");
+                    return (col >= 0 && col < tokens.size()) ? tokens[col] : juce::String("<none>");
+                };
+                auto plantRow = [&](juce::ValueTree node, const juce::Identifier& rowId,
+                                    int width, int mutedA, int mutedB)
+                {
+                    juce::StringArray cells;
+                    for (int i = 0; i < width; ++i)
+                        cells.add((i == mutedA || i == mutedB) ? "1" : "0");
+                    node.setProperty(rowId, cells.joinIntoString(","), nullptr);
+                };
+
+                // ---- THE PADDING HALF: a narrow row grows to the live count ----
+                // Which is the gap this refit was added for: a reverb row left at
+                // whatever width it was built at by a tab whose fallback is 16.
+                plantRow(vts.getEffectReturnSection(0), P::effectMutes, 4, -1, -1);
+                plantRow(vts.getReverbReturnSection(0), P::reverbMutes, 4, -1, -1);
+                vts.setNumOutputChannels(outputsBefore);
+                check(widthOf(vts.getEffectReturnSection(0), P::effectMutes) == outputsBefore,
+                      "X13g: a four-column effectMutes grows to the live output count");
+                check(widthOf(vts.getReverbReturnSection(0), P::reverbMutes) == outputsBefore,
+                      "X13g: ...and so does reverbMutes, which nothing used to resize");
+
+                // ---- THE HALF THAT DELETES, if it is the same call both ways ---
+                // BY VALUE, not by width: a width assertion passes whether the row
+                // kept the operator's mutes or was CUT on the way down and padded
+                // with "0" on the way back up, which is what fitting a row to the
+                // live count in both directions does. Mute a low output and the
+                // top one, drop the rig to half its outputs - an interface that
+                // disappears, a System Config edit - and bring it back.
+                const int lowColumn  = 1;
+                const int highColumn = outputsBefore - 1;
+                plantRow(vts.getEffectReturnSection(0), P::effectMutes, outputsBefore, lowColumn, highColumn);
+                plantRow(vts.getReverbReturnSection(0), P::reverbMutes, outputsBefore, lowColumn, highColumn);
+                check(vts.setInputOutputMute(0, highColumn, true),
+                      "X13g: ...and the same output muted on input 1");
+
+                const int shrunk = juce::jmax(1, outputsBefore / 2);
+                vts.setNumOutputChannels(shrunk);
+                handleChannelCountChange();
+                check(fm.saveCompleteConfig(), "X13g: save the project on a smaller rig");
+                check(fm.loadCompleteConfig(), "X13g: load it back");
+
+                check(columnOf(vts.getEffectReturnSection(0), P::effectMutes, highColumn) == "1",
+                      "X13g: the effect's mute on an output the smaller rig has not got is still in the row");
+                check(columnOf(vts.getReverbReturnSection(0), P::reverbMutes, highColumn) == "1",
+                      "X13g: ...and the reverb's, on a row that has SHIPPED and never had one refit it");
+                check(columnOf(vts.getEffectReturnSection(0), P::effectMutes, lowColumn) == "1"
+                          && columnOf(vts.getReverbReturnSection(0), P::reverbMutes, lowColumn) == "1",
+                      "X13g: ...while the mute on an output the smaller rig does have is untouched");
+                check(rowOf(0, P::effectSendLevels).size() == D::maxInputChannels,
+                      "X13g: the send rows did NOT follow - their columns are inputs, not outputs");
+
+                vts.setNumOutputChannels(outputsBefore);
+                handleChannelCountChange();
+                check(fm.saveCompleteConfig(), "X13g: save it back on the original rig");
+                check(fm.loadCompleteConfig(), "X13g: load that");
+                check(widthOf(vts.getEffectReturnSection(0), P::effectMutes) == outputsBefore,
+                      "X13g: effectMutes is at the live width again");
+                check(widthOf(vts.getReverbReturnSection(0), P::reverbMutes) == outputsBefore,
+                      "X13g: ...and reverbMutes with it");
+                check(columnOf(vts.getEffectReturnSection(0), P::effectMutes, highColumn) == "1"
+                          && columnOf(vts.getReverbReturnSection(0), P::reverbMutes, highColumn) == "1",
+                      "X13g: and the mute at the top of the rig came back with the outputs, not as a 0");
+
+                // inputMutes takes the same trip, on the row the other two were
+                // modelled on. The one case this cannot make is a rig of exactly
+                // 64 or maxOutputChannels outputs: at those two widths a preserved
+                // row cannot be told from the legacy grid list, whose tail the
+                // keepTokens window exists to zero. This rig is 16.
+                if (outputsBefore != 64 && outputsBefore != D::maxOutputChannels)
+                {
+                    auto mutesSection = vts.getInputMutesSection(0);
+                    check(mutesSection.isValid()
+                              && columnOf(mutesSection, P::inputMutes, highColumn) == "1",
+                          "X13g: an input's mute on the top output survived the same round trip");
+                }
+
+                if (reverbsBefore == 0)
+                    vts.setNumReverbChannels(0);
+                handleChannelCountChange();
+            }
+
+            // ---- X13h: a file's rows are canonicalised ON THE WAY IN ---------
+            // Every accessor canonicalises what it READS, so the app was already
+            // safe from a row a file carries in the wrong shape - and only the
+            // app. The stored text is what the next save writes back, so a
+            // self-feed hand-edited into effects.xml stayed in that operator's
+            // file indefinitely: a unity-gain loop around a delay line that no
+            // load and no save was ever going to take out. A junk level token sat
+            // there just as long, reading as 0 dB - UNITY - because "at least one
+            // digit and nothing outside the characters a number uses" passes
+            // "--5", and getFloatValue() answers 0 for it.
+            {
+                auto cellsOf = [](const juce::String& row)
+                {
+                    return juce::StringArray::fromTokens(row, ",", "");
+                };
+                vts.setNumEffectChannels(2);
+                check(fm.saveEffectsConfig(), "X13h: save two channels the app itself wrote");
+
+                if (auto doc = juce::XmlDocument::parse(effectsFile()))
+                {
+                    auto* effectsEl = doc->getChildByName(P::Effects.toString());
+                    auto* first = effectsEl != nullptr ? effectsEl->getChildByName(P::Effect.toString())
+                                                       : nullptr;
+                    auto* sends = first != nullptr ? first->getChildByName(P::Sends.toString()) : nullptr;
+                    check(sends != nullptr, "X13h: the saved channel carries a <Sends> to hand-edit");
+
+                    if (sends != nullptr)
+                    {
+                        auto fxOns    = cellsOf(sends->getStringAttribute(P::effectFxSendOns.toString()));
+                        auto fxLevels = cellsOf(sends->getStringAttribute(P::effectFxSendLevels.toString()));
+                        auto levels   = cellsOf(sends->getStringAttribute(P::effectSendLevels.toString()));
+
+                        fxOns.set(0, "1");         // effect 1 feeding ITSELF
+                        fxLevels.set(0, "-6");     // ...at a level, on the diagonal
+                        fxLevels.set(1, "-500");   // ...and one far below the floor
+                        levels.set(0, "--5");      // junk that parses to 0 dB, which is unity
+                        levels.set(1, "1e400");    // ...and junk that parses to +infinity
+
+                        sends->setAttribute(P::effectFxSendOns.toString(),    fxOns.joinIntoString(","));
+                        sends->setAttribute(P::effectFxSendLevels.toString(), fxLevels.joinIntoString(","));
+                        sends->setAttribute(P::effectSendLevels.toString(),   levels.joinIntoString(","));
+                        check(doc->writeTo(effectsFile()), "X13h: write the hand-edited routing back");
+                    }
+                }
+                else
+                {
+                    check(false, "X13h: the saved file parses");
+                }
+
+                vts.setNumEffectChannels(0);
+                check(fm.loadEffectsConfig(), "X13h: load the hand-edited file");
+
+                check(cell(0, P::effectFxSendOns, 0) == "0",
+                      "X13h: the self-feed is off in the TREE, not only in what the accessors answer");
+                check(isAt(0, P::effectFxSendLevels, 0, D::effectFxSendLevelDefault),
+                      "X13h: ...and the level that sat on the diagonal is back at the default");
+                check(isAt(0, P::effectFxSendLevels, 1, D::effectFxSendLevelMin),
+                      "X13h: a level far below the floor is clamped to it");
+                check(cell(0, P::effectSendLevels, 0) == juce::String(D::effectSendLevelDefault)
+                          && cell(0, P::effectSendLevels, 1) == juce::String(D::effectSendLevelDefault),
+                      "X13h: and both junk tokens are re-defaulted instead of reading back as unity");
+
+                // AND IT IS IN THE FILE. A repair that lives only in this session
+                // leaves the landmine where it was: the next load finds it again,
+                // and so does everything else that reads the operator's file.
+                check(fm.saveEffectsConfig(), "X13h: save the repaired tree");
+                if (auto doc = juce::XmlDocument::parse(effectsFile()))
+                {
+                    auto* effectsEl = doc->getChildByName(P::Effects.toString());
+                    auto* first = effectsEl != nullptr ? effectsEl->getChildByName(P::Effect.toString())
+                                                       : nullptr;
+                    auto* sends = first != nullptr ? first->getChildByName(P::Sends.toString()) : nullptr;
+                    check(sends != nullptr
+                              && cellsOf(sends->getStringAttribute(P::effectFxSendOns.toString()))[0] == "0",
+                          "X13h: the file the operator keeps no longer carries the self-feed");
+                    check(sends != nullptr
+                              && ! sends->getStringAttribute(P::effectSendLevels.toString()).contains("--5"),
+                          "X13h: ...nor the junk token");
+                }
+                else
+                {
+                    check(false, "X13h: the repaired file parses");
+                }
+            }
+
+            // Leave the input list roughly as this phase found it. The numbers
+            // cannot be restored - X13d deleted one - but the counts and the
+            // latch can, and nothing below this reads either.
+            vts.setInputChannelCounts(juce::jmax(1, monoBefore), stereoBefore);
+            reconfig();
+            ioLatch.setProperty(P::channelNumbersUserOwned, ownedBefore, nullptr);
+        }
+
+        // Leave nothing behind: the folder, and the count this phase raised.
+        vts.setNumEffectChannels(0);
+        fm.setProjectFolder(previousProject);
+        tempProject.deleteRecursively();
+    }
+
+    // ---- Y: the calculation engine renders an effect return as a source -----
+    // Nothing in the app installs a render-source map with effect returns yet
+    // (recomputeRenderSourceCount still builds without effects), so this phase
+    // builds one by hand from the live channel types, installs it in the
+    // calculation engine and reads the matrices back. Every assertion names a
+    // mechanism that has no other caller today: the kind-aware position, the
+    // return rows, the feed matrix and its user cells, the diagonal, the two
+    // solo masks, the latency rule and the cycle mask.
+    {
+        namespace P = WFSParameterIDs;
+        namespace D = WFSParameterDefaults;
+        using Map = spatcore::wfs::RenderSourceMap;
+        using Kind = spatcore::wfs::SourceKind;
+
+        auto* calc = calculationEngine.get();
+        check(calc != nullptr, "Y0: the calculation engine exists");
+
+        if (calc != nullptr)
+        {
+            const int inputsBefore = vts.getNumInputChannels();
+            const int stereoBefore = vts.getNumStereoInputChannels();
+            const bool effectLatchBefore = vts.areEffectPositionsUserOwned();
+
+            vts.setNumEffectChannels(2);
+
+            // The live channel types plus two effect returns: the map the app
+            // itself will build once the effects count reaches it
+            std::array<uint8_t, Map::kMaxInputChannels> types {};
+            const int numTypes = juce::jlimit(0, (int) Map::kMaxInputChannels, inputsBefore);
+            for (int i = 0; i < numTypes; ++i)
+                if (vts.isInputChannelStereo(i))
+                    types[(size_t) i] = Map::Stereo;
+
+            Map map;
+            check(Map::build(types.data(), numTypes, 2, map), "Y0: a map with two effect returns builds");
+            const int firstFx = map.firstEffectSlot;
+            check(firstFx == inputsBefore + 5 * stereoBefore, "Y0: the returns follow the inputs and their slices");
+            check(map.count == firstFx + 2, "Y0: the map counts the two returns");
+            const int stride = calc->getNumEffects();
+            check(stride == D::maxEffectChannels, "Y0: the feed stride is the effects budget");
+
+            // Both effects far upstage (behind every speaker facing the
+            // audience, so every return row reaches the array) and hearing
+            // everything (angleOn 180 = no feed cone), so the assertions below
+            // are about the mechanisms and not about the rig's geometry.
+            vts.setEffectParameter(0, P::effectPositionX, 0.0f);
+            vts.setEffectParameter(0, P::effectPositionY, 40.0f);
+            vts.setEffectParameter(0, P::effectPositionZ, 3.0f);
+            vts.setEffectParameter(1, P::effectPositionX, 3.0f);
+            vts.setEffectParameter(1, P::effectPositionY, 40.0f);
+            vts.setEffectParameter(1, P::effectPositionZ, 3.0f);
+            vts.setEffectParameter(0, P::effectAngleOn, 180);
+            vts.setEffectParameter(1, P::effectAngleOn, 180);
+
+            calc->setRenderSourceMap(map);
+            calc->recalculateAllEffectPositions();
+            calc->recalculateMatrix(nullptr);
+
+            const int numOutputs = calc->getNumOutputs();
+            const int liveOutputs = vts.getNumOutputChannels();
+            auto cellOut  = [&](int slot, int out) { return calc->getLevels()[(size_t) (slot * numOutputs + out)]; };
+            auto delayOut = [&](int slot, int out) { return calc->getDelayTimesMs()[(size_t) (slot * numOutputs + out)]; };
+            auto cellFx   = [&](int slot, int fx)  { return calc->getInputEffectLevels()[(size_t) (slot * stride + fx)]; };
+            auto delayFx  = [&](int slot, int fx)  { return calc->getInputEffectDelayTimesMs()[(size_t) (slot * stride + fx)]; };
+            auto rowMax   = [&](int slot)
+            {
+                float m = 0.0f;
+                for (int o = 0; o < liveOutputs; ++o)
+                    m = juce::jmax(m, cellOut(slot, o));
+                return m;
+            };
+            auto allOff = [&]
+            {
+                juce::StringArray row;
+                for (int o = 0; o < liveOutputs; ++o)
+                    row.add("0");
+                return row.joinIntoString(",");
+            };
+
+            // Y1: kinds and the position
+            check(calc->getSourceKind(firstFx) == Kind::EffectReturn, "Y1: the return slot is an effect return");
+            check(calc->getSourceKind(0) == Kind::Input, "Y1: slot 0 is still an input");
+            check(calc->getOwningEffectChannel(firstFx) == 0, "Y1: the return slot names effect 0");
+            check(calc->getOwningInputChannel(firstFx) == -1, "Y1: the return slot owns no input");
+            {
+                const auto rp = calc->getRenderSourcePosition(firstFx);
+                check(std::abs(rp.x) < 1e-4f && std::abs(rp.y - 40.0f) < 1e-4f && std::abs(rp.z - 3.0f) < 1e-4f,
+                      "Y1: the return renders at its position, not at the origin");
+            }
+
+            // Y2: the return row of the in x out matrix
+            check(rowMax(firstFx) > 0.0f, "Y2: the return row reaches the array");
+            {
+                bool frZero = true;
+                for (int o = 0; o < liveOutputs; ++o)
+                    frZero = frZero && calc->getFRLevels()[(size_t) (firstFx * numOutputs + o)] == 0.0f;
+                check(frZero, "Y2: a return has no floor reflection");
+
+                int loudOut = -1;
+                for (int o = 0; o < liveOutputs && loudOut < 0; ++o)
+                    if (cellOut(firstFx, o) > 0.0f)
+                        loudOut = o;
+                check(loudOut >= 0, "Y2: an output hears the return");
+
+                if (loudOut >= 0)
+                {
+                    const float before = cellOut(firstFx, loudOut);
+
+                    juce::StringArray mutes;
+                    for (int o = 0; o < liveOutputs; ++o)
+                        mutes.add(o == loudOut ? "1" : "0");
+                    vts.setEffectParameter(0, P::effectMutes, mutes.joinIntoString(","));
+                    calc->recalculateMatrix(nullptr);
+                    check(cellOut(firstFx, loudOut) == 0.0f, "Y2: effectMutes silences that output");
+
+                    vts.setEffectParameter(0, P::effectMutes, allOff());
+                    vts.setEffectParameter(0, P::effectAttenuation, -6.0f);
+                    calc->recalculateMatrix(nullptr);
+                    check(std::abs(cellOut(firstFx, loudOut) / before - 0.501187f) < 1e-3f,
+                          "Y2: effectAttenuation trims the return by 6 dB");
+                    vts.setEffectParameter(0, P::effectAttenuation, 0.0f);
+                }
+            }
+
+            // Y3: the feed matrix, input 0 -> effect 0
+            {
+                const int in0Number = vts.getInputChannelNumber(0);
+                bool allZero = true;
+                for (int s = 0; s < map.count; ++s)
+                    for (int fx = 0; fx < 2; ++fx)
+                        allZero = allZero && cellFx(s, fx) == 0.0f;
+                check(allZero, "Y3: every feed cell is 0 while every send is off");
+                check(delayFx(0, 0) > 0.0f, "Y3: a closed cell still carries its geometric delay");
+
+                check(vts.setEffectSendOnFromInput(0, in0Number, true), "Y3: the send switch takes");
+                check(vts.setEffectSendLevelFromInput(0, in0Number, 0.0f), "Y3: the send level takes");
+                calc->recalculateMatrix(nullptr);
+                const float openCell = cellFx(0, 0);
+                check(openCell > 0.0f && openCell <= 1.0f, "Y3: an open send feeds effect 0 from input 0");
+
+                auto attenSection = vts.getInputAttenuationSection(0);
+                auto channelSection = vts.getInputChannelSection(0);
+                auto positionSection = vts.getInputPositionSection(0);
+                const int law = attenSection.getProperty(P::inputAttenuationLaw, D::inputAttenuationLawDefault);
+                const int common = attenSection.getProperty(P::inputCommonAtten, D::inputCommonAttenDefault);
+                const int heightPercent = positionSection.getProperty(P::inputHeightFactor, D::inputHeightFactorDefault);
+                const float distAtten = attenSection.getProperty(P::inputDistanceAttenuation, D::inputDistanceAttenuationDefault);
+                const float trim = channelSection.getProperty(P::inputAttenuation, D::inputAttenuationDefault);
+                if (law == 0 && common == 100 && heightPercent == 100)
+                {
+                    const auto ip = calc->getRenderSourcePosition(0);
+                    const auto fp = calc->getEffectFeedPosition(0);
+                    const float d = std::sqrt((fp.x - ip.x) * (fp.x - ip.x) + (fp.y - ip.y) * (fp.y - ip.y)
+                                              + (fp.z - ip.z) * (fp.z - ip.z));
+                    const float expected = std::pow(10.0f, juce::jlimit(-92.0f, 0.0f, trim + distAtten * d) / 20.0f);
+                    check(std::abs(openCell - expected) < 1e-3f, "Y3: the open cell is the geometric level");
+                }
+
+                vts.setEffectSendLevelFromInput(0, in0Number, -6.0f);
+                calc->recalculateMatrix(nullptr);
+                check(std::abs(cellFx(0, 0) / openCell - 0.501187f) < 1e-3f, "Y3: the send level scales the cell");
+                check(cellFx(0, 1) == 0.0f, "Y3: effect 1's cell stays closed");
+
+                // A stereo channel's derived rows carry the owner's cell at
+                // their own geometry; with no slice geometry pushed yet they
+                // sit on the anchor at unity, so the rows are bit-equal
+                int stereoSlot = -1;
+                for (int s = 0; s < inputsBefore && stereoSlot < 0; ++s)
+                    if (vts.isInputChannelStereo(s))
+                        stereoSlot = s;
+                if (stereoSlot >= 0)
+                {
+                    vts.setEffectSendOnFromInput(0, vts.getInputChannelNumber(stereoSlot), true);
+                    calc->recalculateMatrix(nullptr);
+                    const int derived = map.firstDerivedSlot[(size_t) stereoSlot];
+                    check(derived >= 0 && cellFx(stereoSlot, 0) > 0.0f
+                              && cellFx(derived, 0) == cellFx(stereoSlot, 0),
+                          "Y3: a derived slice row carries the owner's send cell");
+                }
+            }
+
+            // Y4: effect -> effect
+            {
+                check(vts.setEffectFxSendOnFromEffect(1, 0, true), "Y4: the switch 'effect 1 receives effect 0' takes");
+                vts.setEffectParameter(0, P::effectMinimalLatency, 0);   // mode 0 keeps the geometric delay visible
+                calc->recalculateMatrix(nullptr);
+                check(cellFx(firstFx, 1) > 0.0f, "Y4: effect 0's return feeds effect 1");
+                check(cellFx(firstFx + 1, 0) == 0.0f, "Y4: effect 1's return does not feed effect 0");
+                check(cellFx(firstFx, 0) == 0.0f, "Y4: the diagonal is closed");
+                check(delayFx(firstFx, 1) > 0.0f, "Y4: a geometric effect feed carries a delay");
+
+                juce::StringArray ones;
+                for (int i = 0; i < D::maxEffectChannels; ++i)
+                    ones.add("1");
+                vts.setEffectParameter(0, P::effectFxSendOns, ones.joinIntoString(","));
+                calc->recalculateMatrix(nullptr);
+                check(cellFx(firstFx, 0) == 0.0f, "Y4: a diagonal planted through the row string stays closed");
+                check(vts.getEffectFxSendOnFromEffect(0, 1), "Y4: ...while the row's other cells opened");
+
+                vts.setParameter(P::effectsGlobalFxFeedGeometric, 0);
+                calc->recalculateMatrix(nullptr);
+                check(delayFx(firstFx, 1) == 0.0f, "Y4: a matrix-only effect feed carries no delay");
+                check(std::abs(cellFx(firstFx, 1) - 1.0f) < 1e-6f, "Y4: ...and its cell is the user gain (0 dB = 1)");
+                vts.setParameter(P::effectsGlobalFxFeedGeometric, 1);
+                calc->recalculateMatrix(nullptr);
+                check(delayFx(firstFx, 1) > 0.0f, "Y4: geometric again, the delay is back");
+            }
+
+            // Y5: the two solo masks
+            {
+                vts.setEffectParameter(1, P::effectSolo, 1);
+                calc->recalculateMatrix(nullptr);
+                check(rowMax(firstFx) == 0.0f, "Y5: soloing effect 1 silences effect 0's return row");
+                check(rowMax(firstFx + 1) > 0.0f, "Y5: ...and leaves effect 1's");
+                vts.setEffectParameter(1, P::effectSolo, 0);
+
+                calc->setSoloEffects(true);
+                calc->recalculateMatrix(nullptr);
+                check(rowMax(0) == 0.0f, "Y5: solo effects silences input 0's direct row");
+                check(rowMax(firstFx) > 0.0f, "Y5: ...and leaves the returns");
+                calc->setSoloEffects(false);
+                calc->recalculateMatrix(nullptr);
+                check(rowMax(0) > 0.0f, "Y5: input 0's direct row is back");
+            }
+
+            // Y6: no render-latency reference on a return; the delay trim applies
+            {
+                vts.setEffectParameter(0, P::effectDelayLatency, 0.0f);
+                calc->recalculateMatrix(nullptr);
+                std::vector<float> d0((size_t) liveOutputs);
+                for (int o = 0; o < liveOutputs; ++o)
+                    d0[(size_t) o] = delayOut(firstFx, o);
+
+                // The reference dirties the INPUT rows only, so the return rows
+                // must be forced through a recompute here or this assertion
+                // passes for the wrong reason (a mutation adding the term to the
+                // return rows went unnoticed until the recompute was forced)
+                calc->setChannelIntrinsicLatency(0, 3.0f);
+                calc->recalculateAllEffectPositions();
+                calc->recalculateMatrix(nullptr);
+                bool unchanged = true;
+                for (int o = 0; o < liveOutputs; ++o)
+                    unchanged = unchanged && delayOut(firstFx, o) == d0[(size_t) o];
+                check(unchanged, "Y6: the render-latency reference never reaches a return row");
+                calc->setChannelIntrinsicLatency(0, 0.0f);
+
+                vts.setEffectParameter(0, P::effectDelayLatency, 10.0f);
+                calc->recalculateMatrix(nullptr);
+                bool trimmed = true;
+                int compared = 0;
+                for (int o = 0; o < liveOutputs; ++o)
+                {
+                    if (cellOut(firstFx, o) <= 0.0f || d0[(size_t) o] < 0.5f)
+                        continue;   // silent or clamped cells say nothing about the trim
+                    trimmed = trimmed && std::abs(delayOut(firstFx, o) - (d0[(size_t) o] + 10.0f)) < 1e-3f;
+                    ++compared;
+                }
+                check(trimmed && compared > 0, "Y6: effectDelayLatency adds exactly 10 ms to the return row");
+                vts.setEffectParameter(0, P::effectDelayLatency, 0.0f);
+            }
+
+            // Y7: the cycle mask (Y4 left effect 0 receiving everyone, and
+            // effect 1 receiving effect 0: A -> B -> A)
+            {
+                calc->recalculateMatrix(nullptr);
+                check(calc->getEffectCycleMask() == 0x3u, "Y7: A -> B -> A is reported for both effects");
+                vts.setEffectFxSendOnFromEffect(1, 0, false);
+                calc->recalculateMatrix(nullptr);
+                check(calc->getEffectCycleMask() == 0u, "Y7: breaking one leg clears the cycle");
+            }
+
+            // Leave nothing behind: the channels, the latch they tripped, the
+            // latency reference, and the app's own map
+            vts.setNumEffectChannels(0);
+            if (! effectLatchBefore)
+                vts.getEffectsState().setProperty(P::effectPositionsUserOwned, 0, nullptr);
+            calc->setChannelIntrinsicLatency(0, 0.0f);
+            recomputeRenderSourceCount();
+            calc->recalculateMatrix(nullptr);
+        }
+    }
+
+    // ---- A: the per-array trim reaches the return rows ---------------------
+    // effectArrayAtten1..10 (R5-4) completes the third matrix level, which had
+    // a per-output mute and no level at all. The trim is PER EFFECT and per
+    // ARRAY: it lives on this channel's <Return> and is applied against each
+    // output's array assignment, so a trim on one array must move exactly the
+    // outputs of that array, on exactly the effect that carries it, and leave
+    // every other cell bit-identical. The hook it fills was a zero-filled local
+    // that no test could distinguish from a trim that does nothing.
+    {
+        namespace P = WFSParameterIDs;
+        using Map = spatcore::wfs::RenderSourceMap;
+
+        auto* calc = calculationEngine.get();
+        check(calc != nullptr, "A0: the calculation engine exists");
+
+        if (calc != nullptr && vts.getNumOutputChannels() >= 2)
+        {
+            const int inputsBefore = vts.getNumInputChannels();
+            const bool effectLatchBefore = vts.areEffectPositionsUserOwned();
+            const int liveOutputs = vts.getNumOutputChannels();
+
+            // Two outputs on two different arrays, so "moved" and "untouched"
+            // are both observable in one matrix. Restored at the end.
+            const int arrayBefore0 = WFSVar::toInt (vts.getOutputParameter (0, P::outputArray));
+            const int arrayBefore1 = WFSVar::toInt (vts.getOutputParameter (1, P::outputArray));
+            vts.setOutputParameter (0, P::outputArray, 1);
+            vts.setOutputParameter (1, P::outputArray, 2);
+
+            vts.setNumEffectChannels (2);
+
+            std::array<uint8_t, Map::kMaxInputChannels> types {};
+            const int numTypes = juce::jlimit (0, (int) Map::kMaxInputChannels, inputsBefore);
+            for (int i = 0; i < numTypes; ++i)
+                if (vts.isInputChannelStereo (i))
+                    types[(size_t) i] = Map::Stereo;
+
+            Map map;
+            check (Map::build (types.data(), numTypes, 2, map), "A0: a map with two effect returns builds");
+            const int firstFx = map.firstEffectSlot;
+
+            // Upstage of the array and with no feed cone, exactly as phase Y
+            // does, so the assertions are about the trim and not the geometry.
+            for (int fx = 0; fx < 2; ++fx)
+            {
+                vts.setEffectParameter (fx, P::effectPositionX, (float) (3 * fx));
+                vts.setEffectParameter (fx, P::effectPositionY, 40.0f);
+                vts.setEffectParameter (fx, P::effectPositionZ, 3.0f);
+                vts.setEffectParameter (fx, P::effectAngleOn, 180);
+            }
+
+            calc->setRenderSourceMap (map);
+            calc->recalculateAllEffectPositions();
+            calc->recalculateMatrix (nullptr);
+
+            const int numOutputs = calc->getNumOutputs();
+            auto cellOut = [&] (int slot, int out)
+            {
+                return calc->getLevels()[(size_t) (slot * numOutputs + out)];
+            };
+
+            std::vector<float> before ((size_t) liveOutputs * 2, 0.0f);
+            for (int fx = 0; fx < 2; ++fx)
+                for (int o = 0; o < liveOutputs; ++o)
+                    before[(size_t) (fx * liveOutputs + o)] = cellOut (firstFx + fx, o);
+
+            check (before[0] > 1e-4f && before[1] > 1e-4f,
+                   "A1: both compared outputs carry the untrimmed return, well clear of the -92 dB clamp");
+
+            // A2: -6 dB on array 1 of effect 0 only
+            vts.setEffectParameter (0, WFSValueTreeState::getEffectArrayAttenId (0), -6.0f);
+            calc->recalculateMatrix (nullptr);
+
+            const float expected = std::pow (10.0f, -6.0f / 20.0f);
+            int movedInArray1 = 0, wrongInArray1 = 0, movedElsewhere = 0, movedOnEffect1 = 0;
+
+            for (int o = 0; o < liveOutputs; ++o)
+            {
+                const int arrayNum = WFSVar::toInt (vts.getOutputParameter (o, P::outputArray));
+                const float b0 = before[(size_t) o];
+                const float a0 = cellOut (firstFx, o);
+                const float b1 = before[(size_t) (liveOutputs + o)];
+                const float a1 = cellOut (firstFx + 1, o);
+
+                if (arrayNum == 1)
+                {
+                    if (b0 > 1e-4f)
+                    {
+                        ++movedInArray1;
+                        if (std::abs (a0 / b0 - expected) > 1e-3f)
+                            ++wrongInArray1;
+                    }
+                }
+                else if (std::abs (a0 - b0) > 1e-6f)
+                {
+                    ++movedElsewhere;
+                }
+
+                if (std::abs (a1 - b1) > 1e-6f)
+                    ++movedOnEffect1;
+            }
+
+            check (movedInArray1 > 0 && wrongInArray1 == 0,
+                   "A2: a -6 dB trim on array 1 scales exactly the array-1 cells of that return");
+            check (movedElsewhere == 0, "A2: outputs outside array 1 are untouched");
+            check (movedOnEffect1 == 0, "A2: the trim is per effect - the other return does not move");
+
+            // A3: the trim follows the ARRAY, not the output index. Moving
+            // output 1 into array 1 must bring it under the same trim without
+            // any write to the effect.
+            vts.setOutputParameter (1, P::outputArray, 1);
+            calc->recalculateMatrix (nullptr);
+            const float b1 = before[1];
+            const float a1 = cellOut (firstFx, 1);
+            check (b1 > 1e-4f && std::abs (a1 / b1 - expected) < 1e-3f,
+                   "A3: an output moved into array 1 picks the trim up from its assignment");
+
+            // A4: back to 0 dB restores the row exactly
+            vts.setOutputParameter (1, P::outputArray, 2);
+            vts.setEffectParameter (0, WFSValueTreeState::getEffectArrayAttenId (0),
+                                    WFSParameterDefaults::effectArrayAttenDefault);
+            calc->recalculateMatrix (nullptr);
+            int notRestored = 0;
+            for (int o = 0; o < liveOutputs; ++o)
+                if (std::abs (cellOut (firstFx, o) - before[(size_t) o]) > 1e-6f)
+                    ++notRestored;
+            check (notRestored == 0, "A4: clearing the trim restores every cell of the row");
+
+            // Leave nothing behind
+            vts.setOutputParameter (0, P::outputArray, arrayBefore0);
+            vts.setOutputParameter (1, P::outputArray, arrayBefore1);
+            vts.setNumEffectChannels (0);
+            if (! effectLatchBefore)
+                vts.getEffectsState().setProperty (P::effectPositionsUserOwned, 0, nullptr);
+            recomputeRenderSourceCount();
+            calc->recalculateMatrix (nullptr);
+        }
+        else
+        {
+            check (vts.getNumOutputChannels() >= 2, "A0: the session has at least two outputs to compare");
+        }
+    }
+
+    // ---- L: a link group propagates, and every member can leave it ---------
+    // The funnel is the output ARRAY's, not the cluster one (R5-6): membership
+    // plus a mode on every member, and the receiver's mode consulted as well as
+    // the origin's. Everything below is about that asymmetry and about what a
+    // group must never share - mutes above all (R5-1), which propagation cannot
+    // express and a group ACTION can (R5-2).
+    {
+        namespace P = WFSParameterIDs;
+        namespace D = WFSParameterDefaults;
+
+        const bool effectLatchBefore = vts.areEffectPositionsUserOwned();
+
+        // Three channels: 1 and 2 in group 1, channel 3 left unlinked as the
+        // control that must never move.
+        vts.setNumEffectChannels(3);
+
+        auto linkMode = [&](int fx) { return vts.getEffectLinkMode(fx); };
+        auto attenOf  = [&](int fx)
+        {
+            return static_cast<float>(static_cast<double>(vts.getEffectParameter(fx, P::effectAttenuation)));
+        };
+
+        check(vts.getNumEffectChannels() == 3, "L0: three effects channels exist");
+        check(linkMode(0) == vts.getDefaultEffectLinkMode(),
+              "L0: a new channel is stamped with the global link mode, not reading it live");
+
+        for (int fx = 0; fx < 2; ++fx)
+        {
+            vts.setEffectParameter(fx, P::effectLinkGroup, 1);
+            vts.setEffectParameter(fx, P::effectLinkMode, 1);   // ABSOLUTE
+        }
+        vts.setEffectParameter(2, P::effectLinkGroup, 0);
+
+        for (int fx = 0; fx < 3; ++fx)
+            vts.setEffectParameter(fx, P::effectAttenuation, -10.0f);
+
+        // L1: ABSOLUTE on both sides copies the value
+        vts.setEffectParameterWithLinkPropagation(0, P::effectAttenuation, -4.0f, true);
+        check(std::abs(attenOf(0) + 4.0f) < 1e-4f && std::abs(attenOf(1) + 4.0f) < 1e-4f,
+              "L1: absolute on both sides copies the value to the member");
+        check(std::abs(attenOf(2) + 10.0f) < 1e-4f, "L1: an unlinked channel never moves");
+
+        // L2: RELATIVE keeps the member's offset
+        vts.setEffectParameter(0, P::effectAttenuation, -4.0f);
+        vts.setEffectParameter(1, P::effectAttenuation, -20.0f);
+        vts.setEffectParameter(1, P::effectLinkMode, 2);        // the RECEIVER asks for relative
+        vts.setEffectParameterWithLinkPropagation(0, P::effectAttenuation, -6.0f, true);
+        check(std::abs(attenOf(0) + 6.0f) < 1e-4f && std::abs(attenOf(1) + 22.0f) < 1e-4f,
+              "L2: relative moves the member by the delta and keeps its offset");
+
+        // L3: the delta clamps to the parameter's own bounds
+        vts.setEffectParameter(0, P::effectAttenuation, -4.0f);
+        vts.setEffectParameter(1, P::effectAttenuation, -90.0f);
+        vts.setEffectParameterWithLinkPropagation(0, P::effectAttenuation, -20.0f, true);
+        check(std::abs(attenOf(1) - D::effectAttenuationMin) < 1e-4f,
+              "L3: a relative member clamps at the parameter's minimum instead of running past it");
+
+        // L4: the RECEIVER's mode is what detaches it (R5-6)
+        vts.setEffectParameter(1, P::effectLinkMode, 0);        // OFF, from the member's side
+        vts.setEffectParameter(0, P::effectAttenuation, -4.0f);
+        vts.setEffectParameter(1, P::effectAttenuation, -30.0f);
+        vts.setEffectParameterWithLinkPropagation(0, P::effectAttenuation, -8.0f, true);
+        check(std::abs(attenOf(1) + 30.0f) < 1e-4f,
+              "L4: a member set to OFF is skipped although the origin still propagates");
+
+        // L5: and the ORIGIN's mode stops it leaving
+        vts.setEffectParameter(1, P::effectLinkMode, 1);
+        vts.setEffectParameter(0, P::effectLinkMode, 0);
+        vts.setEffectParameter(1, P::effectAttenuation, -30.0f);
+        vts.setEffectParameterWithLinkPropagation(0, P::effectAttenuation, -12.0f, true);
+        check(std::abs(attenOf(1) + 30.0f) < 1e-4f,
+              "L5: a detached origin writes only itself");
+        vts.setEffectParameter(0, P::effectLinkMode, 1);
+
+        // L6: leaving the group entirely
+        vts.setEffectParameter(1, P::effectLinkGroup, 2);
+        vts.setEffectParameter(1, P::effectAttenuation, -30.0f);
+        vts.setEffectParameterWithLinkPropagation(0, P::effectAttenuation, -16.0f, true);
+        check(std::abs(attenOf(1) + 30.0f) < 1e-4f, "L6: another group does not receive");
+        vts.setEffectParameter(1, P::effectLinkGroup, 1);
+
+        // L7: an absolute-only parameter is copied even in relative mode -
+        // a toggle has no offset, and a delta would invert matching members
+        vts.setEffectParameter(0, P::effectLinkMode, 2);
+        vts.setEffectParameter(1, P::effectLinkMode, 2);
+        vts.setEffectParameter(0, P::effectMinimalLatency, 0);
+        vts.setEffectParameter(1, P::effectMinimalLatency, 0);
+        vts.setEffectParameterWithLinkPropagation(0, P::effectMinimalLatency, 1, true);
+        check(WFSVar::toInt(vts.getEffectParameter(1, P::effectMinimalLatency)) == 1,
+              "L7: a discrete parameter is copied absolutely even when both sides say relative");
+        vts.setEffectParameter(0, P::effectLinkMode, 1);
+        vts.setEffectParameter(1, P::effectLinkMode, 1);
+
+        // L8: the exclusions. Position is identity, mute is independence.
+        vts.setEffectParameter(1, P::effectPositionX, 7.0f);
+        vts.setEffectParameterWithLinkPropagation(0, P::effectPositionX, -7.0f, true);
+        check(std::abs(static_cast<float>(static_cast<double>(
+                  vts.getEffectParameter(1, P::effectPositionX))) - 7.0f) < 1e-4f,
+              "L8: position never propagates - it is the channel's identity in the show");
+
+        vts.setEffectParameter(0, P::effectMute, 0);
+        vts.setEffectParameter(1, P::effectMute, 0);
+        vts.setEffectParameterWithLinkPropagation(0, P::effectMute, 1, true);
+        check(WFSVar::toInt(vts.getEffectParameter(1, P::effectMute)) == 0,
+              "L8: mute never propagates, so a single channel stays independently mutable (R5-1)");
+
+        // L9: the group mute is an ACTION - it writes every member once and
+        // leaves each of them independently editable (R5-2)
+        vts.setEffectParameter(0, P::effectMute, 0);
+        vts.setEffectParameter(1, P::effectMute, 0);
+        vts.setEffectGroupMute(1, true);
+        check(WFSVar::toInt(vts.getEffectParameter(0, P::effectMute)) == 1
+           && WFSVar::toInt(vts.getEffectParameter(1, P::effectMute)) == 1,
+              "L9: the group mute writes every member of the group");
+        check(WFSVar::toInt(vts.getEffectParameter(2, P::effectMute)) == 0,
+              "L9: and reaches no channel outside it");
+        vts.setEffectParameter(1, P::effectMute, 0);
+        check(WFSVar::toInt(vts.getEffectParameter(0, P::effectMute)) == 1
+           && WFSVar::toInt(vts.getEffectParameter(1, P::effectMute)) == 0,
+              "L9: unmuting one member afterwards leaves the other muted - an action, not a coupling");
+        vts.setEffectParameter(0, P::effectMute, 0);
+
+        // L9b: the per-output row is not a mute shortcut and is left alone
+        {
+            auto ret0 = vts.getEffectReturnSection(0);
+            const juce::String rowBefore = ret0.getProperty(P::effectMutes).toString();
+            vts.setEffectGroupMute(1, true);
+            check(ret0.getProperty(P::effectMutes).toString() == rowBefore,
+                  "L9: the per-output mute row is spatial routing and the group mute never touches it");
+            vts.setEffectGroupMute(1, false);
+        }
+
+        // L10: an instanced module - the doubled EQ and dynamics are the whole
+        // reason the generic path refuses to resolve them
+        {
+            auto dynOf = [&](int fx)
+            {
+                auto s = vts.getEffectModuleSection(fx, P::FxDyn1);
+                return static_cast<float>(static_cast<double>(s.getProperty(P::effectDynCompThreshold)));
+            };
+            auto dyn2Of = [&](int fx)
+            {
+                auto s = vts.getEffectModuleSection(fx, P::FxDyn2);
+                return static_cast<float>(static_cast<double>(s.getProperty(P::effectDynCompThreshold)));
+            };
+            const float dyn2Before = dyn2Of(1);
+
+            vts.setEffectModuleParameterWithLinkPropagation(0, P::FxDyn1, P::effectDynCompThreshold,
+                                                            -33.0f, true);
+            check(std::abs(dynOf(0) + 33.0f) < 1e-4f && std::abs(dynOf(1) + 33.0f) < 1e-4f,
+                  "L10: a module parameter reaches the same instance on the member");
+            check(std::abs(dyn2Of(1) - dyn2Before) < 1e-4f,
+                  "L10: and leaves the OTHER instance of that module alone");
+        }
+
+        // L11: an EQ band - the same band of the same instance
+        {
+            auto bandGain = [&](int fx, int inst, int band)
+            {
+                auto b = vts.getEffectEQBand(fx, inst, band);
+                return static_cast<float>(static_cast<double>(b.getProperty(P::effectEQgain)));
+            };
+            const float otherBandBefore = bandGain(1, 0, 3);
+            const float otherInstBefore = bandGain(1, 1, 2);
+
+            vts.setEffectEQBandParameterWithLinkPropagation(0, 0, 2, P::effectEQgain, 5.5f, true);
+            check(std::abs(bandGain(0, 0, 2) - 5.5f) < 1e-4f
+               && std::abs(bandGain(1, 0, 2) - 5.5f) < 1e-4f,
+                  "L11: an EQ band reaches the same band of the same instance on the member");
+            check(std::abs(bandGain(1, 0, 3) - otherBandBefore) < 1e-4f
+               && std::abs(bandGain(1, 1, 2) - otherInstBefore) < 1e-4f,
+                  "L11: and moves no other band and no other instance");
+        }
+
+        // L12: a delay tap - the same tap
+        {
+            auto tapLevel = [&](int fx, int tap)
+            {
+                auto t = vts.getEffectDelayTap(fx, tap);
+                return static_cast<float>(static_cast<double>(t.getProperty(P::effectDelayTapLevel)));
+            };
+            const float otherTapBefore = tapLevel(1, 4);
+
+            vts.setEffectDelayTapParameterWithLinkPropagation(0, 2, P::effectDelayTapLevel, -9.0f, true);
+            check(std::abs(tapLevel(0, 2) + 9.0f) < 1e-4f && std::abs(tapLevel(1, 2) + 9.0f) < 1e-4f,
+                  "L12: a delay tap reaches the same tap on the member");
+            check(std::abs(tapLevel(1, 4) - otherTapBefore) < 1e-4f,
+                  "L12: and moves no other tap");
+        }
+
+        // L13: the chain order is a permutation, so it is copied whole
+        {
+            const juce::String reordered = "eq1,dist,eq2,dyn1,dyn2,mod,phaser,trem,reverb,delay,crush";
+            vts.setEffectParameterWithLinkPropagation(0, P::effectChainOrder, reordered, true);
+            check(vts.getEffectParameter(1, P::effectChainOrder).toString() == reordered,
+                  "L13: the chain order propagates as one string, never as a delta");
+            vts.setEffectParameterWithLinkPropagation(0, P::effectChainOrder,
+                                                      D::effectChainOrderDefault, true);
+        }
+
+        // L14: bypassing propagation writes the origin only
+        vts.setEffectParameter(0, P::effectAttenuation, -4.0f);
+        vts.setEffectParameter(1, P::effectAttenuation, -4.0f);
+        vts.setEffectParameterWithLinkPropagation(0, P::effectAttenuation, -18.0f, false);
+        check(std::abs(attenOf(0) + 18.0f) < 1e-4f && std::abs(attenOf(1) + 4.0f) < 1e-4f,
+              "L14: a bypassed write reaches the edited channel alone");
+        check(linkMode(0) == 1 && linkMode(1) == 1,
+              "L14: and leaves both link modes untouched, so the next write propagates again");
+
+        // L15: one undo reverts the origin AND every member it carried
+        {
+            WFSValueTreeState::ScopedUndoDomain domainScope(vts, UndoDomain::Effects);
+            vts.setEffectParameter(0, P::effectAttenuation, -5.0f);
+            vts.setEffectParameter(1, P::effectAttenuation, -5.0f);
+
+            vts.beginUndoTransaction("Effects Link Self-Test");
+            vts.setEffectParameterWithLinkPropagation(0, P::effectAttenuation, -25.0f, true);
+            check(std::abs(attenOf(0) + 25.0f) < 1e-4f && std::abs(attenOf(1) + 25.0f) < 1e-4f,
+                  "L15: the gesture moved both channels");
+
+            vts.beginUndoTransaction("Effects Link Self-Test Boundary");
+            vts.undo();
+            check(std::abs(attenOf(0) + 5.0f) < 1e-4f && std::abs(attenOf(1) + 5.0f) < 1e-4f,
+                  "L15: one undo reverts the origin and every member of the gesture");
+        }
+
+        // Leave nothing behind
+        vts.setNumEffectChannels(0);
+        if (! effectLatchBefore)
+            vts.getEffectsState().setProperty(P::effectPositionsUserOwned, 0, nullptr);
+        recomputeRenderSourceCount();
+    }
+
+    // ---- Z: the app's own map carries the effect returns -------------------
+    // recomputeRenderSourceCount builds with the live effect count, so a count
+    // change through the funnel every structural edit reaches must move
+    // numRenderSources, place the returns after the inputs and their slices,
+    // install the map in the calculation engine, and hand it the positions of
+    // channels that were built as detached subtrees (the listener never saw
+    // them). Everything the audio path sizes from numRenderSources follows.
+    {
+        namespace P = WFSParameterIDs;
+        using Kind = spatcore::wfs::SourceKind;
+
+        const int inputsBefore = vts.getNumInputChannels();
+        const int stereoBefore = vts.getNumStereoInputChannels();
+        const int sourcesBefore = numRenderSources;
+        const bool effectLatchBefore = vts.areEffectPositionsUserOwned();
+
+        // Latch first: with the latch off, setNumEffectChannels re-lays the
+        // ring on the attached nodes and the engine's listener sees those
+        // writes, which would let Z5 pass without the funnel's explicit
+        // re-read. With it on, a new channel keeps the placement it was born
+        // with on a detached node, and only the re-read can reach the engine.
+        vts.markEffectPositionsUserOwned();
+        vts.setNumEffectChannels(3);
+        reconfig();
+
+        const int firstFx = renderSourceMap.firstEffectSlot;
+        check(firstFx == inputsBefore + 5 * stereoBefore, "Z1: the returns follow the inputs and their slices");
+        check(renderSourceMap.count == firstFx + 3, "Z2: the map counts the three returns");
+        check(numRenderSources == renderSourceMap.count, "Z3: numRenderSources follows the map");
+        check(numRenderSources == sourcesBefore + 3, "Z3: ...and grew by exactly the effect count");
+
+        if (calculationEngine != nullptr)
+        {
+            check(calculationEngine->getSourceKind(firstFx) == Kind::EffectReturn,
+                  "Z4: the engine's installed map knows the return");
+
+            const auto rp = calculationEngine->getRenderSourcePosition(firstFx);
+            const float ex = static_cast<float>(static_cast<double>(vts.getEffectParameter(0, P::effectPositionX)));
+            const float ey = static_cast<float>(static_cast<double>(vts.getEffectParameter(0, P::effectPositionY)));
+            const float ez = static_cast<float>(static_cast<double>(vts.getEffectParameter(0, P::effectPositionZ)));
+            check(! (std::abs(ex) < 1e-4f && std::abs(ey) < 1e-4f),
+                  "Z5: a new channel's ring placement is not the origin");
+            check(std::abs(rp.x - ex) < 1e-4f && std::abs(rp.y - ey) < 1e-4f && std::abs(rp.z - ez) < 1e-4f,
+                  "Z5: the engine renders the return at that placement");
+        }
+
+        vts.setNumEffectChannels(0);
+        reconfig();
+        check(renderSourceMap.firstEffectSlot == -1, "Z6: no returns, no first slot");
+        check(renderSourceMap.count == inputsBefore + 5 * stereoBefore, "Z6: the map is back to the inputs and their slices");
+        check(numRenderSources == sourcesBefore, "Z6: numRenderSources is back");
+
+        if (! effectLatchBefore)
+            vts.getEffectsState().setProperty(P::effectPositionsUserOwned, 0, nullptr);
+    }
+
+    // ---- C: the cook - the tree transcribed into the engine's parameters ---
+    // No device and no audio: EffectsHost::cookChannel and buildConfig are
+    // pure, and the coalescing is observable through a probe host's own
+    // counters, prepared on synthetic rings and never started.
+    {
+        namespace P = WFSParameterIDs;
+        namespace D = WFSParameterDefaults;
+        using spatcore::effects::ChainOrder;
+        using spatcore::effects::EffectChannelParams;
+
+        const bool effectLatchBefore = vts.areEffectPositionsUserOwned();
+        vts.setNumEffectChannels(2);
+
+        ChainOrder order = spatcore::effects::kDefaultOrder;
+        bool orderOk = false;
+
+        // C1: a fresh channel cooks to the engine's defaults (which the app's
+        // defaults equal, but for the order): every module bypassed, the
+        // app's default order, and a spread of fields from the deepest nodes
+        {
+            const EffectChannelParams fresh {};
+            const EffectChannelParams p = EffectsHost::cookChannel(vts, 0, order, orderOk);
+            // The original chain, spelled out, so the string cannot drift alone
+            const ChainOrder original { 1, 3, 4, 0, 10, 2, 5, 7, 6, 9, 8 };  // eq1 dyn1 dyn2 dist crush eq2 mod trem phaser delay reverb
+            check(orderOk, "C1: the default chain order parses");
+            check(p.order == original && p.mute == 0 && p.chainBypass == 0, "C1: a fresh channel runs the original chain order, unmuted, chain live");
+            check(p.dist.bypass == 1 && p.eq[0].bypass == 1 && p.eq[1].bypass == 1 && p.dyn[0].bypass == 1
+                      && p.dyn[1].bypass == 1 && p.mod.bypass == 1 && p.phaser.bypass == 1 && p.trem.bypass == 1
+                      && p.reverb.bypass == 1 && p.delay.bypass == 1 && p.crush.bypass == 1,
+                  "C1: every module of a fresh channel is bypassed");
+            check(p.dist.driveDb == fresh.dist.driveDb && p.eq[1].freqHz[5] == fresh.eq[1].freqHz[5]
+                      && p.dyn[1].expScHiCutHz == fresh.dyn[1].expScHiCutHz && p.delay.tapTimeMs[7] == fresh.delay.tapTimeMs[7]
+                      && p.crush.ditherDb == fresh.crush.ditherDb && p.reverb.rt60 == fresh.reverb.rt60,
+                  "C1: a fresh channel's fields equal the engine's defaults down to the deepest nodes");
+        }
+
+        // C2: units are the tree's units - dB stays dB, per cent stays per cent
+        {
+            vts.setEffectParameter(0, P::effectDistDrive, 3.0f);
+            vts.setEffectParameter(0, P::effectTremDepth, 4.0f);
+            vts.setEffectParameter(0, P::effectDistMix, 40.0f);
+            vts.setEffectParameter(0, P::effectMute, 1);
+            vts.setEffectParameter(0, P::effectChainBypass, 1);
+            const EffectChannelParams p = EffectsHost::cookChannel(vts, 0, order, orderOk);
+            check(p.dist.driveDb == 3.0f, "C2: effectDistDrive lands in dist.driveDb, still in dB");
+            check(p.trem.depthDb == 4.0f, "C2: effectTremDepth lands in trem.depthDb, still in dB");
+            check(p.dist.mix == 40.0f, "C2: effectDistMix lands in dist.mix, still in per cent");
+            check(p.mute == 1 && p.chainBypass == 1, "C2: effectMute and effectChainBypass land in the POD");
+        }
+
+        // C3: instances and sub-indices land in their own cell and nowhere else
+        {
+            vts.getEffectEQBand(0, 1, 2).setProperty(P::effectEQgain, -2.5f, nullptr);
+            vts.getEffectEQBand(0, 0, 4).setProperty(P::effectEQshape, 0, nullptr);
+            vts.getEffectDynSection(0, 1).setProperty(P::effectDynCompThreshold, -30.0f, nullptr);
+            vts.getEffectDelayTap(0, 7).setProperty(P::effectDelayTapTime, 999.0f, nullptr);
+            const EffectChannelParams p = EffectsHost::cookChannel(vts, 0, order, orderOk);
+            check(p.eq[1].gainDb[2] == -2.5f && p.eq[0].gainDb[2] == 0.0f,
+                  "C3: EQ instance 2, band 3 lands in eq[1].gainDb[2] and nowhere else");
+            check(p.eq[0].shape[4] == 0 && p.eq[1].shape[4] == 5,
+                  "C3: EQ instance 1, band 5 lands in eq[0].shape[4] and nowhere else");
+            check(p.dyn[1].compThresholdDb == -30.0f && p.dyn[0].compThresholdDb == -20.0f,
+                  "C3: dynamics instance 2 lands in dyn[1] and nowhere else");
+            check(p.delay.tapTimeMs[7] == 999.0f && p.delay.tapTimeMs[6] == 2625.0f,
+                  "C3: tap 8 lands in delay.tapTimeMs[7] and nowhere else");
+        }
+
+        // C4: the chain order is parsed; a bad string keeps the last good one
+        {
+            vts.setEffectParameter(0, P::effectChainOrder, "crush,delay,reverb,trem,phaser,mod,dyn2,dyn1,eq2,eq1,dist");
+            EffectChannelParams p = EffectsHost::cookChannel(vts, 0, order, orderOk);
+            const ChainOrder reversed { 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+            check(orderOk && p.order == reversed, "C4: a reversed order string cooks to the reversed slot indices");
+            vts.getEffectChainSection(0).setProperty(P::effectChainOrder,
+                                                     "dist,dist,dist,dist,dist,dist,dist,dist,dist,dist,dist", nullptr);
+            p = EffectsHost::cookChannel(vts, 0, order, orderOk);
+            check(! orderOk && p.order == reversed, "C4: a bad order string is refused and the last good order stays");
+        }
+
+        // C5: the phaser stage snap (the tree bounds a range, the module builds 4/6/8/12)
+        {
+            vts.setEffectParameter(0, P::effectPhaserStages, 7);
+            EffectChannelParams p = EffectsHost::cookChannel(vts, 0, order, orderOk);
+            check(p.phaser.stages == 6, "C5: 7 phaser stages snap to 6 (nearest, ties down)");
+            vts.setEffectParameter(0, P::effectPhaserStages, 11);
+            p = EffectsHost::cookChannel(vts, 0, order, orderOk);
+            check(p.phaser.stages == 12, "C5: 11 phaser stages snap to 12");
+        }
+
+        // C6: the engine config from the globals and the layout
+        {
+            auto cfg = EffectsHost::buildConfig(vts, 48000.0, 256, 40, 3, 37);
+            check(cfg.matrixStride == D::maxEffectChannels, "C6: the feed stride is the effects budget, not the live count");
+            check(cfg.numSources == 40 && cfg.numEffects == 3 && cfg.firstEffectSourceRow == 37,
+                  "C6: sources, effects and the first return row are handed over");
+            check(cfg.returnCushionBlocks == -1, "C6: cushion 0 in the tree is auto (-1) for the engine");
+            vts.setParameter(P::effectsGlobalReturnCushion, 2);
+            vts.setParameter(P::effectsGlobalWorkerThreads, 3);
+            vts.setParameter(P::effectsGlobalLoopGuardCeiling, 9.0f);
+            vts.setParameter(P::effectsGlobalMaxDelaySeconds, 7);
+            cfg = EffectsHost::buildConfig(vts, 48000.0, 256, 40, 3, 37);
+            check(cfg.returnCushionBlocks == 2 && cfg.workerThreads == 3, "C6: the cushion and the workers follow the globals");
+            check(std::abs(cfg.loopGuardCeilingDb - 9.0f) < 1e-6f && std::abs(cfg.maxEffectDelaySeconds - 7.0) < 1e-9,
+                  "C6: the loop-guard ceiling and the delay cap follow the globals");
+            vts.setParameter(P::effectsGlobalReturnCushion, D::effectsGlobalReturnCushionDefault);
+            vts.setParameter(P::effectsGlobalWorkerThreads, D::effectsGlobalWorkerThreadsDefault);
+            vts.setParameter(P::effectsGlobalLoopGuardCeiling, D::effectsGlobalLoopGuardCeilingDefault);
+            vts.setParameter(P::effectsGlobalMaxDelaySeconds, D::effectsGlobalMaxDelaySecondsDefault);
+        }
+
+        // C7: coalescing - many writes on one channel, one publish. A probe
+        // host on the same tree, prepared on synthetic rings and never started.
+        {
+            EffectsHost probe(vts);
+            probe.takeDirtyMaskForTest();
+            for (int i = 0; i < 20; ++i)
+                vts.setEffectParameter(1, P::effectDistDrive, static_cast<float>(i));
+            vts.setEffectParameter(0, P::effectTremRate, 2.0f);
+            check(probe.takeDirtyMaskForTest() == 0x3u, "C7: twenty writes on channel 2 and one on channel 1 dirty exactly those two bits");
+            check(probe.takeDirtyMaskForTest() == 0u, "C7: taking the mask clears it");
+            vts.getEffectEQBand(1, 0, 0).setProperty(P::effectEQgain, 1.0f, nullptr);
+            check(probe.takeDirtyMaskForTest() == 0x2u, "C7: a band write under channel 2 dirties channel 2 only");
+
+            std::vector<std::unique_ptr<SharedInputRingBuffer>> rings;
+            for (int i = 0; i < 4; ++i)
+            {
+                auto r = std::make_unique<SharedInputRingBuffer>();
+                r->setSize(256 * 8);
+                rings.push_back(std::move(r));
+            }
+            check(probe.prepare(48000.0, 256, 4, 2, 2, rings), "C7: a host prepares on synthetic rings");
+            probe.takeDirtyMaskForTest();   // prepare marks every channel dirty; start the count clean
+            for (int i = 0; i < 20; ++i)
+                vts.setEffectParameter(1, P::effectDistDrive, static_cast<float>(i + 1));
+            const uint32_t rev0 = probe.getRevision(0);
+            const uint32_t rev1 = probe.getRevision(1);
+            probe.publishDirty();
+            check(probe.getRevision(1) == rev1 + 1, "C7: twenty writes on channel 2, exactly one publish");
+            check(probe.getRevision(0) == rev0, "C7: channel 1 untouched, not published");
+            probe.publishDirty();
+            check(probe.getRevision(1) == rev1 + 1, "C7: nothing dirty, nothing published");
+            probe.release();
+        }
+
+        // C8: the reverb's model, preset and the six fields its models added
+        // land in their own fields - written raw, so no preset expansion moves
+        // them, each to a value no default and no neighbour shares
+        {
+            auto reverb = vts.getEffectModuleSection(0, P::FxReverb);
+            reverb.setProperty(P::effectReverbModel, 4, nullptr);
+            reverb.setProperty(P::effectReverbType, 11, nullptr);
+            reverb.setProperty(P::effectReverbERProfile, 3, nullptr);
+            reverb.setProperty(P::effectReverbERLevel, -12.5f, nullptr);
+            reverb.setProperty(P::effectReverbModRate, 1.7f, nullptr);
+            reverb.setProperty(P::effectReverbModDepth, 63.0f, nullptr);
+            reverb.setProperty(P::effectReverbShimmerPitch, 6, nullptr);
+            reverb.setProperty(P::effectReverbShimmerAmount, 71.0f, nullptr);
+            const EffectChannelParams p = EffectsHost::cookChannel(vts, 0, order, orderOk);
+            check(p.reverb.model == 4 && p.reverb.type == 11, "C8: the reverb's model and preset land in reverb.model and reverb.type");
+            check(p.reverb.erProfile == 3 && p.reverb.erLevelDb == -12.5f,
+                  "C8: the reflection profile and level land in reverb.erProfile and reverb.erLevelDb, still in dB");
+            check(p.reverb.modRateHz == 1.7f && p.reverb.modDepth == 63.0f,
+                  "C8: the modulation rate and depth land in reverb.modRateHz and reverb.modDepth");
+            check(p.reverb.shimmerPitch == 6 && p.reverb.shimmerAmount == 71.0f,
+                  "C8: the shimmer interval and amount land in reverb.shimmerPitch and reverb.shimmerAmount");
+        }
+
+        vts.setNumEffectChannels(0);
+        if (! effectLatchBefore)
+            vts.getEffectsState().setProperty(P::effectPositionsUserOwned, 0, nullptr);
+    }
+
+    // ---- O: AutomOtion moves an effect return by an offset -----------------
+    // The same processor that animates inputs, in offset mode: the movement has
+    // to reach what is RENDERED without touching what was AUTHORED, and it has
+    // to leave the feed leg alone - an effect that chased its own trigger level
+    // as it travelled would ride its own send. No device and no audio: the
+    // processor is ticked by hand and the matrix recalculated between ticks.
+    {
+        namespace P = WFSParameterIDs;
+        namespace D = WFSParameterDefaults;
+        using Map = spatcore::wfs::RenderSourceMap;
+
+        auto* calc = calculationEngine.get();
+        auto* otomo = effectOtomoProcessor.get();
+
+        if (calc == nullptr || otomo == nullptr)
+        {
+            logLine("SELF-TEST SKIP O: no calculation engine or effect AutomOtion processor");
+        }
+        else
+        {
+            const bool effectLatchBefore = vts.areEffectPositionsUserOwned();
+            const int inputsBefore = vts.getNumInputChannels();
+            vts.setNumEffectChannels(2);
+
+            std::array<uint8_t, Map::kMaxInputChannels> types {};
+            const int numTypes = juce::jlimit(0, (int) Map::kMaxInputChannels, inputsBefore);
+            for (int i = 0; i < numTypes; ++i)
+                if (vts.isInputChannelStereo(i))
+                    types[(size_t) i] = Map::Stereo;
+
+            Map map;
+            check(Map::build(types.data(), numTypes, 2, map), "O0: a map with two effect returns builds");
+            const int firstFx = map.firstEffectSlot;
+            const int stride = calc->getNumEffects();
+            const int numOutputs = calc->getNumOutputs();
+            const int liveOutputs = vts.getNumOutputChannels();
+
+            // Upstage and hearing everything, as in Y: the assertions are about
+            // the mechanism, not about this rig's geometry
+            vts.setEffectParameter(0, P::effectPositionX, 0.0f);
+            vts.setEffectParameter(0, P::effectPositionY, 40.0f);
+            vts.setEffectParameter(0, P::effectPositionZ, 3.0f);
+            vts.setEffectParameter(0, P::effectAngleOn, 180);
+            vts.setEffectParameter(1, P::effectAngleOn, 180);
+
+            // Relative, so the offset the movement publishes IS the dialled
+            // destination, and short enough to finish inside the tick loop
+            vts.setEffectParameter(0, P::effectOtomoAbsoluteRelative, 1);
+            vts.setEffectParameter(0, P::effectOtomoX, 3.0f);
+            vts.setEffectParameter(0, P::effectOtomoY, 0.0f);
+            vts.setEffectParameter(0, P::effectOtomoZ, 0.0f);
+            vts.setEffectParameter(0, P::effectOtomoDuration, 0.2f);
+            vts.setEffectParameter(0, P::effectOtomoSpeedProfile, 0);
+            vts.setEffectParameter(0, P::effectOtomoCurve, 0);
+            vts.setEffectParameter(0, P::effectOtomoCoordinateMode, 0);
+
+            calc->setEffectOtomoOffset(0, 0.0f, 0.0f, 0.0f);
+            calc->setRenderSourceMap(map);
+            calc->recalculateAllEffectPositions();
+            calc->recalculateMatrix(nullptr);
+
+            auto cellFx  = [&](int slot, int fx) { return calc->getInputEffectLevels()[(size_t) (slot * stride + fx)]; };
+            auto delayFx = [&](int slot, int fx) { return calc->getInputEffectDelayTimesMs()[(size_t) (slot * stride + fx)]; };
+            auto delayOut = [&](int slot, int out) { return calc->getDelayTimesMs()[(size_t) (slot * numOutputs + out)]; };
+
+            // What must not move: the feed leg of every input row, and the
+            // authored position
+            std::vector<float> feedLevelsBefore, feedDelaysBefore;
+            for (int s = 0; s < firstFx; ++s)
+            {
+                feedLevelsBefore.push_back(cellFx(s, 0));
+                feedDelaysBefore.push_back(delayFx(s, 0));
+            }
+            const float authoredX = static_cast<float>(static_cast<double>(vts.getEffectParameter(0, P::effectPositionX)));
+            const float authoredY = static_cast<float>(static_cast<double>(vts.getEffectParameter(0, P::effectPositionY)));
+            const float authoredZ = static_cast<float>(static_cast<double>(vts.getEffectParameter(0, P::effectPositionZ)));
+            // The whole return row, not one cell of it: a speaker whose cone
+            // does not reach 40 m upstage has its cell zeroed and would hold
+            // still however far the return travelled.
+            auto levelOut = [&](int slot, int out) { return calc->getLevels()[(size_t) (slot * numOutputs + out)]; };
+            std::vector<float> returnLevelsBefore;
+            for (int o = 0; o < liveOutputs; ++o)
+                returnLevelsBefore.push_back(levelOut(firstFx, o));
+
+            // O5: the start is not blocked by guards this family does not have
+            check(otomo->startMotion(0), "O5: a movement starts on an effect, which has neither tracking nor sampler");
+
+            float peakOffsetX = 0.0f;
+            float minReturnGain = 1.0f;
+            float movedPositionX = 0.0f;
+            float returnLevelShift = 0.0f;
+            bool feedHeld = true;
+
+            // 0.2 s of movement, then the 50 ms fade out, the snap and the
+            // 50 ms fade in: 30 ticks of 20 ms covers all of it with room
+            for (int tick = 0; tick < 30; ++tick)
+            {
+                otomo->process(0.02f);
+                calc->recalculateMatrix(nullptr);
+
+                const float offX = otomo->getOffsetX(0);
+                if (std::abs(offX) > std::abs(peakOffsetX))
+                {
+                    peakOffsetX = offX;
+                    movedPositionX = calc->getRenderSourcePosition(firstFx).x;
+                    returnLevelShift = 0.0f;
+                    for (int o = 0; o < liveOutputs; ++o)
+                        returnLevelShift = juce::jmax(returnLevelShift,
+                                                      std::abs(levelOut(firstFx, o) - returnLevelsBefore[(size_t) o]));
+                }
+                minReturnGain = juce::jmin(minReturnGain, otomo->getReturnGain(0));
+
+                for (int s = 0; s < firstFx; ++s)
+                    feedHeld = feedHeld
+                            && cellFx(s, 0) == feedLevelsBefore[(size_t) s]
+                            && delayFx(s, 0) == feedDelaysBefore[(size_t) s];
+            }
+
+            // O1: the movement reaches what is rendered
+            check(peakOffsetX > 0.1f, "O1: the movement publishes an offset (peak "
+                                      + juce::String(peakOffsetX, 3) + " m)");
+            check(std::abs(movedPositionX - (authoredX + peakOffsetX)) < 1.0e-4f,
+                  "O1: the return renders at its authored position plus that offset");
+            check(liveOutputs == 0 || returnLevelShift > 0.0f,
+                  "O1: the moved return re-levels its row of the output matrix (largest shift "
+                      + juce::String(returnLevelShift, 5) + ")");
+
+            // O2: and never touches what was authored
+            {
+                const float nowX = static_cast<float>(static_cast<double>(vts.getEffectParameter(0, P::effectPositionX)));
+                const float nowY = static_cast<float>(static_cast<double>(vts.getEffectParameter(0, P::effectPositionY)));
+                const float nowZ = static_cast<float>(static_cast<double>(vts.getEffectParameter(0, P::effectPositionZ)));
+                check(nowX == authoredX && nowY == authoredY && nowZ == authoredZ,
+                      "O2: the authored position is bit-identical after the movement");
+            }
+
+            // O3: the feed leg is computed from the base position, so a moving
+            // return must not change one cell of it
+            check(feedHeld, "O3: not one input's feed cell moved while the return travelled");
+
+            // O4: it comes home by itself, through a fade, with no Stay to read
+            check(otomo->getOffsetX(0) == 0.0f && otomo->getOffsetY(0) == 0.0f && otomo->getOffsetZ(0) == 0.0f,
+                  "O4: the offset is exactly zero once the movement is over");
+            check(! otomo->isActive(0), "O4: the movement ended on its own - this family has no Stay");
+            check(minReturnGain < 1.0f, "O4: the snap home is covered by a fade (gain dipped to "
+                                        + juce::String(minReturnGain, 3) + ")");
+            check(otomo->getReturnGain(0) == 1.0f, "O4: the fade ends back at unity");
+            {
+                const auto rp = calc->getRenderSourcePosition(firstFx);
+                check(std::abs(rp.x - authoredX) < 1.0e-4f && std::abs(rp.y - authoredY) < 1.0e-4f
+                          && std::abs(rp.z - authoredZ) < 1.0e-4f,
+                      "O4: and the return renders where it was authored again");
+            }
+
+            // O6: the delay leg, which minimal latency hides. A return row in
+            // mode 1 is measured against its own minimum, and on a rig whose
+            // outputs share a listening point a rigid translation of the source
+            // shifts every cell by the same amount and cancels exactly - the row
+            // is flat at zero and stays there. In mode 0 the geometry is what is
+            // published, so the same translation has to re-time the row.
+            {
+                vts.setEffectParameter(0, P::effectMinimalLatency, 0);
+                calc->setEffectOtomoOffset(0, 0.0f, 0.0f, 0.0f);
+                calc->recalculateMatrix(nullptr);
+
+                std::vector<float> modeZeroBefore;
+                for (int o = 0; o < liveOutputs; ++o)
+                    modeZeroBefore.push_back(delayOut(firstFx, o));
+
+                calc->setEffectOtomoOffset(0, 3.0f, 0.0f, 0.0f);
+                calc->recalculateMatrix(nullptr);
+
+                float shift = 0.0f;
+                for (int o = 0; o < liveOutputs; ++o)
+                    shift = juce::jmax(shift, std::abs(delayOut(firstFx, o) - modeZeroBefore[(size_t) o]));
+
+                check(liveOutputs == 0 || shift > 0.0f,
+                      "O6: in absolute-latency mode the moved return re-times its row (largest shift "
+                          + juce::String(shift, 3) + " ms)");
+
+                vts.setEffectParameter(0, P::effectMinimalLatency, 1);
+            }
+
+            // O7: the LFO, the family's second movement, through the same
+            // offset path. A sine on X at 2 m over a 1 s period, ticked past
+            // the 500 ms fade-in: the return must render at base + LFO with
+            // the authored position untouched and the feed leg held; the two
+            // offsets must ADD; and once switched off it fades to exactly zero.
+            {
+                auto* lfo = effectLfoProcessor.get();
+                if (lfo == nullptr)
+                {
+                    logLine("SELF-TEST SKIP O7: no effect LFO processor");
+                }
+                else
+                {
+                    calc->setEffectOtomoOffset(0, 0.0f, 0.0f, 0.0f);
+                    calc->setEffectLFOOffset(0, 0.0f, 0.0f, 0.0f);
+                    calc->recalculateMatrix(nullptr);
+
+                    vts.setEffectParameter(0, P::effectLFOshapeX, 1);       // sine
+                    vts.setEffectParameter(0, P::effectLFOamplitudeX, 2.0f);
+                    vts.setEffectParameter(0, P::effectLFOrateX, 1.0f);
+                    vts.setEffectParameter(0, P::effectLFOperiod, 1.0f);
+                    vts.setEffectParameter(0, P::effectLFOphase, 0);
+                    vts.setEffectParameter(0, P::effectLFOphaseX, 0);
+                    vts.setEffectParameter(0, P::effectLFOactive, 1);
+
+                    float lfoPeak = 0.0f, lfoMovedX = 0.0f;
+                    bool lfoFeedHeld = true;
+                    for (int tick = 0; tick < 40; ++tick)          // 0.8 s: past both fades
+                    {
+                        lfo->process(0.02f);
+                        calc->setEffectLFOOffset(0, lfo->getOffsetX(0), lfo->getOffsetY(0), lfo->getOffsetZ(0));
+                        calc->recalculateMatrix(nullptr);
+
+                        const float offX = lfo->getOffsetX(0);
+                        if (std::abs(offX) > std::abs(lfoPeak))
+                        {
+                            lfoPeak = offX;
+                            lfoMovedX = calc->getRenderSourcePosition(firstFx).x;
+                        }
+
+                        for (int s = 0; s < firstFx; ++s)
+                            lfoFeedHeld = lfoFeedHeld
+                                       && cellFx(s, 0) == feedLevelsBefore[(size_t) s]
+                                       && delayFx(s, 0) == feedDelaysBefore[(size_t) s];
+                    }
+
+                    check(std::abs(lfoPeak) > 0.5f, "O7: the LFO publishes an offset (peak "
+                                                    + juce::String(lfoPeak, 3) + " m)");
+                    check(std::abs(lfoMovedX - (authoredX + lfoPeak)) < 1.0e-4f,
+                          "O7: the return renders at its authored position plus the LFO offset");
+                    check(lfoFeedHeld, "O7: not one input's feed cell moved while the LFO ran");
+                    {
+                        const float nowX = static_cast<float>(static_cast<double>(vts.getEffectParameter(0, P::effectPositionX)));
+                        const float nowY = static_cast<float>(static_cast<double>(vts.getEffectParameter(0, P::effectPositionY)));
+                        const float nowZ = static_cast<float>(static_cast<double>(vts.getEffectParameter(0, P::effectPositionZ)));
+                        check(nowX == authoredX && nowY == authoredY && nowZ == authoredZ,
+                              "O7: the authored position is bit-identical after the LFO ran");
+                    }
+
+                    // The two movements add: an AutomOtion offset under the running LFO
+                    calc->setEffectOtomoOffset(0, 3.0f, 0.0f, 0.0f);
+                    calc->recalculateMatrix(nullptr);
+                    {
+                        const float lfoNow = lfo->getOffsetX(0);
+                        const auto rp = calc->getRenderSourcePosition(firstFx);
+                        check(std::abs(rp.x - (authoredX + 3.0f + lfoNow)) < 1.0e-4f,
+                              "O7: the AutomOtion and LFO offsets add on the rendered return");
+                        const auto mv = calc->getEffectMovementOffset(0);
+                        check(std::abs(mv.x - (3.0f + lfoNow)) < 1.0e-6f,
+                              "O7: the Map reads the sum of both movements");
+                    }
+                    calc->setEffectOtomoOffset(0, 0.0f, 0.0f, 0.0f);
+
+                    // Off: the 500 ms fade, then exactly zero
+                    vts.setEffectParameter(0, P::effectLFOactive, 0);
+                    for (int tick = 0; tick < 40; ++tick)
+                        lfo->process(0.02f);
+                    check(lfo->getOffsetX(0) == 0.0f && lfo->getOffsetY(0) == 0.0f && lfo->getOffsetZ(0) == 0.0f,
+                          "O7: the offset is exactly zero once the LFO is off and faded");
+
+                    calc->setEffectLFOOffset(0, 0.0f, 0.0f, 0.0f);
+                    vts.setEffectParameter(0, P::effectLFOshapeX, 0);
+                    calc->recalculateMatrix(nullptr);
+                }
+            }
+
+            // Leave nothing behind
+            otomo->stopMotion(0);
+            calc->setEffectOtomoOffset(0, 0.0f, 0.0f, 0.0f);
+            vts.setNumEffectChannels(0);
+            if (! effectLatchBefore)
+                vts.getEffectsState().setProperty(P::effectPositionsUserOwned, 0, nullptr);
+            recomputeRenderSourceCount();
+            calc->recalculateMatrix(nullptr);
+        }
+    }
+
+    // ---- G: the Chain sub-tab's reorder helper ----------------------------
+    // Dragging a tile rewrites effectChainOrder through a pure function; if
+    // it ever produced anything but a permutation, parseChainOrder would
+    // refuse the write and the strip would silently stop reordering.
+    {
+        namespace fx = spatcore::effects;
+        const juce::String base = "dist,eq1,eq2,dyn1,dyn2,mod,phaser,trem,reverb,delay,crush";
+
+        check(EffectsChainPanel::movedOrder(base, 0, 5) == "eq1,eq2,dyn1,dyn2,mod,dist,phaser,trem,reverb,delay,crush",
+              "G1: moving the first tile to the sixth position shifts the five between it left");
+        check(EffectsChainPanel::movedOrder(base, 10, 0) == "crush,dist,eq1,eq2,dyn1,dyn2,mod,phaser,trem,reverb,delay",
+              "G1: moving the last tile to the front shifts everything right");
+        check(EffectsChainPanel::movedOrder(base, 4, 4) == base, "G1: a drop on its own position changes nothing");
+        check(EffectsChainPanel::movedOrder("not,an,order", 0, 1) == "not,an,order",
+              "G1: an unparsable order comes back untouched");
+
+        int perms = 0;
+        for (int from = 0; from < fx::kNumModuleSlots; ++from)
+            for (int to = 0; to < fx::kNumModuleSlots; ++to)
+            {
+                fx::ChainOrder o {};
+                if (fx::parseChainOrder(EffectsChainPanel::movedOrder(base, from, to).toRawUTF8(), o) && fx::isValidChainOrder(o))
+                    ++perms;
+            }
+        check(perms == fx::kNumModuleSlots * fx::kNumModuleSlots,
+              "G2: every (from, to) move yields a valid permutation (" + juce::String(perms) + " of 121)");
+    }
+
+    // ---- K: the keyboard acts on the tab that is showing --------------------
+    // Injected keys never reach the app from a test shell, so this calls
+    // keyPressed directly. The tab numbers are the point: the dispatcher kept
+    // its literals when the Effects tab went in at 4, which put F1 on the
+    // Effects tab into an INPUT cluster, made Space on Inputs step clusters,
+    // and made detaching the Map delete the Clusters tab.
+    if (effectsTab != nullptr && inputsTab != nullptr && clustersTab != nullptr && mapTab != nullptr)
+    {
+        using KP = juce::KeyPress;
+        const int effectsBefore = vts.getNumEffectChannels();
+        const int tabBefore = tabbedComponent.getCurrentTabIndex();
+        vts.setNumEffectChannels(3);
+        unfocusAllComponents();
+
+        auto press = [this](int code, bool shift = false)
+        {
+            return keyPressed(KP(code, shift ? juce::ModifierKeys::shiftModifier : 0, 0));
+        };
+        auto shownGroup = [&] { return vts.getEffectLinkGroup(effectsTab->getCurrentChannel() - 1); };
+
+        const int inputSlot = vts.getSlotForChannelNumber(inputsTab->getCurrentChannel());
+        const int inputClusterBefore = vts.getIntParameter(WFSParameterIDs::inputCluster, inputSlot);
+
+        tabbedComponent.setCurrentTabIndex(TabIndex::Effects);
+        effectsTab->selectChannel(2);
+        const int group1Before = vts.getEffectLinkGroup(0);
+        const int group3Before = vts.getEffectLinkGroup(2);
+        press(KP::F3Key);
+        check(shownGroup() == 3, "KB1: F3 on the Effects tab puts the shown effect in link group 3");
+        check(vts.getIntParameter(WFSParameterIDs::inputCluster, inputSlot) == inputClusterBefore,
+              "KB1: and leaves the Inputs tab's input in its cluster");
+        check(vts.getEffectLinkGroup(0) == group1Before && vts.getEffectLinkGroup(2) == group3Before,
+              "KB1: and no other effect's group changes");
+        press(KP::F9Key);
+        check(shownGroup() == 3, "KB2: F9 does nothing on the Effects tab (8 link groups)");
+        press(KP::F11Key);
+        check(shownGroup() == 0, "KB2: F11 takes the effect out of its group");
+
+        effectsTab->selectChannel(3);
+        press(KP::spaceKey);
+        check(effectsTab->getCurrentChannel() == 1, "KB3: Space on the last effect wraps to the first");
+        press(KP::spaceKey, true);
+        check(effectsTab->getCurrentChannel() == 3, "KB3: Shift+Space on the first wraps to the last");
+        press(KP::spaceKey, true);
+        check(effectsTab->getCurrentChannel() == 2, "KB3: Shift+Space steps back one");
+
+        tabbedComponent.setCurrentTabIndex(TabIndex::Inputs);
+        const int inputBefore = inputsTab->getCurrentChannel();
+        const int clusterSelBefore = clustersTab->getSelectedCluster();
+        press(KP::spaceKey);
+        check((vts.getNumInputChannels() < 2 || inputsTab->getCurrentChannel() != inputBefore)
+                  && clustersTab->getSelectedCluster() == clusterSelBefore,
+              "KB4: Space on the Inputs tab steps the input, not the clusters");
+        press(KP::spaceKey, true);
+        check(inputsTab->getCurrentChannel() == inputBefore, "KB4: Shift+Space steps it back");
+
+        tabbedComponent.setCurrentTabIndex(TabIndex::Clusters);
+        press(KP::F2Key);
+        check(clustersTab->getSelectedCluster() == 2, "KB5: F2 on the Clusters tab selects cluster 2");
+        check(vts.getIntParameter(WFSParameterIDs::inputCluster, inputSlot) == inputClusterBefore,
+              "KB5: and assigns no input");
+        clustersTab->setSelectedCluster(clusterSelBefore);
+
+        detachMapTab();
+        check(tabbedComponent.getNumTabs() == TabIndex::Count
+                  && tabbedComponent.getTabContentComponent(TabIndex::Clusters) == clustersTab
+                  && tabbedComponent.getTabContentComponent(TabIndex::Map) != mapTab.get(),
+              "KB6: detaching the Map replaces the Map tab and keeps the Clusters tab");
+        attachMapTab();
+        check(tabbedComponent.getNumTabs() == TabIndex::Count
+                  && tabbedComponent.getTabContentComponent(TabIndex::Map) == mapTab.get(),
+              "KB6: re-attaching puts the Map back in its place");
+
+        tabbedComponent.setCurrentTabIndex(TabIndex::Effects);
+        effectsTab->selectChannel(3);
+        const auto nameBefore = vts.getEffectParameter(2, WFSParameterIDs::effectName);
+        effectsTab->getNameEditorForTest().setText("KB7 name", false);
+        effectsTab->pressNameKeyForTest(KP(KP::tabKey, 0, 0));
+        check(vts.getEffectParameter(2, WFSParameterIDs::effectName).toString() == "KB7 name",
+              "KB7: Tab in the name field keeps the typed name");
+        check(effectsTab->getCurrentChannel() == 1, "KB7: and moves on to the next effect, wrapping");
+        effectsTab->pressNameKeyForTest(KP(KP::tabKey, juce::ModifierKeys::shiftModifier, 0));
+        check(effectsTab->getCurrentChannel() == 3, "KB7: Shift+Tab moves back, wrapping");
+        vts.setEffectParameter(2, WFSParameterIDs::effectName, nameBefore);
+        unfocusAllComponents();
+
+        vts.setNumEffectChannels(effectsBefore);
+        tabbedComponent.setCurrentTabIndex(tabBefore);
+    }
+    else
+    {
+        check(false, "KB: the tabs the keyboard drives exist");
+    }
+
+    // ---- FE: typed values and Tab sections on the Effects tab ----------------
+    // Every value label of the five panels takes a typed number, as the Inputs
+    // and Reverb tabs' do. Keys and focus cannot be injected from a test shell,
+    // so the label editors are opened, filled and closed directly - the same
+    // Label path a click, a typed value and Enter / Esc take.
+    if (effectsTab != nullptr)
+    {
+        namespace P = WFSParameterIDs;
+        using Fields = EffectsFieldEditing;
+        const int effectsBefore = vts.getNumEffectChannels();
+        const int tabBefore = tabbedComponent.getCurrentTabIndex();
+        const auto ceilingBefore = parameters.getConfigParam("effectsGlobalLoopGuardCeiling");
+        vts.setNumEffectChannels(2);
+        tabbedComponent.setCurrentTabIndex(TabIndex::Effects);
+        effectsTab->selectChannel(1);
+
+        struct Counter : juce::ValueTree::Listener
+        {
+            int count = 0;
+            void valueTreePropertyChanged(juce::ValueTree&, const juce::Identifier&) override { ++count; }
+        } counter;
+        auto effectsState = vts.getEffectsState();
+        auto configState = vts.getConfigState();
+        effectsState.addListener(&counter);
+        configState.addListener(&counter);
+
+        auto type = [](juce::Label& label, const juce::String& text, bool keep)
+        {
+            label.showEditor();
+            if (auto* ed = label.getCurrentTextEditor())
+                ed->setText(text, false);
+            label.hideEditor(! keep);
+        };
+        auto isNear = [](const juce::var& v, float expected, float tol)
+        {
+            return ! v.isVoid() && std::abs(static_cast<float>(static_cast<double>(v)) - expected) <= tol;
+        };
+
+        auto& channel = effectsTab->getChannelPanelForTest();
+        auto& movements = effectsTab->getMovementsPanelForTest();
+        auto& settings = effectsTab->getSettingsPanelForTest();
+
+        // FE1: every field of every panel, typed at both ends of any range
+        auto sweep = [&](Fields& fields, const juce::String& panel)
+        {
+            juce::StringArray failed;
+            int total = 0;
+            for (auto* label : fields.getLabelsForTest())
+            {
+                ++total;
+                bool ok = false;
+                for (auto* text : { "-100000000", "100000000" })
+                {
+                    counter.count = 0;
+                    type(*label, text, true);
+                    if (counter.count > 0 && label->getText() != text)
+                    {
+                        ok = true;
+                        break;
+                    }
+                }
+                if (! ok)
+                    failed.add(label->getText());
+            }
+            check(total > 0 && failed.isEmpty(),
+                  "FE1: every value on " + panel + " takes a typed number, writes it and shows it formatted ("
+                      + juce::String(total - failed.size()) + "/" + juce::String(total)
+                      + (failed.isEmpty() ? juce::String(")") : "; failed: " + failed.joinIntoString(" | ") + ")"));
+        };
+        sweep(channel.getFieldsForTest(), "Channel Parameters");
+        for (int s = 0; s < spatcore::effects::kNumModuleSlots; ++s)
+            sweep(effectsTab->getModulePanel(s).getFieldsForTest(), "Chain module " + juce::String(s));
+        sweep(movements.getFieldsForTest(), "Movements");
+        sweep(settings.getFieldsForTest(), "Settings");
+
+        // FE2: the lenient reading
+        auto is = [](std::optional<float> v, float expected) { return v.has_value() && std::abs(*v - expected) < 1.0e-3f; };
+        check(is(TypedValue::number("1.20 kHz"), 1200.0f) && is(TypedValue::number("Latency 12,5 ms"), 12.5f)
+                  && is(TypedValue::number("-6.0 dB/m"), -6.0f) && is(TypedValue::number("4.0:1"), 4.0f)
+                  && is(TypedValue::number("-.5"), -0.5f) && ! TypedValue::number("abc").has_value()
+                  && is(TypedValue::number(juce::String::fromUTF8("\xe2\x88\x92" "6 dB")), -6.0f),
+              "FE2: numbers are read past units and prefixes, a comma is a decimal point, k means thousands, a Unicode minus is a minus");
+        check(is(TypedValue::duration("1m 30s"), 90.0f) && is(TypedValue::duration("5.00 s"), 5.0f)
+                  && is(TypedValue::duration("1h"), 3600.0f) && is(TypedValue::duration("500 ms"), 0.5f)
+                  && is(TypedValue::duration("2 min"), 120.0f) && ! TypedValue::duration("s").has_value(),
+              "FE2: durations are read as the panel shows them (1m 30s, 5.00 s, 1h)");
+        check(is(TypedValue::duration("2min"), 120.0f) && is(TypedValue::duration("2mn30"), 150.0f)
+                  && is(TypedValue::duration("2m30"), 150.0f) && is(TypedValue::duration("1.5 min"), 90.0f)
+                  && is(TypedValue::duration("1h30"), 5400.0f) && is(TypedValue::duration("1 h 30 min"), 5400.0f)
+                  && is(TypedValue::duration("2 minutes 5 seconds"), 125.0f) && is(TypedValue::duration("2 Std"), 7200.0f)
+                  && is(TypedValue::duration(juce::String::fromUTF8("2" "\xe5\x88\x86" "30" "\xe7\xa7\x92")), 150.0f),
+              "FE2: minutes in every usual spelling; a bare number after a unit takes the next unit down (1h30, 2m30)");
+        check(is(TypedValue::duration("1:30"), 90.0f) && is(TypedValue::duration("1:02:03"), 3723.0f)
+                  && is(TypedValue::duration("0:45.5"), 45.5f) && ! TypedValue::duration(":").has_value(),
+              "FE2: the clock form reads m:ss and h:mm:ss");
+        check(is(TypedValue::ratio("4.0:1"), 4.0f) && is(TypedValue::ratio("1:2.0"), 2.0f)
+                  && is(TypedValue::ratio("3:2"), 1.5f) && is(TypedValue::ratio("3"), 3.0f),
+              "FE2: a ratio is read either way round (4.0:1 is 4, 1:2.0 is 2)");
+
+        auto* atten = channel.getFieldsForTest().findLabelForTest("Effect Attenuation");
+        auto* latency = channel.getFieldsForTest().findLabelForTest("Effect Delay/Latency");
+        if (atten != nullptr && latency != nullptr)
+        {
+            // FE3: Esc and a text with no number change nothing
+            const auto shown = atten->getText();
+            counter.count = 0;
+            type(*atten, "-30", false);
+            check(counter.count == 0 && atten->getText() == shown, "FE3: Esc leaves the value and its text as they were");
+            type(*atten, "loud", true);
+            check(counter.count == 0 && atten->getText() == shown, "FE3: a text with no number in it changes nothing");
+
+            // FE4: the latency field opens on the signed number and takes one
+            type(*latency, "-12", true);
+            check(isNear(vts.getEffectParameter(0, P::effectDelayLatency), -12.0f, 0.05f),
+                  "FE4: a negative delay typed is stored as that latency (-12 ms)");
+            latency->showEditor();
+            const bool signedText = latency->getCurrentTextEditor() != nullptr
+                                    && latency->getCurrentTextEditor()->getText() == "-12.0";
+            latency->hideEditor(true);
+            check(signedText, "FE4: and the field opens on the signed number, not the worded label");
+
+            // FE7: Tab keeps to the section, wraps, and skips a hidden member
+            auto& cf = channel.getFieldsForTest();
+            auto* angleOn = cf.findLabelForTest("Effect Angle On");
+            auto* angleOff = cf.findLabelForTest("Effect Angle Off");
+            atten->showEditor();
+            cf.pressTabForTest(*atten, true);
+            const bool wrapped = atten->getCurrentTextEditor() == nullptr && latency->getCurrentTextEditor() != nullptr;
+            latency->hideEditor(true);
+            check(wrapped, "FE7: Shift+Tab on the first field of a section wraps to its last");
+
+            angleOn->showEditor();
+            cf.pressTabForTest(*angleOn, false);
+            const bool next = angleOn->getCurrentTextEditor() == nullptr && angleOff->getCurrentTextEditor() != nullptr;
+            angleOff->hideEditor(true);
+            check(next, "FE7: Tab moves to the next field of the same section");
+
+            vts.setEffectParameter(0, P::effectAttenuationLaw, 0);     // log law: the ratio dial is hidden
+            effectsTab->selectChannel(1);
+            auto* distAtten = cf.findLabelForTest("Effect Distance Attenuation");
+            auto* common = cf.findLabelForTest("Effect Common Attenuation");
+            auto* shelf = cf.findLabelForTest("Effect HF Shelf");
+            distAtten->showEditor();
+            cf.pressTabForTest(*distAtten, false);
+            const bool skipped = common->getCurrentTextEditor() != nullptr;
+            common->hideEditor(true);
+            shelf->showEditor();
+            cf.pressTabForTest(*shelf, false);
+            const bool stayed = distAtten->getCurrentTextEditor() != nullptr;
+            distAtten->hideEditor(true);
+            check(skipped && stayed, "FE7: Tab skips the hidden dial and wraps inside the column, never into the array trims");
+
+            // A text box takes Tab through JUCE's own traverser, which asks
+            // the box's parents: the panel's sections must answer
+            auto& lastPos = channel.getPositionEditorForTest(2);
+            auto& lastOff = channel.getOffsetEditorForTest(2);
+            auto boxTraverser = lastPos.createKeyboardFocusTraverser();
+            check(boxTraverser != nullptr
+                      && boxTraverser->getNextComponent(&lastPos) == &channel.getOffsetEditorForTest(0)
+                      && boxTraverser->getNextComponent(&lastOff) == &channel.getPositionEditorForTest(0)
+                      && boxTraverser->getPreviousComponent(&channel.getPositionEditorForTest(0)) == &lastOff,
+                  "FE7: Tab from a position box walks position then offset and wraps, as on the reverb tab");
+        }
+        else
+        {
+            check(false, "FE3: the channel panel's attenuation and latency fields exist");
+        }
+
+        // FE5: a typed EQ frequency is stored exactly (the slider's own law truncates)
+        if (auto* freq = effectsTab->getModulePanel(1).getFieldsForTest().findLabelForTest("Effect EQ Band 1 Freq"))
+        {
+            type(*freq, "1000", true);
+            const int f1 = static_cast<int>(vts.getEffectEQBand(0, 0, 0).getProperty(P::effectEQfreq));
+            type(*freq, "1.5 kHz", true);
+            const int f2 = static_cast<int>(vts.getEffectEQBand(0, 0, 0).getProperty(P::effectEQfreq));
+            check(f1 == 1000 && f2 == 1500, "FE5: a typed EQ frequency is stored as typed (1000, 1.5 kHz = 1500; got "
+                                                + juce::String(f1) + ", " + juce::String(f2) + ")");
+        }
+        else
+        {
+            check(false, "FE5: the EQ 1 band 1 frequency field exists");
+        }
+
+        // FE6: the AutomOtion duration reads minutes and seconds
+        if (auto* duration = movements.getFieldsForTest().findLabelForTest("Effect AutomOtion Duration"))
+        {
+            type(*duration, "1m 30s", true);
+            check(isNear(vts.getEffectParameter(0, P::effectOtomoDuration), 90.0f, 0.2f) && duration->getText() == "1m 30s",
+                  "FE6: a duration typed as 1m 30s is stored as 90 s and shown as typed");
+        }
+        else
+        {
+            check(false, "FE6: the AutomOtion duration field exists");
+        }
+
+        // FE8: the position boxes follow the coordinate mode both ways, and a
+        // box the operator did not type into is never written
+        {
+            vts.setEffectParameter(0, P::effectCoordinateMode, 1);
+            vts.setEffectParameter(0, P::effectPositionX, 3.0f);
+            vts.setEffectParameter(0, P::effectPositionY, 4.0f);
+            effectsTab->selectChannel(1);
+            auto& radius = channel.getPositionEditorForTest(0);
+            check(radius.getText() == "5.00", "FE8: in r theta Z the first box shows the radius (5.00 for 3, 4; got "
+                                                  + radius.getText() + ")");
+
+            counter.count = 0;
+            channel.closeBoxForTest(radius);
+            check(counter.count == 0, "FE8: closing a box nobody typed into writes nothing");
+
+            radius.setText("10", false);
+            channel.getFieldsForTest().markEditedForTest(radius);
+            channel.closeBoxForTest(radius);
+            check(isNear(vts.getEffectParameter(0, P::effectPositionX), 6.0f, 1.0e-3f)
+                      && isNear(vts.getEffectParameter(0, P::effectPositionY), 8.0f, 1.0e-3f),
+                  "FE8: a typed radius moves the effect along its bearing (10 -> 6, 8)");
+
+            radius.setText("99", false);
+            channel.getFieldsForTest().markEditedForTest(radius);
+            channel.escapeBoxForTest(radius);
+            counter.count = 0;
+            channel.closeBoxForTest(radius);
+            check(radius.getText() == "10.00" && counter.count == 0, "FE8: Esc puts the stored value back and writes nothing");
+
+            vts.setEffectParameter(0, P::effectCoordinateMode, 0);
+        }
+
+        // FE9: a click on an empty patch of a panel closes an open field only
+        // if the panel takes the focus (JUCE stops at the field's parents)
+        check(channel.getWantsKeyboardFocus() && effectsTab->getChainPanelForTest().getWantsKeyboardFocus()
+                  && effectsTab->getModulePanel(0).getWantsKeyboardFocus() && movements.getWantsKeyboardFocus()
+                  && settings.getWantsKeyboardFocus(),
+              "FE9: every panel that holds fields takes the focus, so a click on it closes an open field");
+
+        effectsState.removeListener(&counter);
+        configState.removeListener(&counter);
+        parameters.setConfigParam("effectsGlobalLoopGuardCeiling", ceilingBefore);
+        vts.setNumEffectChannels(effectsBefore);
+        tabbedComponent.setCurrentTabIndex(tabBefore);
+    }
+
+    // ---- TV: typed values are read as the other tabs' labels show them -------
+    // Those labels kept only the digits of what was typed: "2m 45s" became
+    // 245 s, "1:3.0" an expander ratio of 13, "3.0 kHz" 3 Hz, a positive
+    // number in the worded latency field a delay, and a word 0 - full level
+    // on an attenuation. TypedValue now reads them, the latency field opens on
+    // the signed number, and a text with no number puts the label back.
+    if (inputsTab != nullptr && reverbTab != nullptr)
+    {
+        namespace P = WFSParameterIDs;
+        const int tabBefore = tabbedComponent.getCurrentTabIndex();
+        auto type = [](juce::Label& label, const juce::String& text)
+        {
+            label.showEditor();
+            if (auto* ed = label.getCurrentTextEditor())
+                ed->setText(text, false);
+            label.hideEditor(false);
+        };
+
+        tabbedComponent.setCurrentTabIndex(TabIndex::Inputs);
+        const int slot = vts.getSlotForChannelNumber(inputsTab->getCurrentChannel());
+
+        auto& duration = inputsTab->getOtomoDurationLabelForTest();
+        const float durationBefore = vts.getFloatParameter(P::inputOtomoDuration, slot);
+        type(duration, "2m 45s");
+        const float d1 = vts.getFloatParameter(P::inputOtomoDuration, slot);
+        type(duration, "1:30");
+        const float d2 = vts.getFloatParameter(P::inputOtomoDuration, slot);
+        check(std::abs(d1 - 165.0f) < 0.5f && std::abs(d2 - 90.0f) < 0.5f && duration.getText() == "1m 30s",
+              "TV1: the Inputs AutomOtion duration reads 2m 45s as 165 s and 1:30 as 90 s (got "
+                  + juce::String(d1, 1) + ", " + juce::String(d2, 1) + ")");
+        vts.setInputParameter(slot, P::inputOtomoDuration, durationBefore);
+
+        auto& latency = inputsTab->getDelayLatencyLabelForTest();
+        const float latencyBefore = vts.getFloatParameter(P::inputDelayLatency, slot);
+        type(latency, "-12");
+        latency.showEditor();
+        const bool signedText = latency.getCurrentTextEditor() != nullptr
+                                && latency.getCurrentTextEditor()->getText() == "-12.0";
+        latency.hideEditor(true);
+        check(std::abs(vts.getFloatParameter(P::inputDelayLatency, slot) + 12.0f) < 0.05f && signedText,
+              "TV2: the Inputs Delay/Latency field takes -12 as a 12 ms latency and opens on the signed number");
+        vts.setInputParameter(slot, P::inputDelayLatency, latencyBefore);
+
+        auto& atten = inputsTab->getAttenuationLabelForTest();
+        const auto attenText = atten.getText();
+        const float attenBefore = vts.getFloatParameter(P::inputAttenuation, slot);
+        type(atten, "loud");
+        check(atten.getText() == attenText
+                  && juce::approximatelyEqual(vts.getFloatParameter(P::inputAttenuation, slot), attenBefore),
+              "TV3: a word typed into an attenuation changes nothing (it used to set 0 dB)");
+
+        const int reverbsBefore = vts.getNumReverbChannels();
+        if (reverbsBefore == 0)
+            vts.setNumReverbChannels(1);    // restored below
+        if (vts.getNumReverbChannels() > 0)
+        {
+            tabbedComponent.setCurrentTabIndex(TabIndex::Reverb);
+            auto& ratio = reverbTab->getPostExpRatioLabelForTest();
+            auto& freq = reverbTab->getEqFreqLabelForTest(0);
+            const auto ratioText = ratio.getText();
+            const auto freqText = freq.getText();
+            type(ratio, "1:3.0");
+            type(freq, "3.0 kHz");
+            check(ratio.getText() == "1:3.0" && freq.getText() == "3.0 kHz",
+                  "TV4: the Reverb expander ratio 1:3.0 is 3 (was 13) and an EQ frequency of 3.0 kHz is 3000 Hz (was 20); shown "
+                      + ratio.getText() + ", " + freq.getText());
+            type(ratio, ratioText);             // the readers read the old texts back right
+            type(freq, freqText);
+        }
+        else
+        {
+            check(false, "TV4: a reverb channel to type into");
+        }
+        if (reverbsBefore == 0)
+            vts.setNumReverbChannels(0);
+
+        tabbedComponent.setCurrentTabIndex(tabBefore);
+    }
+    else
+    {
+        check(false, "TV: the Inputs and Reverb tabs exist");
+    }
+
+    // ---- P: the engine's meters, and the freshness that keeps them honest --
+    // A probe host prepared on synthetic rings and driven one batch at a time,
+    // so the whole tap - the engine's per-channel peaks, the max-hold, the
+    // ballistics and the freshness rule - is exercised with no device and no
+    // realtime thread. What must not happen is a meter that holds its last
+    // reading after the driver stops: that is the failure that makes a dead
+    // engine look like a live one.
+    {
+        namespace P = WFSParameterIDs;
+        using Map = spatcore::wfs::RenderSourceMap;
+        using spatcore::rt::SharedInputRingBuffer;
+
+        auto* calc = calculationEngine.get();
+        auto* meters = levelMeteringManager.get();
+
+        if (calc == nullptr || meters == nullptr)
+        {
+            logLine("SELF-TEST SKIP P: no calculation engine or metering manager");
+        }
+        else
+        {
+            const bool effectLatchBefore = vts.areEffectPositionsUserOwned();
+            const int inputsBefore = vts.getNumInputChannels();
+            vts.setNumEffectChannels(2);
+
+            // P1: nothing wired at all
+            meters->setEffectsSource(nullptr, 0.0f);
+            meters->pollEffectLevels(0.005f);
+            check(meters->getEffectLevel(0).peakDb <= -200.0f
+                      && meters->getEffectReturnLevel(0).peakDb <= -200.0f,
+                  "P1: with no engine wired both taps read silence");
+
+            // A map and an open send, so the published feed matrix actually
+            // routes source 0 into effect 0
+            std::array<uint8_t, Map::kMaxInputChannels> types {};
+            const int numTypes = juce::jlimit(0, (int) Map::kMaxInputChannels, inputsBefore);
+            for (int i = 0; i < numTypes; ++i)
+                if (vts.isInputChannelStereo(i))
+                    types[(size_t) i] = Map::Stereo;
+
+            Map map;
+            Map::build(types.data(), numTypes, 2, map);
+            vts.setEffectParameter(0, P::effectAngleOn, 180);
+            vts.setEffectParameter(1, P::effectAngleOn, 180);
+            vts.setEffectSendOnFromInput(0, vts.getInputChannelNumber(0), true);
+            vts.setEffectSendLevelFromInput(0, vts.getInputChannelNumber(0), 0.0f);
+            calc->setRenderSourceMap(map);
+            calc->recalculateAllEffectPositions();
+            calc->recalculateMatrix(nullptr);
+
+            // Every row of the map, because the returns sit ABOVE the inputs
+            // and their slices: a probe with fewer sources than
+            // firstEffectSlot + numEffects is refused, and rightly so.
+            const int probeSources = map.count;
+            const int probeBlock = 256;
+
+            EffectsHost probe(vts);
+            std::vector<std::unique_ptr<SharedInputRingBuffer>> rings;
+            for (int i = 0; i < probeSources; ++i)
+            {
+                auto r = std::make_unique<SharedInputRingBuffer>();
+                r->setSize(probeBlock * 8);
+                rings.push_back(std::move(r));
+            }
+
+            if (! probe.prepare(48000.0, probeBlock, probeSources, map.firstEffectSlot, 2, rings))
+            {
+                logLine("SELF-TEST SKIP P: the probe host would not prepare");
+            }
+            else
+            {
+                probe.setFeedMatrices(*calc, probeSources);
+                probe.publishDirty();
+
+                // P2: wired, but the driver has not run. The freshness rule
+                // is gated by P4 below, where there IS something to hold on to;
+                // this one only says that wiring a source is not itself a
+                // reading.
+                meters->setEffectsSource(probe.getCore(), 5.0f);
+                meters->pollEffectLevels(0.005f);
+                check(meters->getEffectLevel(0).peakDb <= -200.0f,
+                      "P2: wiring an engine that has not run is not itself a reading");
+
+                // P3: drive it. Half scale into source 0, silence everywhere
+                // else. A second of audio, because the send carries the
+                // geometric delay from the source to the effect - a channel
+                // laid out across the room is a hundred milliseconds of feed
+                // history before one sample reaches the chain - and the return
+                // adds the chain's latency and the cushion on top. The meter is
+                // polled inside the loop, where its max-hold is what catches
+                // the arrival whenever it happens.
+                auto* core = probe.getMutableCoreForTest();
+                std::vector<float> tone(static_cast<size_t> (probeBlock), 0.5f);
+                std::vector<float> quiet(static_cast<size_t> (probeBlock), 0.0f);
+
+                for (int b = 0; b < 200; ++b)
+                {
+                    for (int s = 0; s < probeSources; ++s)
+                        rings[(size_t) s]->write(s == 0 ? tone.data() : quiet.data(), probeBlock);
+                    core->processBatch();
+                    meters->pollEffectLevels(0.005f);
+                }
+
+                const float feedDb = meters->getEffectLevel(0).peakDb;
+                const float retDb = meters->getEffectReturnLevel(0).peakDb;
+                check(feedDb > -60.0f, "P3: the send reaches the engine and the feed tap reads it ("
+                                           + juce::String(feedDb, 1) + " dB)");
+                check(retDb > -60.0f, "P3: the chain hands it back and the return tap reads it ("
+                                          + juce::String(retDb, 1) + " dB)");
+                check(meters->getEffectLevel(1).peakDb <= -200.0f,
+                      "P3: the effect nothing is sent to stays silent - the taps are per channel");
+                check(meters->getEffectsStats().live && meters->getEffectsStats().batchCount > 0,
+                      "P3: the driver reports its batches");
+
+                // P4: the driver stops. Within the staleness window the meters
+                // have to fall to silence on their own.
+                juce::Thread::sleep(300);
+                meters->pollEffectLevels(0.005f);
+                check(meters->getEffectLevel(0).peakDb <= -200.0f
+                          && meters->getEffectReturnLevel(0).peakDb <= -200.0f,
+                      "P4: a driver that stopped batching reads as silence, not as its last value");
+                check(! meters->getEffectsStats().live, "P4: and the duty stops being reported");
+
+                probe.release();
+            }
+
+            // P5: unwiring clears everything
+            meters->setEffectsSource(nullptr, 0.0f);
+            check(meters->getEffectLevel(0).peakDb <= -200.0f
+                      && meters->getEffectsStats().batchCount == 0,
+                  "P5: unwiring the source clears the taps and the duty");
+
+            vts.setEffectSendOnFromInput(0, vts.getInputChannelNumber(0), false);
+            vts.setNumEffectChannels(0);
+            if (! effectLatchBefore)
+                vts.getEffectsState().setProperty(P::effectPositionsUserOwned, 0, nullptr);
+            recomputeRenderSourceCount();
+            calc->recalculateMatrix(nullptr);
+        }
+    }
+
     logLine(failures == 0 ? juce::String("SELF-TEST RESULT: ALL PASS")
                           : "SELF-TEST RESULT: " + juce::String(failures) + " FAILURES");
 }
@@ -4926,6 +11431,11 @@ MainComponent::~MainComponent()
     if (networkTab != nullptr)
         networkTab->setMCPServer (nullptr);
 
+    // The Scope window is a top-level window: close it while the UI it serves
+    // is still up.
+    if (snapshotSession != nullptr)
+        snapshotSession->shutdown();
+
     // Tear down MCP-aware UI before mcpServer destructs. mcpHistoryWindow
     // is declared earlier than mcpServer so it would otherwise outlive
     // the engine + change-record buffer it references.
@@ -4972,8 +11482,10 @@ MainComponent::~MainComponent()
     // Auto-save variant: skipped if the folder's config was never loaded this
     // session, so quitting can't clobber a config selected but not yet reloaded.
     auto& fileManager = parameters.getFileManager();
-    if (fileManager.hasValidProjectFolder())
-        fileManager.autoSaveSystemConfig();
+    if (fileManager.hasValidProjectFolder()
+        && fileManager.autoSaveSystemConfig() == WFSFileManager::AutoSave::failed)
+        WFSLogger::getInstance().logWarning ("The system config (audio patch) could not be saved at exit: "
+                                             + fileManager.getLastError());
 
     // Clean up status bar (owned by this component, not TabbedComponent)
     delete statusBar;
@@ -4981,12 +11493,19 @@ MainComponent::~MainComponent()
     // Stop all processing threads BEFORE shutting down audio device
     // (prevents threads from accessing device state during ASIO teardown)
     if (levelMeteringManager)
+    {
         levelMeteringManager->setReverbSources(nullptr, nullptr, 0.0f);
+        levelMeteringManager->setEffectsSource(nullptr, 0.0f);
+    }
     if (reverbFeedThread)
     {
         reverbFeedThread->stopThread(1000);
         reverbFeedThread.reset();
     }
+    // The effects driver reads the shared rings and the calculation engine's
+    // matrices through raw pointers: join it before either can go away
+    if (effectsHost)
+        effectsHost->release();
     inputAlgorithm.releaseResources();
     outputAlgorithm.releaseResources();
 
@@ -5127,32 +11646,67 @@ void MainComponent::resizeReverbAttenuation(int numReverbs, double sampleRate)
     }
 }
 
+MainComponent::RenderSourceLayout MainComponent::readRenderSourceLayout (int numInputs)
+{
+    using Map = spatcore::wfs::RenderSourceMap;
+
+    RenderSourceLayout layout;
+    layout.numInputs = juce::jlimit (0, (int) Map::kMaxInputChannels, numInputs);
+
+    auto& vts = parameters.getValueTreeState();
+    for (int i = 0; i < layout.numInputs; ++i)
+        if (vts.isInputChannelStereo (i))
+            layout.channelTypes[static_cast<size_t> (i)] = Map::Stereo;
+
+    layout.numEffects = juce::jlimit (0, (int) Map::kMaxEffectChannels, vts.getNumEffectChannels());
+    return layout;
+}
+
 void MainComponent::recomputeRenderSourceCount()
 {
     using Map = spatcore::wfs::RenderSourceMap;
 
     // Build the slot map from the per-channel type (inputChannelType on each
-    // <Input>): mono and stereo channels may interleave freely. Only a
-    // structural/type change (stopped-only) can alter the result, so the
-    // audio callback may read renderSourceMap unsynchronized. build() fails
-    // only if more than kMaxStereoChannels are stamped stereo (hand-edited
-    // file) — the UI refuses to create a 9th.
-    std::array<uint8_t, Map::kMaxInputChannels> channelTypes {};
-    const int numTypes = juce::jlimit (0, (int) Map::kMaxInputChannels, numInputChannels);
-    auto& vts = parameters.getValueTreeState();
-    for (int i = 0; i < numTypes; ++i)
-        if (vts.isInputChannelStereo (i))
-            channelTypes[static_cast<size_t> (i)] = Map::Stereo;
-
-    if (! Map::build (channelTypes.data(), numTypes, renderSourceMap))
+    // <Input>): mono and stereo channels may interleave freely. The callback
+    // reads renderSourceMap unsynchronized, so it is rewritten only when its
+    // layout changed, and then behind the callback gate. A layout that did not
+    // change (every snapshot recall) leaves it untouched. build() fails only
+    // if more than kMaxStereoChannels are stamped stereo (hand-edited file) —
+    // the UI refuses to create a 9th.
+    //
+    // Effect returns are appended after every input slot and derived slice:
+    // the effect count is what makes them render sources of the show, and
+    // everything sized from numRenderSources (the routing matrices, the input
+    // buffer, the rings, the renderers, binaural) follows from it.
+    const auto layout = readRenderSourceLayout (numInputChannels);
+    if (layout != builtRenderSourceLayout)
     {
-        WFSLogger::getInstance().logWarning ("Render-source map build failed — treating every channel as mono");
-        const bool ok = Map::buildIdentity (numTypes, renderSourceMap);
-        jassert (ok);
-        juce::ignoreUnused (ok);
-    }
+        const ScopedAudioStructureChange structureChange (*this);
 
-    numRenderSources = renderSourceMap.count > 0 ? renderSourceMap.count : numInputChannels;
+        if (! Map::build (layout.channelTypes.data(), layout.numInputs, layout.numEffects, renderSourceMap))
+        {
+            WFSLogger::getInstance().logWarning ("Render-source map build failed (" + juce::String (layout.numInputs)
+                                                 + " inputs, " + juce::String (layout.numEffects)
+                                                 + " effects) - treating every channel as mono, with no effect returns");
+            const bool ok = Map::buildIdentity (layout.numInputs, renderSourceMap);
+            jassert (ok);
+            juce::ignoreUnused (ok);
+        }
+        builtRenderSourceLayout = layout;
+
+        // The single write of numRenderSources, a function of the layout like
+        // the map. Every message-thread copy loop that reads a calculation-
+        // engine matrix is bounded by this value while the matrices are sized
+        // by maxRenderSources, so a count past the budget would be a heap
+        // over-read on the 50 Hz path, not an error. The map refuses to build
+        // past its own budget and the two budgets are static_asserted equal,
+        // so the clamp cannot fire today - it is the defined behaviour for the
+        // day it can.
+        jassert (renderSourceMap.count <= WFSParameterDefaults::maxRenderSources);
+        numRenderSources = juce::jmin (WFSParameterDefaults::maxRenderSources,
+                                       renderSourceMap.count > 0 ? renderSourceMap.count : layout.numInputs);
+    }
+    const int numTypes = layout.numInputs;
 
     // Both stereo image arrays are keyed by channel SLOT, and a rebuild is
     // exactly the moment a slot can change identity — reorder, delete, type
@@ -5281,13 +11835,34 @@ void MainComponent::resizeRoutingMatrices()
     updateGradientMapStageBounds();
 }
 
+MainComponent::ScopedAudioStructureChange::ScopedAudioStructureChange (MainComponent& o)
+    : owner (o)
+{
+    JUCE_ASSERT_MESSAGE_THREAD
+
+    // Under the lock JUCE holds for a whole block: a block already running
+    // finishes before the count goes up, and every block after reads it.
+    const juce::ScopedLock sl (owner.deviceManager.getAudioCallbackLock());
+    owner.audioStructureChanges.fetch_add (1, std::memory_order_acq_rel);
+}
+
+MainComponent::ScopedAudioStructureChange::~ScopedAudioStructureChange()
+{
+    // Release: the callback that next reads zero sees every structure as the
+    // scope left it.
+    owner.audioStructureChanges.fetch_sub (1, std::memory_order_release);
+}
+
 void MainComponent::stopProcessingForConfigurationChange()
 {
     if (!audioEngineStarted)
         return;
 
-    // Signal audio callback to stop FIRST — before destroying any processors.
-    // The audio thread checks this flag at the top of getNextAudioBlock().
+    // The callback is held out BEFORE the flag flips, and stays out for the
+    // whole teardown. The flag used to be the only signal: a block that had
+    // already passed the check at the top of getNextAudioBlock() went on into
+    // processors and rings that were being destroyed under it.
+    const ScopedAudioStructureChange structureChange (*this);
     audioEngineStarted = false;
 
     processingEnabled = false;
@@ -5320,24 +11895,43 @@ void MainComponent::stopProcessingForConfigurationChange()
     }
 #endif
 
-    // Clear shared buffer references from consumers before destroying buffers
+    // Clear shared buffer references from consumers before destroying buffers.
+    // The binaural worker copies those raw pointers out under its lock and
+    // then reads them unlocked for a whole block, so clearing the references
+    // is not enough: the worker is joined first (releaseResources() does the
+    // same) and restarted on its own rings once they are gone.
+    const bool binauralWorkerWasRunning = binauralProcessor && binauralProcessor->isThreadRunning();
     if (binauralProcessor)
+    {
+        binauralProcessor->stopProcessing();
         binauralProcessor->clearSharedInputBuffers();
+    }
 
     // Stop reverb feed thread and engine for reconfiguration (drop the
     // metering manager's raw feed-thread pointer first; re-wired by the next
-    // setupSharedInputFeed)
+    // setupSharedInputFeed). The effects engine is released a few lines below,
+    // so its core goes with it.
     if (levelMeteringManager)
+    {
         levelMeteringManager->setReverbSources(reverbEngine.get(), nullptr, 0.0f);
+        levelMeteringManager->setEffectsSource(nullptr, 0.0f);
+    }
     if (reverbFeedThread)
     {
         reverbFeedThread->stopThread(1000);
         reverbFeedThread.reset();
     }
+    // The effects driver holds raw pointers into the rings: released BEFORE
+    // they are cleared, re-prepared by the next setupSharedInputFeed
+    if (effectsHost)
+        effectsHost->release();
     sharedInputBuffers.clear();
 
     if (reverbEngine)
         reverbEngine->stopProcessing();
+
+    if (binauralWorkerWasRunning)
+        binauralProcessor->startProcessing();
 }
 
 void MainComponent::applySamplerSetPosition (int channelIndex, const juce::ValueTree& samplerNode, int setIndex)
@@ -5682,11 +12276,17 @@ void MainComponent::loadAudioPatches()
     auto inputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::InputPatch);
     auto outputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::OutputPatch);
 
-    // Reset patch maps to "unmapped" (-1)
-    inputPatchMap.assign(LevelMeteringManager::MaxHardwareInputs, -1);  // Max hardware inputs
-    outputPatchMap.assign(WFSParameterDefaults::maxOutputChannels, -1); // Max WFS outputs
-    inputPatchPrimaryHw.assign(WFSParameterDefaults::maxInputChannels, -1);
-    inputPatchSecondaryHw.assign(WFSParameterDefaults::maxInputChannels, -1);
+    // Built aside and copied over at the end. The callback reads these maps
+    // while it runs, and every load reaches here, snapshot recalls included:
+    // resetting the live maps to -1 and refilling them left a block in
+    // between that could read a patched channel as unpatched - one block of
+    // dropout on a cue. The sizes never change after the first call, so the
+    // copy never reallocates, and an entry the load did not change is never
+    // seen to change.
+    std::vector<int> builtInputMap (LevelMeteringManager::MaxHardwareInputs, -1);
+    std::vector<int> builtOutputMap (WFSParameterDefaults::maxOutputChannels, -1);
+    std::vector<int> builtPrimaryHw (WFSParameterDefaults::maxInputChannels, -1);
+    std::vector<int> builtSecondaryHw (WFSParameterDefaults::maxInputChannels, -1);
 
     // Load input patches: hardware channel → WFS channel
     if (inputPatchTree.isValid())
@@ -5701,17 +12301,17 @@ void MainComponent::loadAudioPatches()
             {
                 if (cols[hwChannel].getIntValue() == 1)
                 {
-                    if (hwChannel < (int) inputPatchMap.size())
-                        inputPatchMap[hwChannel] = wfsChannel;
+                    if (hwChannel < (int) builtInputMap.size())
+                        builtInputMap[hwChannel] = wfsChannel;
 
                     // Row-keyed columns, ascending: the LOWER column of a
                     // stereo-pair row is the left channel by convention
-                    if (wfsChannel < (int) inputPatchPrimaryHw.size())
+                    if (wfsChannel < (int) builtPrimaryHw.size())
                     {
-                        if (inputPatchPrimaryHw[wfsChannel] < 0)
-                            inputPatchPrimaryHw[wfsChannel] = hwChannel;
-                        else if (inputPatchSecondaryHw[wfsChannel] < 0)
-                            inputPatchSecondaryHw[wfsChannel] = hwChannel;
+                        if (builtPrimaryHw[wfsChannel] < 0)
+                            builtPrimaryHw[wfsChannel] = hwChannel;
+                        else if (builtSecondaryHw[wfsChannel] < 0)
+                            builtSecondaryHw[wfsChannel] = hwChannel;
                     }
                 }
             }
@@ -5731,12 +12331,24 @@ void MainComponent::loadAudioPatches()
             {
                 if (cols[hwChannel].getIntValue() == 1)
                 {
-                    if (wfsChannel < (int) outputPatchMap.size())
-                        outputPatchMap[wfsChannel] = hwChannel;
+                    if (wfsChannel < (int) builtOutputMap.size())
+                        builtOutputMap[wfsChannel] = hwChannel;
                 }
             }
         }
     }
+
+    auto publish = [] (std::vector<int>& live, const std::vector<int>& built)
+    {
+        if (live.size() != built.size())
+            live = built;                                    // first call only
+        else
+            std::copy (built.begin(), built.end(), live.begin());
+    };
+    publish (inputPatchMap, builtInputMap);
+    publish (outputPatchMap, builtOutputMap);
+    publish (inputPatchPrimaryHw, builtPrimaryHw);
+    publish (inputPatchSecondaryHw, builtSecondaryHw);
 
     // Apply cols policy using current device counts (0/0 when no device).
     // This keeps cols bounded to the device size or to the highest patched
@@ -5819,6 +12431,47 @@ void MainComponent::applyInputPatch(const juce::AudioSourceChannelInfo& bufferTo
     }
 
     // No copy-back: downstream consumers read directly from patchedInputBuffer
+}
+
+int MainComponent::packEffectVisualisationRows (std::vector<float>& delays,
+                                               std::vector<float>& levels,
+                                               std::vector<float>& hf) const
+{
+    // The calculation engine publishes the feed matrix at the effects BUDGET's
+    // stride, which is what the engine indexes with and never the live count.
+    // The tab reads a live-width block, so the rows are re-indexed here exactly
+    // as the reverb rows are a few lines above every call site.
+    const int numEffects = renderSourceMap.numEffectChannels;
+    if (calculationEngine == nullptr || numEffects <= 0)
+    {
+        delays.clear();
+        levels.clear();
+        hf.clear();
+        return 0;
+    }
+
+    const float* calcDelays = calculationEngine->getInputEffectDelayTimesMs();
+    const float* calcLevels = calculationEngine->getInputEffectLevels();
+    const float* calcHF = calculationEngine->getInputEffectHFAttenuationDb();
+    const int calcStride = calculationEngine->getNumEffects();
+
+    delays.assign (static_cast<size_t> (numRenderSources * numEffects), 0.0f);
+    levels.assign (static_cast<size_t> (numRenderSources * numEffects), 0.0f);
+    hf.assign (static_cast<size_t> (numRenderSources * numEffects), 0.0f);
+
+    for (int inIdx = 0; inIdx < numRenderSources; ++inIdx)
+    {
+        for (int fx = 0; fx < numEffects; ++fx)
+        {
+            const size_t srcIdx = static_cast<size_t> (inIdx * calcStride + fx);
+            const size_t dstIdx = static_cast<size_t> (inIdx * numEffects + fx);
+            delays[dstIdx] = calcDelays[srcIdx];
+            levels[dstIdx] = calcLevels[srcIdx];
+            hf[dstIdx] = calcHF[srcIdx];
+        }
+    }
+
+    return numEffects;
 }
 
 void MainComponent::meterRenderSourceInputs (int startSample, int numSamples) noexcept
@@ -6174,17 +12827,41 @@ void MainComponent::handleProcessingChange(bool enabled)
         if (reverbEngine)
             reverbEngine->stopProcessing();
 
+        // The effects engine stays prepared (the rings persist) but stops being
+        // notified; clear it so a tail frozen at the stop does not resume stale
+        // whenever processing comes back
+        if (effectsHost)
+            effectsHost->requestClear();
+
         // Switch binaural to private ring buffers so binaural-only path can use pushInput
         if (binauralProcessor)
             binauralProcessor->clearSharedInputBuffers();
     }
 }
 
-void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverbs)
+void MainComponent::handleChannelCountChange()
 {
+    // The four counts come from the tree - the one place every caller used to
+    // read them from before passing three of them here. Effects is read and
+    // logged beside the others; nothing below consumes it until the engine is
+    // wired.
+    const int inputs  = parameters.getNumInputChannels();
+    const int outputs = parameters.getNumOutputChannels();
+    const int reverbs = parameters.getNumReverbChannels();
+    const int effects = parameters.getNumEffectChannels();
+
     WFSLogger::getInstance().logInfo ("Channel count changed: " + juce::String (inputs) + " inputs, "
                                       + juce::String (outputs) + " outputs, "
-                                      + juce::String (reverbs) + " reverbs");
+                                      + juce::String (reverbs) + " reverbs, "
+                                      + juce::String (effects) + " effects");
+
+    // The callback stays out of the whole reshape. The counts used to change
+    // first and the engine was only stopped after them, so a running block's
+    // smoothing loop walked the NEW matrix size over the OLD vectors; and the
+    // binaural processor was re-prepared, its buffers freed, while the
+    // callback's binaural-only branch was still pushing into them.
+    const ScopedAudioStructureChange structureChange (*this);
+
     numInputChannels = inputs;
     numOutputChannels = outputs;
 
@@ -6266,16 +12943,37 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
                                        &workgroupCoordinator);
     }
 
+    // Effect channels are built as whole subtrees (a detached node, then
+    // appended), so the calculation engine's property listener never saw
+    // their positions: re-read them here, as the reverb positions are
+    // re-read on a reload. Marks the effects dirty, which the full recalc
+    // below consumes.
+    if (calculationEngine != nullptr)
+        calculationEngine->recalculateAllEffectPositions();
+
     // Refresh all tabs to update channel selectors
+    if (snapshotSession != nullptr)
+    {
+        snapshotSession->restoreQLabToggles();
+        snapshotSession->refreshList();
+    }
     if (inputsTab != nullptr)
     {
         inputsTab->refreshFromValueTree();
-        inputsTab->configureVisualisation(outputs, reverbs);
+        inputsTab->configureVisualisation(outputs, reverbs,
+                                          parameters.getValueTreeState().getNumEffectChannels());
     }
     if (outputsTab != nullptr)
         outputsTab->refreshFromValueTree();
     if (reverbTab != nullptr)
         reverbTab->refreshFromValueTree();
+    if (effectsTab != nullptr)
+    {
+        effectsTab->refreshFromValueTree();
+        // The per-output mute grid and the per-array trims are sized from the
+        // output count, which this funnel is what changed.
+        effectsTab->refreshOutputDependentControls();
+    }
 
     // Update level meter channel counts
     if (levelMeteringManager != nullptr)
@@ -6344,9 +13042,15 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
 
         if (inputsTab != nullptr)
         {
+            std::vector<float> effectDelays, effectLevels, effectHF;
+            packEffectVisualisationRows (effectDelays, effectLevels, effectHF);
+
             inputsTab->updateVisualisation(
                 targetDelayTimesMs.data(), targetLevels.data(), hfAttenuation.data(),
-                reverbDelays.data(), reverbLevelsVec.data(), reverbHF.data());
+                reverbDelays.data(), reverbLevelsVec.data(), reverbHF.data(),
+                effectDelays.empty() ? nullptr : effectDelays.data(),
+                effectLevels.empty() ? nullptr : effectLevels.data(),
+                effectHF.empty() ? nullptr : effectHF.data());
         }
 
         // Mirror the new channel counts and fresh matrix to connected tablets
@@ -6572,8 +13276,7 @@ void MainComponent::openProjectFromFile (const juce::File& folder)
     ctx.parameters = &parameters;
     ctx.afterStructuralChange = [this]
     {
-        handleChannelCountChange (parameters.getNumInputChannels(), numOutputChannels,
-                                  parameters.getNumReverbChannels());
+        handleChannelCountChange();
     };
     ctx.showStatus = [this] (const juce::String& text)
     {
@@ -6593,13 +13296,43 @@ void MainComponent::openProjectFromFile (const juce::File& folder)
             fm.createProjectFolderStructure();
             AppSettings::setLastFolder ("lastProjectFolder", folder);
 
-            if (fm.loadCompleteConfig())
-            {
+            // Suppressed as System Config's Reload Complete Config suppresses the
+            // very same load: a project that opens is not an operator edit, and
+            // without this every input and effect item it set read as
+            // "modified" in the Scope window.
+            auto& tracker = parameters.getDirtyTracker();
+            tracker.beginSuppression();
+            const bool loaded = fm.loadCompleteConfig();
+            if (loaded)
                 handleConfigReloaded();
+            tracker.endSuppressionAndClear();
 
+            if (loaded)
+            {
                 // Update window title with project name
                 if (auto* window = findParentComponentOfClass<juce::DocumentWindow>())
                     window->setName (ProjectInfo::projectName + juce::String (" - ") + folder.getFileName());
+
+                // Diagnostic hook: WFS_TEST_AUTOSTART_PROCESSING starts
+                // processing once the project is open, through the same
+                // request the Stream Deck's start key makes. It exists for an
+                // audio check driven from a shell that has no interactive
+                // desktop to long-press the button from; the delay lets the
+                // audio device finish opening first. Never set in production.
+                if (std::getenv ("WFS_TEST_AUTOSTART_PROCESSING") != nullptr)
+                {
+                    // A named pointer: in a nested lambda's init-capture MSVC
+                    // resolves a bare `this` to the enclosing closure
+                    MainComponent* const self = this;
+                    juce::Timer::callAfterDelay (1500, [safe = juce::Component::SafePointer<MainComponent> (self)]
+                    {
+                        if (safe != nullptr && safe->systemConfigTab != nullptr)
+                        {
+                            WFSLogger::getInstance().logInfo ("WFS_TEST_AUTOSTART_PROCESSING: requesting processing start");
+                            safe->systemConfigTab->requestStartProcessing();
+                        }
+                    });
+                }
             }
             else
             {
@@ -6713,6 +13446,21 @@ bool MainComponent::recallSnapshotByName (const juce::String& snapshotName, bool
                              .replace ("{numbers}", nums.joinIntoString (", "));
             WFSLogger::getInstance().logInfo (statusText);
         }
+
+        // The same for the effects half: an <Effect> whose id no live channel
+        // carries was skipped (and stays in the file).
+        const auto& skippedEffects = fileManager.getLastRecallSkippedEffectIds();
+        if (! skippedEffects.empty())
+        {
+            juce::StringArray ids;
+            for (int n : skippedEffects) ids.add (juce::String (n));
+            const auto effectsText = LOC("inputs.messages.snapshotEffectsSkipped")
+                                         .replace ("{name}", snapshotName)
+                                         .replace ("{n}", juce::String ((int) skippedEffects.size()))
+                                         .replace ("{ids}", ids.joinIntoString (", "));
+            WFSLogger::getInstance().logInfo (effectsText);
+            statusText = skipped.empty() ? effectsText : statusText + "  " + effectsText;
+        }
         if (patchWarning.isNotEmpty())
             statusText = patchWarning;   // the most important line wins the status bar
 
@@ -6722,7 +13470,7 @@ bool MainComponent::recallSnapshotByName (const juce::String& snapshotName, bool
             // selecting first would be overwritten by the rebuild. Moving the
             // dropdown cancels a snapshot button held meanwhile, which would
             // otherwise act on the cue's snapshot instead of the one picked.
-            if (inputsTab->selectSnapshotInSelector (snapshotName))
+            if (snapshotSession->selectFromExternalRecall (snapshotName))
                 statusText += "  " + LOC("inputs.messages.snapshotActionCancelled");
             inputsTab->showStatusMessage (statusText);
         }
@@ -6807,48 +13555,40 @@ void MainComponent::handleConfigReloaded()
 {
     WFSLogger::getInstance().logInfo ("Configuration reloaded");
 
-    // Update local channel counts from newly loaded config.
-    // Always assign — the cached member must track the ValueTree children count so every
-    // per-input loop in timerCallback (speed limiter, LFO offsets, gradient maps, etc.)
-    // covers all inputs. Resize matrices only when the counts actually change.
-    int newInputChannels = parameters.getNumInputChannels();
-    int newOutputChannels = parameters.getNumOutputChannels();
-    int newReverbChannels = parameters.getNumReverbChannels();
-    bool countsChanged = (newInputChannels != numInputChannels || newOutputChannels != numOutputChannels);
-    bool reverbCountChanged = (newReverbChannels != reverbAttenuationTargetsCount);
-    numInputChannels = newInputChannels;
-    numOutputChannels = newOutputChannels;
-    const int previousRenderSources = numRenderSources;
-    recomputeRenderSourceCount();  // keep the renderer dimension in lockstep
-
-    // Every routing matrix is numRenderSources x numOutputChannels, and a stereo
-    // channel contributes TWO render sources — so a loaded project can change that
-    // dimension without changing either count: 8 mono channels replaced by 7 mono
-    // plus 1 stereo is still 8 channels and 16 outputs. Without this the matrices
-    // keep the previous session's row count while the copy loops below (and every
-    // per-render-source loop in timerCallback) walk the new one, writing past the
-    // end of the vectors.
-    countsChanged = countsChanged || (numRenderSources != previousRenderSources);
-
-    if (countsChanged)
+    // A LOAD THAT RESHAPES WHAT THE AUDIO CALLBACK READS GOES THROUGH THE ONE
+    // STRUCTURAL FUNNEL. The shape is: the input, output and reverb counts;
+    // the render-source layout, which moves with no count moving (a stereo
+    // channel is six render sources, so 8 mono channels replaced by 7 mono
+    // plus 1 stereo is a new matrix shape at the same counts); and the effect
+    // count the effects engine was prepared with. handleChannelCountChange()
+    // holds the callback out, stops processing (joining the workers that read
+    // the matrices) and resizes everything sized from them, and the operator
+    // restarts as after a count edit. This path used to resize the routing
+    // matrices itself with processing still running, the worker threads
+    // holding pointers into them (audit 2026-09-28, A1).
+    //
+    // A load that changes none of them - every snapshot recall - reshapes
+    // nothing, so a cue cannot put a dropout into the show.
+    const int newInputChannels  = parameters.getNumInputChannels();
+    const int newOutputChannels = parameters.getNumOutputChannels();
+    const int newReverbChannels = parameters.getNumReverbChannels();
+    const bool shapeChanges = newInputChannels != numInputChannels
+                           || newOutputChannels != numOutputChannels
+                           || newReverbChannels != reverbAttenuationTargetsCount
+                           || readRenderSourceLayout (newInputChannels) != builtRenderSourceLayout
+                           || (effectsHost && effectsHost->isPrepared()
+                               && parameters.getNumEffectChannels() != effectsHost->getPreparedEffectCount());
+    if (shapeChanges)
     {
-        resizeRoutingMatrices();
-
-        auto* device = deviceManager.getCurrentAudioDevice();
-        double sr = device ? device->getCurrentSampleRate() : 48000.0;
-        resizeOutputAttenuation(numOutputChannels, sr);
-
-        // Update level meter channel counts
-        if (levelMeteringManager != nullptr)
-            levelMeteringManager->setChannelCounts(newInputChannels, newOutputChannels);
-        if (levelMeterWindow != nullptr)
-            levelMeterWindow->rebuildMeters();
+        WFSLogger::getInstance().logInfo (juce::String ("The reload changes the channel layout - reconfiguring")
+                                          + (audioEngineStarted ? " and stopping processing" : ""));
+        handleChannelCountChange();
     }
-    if (reverbCountChanged)
+    else
     {
-        auto* device = deviceManager.getCurrentAudioDevice();
-        double sr = device ? device->getCurrentSampleRate() : 48000.0;
-        resizeReverbAttenuation(newReverbChannels, sr);
+        // Same layout, but the slots may hold other channels now (another
+        // project of the same shape): the per-slot stereo image state resets.
+        recomputeRenderSourceCount();
     }
 
     // Reload audio patches from ValueTree (input/output channel routing).
@@ -6891,6 +13631,13 @@ void MainComponent::handleConfigReloaded()
     if (networkTab != nullptr)
         networkTab->refreshFromValueTree();
 
+    // The snapshot row (both tabs): the show's QLab toggles and the folder's list.
+    if (snapshotSession != nullptr)
+    {
+        snapshotSession->restoreQLabToggles();
+        snapshotSession->refreshList();
+    }
+
     if (inputsTab != nullptr)
         inputsTab->refreshFromValueTree();
 
@@ -6899,6 +13646,8 @@ void MainComponent::handleConfigReloaded()
 
     if (reverbTab != nullptr)
         reverbTab->refreshFromValueTree();
+    if (effectsTab != nullptr)
+        effectsTab->refreshFromValueTree();
 
     if (mapTab != nullptr)
         mapTab->repaint();
@@ -6921,7 +13670,8 @@ void MainComponent::handleConfigReloaded()
         }
 
         inputsTab->configureVisualisation(parameters.getNumOutputChannels(),
-                                          parameters.getNumReverbChannels());
+                                          parameters.getNumReverbChannels(),
+                                          parameters.getValueTreeState().getNumEffectChannels());
 
         // Refresh sampler master enable state and controller mode from config
         bool samplerOn = (bool)parameters.getConfigParam("SamplerEnabled");
@@ -6982,6 +13732,7 @@ void MainComponent::handleConfigReloaded()
         calculationEngine->recalculateAllListenerPositions();
         calculationEngine->recalculateAllInputPositions();
         calculationEngine->recalculateAllReverbPositions();
+        calculationEngine->recalculateAllEffectPositions();
 
         // Debug: Print speaker positions after reload
         juce::Logger::writeToLog("=== Speaker Positions After Config Reload ===");
@@ -7052,9 +13803,15 @@ void MainComponent::handleConfigReloaded()
                 }
             }
 
+            std::vector<float> effectDelays, effectLevels, effectHF;
+            packEffectVisualisationRows (effectDelays, effectLevels, effectHF);
+
             inputsTab->updateVisualisation(
                 targetDelayTimesMs.data(), targetLevels.data(), hfAttenuation.data(),
-                reverbDelays.data(), reverbLevels.data(), reverbHF.data());
+                reverbDelays.data(), reverbLevels.data(), reverbHF.data(),
+                effectDelays.empty() ? nullptr : effectDelays.data(),
+                effectLevels.empty() ? nullptr : effectLevels.data(),
+                effectHF.empty() ? nullptr : effectHF.data());
         }
     }
 
@@ -7389,10 +14146,12 @@ void MainComponent::detachMapTab()
         return;
     }
 
-    // Remove MapTab from TabbedComponent (ownership=false, so it won't be deleted)
-    tabbedComponent.removeTab(6);
+    // Remove MapTab from TabbedComponent (ownership=false, so it won't be deleted).
+    // By name, not number: the tab before it is owned, and removing that one
+    // deletes it.
+    tabbedComponent.removeTab(TabIndex::Map);
 
-    // Insert placeholder at tab 6
+    // The placeholder goes in the Map's place (it is the last tab)
     mapTabPlaceholder = std::make_unique<MapTabPlaceholder>();
     mapTabPlaceholder->onReattachRequested = [this]() { attachMapTab(); };
     juce::String tabMap = LOC("tabs.map");
@@ -7432,20 +14191,20 @@ void MainComponent::attachMapTab()
     mapTabWindow.reset();
     mapTab->setDetached(false);
 
-    // Remove placeholder from tab 6
-    tabbedComponent.removeTab(6);
+    // Remove the placeholder from the Map's place
+    tabbedComponent.removeTab(TabIndex::Map);
     mapTabPlaceholder.reset();
 
-    // Re-add MapTab at tab 6
+    // Re-add MapTab in its place (the last tab)
     juce::String tabMap = LOC("tabs.map");
     tabbedComponent.addTab(tabMap, ColorScheme::get().chromeBackground, mapTab.get(), false);
 
     // Show the re-attached map tab
-    tabbedComponent.setCurrentTabIndex(6);
+    tabbedComponent.setCurrentTabIndex(TabIndex::Map);
 
     // Restore Stream Deck to current tab
     if (streamDeckManager)
-        streamDeckManager->setMainTab(6);
+        streamDeckManager->setMainTab(TabIndex::Map);
 }
 
 void MainComponent::openAudioInterfaceWindow()
@@ -7922,12 +14681,23 @@ void MainComponent::setupSharedInputFeed (int blockSize, double sampleRate)
         reverbFeedThread.reset();
     }
 
-    // Create shared input buffers (used by reverb feed thread and binaural)
+    // The effects driver reads the same rings through raw pointers: joined
+    // and freed before they are cleared, re-prepared below once they exist
+    if (effectsHost)
+        effectsHost->release();
+
+    // Create shared input buffers (used by the reverb feed thread, binaural and
+    // the effects engine). Depth: four blocks, eight when effect channels
+    // exist. The effects engine refuses a ring under two blocks
+    // (EffectsEngineCore::prepare) and detects a lap at capacity minus one
+    // block, so eight blocks tolerate a seven-block driver stall where four
+    // tolerate three - headroom paid only by sessions that have effects.
+    const int ringBlocks = renderSourceMap.numEffectChannels > 0 ? 8 : 4;
     sharedInputBuffers.clear();
     for (int i = 0; i < numRenderSources; ++i)
     {
         auto buf = std::make_unique<SharedInputRingBuffer>();
-        buf->setSize (blockSize * 4);
+        buf->setSize (blockSize * ringBlocks);
         sharedInputBuffers.push_back (std::move (buf));
     }
 
@@ -7960,12 +14730,41 @@ void MainComponent::setupSharedInputFeed (int blockSize, double sampleRate)
     if (binauralProcessor && ! sharedInputBuffers.empty())
         binauralProcessor->setSharedInputBuffers (sharedInputBuffers);
 
+    // Start the effects engine: the chains run off the audio callback on their
+    // own realtime driver, fed from the rings just rebuilt, which is why it is
+    // prepared here and nowhere else. Only when effect channels exist - an
+    // empty session allocates nothing and runs no thread. prepare() joins any
+    // previous driver and does not restart it: the priority is the owner's
+    // choice, exactly as for the reverb feed thread above.
+    if (effectsHost && calculationEngine)
+    {
+        const int numEffects = renderSourceMap.numEffectChannels;
+        if (numEffects > 0 && renderSourceMap.firstEffectSlot >= 0 && ! sharedInputBuffers.empty())
+        {
+            if (effectsHost->prepare (sampleRate, blockSize, numRenderSources, renderSourceMap.firstEffectSlot,
+                                      numEffects, sharedInputBuffers))
+            {
+                effectsHost->setFeedMatrices (*calculationEngine, numRenderSources);
+                effectsHost->startRealtimeThread (juce::Thread::RealtimeOptions{}
+                                                      .withApproximateAudioProcessingTime (blockSize, sampleRate));
+            }
+        }
+    }
+
     // (Re)wire the GPU pipeline strip's reverb telemetry sources: the feed
     // thread was just rebuilt (or dropped when numReverbs == 0), so refresh
     // the metering manager's raw pointers. Feed budget = one device block.
     if (levelMeteringManager)
         levelMeteringManager->setReverbSources (
             reverbEngine.get(), reverbFeedThread.get(),
+            sampleRate > 0.0 ? (float) (1000.0 * blockSize / sampleRate) : 0.0f);
+
+    // The same for the effects driver, whose budget is the same device block.
+    // getCore() is null unless the host is prepared, which is exactly when the
+    // manager should report silence.
+    if (levelMeteringManager)
+        levelMeteringManager->setEffectsSource (
+            effectsHost != nullptr ? effectsHost->getCore() : nullptr,
             sampleRate > 0.0 ? (float) (1000.0 * blockSize / sampleRate) : 0.0f);
 }
 
@@ -7987,6 +14786,11 @@ void MainComponent::startAudioEngine()
 
     double sampleRate = device->getCurrentSampleRate();
     int blockSize = device->getCurrentBufferSizeSamples();
+
+    // Everything the callback reads is built before it may read any of it.
+    // audioEngineStarted used to go up before setupSharedInputFeed() had
+    // filled the rings the very next block walks.
+    const ScopedAudioStructureChange structureChange (*this);
 
     // Publish the audio device's realtime workgroup so the DSP worker threads join it
     // (macOS; no-op elsewhere), and make sure the algorithms hand it to their processors.
@@ -8405,6 +15209,17 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
 
 void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
 {
+    // A structural change is in progress on the message thread (see
+    // ScopedAudioStructureChange): touch nothing it may be rebuilding - not
+    // even the meters or the test tone, whose counts it may be changing too.
+    if (audioStructureChanges.load (std::memory_order_acquire) != 0)
+    {
+        bufferToFill.clearActiveBufferRegion();
+        audioBlocksHeldOut.fetch_add (1, std::memory_order_relaxed);
+        return;
+    }
+    audioBlocksProcessed.fetch_add (1, std::memory_order_relaxed);
+
     // Xrun detection (lock-free, deferred logging)
     if (auto* device = deviceManager.getCurrentAudioDevice())
     {
@@ -8459,6 +15274,15 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
             }
         }
 
+        // Effect returns: pop every return into its render-source row - after
+        // the input patch (which cleared the rows) and before anything reads
+        // them: the meters, the shared rings (through which the engine's own
+        // effect-to-effect feed sees block n) and the renderers. Silence when
+        // the engine is not ready or a return is late; never blocks.
+        if (effectsHost != nullptr && renderSourceMap.firstEffectSlot >= 0)
+            effectsHost->pullReturns (patchedInputBuffer, bufferToFill.startSample, bufferToFill.numSamples,
+                                      renderSourceMap.numEffectChannels);
+
         // Apply AutomOtion return fade gain (50ms fade out/in during position snap-back).
         // For a stereo-pair row the gain goes onto BOTH raw channels before
         // decomposition — a per-channel linear gain commutes with the
@@ -8492,6 +15316,25 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
             }
         }
 
+        // The same fade for an effect return that is snapping home. The row
+        // was popped a few lines up and nothing has read it yet, so one gain on
+        // the render-source row covers the renderers, the meters and the ring
+        // the engine's own effect-to-effect feed reads.
+        if (effectOtomoProcessor != nullptr && renderSourceMap.firstEffectSlot >= 0)
+        {
+            for (int fx = 0; fx < renderSourceMap.numEffectChannels; ++fx)
+            {
+                const int row = renderSourceMap.firstEffectSlot + fx;
+                if (row >= patchedInputBuffer.getNumChannels())
+                    break;
+
+                const float gain = effectOtomoProcessor->getReturnGain (fx);
+                if (gain < 1.0f)
+                    patchedInputBuffer.applyGain (row, bufferToFill.startSample,
+                                                  bufferToFill.numSamples, gain);
+            }
+        }
+
         // Stereo decomposition: raw L/R → the channels' six render-source
         // slots, before anything downstream reads patchedInputBuffer
         runStereoDecompositionStage (bufferToFill.startSample, bufferToFill.numSamples);
@@ -8503,7 +15346,8 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         // Write patched input to shared buffers + notify consumers (only when needed)
         {
             bool needSharedBuffers = (reverbFeedThread != nullptr)
-                                  || (binauralProcessor && binauralProcessor->isEnabled());
+                                  || (binauralProcessor && binauralProcessor->isEnabled())
+                                  || (effectsHost != nullptr && effectsHost->isReady());
 
             if (needSharedBuffers && !sharedInputBuffers.empty())
             {
@@ -8523,6 +15367,14 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
                 {
                     reverbFeedThread->setMuted(muteReverbPre.load(std::memory_order_relaxed));
                     reverbFeedThread->notifyInputAvailable();
+                }
+
+                // The engine's batch order: every row of block n is in its
+                // ring (the popped returns included) before the driver wakes
+                if (effectsHost != nullptr && effectsHost->isReady())
+                {
+                    effectsHost->setMuted (muteEffectsPre.load (std::memory_order_relaxed));
+                    effectsHost->notifyInputAvailable();
                 }
             }
         }
@@ -8861,14 +15713,22 @@ void MainComponent::releaseResources()
 #endif
 
     // Stop reverb feed thread (drop the metering manager's raw pointer first;
-    // re-wired by the next setupSharedInputFeed)
+    // re-wired by the next setupSharedInputFeed). The effects host is released
+    // just below, so the manager must let go of its core here.
     if (levelMeteringManager)
+    {
         levelMeteringManager->setReverbSources(reverbEngine.get(), nullptr, 0.0f);
+        levelMeteringManager->setEffectsSource(nullptr, 0.0f);
+    }
     if (reverbFeedThread)
     {
         reverbFeedThread->stopThread(1000);
         reverbFeedThread.reset();
     }
+
+    // Same rule for the effects driver: join it before the rings it reads die
+    if (effectsHost)
+        effectsHost->release();
 
     // Stop the binaural worker and drop its raw pointers into sharedInputBuffers
     // BEFORE destroying the buffers below — the worker must not outlive what it reads.
@@ -9003,6 +15863,73 @@ void MainComponent::timerCallback()
         }
     }
 
+    // Once per second, when asked for (WFS_EFFECTS_TRACE): the effects
+    // engine's telemetry - batches, duty, per-effect feed and return peaks,
+    // underruns, NaN trips, loop-guard state, chain latency. This is what makes
+    // an audio check readable from the session log with no GUI.
+    // The engine overwrites its per-channel peaks on every batch with no
+    // ballistics of their own, so they are sampled on THIS tick rather than the
+    // 20 ms metering one, which would step over three batches out of four.
+    if (levelMeteringManager != nullptr)
+        levelMeteringManager->pollEffectLevels (0.005f);
+
+    if (effectsTraceEnabled && ++effectsTraceTick >= 200) // 5 ms timer
+    {
+        effectsTraceTick = 0;
+        if (effectsHost != nullptr && effectsHost->isPrepared())
+        {
+            juce::String line = effectsHost->describeTelemetry();
+
+            // What the engine is fed with: the source meters of the first slots
+            // and the strongest calc-engine feed cell per live effect, so a
+            // silent feed can be told apart from a silent source
+            if (levelMeteringManager != nullptr)
+            {
+                line << "\n  srcPk=";
+                const int shown = juce::jmin (numRenderSources, 10);
+                for (int s = 0; s < shown; ++s)
+                    line << (s > 0 ? " " : "") << "s" << s << ":"
+                         << juce::String (levelMeteringManager->getInputLevel (s).peakDb, 1);
+            }
+            if (calculationEngine != nullptr)
+            {
+                const float* feedLevels = calculationEngine->getInputEffectLevels();
+                const int stride = calculationEngine->getNumEffects();
+                line << "\n  feedMax=";
+                for (int fx = 0; fx < renderSourceMap.numEffectChannels; ++fx)
+                {
+                    float best = 0.0f;
+                    int bestSlot = -1;
+                    for (int s = 0; s < numRenderSources; ++s)
+                    {
+                        const float v = feedLevels[static_cast<size_t> (s * stride + fx)];
+                        if (v > best) { best = v; bestSlot = s; }
+                    }
+                    line << (fx > 0 ? " " : "") << "fx" << (fx + 1) << ":"
+                         << juce::String (best, 4) << "@s" << bestSlot;
+                }
+            }
+
+            // What the metering manager made of the engine's peaks. The
+            // engine's own numbers are above; these have been through the
+            // 5 ms poll, the max-hold, the ballistics and the freshness rule,
+            // so a live run says whether the tap is wired and tracking rather
+            // than only whether the engine is running.
+            if (levelMeteringManager != nullptr)
+            {
+                const auto stats = levelMeteringManager->getEffectsStats();
+                line << "\n  meters=" << (stats.live ? "live" : "stale")
+                     << " duty=" << juce::String (stats.pct, 1) << "%";
+                for (int fx = 0; fx < renderSourceMap.numEffectChannels; ++fx)
+                    line << " fx" << (fx + 1) << ":"
+                         << juce::String (levelMeteringManager->getEffectLevel (fx).peakDb, 1) << "/"
+                         << juce::String (levelMeteringManager->getEffectReturnLevel (fx).peakDb, 1);
+            }
+
+            WFSLogger::getInstance().logInfo (line);
+        }
+    }
+
 #if WFS_GPU_NATIVE
     // Once per second: surface GPU pipeline underruns (silence-filled blocks).
     // They never trip the device xrun counter (the callback doesn't wait on
@@ -9058,13 +15985,13 @@ void MainComponent::timerCallback()
     // that can starve the audio thread's parameter updates.
     const bool windowVisible = isShowing();
     const bool mapVisible = (mapTabWindow != nullptr) ? mapTabWindow->isVisible()
-                          : (windowVisible && tabbedComponent.getCurrentTabIndex() == 6);
+                          : (windowVisible && tabbedComponent.getCurrentTabIndex() == TabIndex::Map);
 
     // Update master level gain target (message thread → audio thread via atomic)
     {
         float masterLevelDb = (float)parameters.getConfigParam("MasterLevel");
         masterLevelGainTarget.store(
-            juce::Decibels::decibelsToGain(masterLevelDb, -92.0f),
+            attenuationDbToGain(masterLevelDb),
             std::memory_order_relaxed);
     }
 
@@ -9083,7 +16010,7 @@ void MainComponent::timerCallback()
                    && arrayMutes.isMuted (WFSVar::toInt (parameters.getOutputParam (i, "outputArray")))))
             {
                 float dB = (float) parameters.getOutputParam(i, "outputAttenuation");
-                gain = juce::Decibels::decibelsToGain(dB, -92.0f);
+                gain = attenuationDbToGain(dB);
             }
             outputAttenuationTargets[i].store(gain, std::memory_order_relaxed);
         }
@@ -9097,7 +16024,7 @@ void MainComponent::timerCallback()
         {
             float dB = (float) parameters.getReverbParam(i, "reverbAttenuation");
             reverbAttenuationTargets[i].store(
-                juce::Decibels::decibelsToGain(dB, -92.0f),
+                attenuationDbToGain(dB),
                 std::memory_order_relaxed);
         }
     }
@@ -9106,9 +16033,26 @@ void MainComponent::timerCallback()
     // overwrite a project folder's config that hasn't been loaded this session)
     if (patchSaveCountdown > 0 && --patchSaveCountdown == 0)
     {
+        // A failed patch save used to be dropped: nothing shown, no retry, and
+        // the edit lived only in memory until the exit save failed the same
+        // way (re-audit 2026-09-29, S2). Now it is logged once and retried
+        // every minute until it lands.
         auto& fm = parameters.getFileManager();
-        if (fm.hasValidProjectFolder())
-            fm.autoSaveSystemConfig();
+        const auto saved = fm.hasValidProjectFolder() ? fm.autoSaveSystemConfig()
+                                                      : WFSFileManager::AutoSave::skipped;
+        if (saved == WFSFileManager::AutoSave::failed)
+        {
+            if (! patchSaveFailing)
+                WFSLogger::getInstance().logWarning ("The audio patch could not be saved (retrying every minute): "
+                                                     + fm.getLastError());
+            patchSaveFailing = true;
+            patchSaveCountdown = 12000;   // 60 s at the 200 Hz tick
+        }
+        else if (saved == WFSFileManager::AutoSave::saved && patchSaveFailing)
+        {
+            WFSLogger::getInstance().logInfo ("The audio patch is saved again");
+            patchSaveFailing = false;
+        }
     }
 
     // Increment tick counter
@@ -9253,6 +16197,26 @@ void MainComponent::timerCallback()
             }
         }
 
+        // The same levels for the effect returns, read from the return row's
+        // own render-source meter: that row is what the callback popped out of
+        // the engine, so it is the return the operator hears. getInputLevel()
+        // cannot serve here - it collapses onto channels and stops at the
+        // input count.
+        if (effectOtomoProcessor != nullptr && levelMeteringManager != nullptr
+            && renderSourceMap.firstEffectSlot >= 0)
+        {
+            for (int fx = 0; fx < renderSourceMap.numEffectChannels; ++fx)
+            {
+                const auto level = levelMeteringManager->getRenderSourceLevel (
+                    renderSourceMap.firstEffectSlot + fx);
+                effectOtomoProcessor->setInputLevels (fx, level.peakDb, level.rmsDb);
+
+                // The tab's two trigger indicators, for the channel it shows.
+                if (effectsTab != nullptr && fx == effectsTab->getCurrentChannel() - 1)
+                    effectsTab->updateOtomoLevelIndicators (level.peakDb, level.rmsDb);
+            }
+        }
+
         // Process AutomOtion at 50Hz (control rate)
         if (automOtionProcessor != nullptr)
         {
@@ -9260,6 +16224,51 @@ void MainComponent::timerCallback()
 
             // Repaint map while AutomOtion is active (shows moving grey dot)
             if (mapVisible && automOtionProcessor->isAnyActive() && mapTab != nullptr)
+                mapTab->repaint();
+        }
+
+        // The effect returns move on the same control tick. The offsets it
+        // publishes reach the calculation engine through the sink, which
+        // dirties the effect rows itself.
+        if (effectOtomoProcessor != nullptr)
+        {
+            effectOtomoProcessor->process (0.02f);
+
+            if (mapVisible && effectOtomoProcessor->isAnyActive() && mapTab != nullptr)
+                mapTab->repaint();
+        }
+
+        // The effect LFOs, on the same tick. Where an input's LFO offset is
+        // summed here with the sampler and gradient offsets before one
+        // setLFOOffset, an effect return has exactly one LFO contribution, so
+        // it goes straight to its own engine slot and adds to the AutomOtion's
+        // there. The tab's progress dial and output bars follow the channel
+        // it shows.
+        if (effectLfoProcessor != nullptr && calculationEngine != nullptr)
+        {
+            effectLfoProcessor->process (0.02f);
+
+            bool anyEffectLfoMoving = false;
+            const int numFx = juce::jmin (parameters.getNumEffectChannels(),
+                                          WFSParameterDefaults::maxEffectChannels);
+            for (int fx = 0; fx < numFx; ++fx)
+            {
+                const float ox = effectLfoProcessor->getOffsetX (fx);
+                const float oy = effectLfoProcessor->getOffsetY (fx);
+                const float oz = effectLfoProcessor->getOffsetZ (fx);
+                calculationEngine->setEffectLFOOffset (fx, ox, oy, oz);
+                anyEffectLfoMoving = anyEffectLfoMoving
+                                  || std::abs (ox) > 0.001f || std::abs (oy) > 0.001f || std::abs (oz) > 0.001f;
+
+                if (effectsTab != nullptr && fx == effectsTab->getCurrentChannel() - 1)
+                    effectsTab->updateLFOIndicators (effectLfoProcessor->getRampProgress (fx),
+                                                     effectLfoProcessor->isActive (fx),
+                                                     effectLfoProcessor->getNormalizedX (fx),
+                                                     effectLfoProcessor->getNormalizedY (fx),
+                                                     effectLfoProcessor->getNormalizedZ (fx));
+            }
+
+            if (mapVisible && anyEffectLfoMoving && mapTab != nullptr)
                 mapTab->repaint();
         }
 
@@ -9362,6 +16371,21 @@ void MainComponent::timerCallback()
             else
             {
                 calculationEngine->setGradientMapOffsets (i, 0.0f, 0.0f, 0.0f);
+            }
+        }
+
+        // The editor's input marker sits where the map is sampled: the
+        // composite position, after flip, offset, LFO and constraints. Pushed
+        // from here so it follows every way of moving the input, including
+        // the Inputs-tab joystick, which lives on another sub-tab and so
+        // writes while the editor is hidden.
+        if (inputsTab != nullptr && inputsTab->getGradientMapEditor().isShowing())
+        {
+            const int slot = parameters.getValueTreeState().getSlotForChannelNumber (inputsTab->getCurrentChannel());
+            if (slot >= 0 && slot < numInputChannels)
+            {
+                auto pos = calculationEngine->getCompositeInputPosition (slot);
+                inputsTab->getGradientMapEditor().setInputPosition (pos.x, pos.y, slot);
             }
         }
 
@@ -9488,6 +16512,12 @@ void MainComponent::timerCallback()
                 else
                 {
                     binauralNoDeviceWarned = false;
+
+                    // The re-prepare frees the buffers the callback's binaural
+                    // branches use. Disabled is not enough to keep it out: a
+                    // block that read "enabled" before the last disable can
+                    // still be in there.
+                    const ScopedAudioStructureChange structureChange (*this);
                     binauralProcessor->stopProcessing();   // quiesce before reconfiguring
                     binauralProcessor->prepareToPlay(device->getCurrentSampleRate(),
                                                      device->getCurrentBufferSizeSamples(),
@@ -9588,6 +16618,11 @@ void MainComponent::timerCallback()
         // LS gains are supplied fresh each call (never cached by the engine).
         if (calculationEngine->recalculateMatrixIfDirty(lsTamerEngine ? lsTamerEngine->getLSGains() : nullptr))
         {
+            // The effects engine reads the feed triplet through raw pointers
+            // handed over at prepare; the six scalars are re-handed whenever a
+            // recalc ran, so the live source and effect counts follow the map
+            if (effectsHost != nullptr && effectsHost->isPrepared())
+                effectsHost->setFeedMatrices (*calculationEngine, numRenderSources);
 
             // Copy calculated values to target arrays
             // Note: Calculation engine uses maxOutputChannels (128) for stride,
@@ -9713,9 +16748,15 @@ void MainComponent::timerCallback()
                     }
                 }
 
+                std::vector<float> effectDelays, effectLevels, effectHF;
+                packEffectVisualisationRows (effectDelays, effectLevels, effectHF);
+
                 inputsTab->updateVisualisation(
                     targetDelayTimesMs.data(), targetLevels.data(), hfAttenuation.data(),
-                    reverbDelays.data(), reverbLevels.data(), reverbHF.data());
+                    reverbDelays.data(), reverbLevels.data(), reverbHF.data(),
+                    effectDelays.empty() ? nullptr : effectDelays.data(),
+                    effectLevels.empty() ? nullptr : effectLevels.data(),
+                    effectHF.empty() ? nullptr : effectHF.data());
             }
 
             // Tablet mirroring is throttled below and must run even when the
@@ -9762,6 +16803,88 @@ void MainComponent::timerCallback()
                     lfoProcessor->getNormalizedY(selectedInput),
                     lfoProcessor->getNormalizedZ(selectedInput));
             }
+        }
+
+        // Effects, every 50 Hz tick: the direct-row solo mask, the loop-guard
+        // switch (the one global that applies live), the coalesced parameter
+        // publish (one cook per changed channel per tick), and the cycle log
+        if (calculationEngine != nullptr)
+            calculationEngine->setSoloEffects (soloEffects.load (std::memory_order_relaxed));
+
+        if (effectsHost != nullptr && effectsHost->isPrepared())
+        {
+            auto globals = parameters.getValueTreeState().getEffectsGlobalSection();
+            const bool loopGuard = static_cast<int> (globals.getProperty (WFSParameterIDs::effectsGlobalLoopGuard,
+                                                                          WFSParameterDefaults::effectsGlobalLoopGuardDefault)) != 0;
+            effectsHost->setLoopGuardEnabled (loopGuard);
+            effectsHost->publishDirty();
+        }
+
+        if (calculationEngine != nullptr)
+        {
+            const uint32_t cycleMask = calculationEngine->getEffectCycleMask();
+            if (cycleMask != lastLoggedEffectCycleMask)
+            {
+                if (cycleMask != 0)
+                {
+                    juce::StringArray members;
+                    for (int fx = 0; fx < WFSParameterDefaults::maxEffectChannels; ++fx)
+                        if ((cycleMask & (1u << fx)) != 0)
+                            members.add (juce::String (fx + 1));
+                    WFSLogger::getInstance().logWarning ("Effects: feedback cycle among effect channels "
+                                                         + members.joinIntoString (", ")
+                                                         + " (the loop guard catches runaway; the routing is yours)");
+                }
+                else
+                {
+                    WFSLogger::getInstance().logInfo ("Effects: no feedback cycle remains");
+                }
+                lastLoggedEffectCycleMask = cycleMask;
+            }
+        }
+
+        // What the Effects tab's three indicators show. All of it is session
+        // state the engine and the calculation engine own, never a property:
+        // the loop-guard trip, membership of a feedback cycle, and whether
+        // anything feeds this channel at all - which is what makes it the
+        // ENTRY POINT of its bunch. The entry role is emergent by decision, so
+        // it is derived here from the send row rather than stored.
+        if (effectsTab != nullptr && calculationEngine != nullptr)
+        {
+            const int fx = effectsTab->getCurrentChannel() - 1;
+
+            if (fx >= 0 && fx < parameters.getValueTreeState().getNumEffectChannels())
+            {
+                const auto* core = effectsHost != nullptr ? effectsHost->getCore() : nullptr;
+                const bool tripped = core != nullptr && core->isLoopGuardTripped (fx);
+                const bool inCycle = (calculationEngine->getEffectCycleMask() & (1u << fx)) != 0;
+
+                bool fedByAnInput = false;
+                for (int in = 1; in <= WFSParameterDefaults::maxInputChannels && ! fedByAnInput; ++in)
+                    fedByAnInput = parameters.getValueTreeState().getEffectSendOnFromInput (fx, in);
+
+                // The Chain sub-tab's latency readout and per-tile meters, from
+                // the same core pointer. No core (processing stopped) reads as
+                // -1 and silent meters.
+                std::array<float, EffectsChainPanel::numSlots> slotMetersDb {};
+                int chainLatency = -1;
+                if (core != nullptr)
+                {
+                    chainLatency = core->getChainLatencySamples (fx);
+                    for (int s = 0; s < EffectsChainPanel::numSlots; ++s)
+                        slotMetersDb[static_cast<size_t> (s)] = core->getSlotMeterDb (fx, s);
+                }
+                else
+                {
+                    slotMetersDb.fill (-120.0f);
+                }
+                auto* liveDevice = deviceManager.getCurrentAudioDevice();
+                const double liveRate = liveDevice != nullptr ? liveDevice->getCurrentSampleRate() : 48000.0;
+
+                effectsTab->setLiveState (fx, tripped, inCycle, fedByAnInput, chainLatency, liveRate, slotMetersDb);
+            }
+
+            effectsTab->setCycleMask (calculationEngine->getEffectCycleMask());
         }
 
         // Update reverb engine parameters (every timer tick, independent of position changes)
@@ -10205,15 +17328,15 @@ void MainComponent::startChannelSelection(ChannelSelectionMode mode)
     switch (mode)
     {
         case ChannelSelectionMode::Input:
-            tabbedComponent.setCurrentTabIndex(4);  // Inputs tab index
+            tabbedComponent.setCurrentTabIndex(TabIndex::Inputs);
             prompt = "Select Input Channel: ";
             break;
         case ChannelSelectionMode::Output:
-            tabbedComponent.setCurrentTabIndex(2);  // Outputs tab index
+            tabbedComponent.setCurrentTabIndex(TabIndex::Outputs);
             prompt = "Select Output Channel: ";
             break;
         case ChannelSelectionMode::Reverb:
-            tabbedComponent.setCurrentTabIndex(3);  // Reverb tab index
+            tabbedComponent.setCurrentTabIndex(TabIndex::Reverb);
             prompt = "Select Reverb Channel: ";
             break;
         default:
@@ -10285,15 +17408,19 @@ void MainComponent::cycleHelpCards()
 {
     // Get the active tab's help card provider
     HelpCardProvider* provider = nullptr;
+    // By NAMED index: the Effects tab (4) moved Inputs, Clusters and Map up
+    // one, and the literal indices here kept cycling the Inputs tab's cards
+    // on the Effects tab and gave the Map none.
     switch (tabbedComponent.getCurrentTabIndex())
     {
-        case 0: provider = systemConfigTab; break;
-        case 1: provider = networkTab; break;
-        case 2: provider = outputsTab; break;
-        case 3: provider = reverbTab; break;
-        case 4: provider = inputsTab; break;
-        case 5: provider = clustersTab; break;
-        case 6: provider = dynamic_cast<HelpCardProvider*>(mapTab.get()); break;
+        case TabIndex::SystemConfig: provider = systemConfigTab; break;
+        case TabIndex::Network:      provider = networkTab; break;
+        case TabIndex::Outputs:      provider = outputsTab; break;
+        case TabIndex::Reverb:       provider = reverbTab; break;
+        case TabIndex::Effects:      provider = effectsTab; break;
+        case TabIndex::Inputs:       provider = inputsTab; break;
+        case TabIndex::Clusters:     provider = clustersTab; break;
+        case TabIndex::Map:          provider = dynamic_cast<HelpCardProvider*>(mapTab.get()); break;
     }
     if (provider == nullptr) return;
 
@@ -10374,17 +17501,21 @@ void MainComponent::cycleChannel(int delta)
 {
     int currentTabIndex = tabbedComponent.getCurrentTabIndex();
 
-    if (currentTabIndex == 4 && inputsTab != nullptr)  // Inputs tab
+    if (currentTabIndex == TabIndex::Inputs && inputsTab != nullptr)
     {
         inputsTab->cycleChannel(delta);
     }
-    else if (currentTabIndex == 2 && outputsTab != nullptr)  // Outputs tab
+    else if (currentTabIndex == TabIndex::Outputs && outputsTab != nullptr)
     {
         outputsTab->cycleChannel(delta);
     }
-    else if (currentTabIndex == 3 && reverbTab != nullptr)  // Reverb tab
+    else if (currentTabIndex == TabIndex::Reverb && reverbTab != nullptr)
     {
         reverbTab->cycleChannel(delta);
+    }
+    else if (currentTabIndex == TabIndex::Effects && effectsTab != nullptr)
+    {
+        effectsTab->cycleChannel(delta);
     }
 }
 
@@ -10819,17 +17950,17 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
     }
     if (key.isKeyCode('M') && !key.getModifiers().isCommandDown())
     {
-        tabbedComponent.setCurrentTabIndex(6);  // Map tab
+        tabbedComponent.setCurrentTabIndex(TabIndex::Map);
         return true;
     }
     if (key.isKeyCode('N') && !key.getModifiers().isCommandDown())
     {
-        tabbedComponent.setCurrentTabIndex(1);  // Network tab
+        tabbedComponent.setCurrentTabIndex(TabIndex::Network);
         return true;
     }
     if (key.isKeyCode('C') && !key.getModifiers().isCommandDown())
     {
-        tabbedComponent.setCurrentTabIndex(5);  // Clusters tab
+        tabbedComponent.setCurrentTabIndex(TabIndex::Clusters);
         return true;
     }
 
@@ -10837,8 +17968,8 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
     // Get current tab index for tab-specific shortcuts
     int currentTabIndex = tabbedComponent.getCurrentTabIndex();
 
-    // Clusters tab (index 5): Space cycles clusters, not channels
-    if (currentTabIndex == 5 && clustersTab != nullptr && key.isKeyCode(juce::KeyPress::spaceKey))
+    // Clusters tab: Space cycles clusters, not channels
+    if (currentTabIndex == TabIndex::Clusters && clustersTab != nullptr && key.isKeyCode(juce::KeyPress::spaceKey))
     {
         if (key.getModifiers().isShiftDown())
             clustersTab->selectPreviousCluster();  // Shift+Space = previous cluster
@@ -10855,8 +17986,8 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
     }
 
     // Cluster/Array assignment: F1-F10 assign to Cluster/Array 1-10, F11 removes (Single)
-    // Inputs tab (index 4): F1-F10 = Cluster 1-10, F11 = Single
-    if (currentTabIndex == 4 && inputsTab != nullptr)
+    // Inputs tab: F1-F10 = Cluster 1-10, F11 = Single
+    if (currentTabIndex == TabIndex::Inputs && inputsTab != nullptr)
     {
         for (int i = 0; i < 10; ++i)
         {
@@ -10873,8 +18004,8 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         }
     }
 
-    // Outputs tab (index 2): F1-F10 = Array 1-10, F11 = Single
-    if (currentTabIndex == 2 && outputsTab != nullptr)
+    // Outputs tab: F1-F10 = Array 1-10, F11 = Single
+    if (currentTabIndex == TabIndex::Outputs && outputsTab != nullptr)
     {
         for (int i = 0; i < 10; ++i)
         {
@@ -10891,8 +18022,27 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         }
     }
 
-    // Clusters tab (index 5): F1-F10 = select Cluster 1-10
-    if (currentTabIndex == 5 && clustersTab != nullptr)
+    // Effects tab: F1-F8 = link group 1-8, F11 = unlinked. The effects' own
+    // groups, not the input clusters.
+    if (currentTabIndex == TabIndex::Effects && effectsTab != nullptr)
+    {
+        for (int i = 0; i < WFSParameterDefaults::effectLinkGroupMax; ++i)
+        {
+            if (key.isKeyCode(juce::KeyPress::F1Key + i))
+            {
+                effectsTab->setLinkGroup(i + 1);
+                return true;
+            }
+        }
+        if (key.isKeyCode(juce::KeyPress::F11Key))
+        {
+            effectsTab->setLinkGroup(0);
+            return true;
+        }
+    }
+
+    // Clusters tab: F1-F10 = select Cluster 1-10
+    if (currentTabIndex == TabIndex::Clusters && clustersTab != nullptr)
     {
         for (int i = 0; i < 10; ++i)
         {
@@ -10904,9 +18054,9 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         }
     }
 
-    // Map tab (index 6): F1-F10 = assign selected inputs to Cluster 1-10
-    //                     F11 = remove from cluster (inputs) or break up cluster (barycenter)
-    if (currentTabIndex == 6 && mapTab != nullptr)
+    // Map tab: F1-F10 = assign selected inputs to Cluster 1-10
+    //          F11 = remove from cluster (inputs) or break up cluster (barycenter)
+    if (currentTabIndex == TabIndex::Map && mapTab != nullptr)
     {
         for (int i = 0; i < 10; ++i)
         {
@@ -10971,8 +18121,8 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
     // Position nudging: Arrow keys, Page Up/Down (Inputs, Outputs, Reverb tabs)
     const float nudgeAmount = 0.1f;
 
-    // Inputs tab (index 4)
-    if (currentTabIndex == 4)
+    // Inputs tab
+    if (currentTabIndex == TabIndex::Inputs)
     {
         if (key.isKeyCode(juce::KeyPress::leftKey))
         {
@@ -11006,8 +18156,8 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         }
     }
 
-    // Outputs tab (index 2)
-    if (currentTabIndex == 2)
+    // Outputs tab
+    if (currentTabIndex == TabIndex::Outputs)
     {
         if (key.isKeyCode(juce::KeyPress::leftKey))
         {
@@ -11041,8 +18191,8 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         }
     }
 
-    // Reverb tab (index 3)
-    if (currentTabIndex == 3)
+    // Reverb tab
+    if (currentTabIndex == TabIndex::Reverb)
     {
         if (key.isKeyCode(juce::KeyPress::leftKey))
         {
@@ -11076,8 +18226,8 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         }
     }
 
-    // Map tab (index 6) - nudge selected input
-    if (currentTabIndex == 6 && mapTab != nullptr)
+    // Map tab - nudge selected input
+    if (currentTabIndex == TabIndex::Map && mapTab != nullptr)
     {
         int selectedInput = mapTab->getSelectedInput();
         if (selectedInput >= 0)

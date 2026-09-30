@@ -5,8 +5,8 @@
 <SystemConfig version="1.0">
   <Config>
     <Show showName="My Show" showLocation="" autoPreselectDirty="0"/>
-    <IO inputChannels="8" outputChannels="16" reverbChannels="1" algorithmDSP="0"
-        channelNumbersUserOwned="1">
+    <IO inputChannels="8" outputChannels="16" reverbChannels="1" effectChannels="0"
+        algorithmDSP="0" channelNumbersUserOwned="1">
       <InputChannelList>
         <Ch n="1" type="mono"/>
         <Ch n="2" type="mono"/>
@@ -21,7 +21,8 @@
     <Stage stageShape="0" stageWidth="12.0" stageDepth="10.0" stageHeight="8.0"
            stageDiameter="20.0" domeElevation="180.0" originWidth="0.0"
            originDepth="-5.0" originHeight="0.0" speedOfSound="343.0" temperature="20.0"/>
-    <Master masterLevel="0.0" systemLatency="0.0" haasEffect="0.0" reverbsMapVisible="1"/>
+    <Master masterLevel="0.0" systemLatency="0.0" haasEffect="0.0" reverbsMapVisible="1"
+            effectsMapVisible="1"/>
     <Clusters count="10" inputOrderKey="number">
       <Cluster id="1" clusterReferenceMode="0" clusterInputOrder="" clusterInputsVisible="1">
         <ClusterLFO clusterLFOactive="0" clusterLFOperiod="5.0" clusterLFOphase="0"
@@ -131,6 +132,10 @@
         lightpadPad0DeviceId="" lightpadPad1DeviceId="" lightpadPad2DeviceId=""
         lightpadSensitivity="0.05000000074505806" SamplerControllerMode="0"
         colorScheme="0"/>
+    <EffectsGlobal effectsGlobalLinkNames="Group 1,Group 2,Group 3,Group 4,Group 5,Group 6,Group 7,Group 8"
+                   effectsGlobalLinkMode="1" effectsGlobalFxFeedGeometric="1" effectsGlobalWorkerThreads="-1"
+                   effectsGlobalReturnCushion="0" effectsGlobalLoopGuard="1" effectsGlobalLoopGuardCeiling="6.0"
+                   effectsGlobalMaxDelaySeconds="5" effectsGlobalFeedGpuDevice="cpu"/>
     <ClusterLFOPresets>
       <ClusterLFOPreset clusterLFOPresetName="" clusterLFOperiod="5.0" clusterLFOphase="0"
                         clusterLFOshapeX="0" clusterLFOshapeY="0" clusterLFOshapeZ="0"

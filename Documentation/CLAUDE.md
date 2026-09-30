@@ -43,7 +43,7 @@ The application has established a solid foundation with infrastructure and core 
 - **Live Source Tamer** (per-speaker gain reduction for feedback prevention)
 - **Floor Reflections** (simulated floor bounce with filtering and diffusion)
 - **Audio Interface & Patching Window** (input/output patch matrices with test signal generation)
-- **Snapshot Scope Window** (parameter-level, per-channel granularity for snapshots)
+- **Snapshot Scope Window** (parameter-level, per-channel granularity for snapshots; one snapshot carries the inputs AND the effects, one grid tab per family)
 - **Level Metering System** (floating window with input/output meters and thread performance)
 - **Binaural Solo Monitoring** (virtual speaker rendering for headphone monitoring)
 - **ADM-OSC bidirectional mapping system** (4 Cartesian + 4 Polar mappings, per-input assignment grid, in-app axis-swap / sign-flip / center / breakpoint / inner-outer-width editing)
@@ -68,7 +68,7 @@ The application has established a solid foundation with infrastructure and core 
 ### GUI Structure
 - **SystemConfigTab** - Show info, channel counts, WFS Processor (Algorithm + Processing long-press), Stage geometry & origin, Master Section (Master Level / System Latency / Haas Effect), UI (Color Scheme / Long Press / Language), Controllers (Dials+Buttons / Position / Sampler), Binaural Renderer, Files (project folder, Store/Reload complete/system configs), Diagnostics (version, Export Logs, Copy System Info, Report Issue).
 - **NetworkTab** - Network Interface / current IPv4 / Rx UDP+TCP ports / OSC Query (enable + HTTP port) / OSC Source Filter, Network Connections table (up to 6 targets with Protocol: DISABLED/OSC/Remote/ADM-OSC/QLab + per-target QLab Patch), ADM-OSC Mappings panel (4 Cartesian + 4 Polar mappings with per-axis Source/Flip/Center/Breakpoint/Widths and Polar Az-Offset / Az-Flip / El-Flip / Distance controls), Tracking section (Enabled / Protocol DISABLED/OSC/PSN/RTTrP/MQTT / Rx Port / OSC Path / PSN Interface / MQTT Host+Topic+JSON fields+Tag-IDs / Offsets / Scales / Flips), Find My Remote, Store/Reload/Reload-Backup/Import/Export network config.
-- **InputsTab** - Header: channel selector, name, Map Lock, Map Visibility, Set All Inputs long-press, Snapshot controls. Sub-tabs include Position/Attenuation/Directivity, Live Source Tamer + Floor Reflections (Hackoustics), Movements (LFO + AutomOtion), Gradient Maps, and the **Sampler sub-tab** (shown when per-input `inputSamplerActive` is ON and global `samplerEnabled` is on — 6×6 cell grid, per-cell Name/File/In-Out/Offset/Attenuation, SamplerSet management with pressure mappings for Lightpad / Remote pad).
+- **InputsTab** - Header: channel selector, name, Map Lock, Map Visibility, Set All Inputs long-press, Snapshot controls. Sub-tabs include Position/Attenuation/Directivity, Live Source Tamer + Floor Reflections (Hackoustics), Movements (LFO + AutomOtion), Gradient Maps, and the **Sampler sub-tab** (shown when per-input `inputSamplerActive` is ON and global `samplerEnabled` is on — 6×6 cell grid, per-cell Name/File/In-Out/Offset/Attenuation, SamplerSet management with pressure mappings for Lightpad / Remote pad), and the **Effect Sends sub-tab** (only while effect channels exist, then always last, `InputSubTab::EffectSends = 6`, the Inputs tab listens on the effects tree for that, `Source/gui/InputEffectSendsSubTab.h`: one strip per effect with a send-level fader and an ON / OFF switch that keeps the level - the same cells as the Effects tab's Post-Processing matrix, through the typed `setEffectSend*FromInput` accessors; MCP `input_set_effect_send_level` / `input_set_effect_send_on` / `input_get_effect_sends` in `tools/EffectSendTools.h`; Stream Deck page `InputsTabPages::createEffectSendsPage`: four dials = four effects' send levels, the buttons under them switch and keep the level, the top row moves the window by one or four, the window is the shared `inputSendsWindow` and a shift asks MainComponent for a deferred rebuild because the manager does not lay a page out again after a top-row Action; the sub-tab outlines the four strips while the Dials & Buttons device is the Stream Deck; self-test phase ES).
 - **OutputsTab** - Header: channel selector, name, Array selector + **Mute Array** (session-only whole-array mute, disabled for Single outputs — see *Array Mute* below), Apply to Array, Map Visibility / Array Map Visibility, Level Meters button, Wizard of OutZ button. Two sub-tabs:
   - "Channel Parameters" (Position/Orientation, Array Assignment, LS/FR enables, parallax, distance attenuation %, HF damping, min latency — Options content is integrated here, not a separate tab)
   - "Output EQ" (6-band parametric EQ with interactive display, per-band enable toggles, Flatten-EQ and Reset-Band long-press buttons)
@@ -78,6 +78,16 @@ The application has established a solid foundation with infrastructure and core 
   - "Pre-Processing" (4-band parametric pre-EQ per-channel with Flatten + per-band Reset long-press + interactive EQ display + global pre-compressor with GR meter)
   - "Algorithm" (SDN/FDN/IR selector, decay params, algorithm-specific params, wet level — global, with full DSP engine)
   - "Post-Processing" (4-band parametric post-EQ global + global post-expander with GR meter)
+- **EffectsTab** (`Source/gui/effects/`, main tab 4 = `TabIndex::Effects`, between Reverb and Inputs) - Header mirrors the Reverb tab: channel selector, name, Effects Visible on Map, Edit on Map, three engine LEDs (loop guard, cycle, entry point), Solo Effects (long-press), Mute, Solo (long-press), Clear (long-press; Ctrl = every chain). Every GUI write goes through `EffectParamEdit` (the link funnel). Five sub-tabs:
+  - "Channel Parameters" (link row: group, mode, Mute Group; then the Reverb tab's 3 columns: attenuation/latency/position + return offset, Effect Feed orientation, Effect Return law/mutes/array attenuation)
+  - "Chain" (link badge, chain bypass, latency, the draggable 11-tile strip with engine meters; module panels generated from `WFS-UI_effects.csv` by `tools/gen_effects_module_ui.py`, plus EQ display, GR meter, delay tap rows, reverb presets)
+    - The reverb module runs a real model - 0 FDN, 1 Dattorro plate, 4 modulated hall, 5 shimmer; 2 and 3 are reserved ids that run the FDN - behind optional early reflections, and shows only its model's rows: the CSV's `Models` column through `EffectsUi::isVisibleForModel`, the model resolved by `spatcore::effects::resolveReverbModel` (never compare stored ids). Plan §12.10.
+    - A reverb PRESET is an action of the state, not of the panel: `WFSValueTreeState::applyEffectReverbPreset` writes the row's fifteen values and then the type (one undo transaction, each linked member runs it itself), and a real edit (beyond 1e-6 relative) to one of those values makes the type Custom first. The funnels and the Stream Deck reach it through `EffectParamEdit`, OSC through `applyExternalEffectEdit` (reverb types drained first); **the effect MCP tools must use `applyExternalEffectEdit` too**. Snapshot recall and loads write raw.
+    - The Stream Deck's Chain page shows a module's controls in banks of twelve (`chainPageControls`, a "Page n/N" button, bank reset on a module change); a deck turn that changes the reverb's model asks for a deferred rebuild.
+  - "Post-Processing" (the whole sends matrix: spatcore's `SendMatrixComponent` bound by `EffectsSendMatrixShim.cpp`)
+  - "Movements" (LFO left, AutomOtion right, the Inputs tab's geometry; both are offsets the engine adds)
+  - "Settings" (the nine `effectsGlobal*` + long-press Re-layout)
+  - Footer: the snapshot row shared with the Inputs tab (`SnapshotRow` over the one `SnapshotSession`; its Edit Scope opens the Scope window on the Effects grid) above the five config long-press buttons.
 - **MapTab** - Spatial visualization
 
 ### Floating Windows
@@ -85,8 +95,21 @@ The application has established a solid foundation with infrastructure and core 
 - **NetworkLogWindow** - Network traffic monitoring with filtering and export
 - **OutputArrayHelperWindow** - "Wizard of OutZ" for speaker array positioning
 - **SetAllInputsWindow** - Bulk parameter changes across all inputs (long-press access)
-- **SnapshotScopeWindow** - Extended scope editing for input snapshots (parameter-level, per-channel)
+- **SnapshotScopeWindow** - Extended scope editing for snapshots (parameter-level, per-channel), an Inputs tab and an Effects tab over one snapshot's two grids; opened from either tab's snapshot row
 - **LevelMeterWindow** - Real-time level metering with input/output meters, solo buttons, and thread performance
+
+**Every top-level window follows Screen Rendering** (`Source/gui/ScreenShareRendering.h`). On Windows JUCE 9 draws each window with Direct2D through DirectComposition, which never paints the window's GDI surface, so single-window capture (Zoom's window share) shows the first frame forever. System Config's Screen Rendering toggle (Accelerated / Compatible; session only, Windows only) on Compatible switches every window to the software renderer and opens menus inside their window (`WfsLookAndFeel::getParentComponentForMenuOptions`). A new window calls `ScreenShareRendering::apply (*this)` before its first `setVisible (true)`; a dialog is built with `DialogWindow::LaunchOptions::create()` + `apply` + `enterModalState (true, nullptr, true)` instead of `launchAsync()`, which shows it before returning; a directly built `AlertWindow` calls `apply` before `enterModalState`. Popup menus and `AlertWindow::showAsync` alerts are covered in `WfsLookAndFeel`, and a 4 Hz watcher switches any window that missed its call while Compatible is on. A popup menu wants a target component (`withTargetComponent`) to open inside its window.
+
+### Undo: one history per tab, one step per gesture
+- Each main tab has its own history (`UndoDomain` in `WFSValueTreeState.h`; `MainComponent`'s `onTabChanged` sets the active domain; Ctrl+Z / Ctrl+Y act on the active tab only). OSC writes pick their family's domain with `ScopedUndoDomain`; the effects half of a snapshot Reload is undone on the Effects tab.
+- A step is a GESTURE: GUI widgets open one in `onGestureStart` (a drag, not a delta), and the Stream Deck's manager announces each hardware gesture through `StreamDeckManager::onEditGestureStart` - a run of turns of one dial (800 ms pause, another dial or any navigation ends it), a button press, a dial press that acts, a confirmed choice; `spatcore/controllers/streamdeck/StreamDeckGestureTracker.h` defines it, `MainComponent` opens the step. Self-test phase SD. A new hardware surface needs the same announcement, or its edits pile into whatever step is open.
+- The Space Mouse follows the map's rule too: `ControllerManager` announces a PUSH (`callbacks.onEditGestureStart`: the first moving tick after the puck has rested 300 ms, or after the tab it drives changed) and MainComponent opens the step before the push's queued writes; the joysticks (`WfsJoystickComponent::onGestureStart`) and the auto-centering sliders (`WfsAutoCenterSlider`, which must fire the base class's hook in its own `mouseDown`) open theirs on the press. Self-test phase SM.
+- Actions that write many values open their own step (`applyEffectReverbPreset`, `setEffectGroupMute`), so an edit made just before never goes with them.
+
+### Stream Deck dials: every click counts, fast turns go further
+- The deck reports a turning dial every 50 ms with the SIGNED CLICKS of that window (up to 16 on a flick); `StreamDeckDevice` passes the count on and the manager counts every click. Measured with `spatcore/tools/streamdeck/dial_capture.py` (read-only, runs beside the app).
+- An unpressed report of more than two clicks multiplies the step (`spatcore/controllers/streamdeck/StreamDeckDialAcceleration.h`), up to the dial's ceiling: `DialBinding::maxAcceleration` 0 = from its range (two full-speed flicks sweep it; a small range never speeds up), 1 = never, N = at most N. Press + turn (fine step or `altBinding`) and ComboBox browsing stay one step per click. Self-test phase SA.
+- On a new page: `maxAcceleration = 1` on a dial that picks an item (the Patch window's cells, the Clusters preset navigator) or where a jump is unsafe (the test signal level); an explicit cap on a relative dial whose `getValue` is constant (the Map's Move X/Y/Z, cluster scale and rotation: 5). A multiplicative relative dial is exponential, so a turn back undoes a turn forward (the cluster scale).
 
 ### Core Systems Status
 
@@ -154,7 +177,8 @@ Positions can be displayed and input in three coordinate systems. Data is always
 | **Spherical** | r, θ, φ | Radius, azimuth angle, elevation |
 
 **Angle Conventions:**
-- **Azimuth (θ)**: 0° = toward audience (-Y), 180°/-180° = upstage (+Y), 90° = stage right (+X)
+- **Azimuth (θ)**: 0° = upstage (+Y), 90° = stage right (+X), ±180° = toward audience (-Y)
+  (a source's azimuth; a speaker's or source's *orientation* is a different quantity, 0° = facing the audience)
 - **Elevation (φ)**: 0° = horizontal plane, 90° = up (+Z), -90° = down (-Z)
 
 **Conversion Formulas:**
@@ -162,14 +186,14 @@ Positions can be displayed and input in three coordinate systems. Data is always
 Cartesian to Cylindrical:
 ```cpp
 r = sqrt(x² + y²)
-θ = atan2(-x, -y) * (180/π)  // 0° toward audience
+θ = atan2(x, y) * (180/π)    // 0° upstage, 90° stage right
 Z = z
 ```
 
 Cartesian to Spherical:
 ```cpp
 r = sqrt(x² + y² + z²)
-θ = atan2(-x, -y) * (180/π)  // 0° toward audience
+θ = atan2(x, y) * (180/π)    // 0° upstage, 90° stage right
 φ = asin(z / r) * (180/π)    // 0° horizontal, 90° up
 ```
 
@@ -292,21 +316,23 @@ level = pow(10.0f, attenuationDb / 20.0f) * angularAttenuation
 ### Angular Attenuation
 Based on speaker orientation, pitch, angleOn, and angleOff:
 - **Rear axis**: Direction opposite to where speaker points (orientation + 180)
-- **angleOn**: Cone behind speaker where inputs are fully reproduced (attenuation = 1.0)
-- **angleOff**: Cone in front where inputs are muted (attenuation = 0.0)
-- **Transition zone**: Linear interpolation between angleOn and angleOff
+- **angleOn**: Half-angle of the cone behind the speaker (around the rear axis) where inputs are fully reproduced (attenuation = 1.0)
+- **angleOff**: Half-angle of the cone in front (around the facing direction) where inputs are muted (attenuation = 0.0)
+- **Transition zone**: Linear interpolation between the two cones
+- Only angleOn = 180 skips the calculation: any smaller angleOn still has its front mute cone (the shortcut used to fire from 90, re-audit 2026-09-29 F2)
 
 ```cpp
-// Calculate angle from speaker's rear axis to input
-rearAxisX = sin(orientationRad) * cos(pitchRad)
-rearAxisY = -cos(orientationRad) * cos(pitchRad)
+// Orientation 0 faces the audience (-Y), so the rear axis points upstage (+Y)
+rearAxisX = -sin(orientationRad) * cos(pitchRad)
+rearAxisY = cos(orientationRad) * cos(pitchRad)
 rearAxisZ = sin(pitchRad)
-angleFromRear = acos(dot(rearAxis, toInput))
+angle = acos(dot(rearAxis, toInput))         // 0 = straight behind, pi = straight in front
 
 // Zone-based attenuation
 if (angle <= angleOn) return 1.0f;           // Full reproduction
-if (angle >= angleOff) return 0.0f;          // Muted
-return (angleOff - angle) / (angleOff - angleOn);  // Transition
+muteAngle = pi - angleOff;
+if (angle >= muteAngle) return 0.0f;         // Muted
+return 1.0f - (angle - angleOn) / (muteAngle - angleOn);  // Transition
 ```
 
 ### Input Muting
@@ -1867,18 +1893,21 @@ LocalizationManager::getInstance().get(
 ## Snapshot and Scope System (Source/Parameters/WFSFileManager.h, Source/gui/SnapshotScopeWindow.h)
 
 ### Overview
-The snapshot system allows saving and recalling input channel configurations with precise control over which parameters and channels are included, using parameter-level, per-channel granularity.
+The snapshot system allows saving and recalling input AND effect channel configurations with precise control over which parameters and channels are included, using parameter-level, per-channel granularity. **One snapshot file carries both families** (effects plan revision 8, `Documentation/effects-channels-plan.md` §12.9): there is no separate effects snapshot, folder, MIDI table or OSC verb.
 
 ### Core Files
-- **WFSFileManager.h/cpp** - File I/O and scope data structures (`ExtendedSnapshotScope`, `ScopeItem`)
-- **SnapshotScopeWindow.h** - UI for editing scope (`ScopeGridComponent`, `ScopeChannelHeader`, `SnapshotScopeContent`)
+- **WFSFileManager.h/cpp** - File I/O and scope data structures (`ExtendedSnapshotScope`, `ScopeMatrix`, `ScopeItemTable`, `ScopeItem`), the input capture/apply loops
+- **Parameters/EffectsSnapshotScope.h** - the effects half: `itemIdFor`, the coverage predicate, capture / apply / trim of an `<Effect>` entry
+- **gui/snapshots/SnapshotSession.h** - the snapshot row's model and actions (store, reload, update, edit scope, delete, the session scope, the Scope window), one instance owned by MainComponent
+- **gui/snapshots/SnapshotRow.h** - the row's seven controls, shown on the Inputs tab and on the Effects tab over the same session
+- **SnapshotScopeWindow.h** - UI for editing scope (`ScopeGridComponent`, `ScopeChannelHeader`, `SnapshotScopeContent`), one grid per family behind a tab bar
 
 ### Snapshot Storage
 Snapshots are stored as XML files in the project folder structure:
 ```
 project_folder/
 ├── snapshots/
-│   ├── inputs/         # Input snapshots (*.xml)
+│   ├── inputs/         # Snapshots (*.xml) - inputs AND effects, one file each
 │   └── outputs/        # Output snapshots (*.xml)
 ```
 
@@ -1893,11 +1922,19 @@ Fine-grained control over individual parameters for each channel:
 
 **Data Structure:**
 ```cpp
+struct ScopeMatrix {                                   // one family's grid
+    const ScopeItemTable* table;                       // its items, section order, headings
+    std::map<juce::String, bool> itemChannelStates;    // Key: "itemId_channelIndex", absent == included
+};
 struct ExtendedSnapshotScope {
     ApplyMode applyMode = ApplyMode::OnRecall;
-    std::map<juce::String, bool> itemChannelStates;  // Key: "itemId_channelIndex"
+    int midiChannel, midiNote;                         // on the file's ROOT
+    ScopeMatrix inputs;                                // input items x input SLOTS
+    ScopeMatrix effects;                               // effect items x DENSE effect indexes
 };
 ```
+The old input API (`isIncluded`, `setIncluded`, `getScopeItems()`, ...) survives as forwarders to
+`inputs`; `isEquivalentTo (other, numInputs, numEffects)` and `initializeDefaults` cover both grids.
 
 ### Scope Items
 Parameters are grouped into logical items for easier management. Each scope item contains related parameters:
@@ -1969,8 +2006,41 @@ Parameters are grouped into logical items for easier management. Each scope item
 | **Mutes** | `sidelines` | Sidelines | Active, fringe |
 | **Mutes** | `arrayAttens` | Array Attens | `inputArrayAtten1-10` |
 
+### Effects Scope Items (`WFSFileManager::effectScopeTable`)
+
+> **The effects grid cannot use the input rule.** `hasProperty` finds an input parameter's node
+> because no input property lives on two `<Input>` children. On an `<Effect>` that holds for the
+> eight FLAT nodes (Channel, Position, Feed, Return, AutomOtion, LFO, Chain, Sends) and fails for the
+> modules: FxEq1/FxEq2 and FxDyn1/FxDyn2 repeat their names, bands and taps repeat theirs by index.
+> So the table is a hybrid - property items over the flat nodes, one WHOLE-NODE item per module keyed
+> by `ScopeItem::nodeType` - and every consumer (capture, apply, trim, the dirty tracker, the QLab
+> export) resolves an item through `EffectsSnapshotScope::itemIdFor (childOfEffect, property)`.
+> Apply writes only what the live node already has, children matched by type and id; the five packed
+> rows go through `setEffectParameter` (the row guards, the fx diagonal); nothing propagates through
+> a link group. Every effects item id starts with `fx`, so both families share the dirty tracker's
+> key set. `effectName` is always carried; `effectSolo` and `effectOtomoPauseResume` are in no item
+> (self-test phase Q walks every property of a live channel, bands and taps included).
+
+| Section | Item ID | Covers |
+|---------|---------|--------|
+| **Effect** | `fxLevel` / `fxMute` / `fxLink` | attenuation, delay latency, minimal latency / mute / link group + link mode |
+| **Position** | `fxPosition` / `fxReturnOffset` | position XYZ + coordinate mode / return offset XYZ |
+| **Feed** | `fxFeed` | orientation, angles on/off, pitch, HF damping, feed min latency, distance atten % |
+| **Return** | `fxReturnLaw` / `fxMutes` / `fxArrayAttens` | law, distance atten/ratio, common atten, HF shelf / `effectMutes`, macro, reverb sends / array trims 1-10 |
+| **Chain** | `fxChain` | chain order, chain bypass |
+| **Modules** | `fxDist` `fxEq1` `fxEq2` `fxDyn1` `fxDyn2` `fxMod` `fxPhaser` `fxTrem` `fxReverb` `fxDelay` `fxCrush` | the whole module node, bands and taps included |
+| **Sends** | `fxSendsInputs` / `fxSendsEffects` | the two input-keyed rows / the two effect-keyed rows |
+| **LFO** | `fxLfoEnable` / `fxLfoX` / `fxLfoY` / `fxLfoZ` | active, period, phase / shape, rate, amplitude, phase per axis |
+| **AutomOtion** | `fxOtomoDestination` / `fxOtomoMovement` / `fxOtomoAudioTrigger` | as the input items, minus Stay/Return |
+
+**Recall and undo.** A recall applies the `<Inputs>` block, then the `<Effects>` block; an `<Effect>`
+whose id no live channel carries is skipped, reported and kept in the file. Each half writes into its
+own tab's undo history (`ScopedUndoDomain` Input, then Effects, through the ACTIVE manager so
+`ScopedUndoSuppression` still wins on MIDI / OSC recalls - never `getUndoManagerForDomain`, which
+bypasses it).
+
 ### Sections
-Items are organized into 9 sections:
+Input items are organized into these sections:
 1. **Channel** - Basic input properties
 2. **Position** - Location, offset, constraints, tracking
 3. **Attenuation** - Distance attenuation settings
@@ -1982,6 +2052,11 @@ Items are organized into 9 sections:
 9. **Mutes** - Output muting and sidelines
 
 ### Scope Window UI Components
+
+One window, two tabs (a `TabbedButtonBar`): **Inputs** and **Effects**, each a grid over its own
+`ScopeMatrix`. The Inputs tab's snapshot row opens it on the Inputs grid, the Effects tab's on the
+Effects grid (or switches the open window there). Everything above the grids - apply mode, QLab,
+dirty tracking, templates, the MIDI trigger, OK / Update - belongs to the snapshot and is shared.
 
 **ScopeGridComponent:**
 - Scrollable grid with rows (scope items) and columns (channels)
@@ -2049,8 +2124,23 @@ auto state = scope.getChannelState(channelIndex);  // AllIncluded/AllExcluded/Pa
     </Input>
     <!-- More inputs... -->
   </Inputs>
+  <Effects>                                     <!-- only when the show has effects (then version="2.1") -->
+    <Effect id="1">                             <!-- dense id -->
+      <Channel effectName="..." .../> ... <FxEq2 ...><Band id="1" .../>...</FxEq2> ... <Sends .../>
+    </Effect>
+  </Effects>
 </InputSnapshot>
 ```
+
+The effects grid is a child of `<ExtendedScope>`: `<EffectsScope fullChannels excludedChannels>` with
+`<PartialChannel index excludedItems>` children, keyed by dense effect id, written only while the
+grid has a column to write. Absent = every effect item included, which is how every earlier file
+reads. The columns are the live effects PLUS any ghost id the grid holds keys for: `<Effect>`
+entries beyond the live count are carried over on re-store, so their exclusions are read up to
+`maxEffectChannels` and written back with them, and a Store over an existing name carries the
+previous file's ghost columns wherever the new scope is silent (an excluded effect stays excluded
+across a count shrink and regrow). A scope TEMPLATE without `<EffectsScope>` leaves the effects
+grid alone on load.
 
 > `version` is written but read nowhere in `Source/`, so it cannot be used as a format switch.
 > `fullChannels` is **write-only** — the deserializer relies on "absent = included" and never reads
@@ -2105,12 +2195,13 @@ The snapshot scope window offers a **Write to QLab** mode as an exclusive altern
 - Inside it, one **Network cue** per in-scope parameter/channel
 - Each network cue sends an OSC message back to WFS to recall that parameter value
 - Network cues are named descriptively: "Input \<id\> \<param name\> \<value\>\<unit\>" (e.g., "Input 1 Volume -6.0 dB")
+- The effects half follows the inputs in the same group (`QLabCueBuilder::collectEffectCues`), each value in the shape the `/wfs/effect/` parser expects (`getEffectParamKind`: `<ID> <v>`, `<ID> <instance> <v>`, `<ID> <instance> <band> <v>`, `<ID> <tap> <v>`, `<ID> "<row>"`), named "Effect 2 EQ 2 Band 3 EQ Gain 5.5 dB"; about 275 cues per effect channel
 - Compression ratios display as "1:\<value\>" (e.g., "Input 2 LS Ratio 1:4.0")
 
 **Key files:**
 - `Source/Network/QLabCueBuilder.h` — Builds `QLabCueSequence` (group + network cue messages)
 - `Source/gui/SnapshotScopeWindow.h` — Scope window UI with QLab radio option
-- `Source/gui/InputsTab.h` — `storeNewSnapshot()` and `updateSnapshot()` handle exclusive save/QLab logic
+- `Source/gui/snapshots/SnapshotSession.h` — `store()` and `update()` handle exclusive save/QLab logic
 - `Source/Network/OSCManager.h` — `sendToQLab()` sends the cue sequence with unique-ID-based move commands
 
 **OSC flow (sendToQLab):**
@@ -2483,10 +2574,13 @@ Uses Audio EQ Cookbook formulas matching filterCalc.js:
 ---
 
 ## Keyboard Shortcuts
-- **F1-F10** - Assign input/output to cluster/array 1-10
-- **F11** - Assign to Single (no cluster)
-- **Up/Down arrows** - Navigate channels
-- **Tab** - Switch between tabs
+- **F1-F10** - Assign input/output to cluster/array 1-10 (Inputs, Map, Outputs tabs); select cluster 1-10 (Clusters tab)
+- **F1-F8** on the Effects tab - Put the effect in link group 1-8 (link groups are separate from input clusters)
+- **F11** - Assign to Single (no cluster); on the Effects tab, unlink
+- **Space / Shift+Space** - Next/previous channel on the Inputs, Outputs, Reverb and Effects tabs (wraps); next/previous cluster on the Clusters tab
+- **Tab / Shift+Tab** in the Inputs or Effects name field - Keep the name and edit the next/previous channel's name
+- **Arrows, Page Up/Down** - Nudge the shown input/output/reverb (or the Map's selected input) by 0.1 m in X/Y/Z
+- Keyboard dispatch tests the main tab against `TabIndex::` constants (`Source/gui/TabIndex.h`), never literals
 
 ---
 
@@ -2533,7 +2627,8 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 - `Source/gui/ColorScheme.h` - Centralized color scheme system with 3 themes
 - `Source/gui/WfsLookAndFeel.h` - Custom LookAndFeel for widget theming
 - `Source/gui/sliders/WfsRangeSlider.h` - Double-thumbed range slider for distance constraints
-- `Source/gui/SnapshotScopeWindow.h` - Extended scope editing UI for snapshots
+- `Source/gui/SnapshotScopeWindow.h` - Extended scope editing UI for snapshots (Inputs / Effects tabs)
+- `Source/gui/snapshots/SnapshotSession.h` / `SnapshotRow.h` - the snapshot row, shared by the Inputs and Effects tabs
 - `Source/Helpers/ArrayGeometryCalculator.h/cpp` - Speaker array geometry calculations
 
 ---
@@ -2643,6 +2738,7 @@ These files are the canonical reference for every user-facing parameter, control
 - `Documentation/WFS-UI_input.csv` — InputsTab (191 rows, includes Sampler subsystem)
 - `Documentation/WFS-UI_output.csv` — OutputsTab
 - `Documentation/WFS-UI_reverb.csv` — ReverbTab
+- `Documentation/WFS-UI_effects.csv` — EffectsTab (232 rows; the module rows also GENERATE `Source/gui/effects/EffectsModuleDescriptors.h` and the `effects.*` strings through `tools/gen_effects_module_ui.py`; the last column, `Models`, lists the reverb models that use a control - empty = every model - and becomes `ControlDesc::modelMask`; registered in the bounds audit, NOT yet in codegen - C9)
 - `Documentation/WFS-UI_clusters.csv` — ClustersTab
 - `Documentation/WFS-UI_audioPatch.csv` — AudioInterfaceWindow (AudioPatchTab + PatchMatrixComponent + TestSignalGenerator)
 

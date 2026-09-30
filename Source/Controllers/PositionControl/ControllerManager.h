@@ -7,11 +7,16 @@
  * applies axis mappings (dead zone, sensitivity, exponent curve), and performs
  * velocity integration at 50 Hz to produce smooth position deltas.
  *
+ * One push of the puck is one undo step, as one map drag is: the owner is told
+ * (onEditGestureStart) when the puck starts moving after resting, and opens the
+ * step before the push's first write.
+ *
  * Owned by MainComponent, wired to MapTab via callbacks.
  */
 
 #include <JuceHeader.h>
 #include "../../../spatcore/controllers/ControllerEvent.h"
+#include "../../gui/TabIndex.h"
 #include "../../../spatcore/controllers/ControllerDevice.h"
 #include "../../../spatcore/controllers/ControllerMapping.h"
 #include "../../Network/OSCProtocolTypes.h"
@@ -79,16 +84,27 @@ public:
         /** Cycle cluster selection on Clusters tab: +1 = next, -1 = prev. */
         std::function<void (int delta)> cycleCluster;
 
-        // Cluster callbacks (used when activeTab == 5 or when cluster ref is selected on Map)
+        // Cluster callbacks (used on the Clusters tab, or when a cluster ref is selected on Map)
         std::function<void (float dx, float dy, float dz)> moveClusterDelta;
         std::function<void (float deltaDeg)> rotateCluster;
         std::function<void (float scaleFactor)> scaleCluster;  // multiplicative, 1.0 = no change
+
+        /** A push starts: the first tick that moves after the puck has rested
+            (every axis inside its dead zone) for kGestureRestTicks, or after
+            the tab it drives has changed. Called on the tick, before the
+            push's writes are queued; the owner opens one undo step. */
+        std::function<void()> onEditGestureStart;
     };
+
+    /** How long the puck must rest before the next push is a new undo step:
+        300 ms at 50 Hz. A shorter return to rest - the edge of a dead zone
+        flickering under a light hand - stays in the same step. */
+    static constexpr int kGestureRestTicks = 15;
 
     Callbacks callbacks;
 
-    /** Active tab index — set by MainComponent on tab change.
-        When 5 (Clusters), SpaceMouse controls the selected cluster. */
+    /** Active tab index (TabIndex::*) — set by MainComponent on tab change.
+        On Clusters the SpaceMouse controls the selected cluster. */
     int activeTab = -1;
 
     //==========================================================================
@@ -170,6 +186,22 @@ public:
         startTimer (20);  // 50 Hz
     }
 
+    /** The self-test drives the manager without a device or a message loop:
+        an event as a device would deliver it, one 50 Hz tick, and forgetting
+        everything a test device left behind. */
+    void injectEventForTest (const ControllerEvent& e) { handleEvent (e); }
+    void tickForTest() { timerCallback(); }
+    void forgetDeviceForTest (int deviceId)
+    {
+        for (auto it = latestAxisValues.begin(); it != latestAxisValues.end(); )
+            it = it->first.first == deviceId ? latestAxisValues.erase (it) : std::next (it);
+        for (auto it = buttonStates.begin(); it != buttonStates.end(); )
+            it = it->first.first == deviceId ? buttonStates.erase (it) : std::next (it);
+        profiles.erase (deviceId);
+        restTicks = kGestureRestTicks;
+        gestureTab = -1;
+    }
+
 private:
     //==========================================================================
     // Event Handling (called on GUI thread via device's callAsync)
@@ -245,21 +277,22 @@ private:
             return;
 
         // Tab-aware routing:
-        // Map tab (6): cycle map input selection
-        // Clusters tab (5): cycle cluster selection
-        // Channel tabs (2=Outputs, 3=Reverb, 4=Inputs): cycle channel like spacebar
+        // Map tab: cycle map input selection
+        // Clusters tab: cycle cluster selection
+        // Channel tabs (Outputs, Reverb, Effects, Inputs): cycle channel like spacebar
         // Other tabs: no action
-        if (activeTab == 6)
+        if (activeTab == TabIndex::Map)
         {
             if (callbacks.cycleInput)
                 callbacks.cycleInput (delta);
         }
-        else if (activeTab == 5)
+        else if (activeTab == TabIndex::Clusters)
         {
             if (callbacks.cycleCluster)
                 callbacks.cycleCluster (delta);
         }
-        else if (activeTab >= 2 && activeTab <= 4)
+        else if (activeTab == TabIndex::Outputs || activeTab == TabIndex::Reverb
+              || activeTab == TabIndex::Effects || activeTab == TabIndex::Inputs)
         {
             if (callbacks.cycleChannel)
                 callbacks.cycleChannel (delta);
@@ -337,6 +370,27 @@ private:
                 totalRotation += delta;
         }
 
+        // One undo step per push: a push starts on the first tick that moves
+        // after the puck has rested for kGestureRestTicks, or after the tab it
+        // drives has changed - announced here, before this tick queues its
+        // writes, so the step is open when they land.
+        const bool moving = std::abs (totalDx) > 0.0001f || std::abs (totalDy) > 0.0001f
+                         || std::abs (totalDz) > 0.0001f || std::abs (totalRotation) > 0.01f;
+        if (moving)
+        {
+            if (restTicks >= kGestureRestTicks || activeTab != gestureTab)
+            {
+                gestureTab = activeTab;
+                if (callbacks.onEditGestureStart)
+                    callbacks.onEditGestureStart();
+            }
+            restTicks = 0;
+        }
+        else if (restTicks < kGestureRestTicks)
+        {
+            ++restTicks;
+        }
+
         // Fire visual deflection feedback (raw -1..+1 axis values for joystick display)
         if (callbacks.axisDeflection)
         {
@@ -358,7 +412,7 @@ private:
             callbacks.axisDeflection (defX, defY, defZ);
         }
 
-        if (activeTab == 5)
+        if (activeTab == TabIndex::Clusters)
         {
             // Clusters tab: TransZ switches between height and scale based on button state
             float moveZ = isAnyButtonPressed() ? 0.0f : totalDz;
@@ -380,7 +434,7 @@ private:
                 callbacks.scaleCluster (juce::jlimit (0.95f, 1.05f, scaleFactor));
             }
         }
-        else if (activeTab == 6)
+        else if (activeTab == TabIndex::Map)
         {
             // Map tab: check if selected input is a cluster reference
             int clusterRef = callbacks.getSelectedClusterRef ? callbacks.getSelectedClusterRef() : 0;
@@ -474,7 +528,7 @@ private:
                 }
             }
         }
-        else if (activeTab == 4)
+        else if (activeTab == TabIndex::Inputs)
         {
             if (shiftHeld)
             {
@@ -540,6 +594,8 @@ private:
     }
 
     bool enabled = false;
+    int restTicks = kGestureRestTicks; // ticks the puck has rested, capped: at the cap the next push is a new step
+    int gestureTab = -1;               // the tab the current push drives
     bool twistFitFired = false;       // One-shot guard for twist fit actions
     uint32_t twistDebounceEnd = 0;   // Suppress pan/zoom for 300ms after twist fit
 

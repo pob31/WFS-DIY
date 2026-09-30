@@ -1,6 +1,7 @@
 #include "WFSFileManager.h"
 #include "WFSParameterIDs.h"
 #include "WFSParameterDefaults.h"
+#include "EffectsSnapshotScope.h"
 #include "../AppSettings.h"
 #include "../Localization/LocalizationManager.h"
 #include "../Network/OSCParameterBounds.h"
@@ -295,6 +296,12 @@ juce::File WFSFileManager::getReverbConfigFile() const
     return projectFolder.getChildFile ("reverbs" + juce::String (reverbConfigExtension));
 }
 
+juce::File WFSFileManager::getEffectsConfigFile() const
+{
+    if (! projectFolder.isDirectory()) return {};
+    return projectFolder.getChildFile ("effects" + juce::String (effectsConfigExtension));
+}
+
 juce::File WFSFileManager::getAudioPatchFile() const
 {
     if (! projectFolder.isDirectory()) return {};
@@ -331,6 +338,76 @@ juce::File WFSFileManager::getScopeTemplatesFolder() const
     return projectFolder.getChildFile ("snapshots").getChildFile ("scopes");
 }
 
+namespace
+{
+    // Names Windows cannot use for a file: its forbidden characters and
+    // control characters, and the device names (CON, PRN, AUX, NUL, COM0-9,
+    // LPT0-9, superscript digits included) whatever follows the first dot.
+    // Windows 11 accepts "NUL.xml" as a file, Windows 10 and older read it as
+    // the device, so a snapshot of that name could not be written there, nor
+    // a project holding one copied there (re-audit 2026-09-29, B5).
+    bool isUnwritableOnWindows (const juce::String& itemName)
+    {
+        for (auto c : itemName)
+            if (c < 0x20 || juce::String ("<>\"|?*").containsChar (c))
+                return true;
+
+        const auto base = itemName.upToFirstOccurrenceOf (".", false, false)
+                                  .trimEnd().toUpperCase();
+        if (base == "CON" || base == "PRN" || base == "AUX" || base == "NUL")
+            return true;
+
+        if (base.length() == 4 && (base.startsWith ("COM") || base.startsWith ("LPT")))
+        {
+            const auto last = base.getLastCharacter();
+            return juce::CharacterFunctions::isDigit (last) || last == 0xB9 || last == 0xB2 || last == 0xB3;
+        }
+        return false;
+    }
+
+    // The temp file XmlPersistence::replaceFileContents writes beside its
+    // target, ".<name>_temp<hex><ext>", survives a crash between the write and
+    // the rename. It is not a snapshot: listed, it showed up in the list, and
+    // sorting before its snapshot it took that snapshot's MIDI note
+    // (re-audit 2026-09-29, R8). ignoreHiddenFiles cannot tell: on Windows
+    // "hidden" is an attribute the file does not have.
+    bool isLeftoverSaveTemp (const juce::File& file)
+    {
+        const auto stem = file.getFileNameWithoutExtension();
+        if (! stem.startsWithChar ('.'))
+            return false;
+
+        const int at = stem.lastIndexOf ("_temp");
+        if (at < 1)
+            return false;
+
+        const auto tail = stem.substring (at + 5);
+        return tail.isNotEmpty() && tail.containsOnly ("0123456789abcdefABCDEF");
+    }
+}
+
+juce::File WFSFileManager::getNamedXmlFile (const juce::File& folder, const juce::String& itemName)
+{
+    // No project folder: the folder getters return an empty File, and a name
+    // joined onto it lands at the root of the current drive.
+    if (folder == juce::File() || itemName.trim().isEmpty() || itemName.containsAnyOf ("/\\:")
+        || isUnwritableOnWindows (itemName))
+        return {};
+
+    // "./" first: on macOS and Linux getChildFile reads a leading '~' as an
+    // absolute path (a home directory), which refused every name starting
+    // with one there (re-audit 2026-09-29, R6). The parent is still checked.
+    const auto file = folder.getChildFile ("./" + itemName + snapshotExtension);
+    return file.getParentDirectory() == folder ? file : juce::File();
+}
+
+juce::String WFSFileManager::describeUnusableName (const juce::String& itemName)
+{
+    return LOC (isUnwritableOnWindows (itemName) ? "fileManager.errors.reservedSnapshotName"
+                                                 : "fileManager.errors.unusableSnapshotName")
+               .replace ("{name}", itemName);
+}
+
 juce::File WFSFileManager::getIRFolder() const
 {
     if (! projectFolder.isDirectory()) return {};
@@ -362,6 +439,38 @@ bool WFSFileManager::saveCompleteConfig()
     }
 
     WFSLogger::getInstance().logInfo ("Saving complete config to " + projectFolder.getFullPathName());
+
+    // Every backup first, then every write (re-audit 2026-09-29, R3). A section
+    // whose backup failed used to be skipped while the others were written,
+    // which left files of different generations on disk, and gave the skipped
+    // one a backup fewer, so Reload Complete Backup, which pairs backups by
+    // index, mixed generations too. Now the first backup that fails stops the
+    // save before anything is written or latched, and the backups this save
+    // had already made are removed again.
+    {
+        const juce::File sectionFiles[] = { getSystemConfigFile(), getNetworkConfigFile(),
+                                            getInputConfigFile(), getOutputConfigFile(),
+                                            getReverbConfigFile(), getEffectsConfigFile() };
+        juce::Array<juce::File> madeThisSave;
+        for (const auto& file : sectionFiles)
+        {
+            const auto backup = spatcore::control::state::XmlPersistence::backUpFile (file, getBackupFolder());
+            if (! backup.ok)
+            {
+                for (auto& made : madeThisSave)
+                    made.deleteFile();
+                setError (LOC ("fileManager.errors.backupFailed")
+                              .replace ("{file}", file.getFileName())
+                              .replace ("{folder}", getBackupFolder().getFullPathName()));
+                WFSLogger::getInstance().logWarning ("Backup of " + file.getFullPathName()
+                                                     + " failed; nothing of the project was saved");
+                return false;
+            }
+            if (backup.copy != juce::File())
+                madeThisSave.add (backup.copy);
+        }
+    }
+    const juce::ScopedValueSetter<bool> backupsTaken (sectionBackupsTaken, true);
 
     // Save all individual configuration files
     bool success = true;
@@ -395,6 +504,12 @@ bool WFSFileManager::saveCompleteConfig()
     {
         success = false;
         errors.add (LOC ("fileManager.errors.prefixReverbs") + lastError);
+    }
+
+    if (!saveEffectsConfig())
+    {
+        success = false;
+        errors.add (LOC ("fileManager.errors.prefixEffects") + lastError);
     }
 
     if (!success)
@@ -485,6 +600,18 @@ bool WFSFileManager::loadCompleteConfig()
         DBG ("  FAILED: Reverbs - " << lastError);
     }
 
+    // An absent effects.xml returns TRUE, so this does not fail a project that
+    // predates the family. A false would show a load error on the first open of
+    // every existing show (and would take the latch at the tail of this function
+    // with it, though applyConfigSection has already latched by then). See
+    // loadEffectsConfig.
+    if (!loadEffectsConfig())
+    {
+        success = false;
+        errors.add (LOC ("fileManager.errors.prefixEffects") + lastError);
+        DBG ("  FAILED: Effects - " << lastError);
+    }
+
     if (!success)
         setError (errors.joinIntoString ("; "));
 
@@ -568,6 +695,14 @@ bool WFSFileManager::loadCompleteConfigBackup (int backupIndex)
         errors.add (LOC ("fileManager.errors.prefixReverbs") + lastError);
     }
 
+    // An empty effects backup set is SUCCESS - every backup folder that predates
+    // the family has one, and the latch below is gated on `success` too.
+    if (!loadEffectsConfigBackup (backupIndex))
+    {
+        success = false;
+        errors.add (LOC ("fileManager.errors.prefixEffects") + lastError);
+    }
+
     if (!success)
         setError (errors.joinIntoString ("; "));
 
@@ -623,17 +758,18 @@ bool WFSFileManager::saveSystemConfig()
 
     WFSLogger::getInstance().logInfo ("Saving system config");
 
+    // The backup first: a save it stops latches nothing.
+    auto file = getSystemConfigFile();
+
+    if (!createBackup (file))
+        return false;
+
     // The first save ends the fresh session: this file records the channel
     // counts, the patch and the channel inventory, so the numbers it writes are
     // durable the moment it exists — a later reload restores exactly them.
     // Latched BEFORE extraction so the property lands in this very file, and so
     // covering the session-exit auto-save, which funnels through here.
     valueTreeState.markChannelNumbersUserOwned ("system config save");
-
-    auto file = getSystemConfigFile();
-
-    if (file.existsAsFile())
-        createBackup (file);
 
     // Create a tree with config and audio patch
     juce::ValueTree systemState ("SystemConfig");
@@ -648,10 +784,10 @@ bool WFSFileManager::saveSystemConfig()
     return ok;
 }
 
-bool WFSFileManager::autoSaveSystemConfig()
+WFSFileManager::AutoSave WFSFileManager::autoSaveSystemConfig()
 {
     if (!hasValidProjectFolder())
-        return false;
+        return AutoSave::skipped;
 
     // Never clobber an existing system.xml the user hasn't loaded (or saved) this
     // session: right after selecting a work folder the in-memory state is still
@@ -659,10 +795,10 @@ bool WFSFileManager::autoSaveSystemConfig()
     if (!systemConfigSynced && getSystemConfigFile().existsAsFile())
     {
         WFSLogger::getInstance().logInfo ("Auto-save of system config skipped: config not yet loaded from this project folder");
-        return false;
+        return AutoSave::skipped;
     }
 
-    return saveSystemConfig();
+    return saveSystemConfig() ? AutoSave::saved : AutoSave::failed;
 }
 
 bool WFSFileManager::loadSystemConfig()
@@ -768,8 +904,8 @@ bool WFSFileManager::saveNetworkConfig()
     WFSLogger::getInstance().logInfo ("Saving network config");
     auto file = getNetworkConfigFile();
 
-    if (file.existsAsFile())
-        createBackup (file);
+    if (!createBackup (file))
+        return false;
 
     juce::ValueTree networkState ("NetworkConfig");
     networkState.setProperty (WFSParameterIDs::version, "1.0", nullptr);
@@ -861,14 +997,15 @@ bool WFSFileManager::saveInputConfig()
 
     WFSLogger::getInstance().logInfo ("Saving input config");
 
+    // The backup first: a save it stops latches nothing.
+    auto file = getInputConfigFile();
+
+    if (!createBackup (file))
+        return false;
+
     // Same first-save rule as saveSystemConfig: inputs.xml persists every
     // channel's number (<Input id=...>), which makes them durable on disk.
     valueTreeState.markChannelNumbersUserOwned ("input config save");
-
-    auto file = getInputConfigFile();
-
-    if (file.existsAsFile())
-        createBackup (file);
 
     juce::ValueTree inputState ("InputConfig");
     inputState.setProperty (WFSParameterIDs::version, "1.0", nullptr);
@@ -968,8 +1105,8 @@ bool WFSFileManager::saveOutputConfig()
     WFSLogger::getInstance().logInfo ("Saving output config");
     auto file = getOutputConfigFile();
 
-    if (file.existsAsFile())
-        createBackup (file);
+    if (!createBackup (file))
+        return false;
 
     juce::ValueTree outputState ("OutputConfig");
     outputState.setProperty (WFSParameterIDs::version, "1.0", nullptr);
@@ -1050,8 +1187,8 @@ bool WFSFileManager::saveReverbConfig()
     WFSLogger::getInstance().logInfo ("Saving reverb config");
     auto file = getReverbConfigFile();
 
-    if (file.existsAsFile())
-        createBackup (file);
+    if (!createBackup (file))
+        return false;
 
     juce::ValueTree reverbState ("ReverbConfig");
     reverbState.setProperty (WFSParameterIDs::version, "1.0", nullptr);
@@ -1113,6 +1250,126 @@ bool WFSFileManager::importReverbConfig (const juce::File& file)
 }
 
 //==============================================================================
+// Effects Configuration
+//==============================================================================
+// Transcribed from the reverb quartet above, with ONE divergence: an absent
+// effects.xml is SUCCESS. See the header for why (every existing project has
+// none, and a false here would leave every one of those loads unlatched).
+
+bool WFSFileManager::saveEffectsConfig()
+{
+    if (!hasValidProjectFolder())
+    {
+        setError (LOC ("fileManager.errors.noValidProjectFolder"));
+        return false;
+    }
+
+    WFSLogger::getInstance().logInfo ("Saving effects config");
+    auto file = getEffectsConfigFile();
+
+    if (!createBackup (file))
+        return false;
+
+    juce::ValueTree effectsState ("EffectsConfig");
+    effectsState.setProperty (WFSParameterIDs::version, "1.0", nullptr);
+    effectsState.appendChild (extractEffectsSection().createCopy(), nullptr);
+
+    return writeToXmlFile (effectsState, file);
+}
+
+bool WFSFileManager::loadEffectsConfig()
+{
+    if (!hasValidProjectFolder())
+    {
+        setError (LOC ("fileManager.errors.noValidProjectFolder"));
+        return false;
+    }
+
+    // THE DIVERGENCE, and the only place it may live. A project saved before
+    // this family existed has no effects.xml, and that is not a failure: it is
+    // a show with no effects. Returning false here would surface a user-visible
+    // load error on the first open of every existing show - that is the cost,
+    // and it is enough on its own.
+    //
+    // It would ALSO clear `success` in loadCompleteConfig and so skip the
+    // markChannelNumbersUserOwned at its tail, but that is the belt and not the
+    // braces: applyConfigSection calls markChannelNumbersUserOwned
+    // unconditionally at its top, so every project that has a system.xml with a
+    // <Config> - every project this application has ever written - is latched
+    // well before this function is reached. Do not read the tail latch as the
+    // reason for the divergence; the load error is.
+    //
+    // Nothing is touched in this branch - in particular NOT setNumEffectChannels(0):
+    // applyConfigSection has already BUILT the family from <IO>/effectChannels by
+    // the time this runs, so zeroing here would delete channels the config
+    // section just materialised.
+    auto file = getEffectsConfigFile();
+    if (! file.existsAsFile())
+    {
+        WFSLogger::getInstance().logInfo ("No effects.xml in this project - the effects family stays as built "
+                                          "(a show saved before the family existed has none; this is not an error)");
+        return true;
+    }
+
+    WFSLogger::getInstance().logInfo ("Loading effects config");
+    return importEffectsConfig (file);
+}
+
+bool WFSFileManager::loadEffectsConfigBackup (int backupIndex)
+{
+    auto backups = getBackups ("effects");
+
+    // The same rule as an absent effects.xml, against the backup set: every
+    // backup folder written before this family existed holds no effects_*.xml,
+    // and failing here would fail loadCompleteConfigBackup wholesale for them.
+    // An index out of range within a NON-empty set is still an error.
+    if (backups.isEmpty())
+    {
+        WFSLogger::getInstance().logInfo ("No effects backups in this project - nothing to restore, which is not an error");
+        return true;
+    }
+
+    if (backupIndex >= 0 && backupIndex < backups.size())
+        return importEffectsConfig (backups[backupIndex]);
+
+    setError (LOC ("fileManager.errors.backupNotFound"));
+    return false;
+}
+
+bool WFSFileManager::exportEffectsConfig (const juce::File& file)
+{
+    juce::ValueTree effectsState ("EffectsConfig");
+    effectsState.setProperty (WFSParameterIDs::version, "1.0", nullptr);
+    effectsState.appendChild (extractEffectsSection().createCopy(), nullptr);
+
+    return writeToXmlFile (effectsState, file);
+}
+
+bool WFSFileManager::importEffectsConfig (const juce::File& file)
+{
+    OriginTagScope originScope { OriginTag::Snapshot };
+
+    // NO exists() test here, deliberately: the caller named this file, so a
+    // missing one is a genuine error and readFromXmlFile already reports it.
+    // The absent-project-file rule lives one level up, in loadEffectsConfig.
+    auto loadedState = readFromXmlFile (file);
+    if (!loadedState.isValid())
+        return false;
+
+    auto effectsTree = loadedState.getChildWithName (Effects);
+    if (!effectsTree.isValid())
+    {
+        setError (LOC ("fileManager.errors.noEffectDataInFile"));
+        return false;
+    }
+
+    bool result = applyEffectsSection (effectsTree);
+    if (result)
+        valueTreeState.clearAllUndoHistories();
+    return result;
+}
+
+//==============================================================================
 // Cluster LFO Presets
 //==============================================================================
 
@@ -1155,7 +1412,7 @@ bool WFSFileManager::importClusterLFOPresets (const juce::File& file)
 
 bool WFSFileManager::deleteInputSnapshot (const juce::String& snapshotName)
 {
-    auto file = getInputSnapshotsFolder().getChildFile (snapshotName + snapshotExtension);
+    auto file = getNamedXmlFile (getInputSnapshotsFolder(), snapshotName);
     if (file.existsAsFile())
         return file.deleteFile();
 
@@ -1171,7 +1428,8 @@ juce::StringArray WFSFileManager::getInputSnapshotNames() const
     if (folder.isDirectory())
     {
         for (auto& file : folder.findChildFiles (juce::File::findFiles, false, "*" + juce::String (snapshotExtension)))
-            names.add (file.getFileNameWithoutExtension());
+            if (! isLeftoverSaveTemp (file))
+                names.add (file.getFileNameWithoutExtension());
     }
 
     return names;
@@ -1192,6 +1450,7 @@ std::vector<WFSFileManager::MidiBinding> WFSFileManager::scanSnapshotMidiBinding
 
     auto files = folder.findChildFiles (juce::File::findFiles, false,
                                         "*" + juce::String (snapshotExtension));
+    files.removeIf ([] (const juce::File& f) { return isLeftoverSaveTemp (f); });
 
     // findChildFiles order is filesystem-dependent; sorting makes the winner of
     // a duplicate binding deterministic. The sort is on the snapshot NAME,
@@ -1267,6 +1526,9 @@ juce::int64 WFSFileManager::getInputSnapshotsFolderSignature() const
                                                             "*" + juce::String (snapshotExtension),
                                                             juce::File::findFiles))
     {
+        if (isLeftoverSaveTemp (entry.getFile()))
+            continue;
+
         const auto text = entry.getFile().getFileName()
                           + "|" + juce::String (entry.getFileSize())
                           + "|" + juce::String (entry.getModificationTime().toMilliseconds());
@@ -1280,150 +1542,276 @@ juce::int64 WFSFileManager::getInputSnapshotsFolderSignature() const
 // Snapshot Scope - Static Definitions
 //==============================================================================
 
-const std::vector<WFSFileManager::ScopeItem>& WFSFileManager::ExtendedSnapshotScope::getScopeItems()
-{
-    static std::vector<ScopeItem> items = {
-        // Input Section
-        { "inputAttenuation", "Attenuation", Channel, { inputAttenuation } },
-        { "inputDelay", "Delay/Latency", Channel, { inputDelayLatency, inputMinimalLatency } },
-        // Stereo pairs: the image (how wide, along which axis). Which channels
-        // ARE stereo is config-level (stereoInputChannels in System Config),
-        // never per-channel state, so snapshots cannot carry or change it.
-        // The itemId is the key stored in saved scope templates — it stays
-        // "stereo" whatever the group grows to cover.
-        { "stereo", "Stereo Image", Channel, { inputStereoWidth, inputStereoAxisOffset, inputStereoAxisLock } },
-        // Map display state. Not show state in the DSP sense, but it is state the
-        // operator sets by hand and would otherwise have to redo after every
-        // recall. inputSolo is deliberately NOT here: it is transient monitoring.
-        // inputHiddenByCluster is deliberately NOT here either — it is a cache of
-        // (inputCluster, clusterInputsVisible) that ClustersTab recomputes for
-        // every channel in a callAsync after any inputCluster write, so a recalled
-        // value is overwritten a message-loop tick later. Snapshotting the cluster
-        // toggle itself is the fix, and that is a separate change.
-        { "mapDisplay", "Map Lock/Visibility", Channel, { inputMapLocked, inputMapVisible } },
-
-        // Position Section
-        { "position", "Position (XYZ)", Position, { inputPositionX, inputPositionY, inputPositionZ, inputCoordinateMode } },
-        { "offset", "Offset (XYZ)", Position, { inputOffsetX, inputOffsetY, inputOffsetZ } },
-        { "constraints", "Constraints", Position, { inputConstraintX, inputConstraintY, inputConstraintZ, inputConstraintDistance, inputConstraintDistanceMin, inputConstraintDistanceMax } },
-        { "flip", "Flip (XYZ)", Position, { inputFlipX, inputFlipY, inputFlipZ } },
-        { "cluster", "Cluster", Position, { inputCluster } },
-        { "tracking", "Tracking", Position, { inputTrackingActive, inputTrackingID, inputTrackingSmooth } },
-        { "speedLimit", "Speed Limit", Position, { inputMaxSpeedActive, inputMaxSpeed } },
-        { "pathMode", "Path Mode", Position, { inputPathModeActive } },
-        { "heightFactor", "Height Factor", Position, { inputHeightFactor } },
-
-        // Attenuation Section
-        { "attenuationLaw", "Attenuation Law", Attenuation, { inputAttenuationLaw, inputDistanceAttenuation, inputDistanceRatio } },
-        { "commonAtten", "Common Atten", Attenuation, { inputCommonAtten } },
-
-        // Directivity Section
-        { "directivity", "Directivity", Directivity, { inputDirectivity, inputRotation, inputTilt } },
-        { "hfShelf", "HF Shelf", Directivity, { inputHFshelf } },
-
-        // Live Source Tamer Section
-        { "lsEnable", "Enable", LiveSourceTamer, { inputLSactive } },
-        { "lsRadiusShape", "Radius/Shape", LiveSourceTamer, { inputLSradius, inputLSshape } },
-        { "lsFixedAtten", "Fixed Atten", LiveSourceTamer, { inputLSattenuation } },
-        { "lsPeakComp", "Peak Comp", LiveSourceTamer, { inputLSpeakEnable, inputLSpeakThreshold, inputLSpeakRatio } },
-        { "lsSlowComp", "Slow Comp", LiveSourceTamer, { inputLSslowEnable, inputLSslowThreshold, inputLSslowRatio } },
-
-        // Hackoustics Section
-        { "frEnable", "Enable", Hackoustics, { inputFRactive } },
-        { "frAttenuation", "Attenuation", Hackoustics, { inputFRattenuation } },
-        { "frLowCut", "Low Cut", Hackoustics, { inputFRlowCutActive, inputFRlowCutFreq } },
-        { "frHighShelf", "High Shelf", Hackoustics, { inputFRhighShelfActive, inputFRhighShelfFreq, inputFRhighShelfGain, inputFRhighShelfSlope } },
-        { "frDiffusion", "Diffusion", Hackoustics, { inputFRdiffusion } },
-        { "reverbSends", "Reverb Sends", Hackoustics, { inputMuteReverbSends } },
-
-        // LFO Section
-        { "lfoEnable", "Enable/Period", LFO, { inputLFOactive, inputLFOperiod, inputLFOphase, inputLFOgyrophone } },
-        { "lfoX", "LFO X", LFO, { inputLFOshapeX, inputLFOrateX, inputLFOamplitudeX, inputLFOphaseX } },
-        { "lfoY", "LFO Y", LFO, { inputLFOshapeY, inputLFOrateY, inputLFOamplitudeY, inputLFOphaseY } },
-        { "lfoZ", "LFO Z", LFO, { inputLFOshapeZ, inputLFOrateZ, inputLFOamplitudeZ, inputLFOphaseZ } },
-        { "jitter", "Jitter", LFO, { inputJitter } },
-
-        // AutomOtion Section
-        // The destination is whatever the coordinate mode says it is, so all three
-        // representations belong to ONE item. Carrying only the Cartesian triplet
-        // was not merely lossy, it half-applied: inputOtomoZ is shared with the
-        // cylindrical form, so recalling in cylindrical mode restored the height
-        // while leaving R and Theta live, producing a destination matching neither
-        // the snapshot nor the pre-recall state. AutomOtionProcessor reads the mode
-        // and the polar targets at trigger time, so this is live motion, not a
-        // display convenience.
-        // inputOtomoPauseResume is deliberately absent: it is the run-state of a
-        // motion in flight, like inputSolo, not show state.
-        { "otomoDestination", "Destination", AutomOtion, { inputOtomoX, inputOtomoY, inputOtomoZ, inputOtomoAbsoluteRelative,
-                                                            inputOtomoCoordinateMode, inputOtomoR, inputOtomoTheta,
-                                                            inputOtomoRsph, inputOtomoPhi } },
-        { "otomoMovement", "Movement", AutomOtion, { inputOtomoStayReturn, inputOtomoDuration, inputOtomoCurve, inputOtomoSpeedProfile } },
-        { "otomoAudioTrigger", "Audio Trigger", AutomOtion, { inputOtomoTrigger, inputOtomoThreshold, inputOtomoReset } },
-
-        // Mutes Section
-        { "mutes", "Mutes", Mutes, { inputMutes, inputMuteMacro } },
-        { "sidelines", "Sidelines", Mutes, { inputSidelinesActive, inputSidelinesFringe } },
-        { "arrayAttens", "Array Attens", Mutes, { inputArrayAtten1, inputArrayAtten2, inputArrayAtten3, inputArrayAtten4, inputArrayAtten5, inputArrayAtten6, inputArrayAtten7, inputArrayAtten8, inputArrayAtten9, inputArrayAtten10 } },
-
-        // Gradient Maps Section (subtree-based — parameterIds are layer property IDs for display, actual save/load uses subtree copy)
-        { "gmLayer1", "Layer 1", GradientMaps, { gmLayerEnabled, gmLayerParam, gmLayerWhite, gmLayerBlack, gmLayerCurve, gmLayerVisible } },
-        { "gmLayer2", "Layer 2", GradientMaps, { gmLayerEnabled, gmLayerParam, gmLayerWhite, gmLayerBlack, gmLayerCurve, gmLayerVisible } },
-        { "gmLayer3", "Layer 3", GradientMaps, { gmLayerEnabled, gmLayerParam, gmLayerWhite, gmLayerBlack, gmLayerCurve, gmLayerVisible } },
-
-        // Sampler Section (subtree-based — cells and sets are children, not properties)
-        // lightpadZoneId rides the existing "sampler" item deliberately, rather
-        // than getting an id of its own: withGlobals force-excludes the literal
-        // "sampler" when the sampler master is off, and the grid hides the whole
-        // Sampler section in the same condition — a separate id would stay active
-        // while being invisible, so the operator could not turn it off.
-        { "sampler", "Sampler", Sampler, { inputSamplerActive, inputSamplerActiveSet, lightpadZoneId } },
-
-        // ADM-OSC Section
-        { "admMapping", "ADM Mapping", ADMMapping, { inputAdmMapping } }
-    };
-    return items;
-}
-
-const std::vector<juce::Identifier>& WFSFileManager::ExtendedSnapshotScope::getSectionIds()
-{
-    static std::vector<juce::Identifier> sections = {
-        Channel, Position, Attenuation, Directivity, LiveSourceTamer,
-        Hackoustics, LFO, AutomOtion, Mutes, GradientMaps, Sampler, ADMMapping
-    };
-    return sections;
-}
-
-std::vector<const WFSFileManager::ScopeItem*> WFSFileManager::ExtendedSnapshotScope::getItemsForSection (const juce::Identifier& sectionId)
+std::vector<const WFSFileManager::ScopeItem*>
+WFSFileManager::ScopeItemTable::itemsForSection (const juce::Identifier& sectionId) const
 {
     std::vector<const ScopeItem*> result;
-    for (const auto& item : getScopeItems())
-    {
+    for (const auto& item : items)
         if (item.sectionId == sectionId)
             result.push_back (&item);
-    }
     return result;
 }
 
+const WFSFileManager::ScopeItem* WFSFileManager::ScopeItemTable::find (const juce::String& itemId) const
+{
+    for (const auto& item : items)
+        if (item.itemId == itemId)
+            return &item;
+    return nullptr;
+}
+
+juce::String WFSFileManager::ScopeItemTable::sectionLabelKey (const juce::Identifier& sectionId) const
+{
+    for (const auto& entry : sectionLabelKeys)
+        if (entry.first == sectionId)
+            return entry.second;
+    return {};
+}
+
+const WFSFileManager::ScopeItemTable& WFSFileManager::inputScopeTable()
+{
+    static const ScopeItemTable table = []
+    {
+        ScopeItemTable t;
+        t.items = {
+            // Input Section
+            { "inputAttenuation", "Attenuation", Channel, { inputAttenuation } },
+            { "inputDelay", "Delay/Latency", Channel, { inputDelayLatency, inputMinimalLatency } },
+            // Stereo pairs: the image (how wide, along which axis). Which channels
+            // ARE stereo is config-level (stereoInputChannels in System Config),
+            // never per-channel state, so snapshots cannot carry or change it.
+            // The itemId is the key stored in saved scope templates — it stays
+            // "stereo" whatever the group grows to cover.
+            { "stereo", "Stereo Image", Channel, { inputStereoWidth, inputStereoAxisOffset, inputStereoAxisLock } },
+            // Map display state. Not show state in the DSP sense, but it is state the
+            // operator sets by hand and would otherwise have to redo after every
+            // recall. inputSolo is deliberately NOT here: it is transient monitoring.
+            // inputHiddenByCluster is deliberately NOT here either — it is a cache of
+            // (inputCluster, clusterInputsVisible) that ClustersTab recomputes for
+            // every channel in a callAsync after any inputCluster write, so a recalled
+            // value is overwritten a message-loop tick later. Snapshotting the cluster
+            // toggle itself is the fix, and that is a separate change.
+            { "mapDisplay", "Map Lock/Visibility", Channel, { inputMapLocked, inputMapVisible } },
+
+            // Position Section
+            { "position", "Position (XYZ)", Position, { inputPositionX, inputPositionY, inputPositionZ, inputCoordinateMode } },
+            { "offset", "Offset (XYZ)", Position, { inputOffsetX, inputOffsetY, inputOffsetZ } },
+            { "constraints", "Constraints", Position, { inputConstraintX, inputConstraintY, inputConstraintZ, inputConstraintDistance, inputConstraintDistanceMin, inputConstraintDistanceMax } },
+            { "flip", "Flip (XYZ)", Position, { inputFlipX, inputFlipY, inputFlipZ } },
+            { "cluster", "Cluster", Position, { inputCluster } },
+            { "tracking", "Tracking", Position, { inputTrackingActive, inputTrackingID, inputTrackingSmooth } },
+            { "speedLimit", "Speed Limit", Position, { inputMaxSpeedActive, inputMaxSpeed } },
+            { "pathMode", "Path Mode", Position, { inputPathModeActive } },
+            { "heightFactor", "Height Factor", Position, { inputHeightFactor } },
+
+            // Attenuation Section
+            { "attenuationLaw", "Attenuation Law", Attenuation, { inputAttenuationLaw, inputDistanceAttenuation, inputDistanceRatio } },
+            { "commonAtten", "Common Atten", Attenuation, { inputCommonAtten } },
+
+            // Directivity Section
+            { "directivity", "Directivity", Directivity, { inputDirectivity, inputRotation, inputTilt } },
+            { "hfShelf", "HF Shelf", Directivity, { inputHFshelf } },
+
+            // Live Source Tamer Section
+            { "lsEnable", "Enable", LiveSourceTamer, { inputLSactive } },
+            { "lsRadiusShape", "Radius/Shape", LiveSourceTamer, { inputLSradius, inputLSshape } },
+            { "lsFixedAtten", "Fixed Atten", LiveSourceTamer, { inputLSattenuation } },
+            { "lsPeakComp", "Peak Comp", LiveSourceTamer, { inputLSpeakEnable, inputLSpeakThreshold, inputLSpeakRatio } },
+            { "lsSlowComp", "Slow Comp", LiveSourceTamer, { inputLSslowEnable, inputLSslowThreshold, inputLSslowRatio } },
+
+            // Hackoustics Section
+            { "frEnable", "Enable", Hackoustics, { inputFRactive } },
+            { "frAttenuation", "Attenuation", Hackoustics, { inputFRattenuation } },
+            { "frLowCut", "Low Cut", Hackoustics, { inputFRlowCutActive, inputFRlowCutFreq } },
+            { "frHighShelf", "High Shelf", Hackoustics, { inputFRhighShelfActive, inputFRhighShelfFreq, inputFRhighShelfGain, inputFRhighShelfSlope } },
+            { "frDiffusion", "Diffusion", Hackoustics, { inputFRdiffusion } },
+            { "reverbSends", "Reverb Sends", Hackoustics, { inputMuteReverbSends } },
+
+            // LFO Section
+            { "lfoEnable", "Enable/Period", LFO, { inputLFOactive, inputLFOperiod, inputLFOphase, inputLFOgyrophone } },
+            { "lfoX", "LFO X", LFO, { inputLFOshapeX, inputLFOrateX, inputLFOamplitudeX, inputLFOphaseX } },
+            { "lfoY", "LFO Y", LFO, { inputLFOshapeY, inputLFOrateY, inputLFOamplitudeY, inputLFOphaseY } },
+            { "lfoZ", "LFO Z", LFO, { inputLFOshapeZ, inputLFOrateZ, inputLFOamplitudeZ, inputLFOphaseZ } },
+            { "jitter", "Jitter", LFO, { inputJitter } },
+
+            // AutomOtion Section
+            // The destination is whatever the coordinate mode says it is, so all three
+            // representations belong to ONE item. Carrying only the Cartesian triplet
+            // was not merely lossy, it half-applied: inputOtomoZ is shared with the
+            // cylindrical form, so recalling in cylindrical mode restored the height
+            // while leaving R and Theta live, producing a destination matching neither
+            // the snapshot nor the pre-recall state. AutomOtionProcessor reads the mode
+            // and the polar targets at trigger time, so this is live motion, not a
+            // display convenience.
+            // inputOtomoPauseResume is deliberately absent: it is the run-state of a
+            // motion in flight, like inputSolo, not show state.
+            { "otomoDestination", "Destination", AutomOtion, { inputOtomoX, inputOtomoY, inputOtomoZ, inputOtomoAbsoluteRelative,
+                                                                inputOtomoCoordinateMode, inputOtomoR, inputOtomoTheta,
+                                                                inputOtomoRsph, inputOtomoPhi } },
+            { "otomoMovement", "Movement", AutomOtion, { inputOtomoStayReturn, inputOtomoDuration, inputOtomoCurve, inputOtomoSpeedProfile } },
+            { "otomoAudioTrigger", "Audio Trigger", AutomOtion, { inputOtomoTrigger, inputOtomoThreshold, inputOtomoReset } },
+
+            // Mutes Section
+            { "mutes", "Mutes", Mutes, { inputMutes, inputMuteMacro } },
+            { "sidelines", "Sidelines", Mutes, { inputSidelinesActive, inputSidelinesFringe } },
+            { "arrayAttens", "Array Attens", Mutes, { inputArrayAtten1, inputArrayAtten2, inputArrayAtten3, inputArrayAtten4, inputArrayAtten5, inputArrayAtten6, inputArrayAtten7, inputArrayAtten8, inputArrayAtten9, inputArrayAtten10 } },
+
+            // Gradient Maps Section (subtree-based — parameterIds are layer property IDs for display, actual save/load uses subtree copy)
+            { "gmLayer1", "Layer 1", GradientMaps, { gmLayerEnabled, gmLayerParam, gmLayerWhite, gmLayerBlack, gmLayerCurve, gmLayerVisible } },
+            { "gmLayer2", "Layer 2", GradientMaps, { gmLayerEnabled, gmLayerParam, gmLayerWhite, gmLayerBlack, gmLayerCurve, gmLayerVisible } },
+            { "gmLayer3", "Layer 3", GradientMaps, { gmLayerEnabled, gmLayerParam, gmLayerWhite, gmLayerBlack, gmLayerCurve, gmLayerVisible } },
+
+            // Sampler Section (subtree-based — cells and sets are children, not properties)
+            // lightpadZoneId rides the existing "sampler" item deliberately, rather
+            // than getting an id of its own: withGlobals force-excludes the literal
+            // "sampler" when the sampler master is off, and the grid hides the whole
+            // Sampler section in the same condition — a separate id would stay active
+            // while being invisible, so the operator could not turn it off.
+            { "sampler", "Sampler", Sampler, { inputSamplerActive, inputSamplerActiveSet, lightpadZoneId } },
+
+            // ADM-OSC Section
+            { "admMapping", "ADM Mapping", ADMMapping, { inputAdmMapping } }
+        };
+
+        t.sectionIds = {
+            Channel, Position, Attenuation, Directivity, LiveSourceTamer,
+            Hackoustics, LFO, AutomOtion, Mutes, GradientMaps, Sampler, ADMMapping
+        };
+
+        t.sectionLabelKeys = {
+            { Channel,         "snapshotScope.sections.input" },
+            { Position,        "snapshotScope.sections.position" },
+            { Attenuation,     "snapshotScope.sections.attenuation" },
+            { Directivity,     "snapshotScope.sections.directivity" },
+            { LiveSourceTamer, "snapshotScope.sections.liveSource" },
+            { Hackoustics,     "snapshotScope.sections.hackoustics" },
+            { LFO,             "snapshotScope.sections.lfo" },
+            { AutomOtion,      "snapshotScope.sections.automOtion" },
+            { Mutes,           "snapshotScope.sections.mutes" },
+            { GradientMaps,    "snapshotScope.sections.gradientMaps" },
+            { Sampler,         "snapshotScope.sections.sampler" },
+            { ADMMapping,      "snapshotScope.sections.admMapping" }
+        };
+        return t;
+    }();
+
+    return table;
+}
+
+const WFSFileManager::ScopeItemTable& WFSFileManager::effectScopeTable()
+{
+    // The effects family: plan revision 8 (one snapshot file carries both
+    // families). Property items live on the eight flat nodes and are found by
+    // hasProperty, exactly like the input items; the eleven module items are
+    // WHOLE NODES, keyed by node type, because FxEq1/FxEq2 and FxDyn1/FxDyn2
+    // repeat their property names and the <Band>/<Tap> children repeat theirs by
+    // index - see EffectsSnapshotScope.h. The display sections follow the
+    // Effects tab: Channel Parameters, Chain, Post-Processing, Movements.
+    //
+    // Never in any item: effectSolo (monitoring) and effectOtomoPauseResume (the
+    // run-state of a motion), which unlike their input twins ARE persisted in
+    // the tree - so they are kept out of snapshots by omission, and phase Q of
+    // the channel-list self-test says so. effectName is always carried.
+    static const ScopeItemTable table = []
+    {
+        static const juce::Identifier Modules ("Modules");
+
+        ScopeItemTable t;
+        t.items = {
+            // Effect (the Channel node)
+            { "fxLevel", "Attenuation/Latency", Effect, { effectAttenuation, effectDelayLatency, effectMinimalLatency } },
+            { "fxMute",  "Mute",                Effect, { effectMute } },
+            { "fxLink",  "Link Group",          Effect, { effectLinkGroup, effectLinkMode } },
+
+            // Position
+            { "fxPosition",     "Position (XYZ)", Position, { effectPositionX, effectPositionY, effectPositionZ, effectCoordinateMode } },
+            { "fxReturnOffset", "Return Offset",  Position, { effectReturnOffsetX, effectReturnOffsetY, effectReturnOffsetZ } },
+
+            // Feed
+            { "fxFeed", "Feed", Feed, { effectOrientation, effectAngleOn, effectAngleOff, effectPitch,
+                                        effectHFdamping, effectFeedMiniLatency, effectDistanceAttenPercent } },
+
+            // Return (the node whose C++ identifier is ReverbReturn)
+            { "fxReturnLaw",   "Attenuation Law", ReverbReturn, { effectAttenuationLaw, effectDistanceAttenuation, effectDistanceRatio,
+                                                                  effectCommonAtten, effectHFshelf } },
+            { "fxMutes",       "Mutes",           ReverbReturn, { effectMutes, effectMuteMacro, effectMuteReverbSends } },
+            { "fxArrayAttens", "Array Attens",    ReverbReturn, { effectArrayAtten1, effectArrayAtten2, effectArrayAtten3, effectArrayAtten4,
+                                                                  effectArrayAtten5, effectArrayAtten6, effectArrayAtten7, effectArrayAtten8,
+                                                                  effectArrayAtten9, effectArrayAtten10 } },
+
+            // Chain
+            { "fxChain", "Order/Bypass", Chain, { effectChainOrder, effectChainBypass } },
+
+            // Modules: one whole node each (bands and taps included)
+            { "fxDist",   "Distortion",       Modules, {}, FxDist },
+            { "fxEq1",    "EQ 1",             Modules, {}, FxEq1 },
+            { "fxEq2",    "EQ 2",             Modules, {}, FxEq2 },
+            { "fxDyn1",   "Dynamics 1",       Modules, {}, FxDyn1 },
+            { "fxDyn2",   "Dynamics 2",       Modules, {}, FxDyn2 },
+            { "fxMod",    "Chorus / Flanger", Modules, {}, FxMod },
+            { "fxPhaser", "Phaser",           Modules, {}, FxPhaser },
+            { "fxTrem",   "Tremolo",          Modules, {}, FxTrem },
+            { "fxReverb", "Reverb",           Modules, {}, FxReverb },
+            { "fxDelay",  "Multitap Delay",   Modules, {}, FxDelay },
+            { "fxCrush",  "Bitcrusher",       Modules, {}, FxCrush },
+
+            // Sends (the Post-Processing matrix): whole rows
+            { "fxSendsInputs",  "From Inputs",  Sends, { effectSendLevels, effectSendOns } },
+            { "fxSendsEffects", "From Effects", Sends, { effectFxSendLevels, effectFxSendOns } },
+
+            // LFO
+            { "fxLfoEnable", "Enable/Period", LFO, { effectLFOactive, effectLFOperiod, effectLFOphase } },
+            { "fxLfoX",      "LFO X",         LFO, { effectLFOshapeX, effectLFOrateX, effectLFOamplitudeX, effectLFOphaseX } },
+            { "fxLfoY",      "LFO Y",         LFO, { effectLFOshapeY, effectLFOrateY, effectLFOamplitudeY, effectLFOphaseY } },
+            { "fxLfoZ",      "LFO Z",         LFO, { effectLFOshapeZ, effectLFOrateZ, effectLFOamplitudeZ, effectLFOphaseZ } },
+
+            // AutomOtion (return-only: there is no StayReturn on an effect)
+            { "fxOtomoDestination",  "Destination",   AutomOtion, { effectOtomoX, effectOtomoY, effectOtomoZ, effectOtomoAbsoluteRelative,
+                                                                    effectOtomoCoordinateMode, effectOtomoR, effectOtomoTheta,
+                                                                    effectOtomoRsph, effectOtomoPhi } },
+            { "fxOtomoMovement",     "Movement",      AutomOtion, { effectOtomoSpeedProfile, effectOtomoDuration, effectOtomoCurve } },
+            { "fxOtomoAudioTrigger", "Audio Trigger", AutomOtion, { effectOtomoTrigger, effectOtomoThreshold, effectOtomoReset } },
+        };
+
+        t.sectionIds = { Effect, Position, Feed, ReverbReturn, Chain, Modules, Sends, LFO, AutomOtion };
+
+        t.sectionLabelKeys = {
+            { Effect,       "snapshotScope.sections.effect" },
+            { Position,     "snapshotScope.sections.position" },
+            { Feed,         "snapshotScope.sections.feed" },
+            { ReverbReturn, "snapshotScope.sections.return" },
+            { Chain,        "snapshotScope.sections.chain" },
+            { Modules,      "snapshotScope.sections.modules" },
+            { Sends,        "snapshotScope.sections.sends" },
+            { LFO,          "snapshotScope.sections.lfo" },
+            { AutomOtion,   "snapshotScope.sections.automOtion" }
+        };
+        return t;
+    }();
+
+    return table;
+}
+
 //==============================================================================
-// Extended Snapshot Scope - Instance Methods
+// Scope Matrix - the per-item, per-channel state machine of one family
 //==============================================================================
 
-juce::String WFSFileManager::ExtendedSnapshotScope::makeKey (const juce::String& itemId, int channelIndex)
+juce::String WFSFileManager::ScopeMatrix::makeKey (const juce::String& itemId, int channelIndex)
 {
     return itemId + "_" + juce::String (channelIndex);
 }
 
-bool WFSFileManager::ExtendedSnapshotScope::isIncluded (const juce::String& itemId, int channelIndex) const
+bool WFSFileManager::ScopeMatrix::isIncluded (const juce::String& itemId, int channelIndex) const
 {
     auto key = makeKey (itemId, channelIndex);
     auto it = itemChannelStates.find (key);
     return it == itemChannelStates.end() ? true : it->second;  // Default: included
 }
 
-bool WFSFileManager::ExtendedSnapshotScope::isParameterIncluded (const juce::Identifier& paramId, int channelIndex) const
+bool WFSFileManager::ScopeMatrix::isParameterIncluded (const juce::Identifier& paramId, int channelIndex) const
 {
     // Find which scope item contains this parameter
-    for (const auto& item : getScopeItems())
+    for (const auto& item : table->items)
     {
         for (const auto& pid : item.parameterIds)
         {
@@ -1434,19 +1822,9 @@ bool WFSFileManager::ExtendedSnapshotScope::isParameterIncluded (const juce::Ide
     return true;  // Unknown parameters are included by default
 }
 
-bool WFSFileManager::ExtendedSnapshotScope::isEquivalentTo (const ExtendedSnapshotScope& other, int numChannels) const
+bool WFSFileManager::ScopeMatrix::isEquivalentTo (const ScopeMatrix& other, int numChannels) const
 {
-    if (applyMode != other.applyMode)
-        return false;
-
-    // The MIDI trigger is part of the scope object, so a binding-only edit must
-    // register as a difference -- this is the sole gate on the scope window's
-    // "Update Snapshot Scope" button, and without it such an edit is silently
-    // discarded when the window closes.
-    if (midiChannel != other.midiChannel || midiNote != other.midiNote)
-        return false;
-
-    for (const auto& item : getScopeItems())
+    for (const auto& item : table->items)
         for (int ch = 0; ch < numChannels; ++ch)
             if (isIncluded (item.itemId, ch) != other.isIncluded (item.itemId, ch))
                 return false;
@@ -1454,7 +1832,7 @@ bool WFSFileManager::ExtendedSnapshotScope::isEquivalentTo (const ExtendedSnapsh
     return true;
 }
 
-void WFSFileManager::ExtendedSnapshotScope::setIncluded (const juce::String& itemId, int channelIndex, bool included)
+void WFSFileManager::ScopeMatrix::setIncluded (const juce::String& itemId, int channelIndex, bool included)
 {
     auto key = makeKey (itemId, channelIndex);
     if (included)
@@ -1463,26 +1841,26 @@ void WFSFileManager::ExtendedSnapshotScope::setIncluded (const juce::String& ite
         itemChannelStates[key] = false;
 }
 
-void WFSFileManager::ExtendedSnapshotScope::toggle (const juce::String& itemId, int channelIndex)
+void WFSFileManager::ScopeMatrix::toggle (const juce::String& itemId, int channelIndex)
 {
     setIncluded (itemId, channelIndex, !isIncluded (itemId, channelIndex));
 }
 
-void WFSFileManager::ExtendedSnapshotScope::setAllItemsForChannel (int channelIndex, bool included)
+void WFSFileManager::ScopeMatrix::setAllItemsForChannel (int channelIndex, bool included)
 {
-    for (const auto& item : getScopeItems())
+    for (const auto& item : table->items)
         setIncluded (item.itemId, channelIndex, included);
 }
 
-void WFSFileManager::ExtendedSnapshotScope::setItemForAllChannels (const juce::String& itemId, bool included, int numChannels)
+void WFSFileManager::ScopeMatrix::setItemForAllChannels (const juce::String& itemId, bool included, int numChannels)
 {
     for (int ch = 0; ch < numChannels; ++ch)
         setIncluded (itemId, ch, included);
 }
 
-void WFSFileManager::ExtendedSnapshotScope::setSectionForAllChannels (const juce::Identifier& sectionId, bool included, int numChannels)
+void WFSFileManager::ScopeMatrix::setSectionForAllChannels (const juce::Identifier& sectionId, bool included, int numChannels)
 {
-    for (const auto& item : getScopeItems())
+    for (const auto& item : table->items)
     {
         if (item.sectionId == sectionId)
         {
@@ -1492,7 +1870,7 @@ void WFSFileManager::ExtendedSnapshotScope::setSectionForAllChannels (const juce
     }
 }
 
-void WFSFileManager::ExtendedSnapshotScope::setAll (bool included, int numChannels)
+void WFSFileManager::ScopeMatrix::setAll (bool included, int numChannels)
 {
     if (included)
     {
@@ -1500,7 +1878,7 @@ void WFSFileManager::ExtendedSnapshotScope::setAll (bool included, int numChanne
     }
     else
     {
-        for (const auto& item : getScopeItems())
+        for (const auto& item : table->items)
         {
             for (int ch = 0; ch < numChannels; ++ch)
                 setIncluded (item.itemId, ch, false);
@@ -1508,13 +1886,13 @@ void WFSFileManager::ExtendedSnapshotScope::setAll (bool included, int numChanne
     }
 }
 
-WFSFileManager::ExtendedSnapshotScope::InclusionState
-WFSFileManager::ExtendedSnapshotScope::getSectionState (const juce::Identifier& sectionId, int numChannels) const
+WFSFileManager::ScopeMatrix::InclusionState
+WFSFileManager::ScopeMatrix::getSectionState (const juce::Identifier& sectionId, int numChannels) const
 {
     int includedCount = 0;
     int totalCount = 0;
 
-    for (const auto& item : getScopeItems())
+    for (const auto& item : table->items)
     {
         if (item.sectionId == sectionId)
         {
@@ -1532,13 +1910,13 @@ WFSFileManager::ExtendedSnapshotScope::getSectionState (const juce::Identifier& 
     return InclusionState::Partial;
 }
 
-WFSFileManager::ExtendedSnapshotScope::InclusionState
-WFSFileManager::ExtendedSnapshotScope::getSectionStateForChannel (const juce::Identifier& sectionId, int channelIndex) const
+WFSFileManager::ScopeMatrix::InclusionState
+WFSFileManager::ScopeMatrix::getSectionStateForChannel (const juce::Identifier& sectionId, int channelIndex) const
 {
     int includedCount = 0;
     int totalCount = 0;
 
-    for (const auto& item : getScopeItems())
+    for (const auto& item : table->items)
     {
         if (item.sectionId == sectionId)
         {
@@ -1553,13 +1931,13 @@ WFSFileManager::ExtendedSnapshotScope::getSectionStateForChannel (const juce::Id
     return InclusionState::Partial;
 }
 
-WFSFileManager::ExtendedSnapshotScope::InclusionState
-WFSFileManager::ExtendedSnapshotScope::getChannelState (int channelIndex) const
+WFSFileManager::ScopeMatrix::InclusionState
+WFSFileManager::ScopeMatrix::getChannelState (int channelIndex) const
 {
     int includedCount = 0;
     int totalCount = 0;
 
-    for (const auto& item : getScopeItems())
+    for (const auto& item : table->items)
     {
         ++totalCount;
         if (isIncluded (item.itemId, channelIndex))
@@ -1571,8 +1949,8 @@ WFSFileManager::ExtendedSnapshotScope::getChannelState (int channelIndex) const
     return InclusionState::Partial;
 }
 
-WFSFileManager::ExtendedSnapshotScope::InclusionState
-WFSFileManager::ExtendedSnapshotScope::getOverallState (int numChannels) const
+WFSFileManager::ScopeMatrix::InclusionState
+WFSFileManager::ScopeMatrix::getOverallState (int numChannels) const
 {
     if (itemChannelStates.empty())
         return InclusionState::AllIncluded;
@@ -1580,7 +1958,7 @@ WFSFileManager::ExtendedSnapshotScope::getOverallState (int numChannels) const
     int includedCount = 0;
     int totalCount = 0;
 
-    for (const auto& item : getScopeItems())
+    for (const auto& item : table->items)
     {
         for (int ch = 0; ch < numChannels; ++ch)
         {
@@ -1595,10 +1973,32 @@ WFSFileManager::ExtendedSnapshotScope::getOverallState (int numChannels) const
     return InclusionState::Partial;
 }
 
+//==============================================================================
+// Extended Snapshot Scope - whole-scope operations
+//==============================================================================
+
+bool WFSFileManager::ExtendedSnapshotScope::isEquivalentTo (const ExtendedSnapshotScope& other,
+                                                            int numInputs, int numEffects) const
+{
+    if (applyMode != other.applyMode)
+        return false;
+
+    // The MIDI trigger is part of the scope object, so a binding-only edit must
+    // register as a difference -- this is the sole gate on the scope window's
+    // "Update Snapshot Scope" button, and without it such an edit is silently
+    // discarded when the window closes.
+    if (midiChannel != other.midiChannel || midiNote != other.midiNote)
+        return false;
+
+    return inputs.isEquivalentTo (other.inputs, numInputs)
+        && effects.isEquivalentTo (other.effects, numEffects);
+}
+
 void WFSFileManager::ExtendedSnapshotScope::initializeDefaults (int numChannels)
 {
     juce::ignoreUnused (numChannels);
-    itemChannelStates.clear();
+    inputs.clear();
+    effects.clear();
     applyMode = ApplyMode::OnRecall;
     clearMidiBinding();  // a fresh scope must never inherit another snapshot's note
     // All scope items default to included (missing = included convention)
@@ -1622,6 +2022,22 @@ WFSFileManager::ExtendedSnapshotScope::withGlobals (bool samplerMasterOn, int nu
 
 bool WFSFileManager::saveInputSnapshotWithExtendedScope (const juce::String& snapshotName, const ExtendedSnapshotScope& scope)
 {
+    // The name first: a refused one writes nothing and latches nothing.
+    auto folder = getInputSnapshotsFolder();
+    auto file = getNamedXmlFile (folder, snapshotName);
+    if (file == juce::File())
+    {
+        setError (describeUnusableName (snapshotName));
+        return false;
+    }
+
+    // Backed up before anything is written or latched. A Store over an
+    // existing name (the button, OSC /wfs/input/snapshot/store, a QLab cue)
+    // replaced the snapshot with no copy kept; only Update made one, from
+    // outside (re-audit 2026-09-29, S2).
+    if (! createBackupIn (file, getSnapshotBackupFolder()))
+        return false;
+
     // The one choke point for the Inputs-tab store button, the auto-store paths
     // and OSC /wfs/input/snapshot/store. Every entry below goes to disk as
     // <Input id="NUMBER"> and recall resolves it through getSlotForChannelNumber,
@@ -1629,14 +2045,16 @@ bool WFSFileManager::saveInputSnapshotWithExtendedScope (const juce::String& sna
     // renumbering them would silently repoint every stored channel.
     valueTreeState.markChannelNumbersUserOwned ("input snapshot store");
 
-    auto folder = getInputSnapshotsFolder();
     folder.createDirectory();
 
-    auto file = folder.getChildFile (snapshotName + snapshotExtension);
-
     juce::ValueTree snapshot ("InputSnapshot");
-    snapshot.setProperty (version, "2.0", nullptr);  // Version 2.0 for extended scope
+    snapshot.setProperty (version, "2.0", nullptr);  // Version 2.0 for extended scope; 2.1 once it carries <Effects>
     snapshot.setProperty (name, snapshotName, nullptr);
+
+    // The previous file, read once: both families carry its ghost entries over.
+    juce::ValueTree existing;
+    if (file.existsAsFile())
+        existing = readFromXmlFile (file);
 
     // This function builds a BRAND-NEW tree and overwrites the file, so both
     // "Store Snapshot" and "Update Snapshot" would otherwise destroy an
@@ -1646,8 +2064,27 @@ bool WFSFileManager::saveInputSnapshotWithExtendedScope (const juce::String& sna
 
     int numInputs = valueTreeState.getNumInputChannels();
 
+    // A ghost effect's scope travels with its data. The <Effect> entries past
+    // the live count are carried over from the previous file below, so their
+    // columns of its effects grid are carried too - wherever the scope being
+    // stored is silent about them, which a scope built with fewer effects
+    // always is. Without this, a Store over an existing name turned a ghost
+    // the operator had excluded into one the next recall applies.
+    auto scopeToWrite = scope;
+    if (existing.isValid())
+    {
+        if (auto oldScopeTree = existing.getChildWithName ("ExtendedScope"); oldScopeTree.isValid())
+        {
+            const int numEffects = valueTreeState.getNumEffectChannels();
+            const auto oldScope = deserializeExtendedScope (oldScopeTree);
+            for (const auto& [key, included] : oldScope.effects.itemChannelStates)
+                if (key.fromLastOccurrenceOf ("_", false, false).getIntValue() >= numEffects)
+                    scopeToWrite.effects.itemChannelStates.emplace (key, included);   // never over the new scope's own cell
+        }
+    }
+
     // Serialize extended scope
-    snapshot.appendChild (serializeExtendedScope (scope, numInputs), nullptr);
+    snapshot.appendChild (serializeExtendedScope (scopeToWrite, numInputs), nullptr);
 
     // Store input data (filtered by scope if ApplyMode is OnSave)
     juce::ValueTree inputsData (Inputs);
@@ -1664,9 +2101,8 @@ bool WFSFileManager::saveInputSnapshotWithExtendedScope (const juce::String& sna
     // deleted. Recall skips them, but nothing is silently destroyed — they
     // apply again if the number is ever re-created. Carried over from the
     // existing file before it is overwritten.
-    if (file.existsAsFile())
+    if (existing.isValid())
     {
-        auto existing = readFromXmlFile (file);
         auto oldInputs = existing.getChildWithName (Inputs);
         for (int i = 0; i < oldInputs.getNumChildren(); ++i)
         {
@@ -1678,6 +2114,43 @@ bool WFSFileManager::saveInputSnapshotWithExtendedScope (const juce::String& sna
     }
 
     snapshot.appendChild (inputsData, nullptr);
+
+    // THE EFFECTS HALF (plan revision 8): one <Effect id="n"> per live channel,
+    // n the dense id - filtered by the effects grid when OnSave, whole otherwise,
+    // exactly the input rule. Then the ghosts: entries for ids beyond the live
+    // count are carried over from the previous file, as deleted input numbers
+    // are, so shrinking the effect count and growing it back loses nothing. A
+    // snapshot of a show with no effects and no ghosts writes no <Effects> at
+    // all, and stays the file every earlier build wrote.
+    {
+        const int numEffects = valueTreeState.getNumEffectChannels();
+        const ExtendedSnapshotScope everything;
+        const auto& effectsMatrix = scope.applyMode == ExtendedSnapshotScope::ApplyMode::OnSave
+                                        ? scope.effects : everything.effects;
+
+        juce::ValueTree effectsData (Effects);
+        for (int fx = 0; fx < numEffects; ++fx)
+            effectsData.appendChild (EffectsSnapshotScope::extractEffect (valueTreeState, fx, effectsMatrix), nullptr);
+
+        if (existing.isValid())
+        {
+            auto oldEffects = existing.getChildWithName (Effects);
+            for (int i = 0; i < oldEffects.getNumChildren(); ++i)
+            {
+                auto entry = oldEffects.getChild (i);
+                const int effectId = static_cast<int> (entry.getProperty (id, 0));
+                if (entry.hasType (Effect) && effectId > numEffects)
+                    effectsData.appendChild (entry.createCopy(), nullptr);
+            }
+        }
+
+        if (effectsData.getNumChildren() > 0)
+        {
+            snapshot.appendChild (effectsData, nullptr);
+            snapshot.setProperty (version, "2.1", nullptr);   // read nowhere; a marker for a human reading the file
+        }
+    }
+
     stripTransientToggles (snapshot);
 
     return writeToXmlFile (snapshot, file);
@@ -1687,12 +2160,18 @@ bool WFSFileManager::loadInputSnapshotWithExtendedScope (const juce::String& sna
 {
     OriginTagScope originScope { OriginTag::Snapshot };
 
+    auto file = getNamedXmlFile (getInputSnapshotsFolder(), snapshotName);
+    if (file == juce::File())
+    {
+        setError (describeUnusableName (snapshotName));
+        return false;
+    }
+
     // A recall normally implies an earlier store or load that already latched,
     // but a snapshots folder can also arrive with the project folder (copied
     // show, shared template) without either having run this session.
     valueTreeState.markChannelNumbersUserOwned ("input snapshot recall");
 
-    auto file = getInputSnapshotsFolder().getChildFile (snapshotName + snapshotExtension);
     auto snapshot = readFromXmlFile (file);
 
     if (!snapshot.isValid())
@@ -1707,8 +2186,16 @@ bool WFSFileManager::loadInputSnapshotWithExtendedScope (const juce::String& sna
         return false;
     }
 
-    valueTreeState.beginUndoTransaction ("Load Input Snapshot: " + snapshotName);
     lastRecallSkippedNumbers.clear();
+    lastRecallSkippedEffectIds.clear();
+
+    // Each half writes into ITS OWN tab's undo history (the app's per-tab undo
+    // convention): Ctrl+Z on the Inputs tab takes back the input half of a
+    // Reload, on the Effects tab the effects half. getUndoManager() is the
+    // ACTIVE manager, so it still answers nullptr under ScopedUndoSuppression
+    // (the MIDI / OSC recalls); getUndoManagerForDomain would not.
+    WFSValueTreeState::ScopedUndoDomain inputDomain (valueTreeState, UndoDomain::Input);
+    valueTreeState.beginUndoTransaction ("Load Input Snapshot: " + snapshotName);
 
     for (int i = 0; i < inputsData.getNumChildren(); ++i)
     {
@@ -1733,6 +2220,41 @@ bool WFSFileManager::loadInputSnapshotWithExtendedScope (const juce::String& sna
         }
     }
 
+    // THE EFFECTS HALF (plan revision 8). A snapshot written before the effects
+    // existed has no <Effects> and leaves every effect exactly as it is; an
+    // <Effect> whose id no live channel carries is skipped and reported, and
+    // stays in the file. The engine needs no resync call: every write below
+    // marks its channel in EffectsHost's listener, which re-cooks and
+    // republishes each channel once on the next 50 Hz tick.
+    auto effectsData = snapshot.getChildWithName (Effects);
+    if (effectsData.isValid())
+    {
+        WFSValueTreeState::ScopedUndoDomain effectsDomain (valueTreeState, UndoDomain::Effects);
+        valueTreeState.beginUndoTransaction ("Load Snapshot (effects): " + snapshotName);
+        auto* effectsUndo = valueTreeState.getUndoManager();
+
+        const ExtendedSnapshotScope everything;
+        const auto& effectsMatrix = scope.applyMode == ExtendedSnapshotScope::ApplyMode::OnRecall
+                                        ? scope.effects : everything.effects;
+        const int numEffects = valueTreeState.getNumEffectChannels();
+
+        for (int i = 0; i < effectsData.getNumChildren(); ++i)
+        {
+            auto entry = effectsData.getChild (i);
+            if (! entry.hasType (Effect))
+                continue;
+
+            const int effectId = static_cast<int> (entry.getProperty (id, 0));
+            if (effectId < 1 || effectId > numEffects)
+            {
+                lastRecallSkippedEffectIds.push_back (effectId);
+                continue;
+            }
+
+            EffectsSnapshotScope::applyEffect (valueTreeState, effectId - 1, entry, effectsMatrix, effectsUndo);
+        }
+    }
+
     // Snapshot positions can re-diverge a Shared-mode cluster (per-channel raw
     // apply); snap members back onto the first-ordered member.
     valueTreeState.enforceAllSharedClusterInvariants();
@@ -1743,7 +2265,7 @@ bool WFSFileManager::loadInputSnapshotWithExtendedScope (const juce::String& sna
 WFSFileManager::ExtendedSnapshotScope WFSFileManager::getExtendedSnapshotScope (const juce::String& snapshotName) const
 {
     ExtendedSnapshotScope scope;
-    auto file = getInputSnapshotsFolder().getChildFile (snapshotName + snapshotExtension);
+    auto file = getNamedXmlFile (getInputSnapshotsFolder(), snapshotName);
     auto snapshot = const_cast<WFSFileManager*>(this)->readFromXmlFile (file);
 
     if (snapshot.isValid())
@@ -1762,7 +2284,7 @@ WFSFileManager::ExtendedSnapshotScope WFSFileManager::getExtendedSnapshotScope (
 
 bool WFSFileManager::setExtendedSnapshotScope (const juce::String& snapshotName, const ExtendedSnapshotScope& scope)
 {
-    auto file = getInputSnapshotsFolder().getChildFile (snapshotName + snapshotExtension);
+    auto file = getNamedXmlFile (getInputSnapshotsFolder(), snapshotName);
     auto snapshot = readFromXmlFile (file);
 
     if (!snapshot.isValid())
@@ -1783,12 +2305,15 @@ bool WFSFileManager::setExtendedSnapshotScope (const juce::String& snapshotName,
     // (or removes them when the binding was cleared).
     writeMidiBindingToRoot (snapshot, scope);
 
+    if (! createBackupIn (file, getSnapshotBackupFolder()))
+        return false;
+
     return writeToXmlFile (snapshot, file);
 }
 
 bool WFSFileManager::updateInputSnapshotScope (const juce::String& snapshotName, const ExtendedSnapshotScope& scope)
 {
-    auto file = getInputSnapshotsFolder().getChildFile (snapshotName + snapshotExtension);
+    auto file = getNamedXmlFile (getInputSnapshotsFolder(), snapshotName);
     auto snapshot = readFromXmlFile (file);
 
     if (!snapshot.isValid())
@@ -1797,7 +2322,8 @@ bool WFSFileManager::updateInputSnapshotScope (const juce::String& snapshotName,
         return false;
     }
 
-    createBackup (file);
+    if (!createBackupIn (file, getSnapshotBackupFolder()))
+        return false;
 
     // Replace the embedded scope
     auto existingScope = snapshot.getChildWithName ("ExtendedScope");
@@ -1814,8 +2340,22 @@ bool WFSFileManager::updateInputSnapshotScope (const juce::String& snapshotName,
     // scope (removal only). OnRecall files keep their full data so the scope
     // can be broadened again later.
     if (scope.applyMode == ExtendedSnapshotScope::ApplyMode::OnSave)
+    {
         trimSnapshotInputsToScope (snapshot.getChildWithName (Inputs), scope,
                                    [this] (int number) { return valueTreeState.getSlotForChannelNumber (number); });
+
+        // The effects half the same way: an entry whose id a live channel
+        // carries is trimmed with that channel's column; a ghost is left whole.
+        auto effectsData = snapshot.getChildWithName (Effects);
+        const int numEffects = valueTreeState.getNumEffectChannels();
+        for (int i = 0; i < effectsData.getNumChildren(); ++i)
+        {
+            auto entry = effectsData.getChild (i);
+            const int effectId = static_cast<int> (entry.getProperty (id, 0));
+            if (entry.hasType (Effect) && effectId >= 1 && effectId <= numEffects)
+                EffectsSnapshotScope::trimEffectToScope (entry, scope.effects, effectId - 1);
+        }
+    }
 
     stripTransientToggles (snapshot);
     return writeToXmlFile (snapshot, file);
@@ -1833,6 +2373,19 @@ bool WFSFileManager::saveScopeTemplate (const juce::String& templateName, const 
         setError (LOC ("fileManager.errors.noProjectFolder"));
         return false;
     }
+
+    auto file = getNamedXmlFile (folder, templateName);
+    if (file == juce::File())
+    {
+        setError (describeUnusableName (templateName));
+        return false;
+    }
+
+    // Save As over an existing template replaced it with no copy; only
+    // Update made one (re-audit 2026-09-29, S2).
+    if (! createBackupIn (file, getTemplateBackupFolder()))
+        return false;
+
     folder.createDirectory();
 
     juce::ValueTree tpl ("ScopeTemplate");
@@ -1843,12 +2396,12 @@ bool WFSFileManager::saveScopeTemplate (const juce::String& templateName, const 
     // carries is ignored on template load (templates are grid-only).
     tpl.appendChild (serializeExtendedScope (scope, valueTreeState.getNumInputChannels()), nullptr);
 
-    return writeToXmlFile (tpl, folder.getChildFile (templateName + snapshotExtension));
+    return writeToXmlFile (tpl, file);
 }
 
 bool WFSFileManager::loadScopeTemplateGrid (const juce::String& templateName, ExtendedSnapshotScope& target)
 {
-    auto file = getScopeTemplatesFolder().getChildFile (templateName + snapshotExtension);
+    auto file = getNamedXmlFile (getScopeTemplatesFolder(), templateName);
     auto tpl = readFromXmlFile (file);
 
     if (! tpl.isValid())
@@ -1862,7 +2415,14 @@ bool WFSFileManager::loadScopeTemplateGrid (const juce::String& templateName, Ex
     }
 
     auto loaded = deserializeExtendedScope (scopeTree);
-    target.itemChannelStates = std::move (loaded.itemChannelStates);
+    target.inputs.itemChannelStates = std::move (loaded.inputs.itemChannelStates);
+
+    // A template saved before the effects existed, or in a show without any,
+    // has no <EffectsScope> and so no opinion about the effects grid: loading
+    // it leaves that grid as it is. (On a SNAPSHOT an absent <EffectsScope>
+    // means "every effect item included"; a template is a partial preset.)
+    if (scopeTree.getChildWithName ("EffectsScope").isValid())
+        target.effects.itemChannelStates = std::move (loaded.effects.itemChannelStates);
     return true;
 }
 
@@ -1874,7 +2434,8 @@ juce::StringArray WFSFileManager::getScopeTemplateNames() const
     if (folder.isDirectory())
     {
         for (auto& file : folder.findChildFiles (juce::File::findFiles, false, "*" + juce::String (snapshotExtension)))
-            names.add (file.getFileNameWithoutExtension());
+            if (! isLeftoverSaveTemp (file))
+                names.add (file.getFileNameWithoutExtension());
     }
 
     return names;
@@ -1882,7 +2443,7 @@ juce::StringArray WFSFileManager::getScopeTemplateNames() const
 
 bool WFSFileManager::deleteScopeTemplate (const juce::String& templateName)
 {
-    auto file = getScopeTemplatesFolder().getChildFile (templateName + snapshotExtension);
+    auto file = getNamedXmlFile (getScopeTemplatesFolder(), templateName);
     if (file.existsAsFile())
         return file.deleteFile();
 
@@ -2095,64 +2656,154 @@ void WFSFileManager::readMidiBindingFromRoot (const juce::ValueTree& snapshot, E
         scope.clearMidiBinding();  // absent / partial / garbage = unbound
 }
 
+namespace
+{
+    /** One grid's channel partition, written onto `scopeTree`: fullChannels,
+        excludedChannels and one <PartialChannel index excludedItems> per partial
+        channel, channels written as `keyOf (slot)`. The input grid writes it
+        onto <ExtendedScope> itself - byte for byte what every earlier build
+        wrote - and the effects grid onto its <EffectsScope> child. */
+    void writeScopeMatrix (juce::ValueTree& scopeTree, const WFSFileManager::ScopeMatrix& matrix,
+                           int numChannels, const std::function<int (int)>& keyOf)
+    {
+        using InclusionState = WFSFileManager::ScopeMatrix::InclusionState;
+
+        // Find channels that are fully included, fully excluded, or partial
+        std::vector<int> fullChannels, excludedChannels, partialChannels;
+
+        for (int ch = 0; ch < numChannels; ++ch)
+        {
+            auto state = matrix.getChannelState (ch);
+            if (state == InclusionState::AllIncluded)
+                fullChannels.push_back (ch);
+            else if (state == InclusionState::AllExcluded)
+                excludedChannels.push_back (ch);
+            else
+                partialChannels.push_back (ch);
+        }
+
+        // Serialize full channels
+        if (!fullChannels.empty())
+        {
+            juce::StringArray indices;
+            for (int ch : fullChannels)
+                indices.add (juce::String (keyOf (ch)));
+            scopeTree.setProperty ("fullChannels", indices.joinIntoString (","), nullptr);
+        }
+
+        // Serialize excluded channels
+        if (!excludedChannels.empty())
+        {
+            juce::StringArray indices;
+            for (int ch : excludedChannels)
+                indices.add (juce::String (keyOf (ch)));
+            scopeTree.setProperty ("excludedChannels", indices.joinIntoString (","), nullptr);
+        }
+
+        // Serialize partial channels
+        for (int ch : partialChannels)
+        {
+            juce::ValueTree partialTree ("PartialChannel");
+            partialTree.setProperty ("index", keyOf (ch), nullptr);
+
+            juce::StringArray excludedItems;
+            for (const auto& item : matrix.getTable().items)
+            {
+                if (!matrix.isIncluded (item.itemId, ch))
+                    excludedItems.add (item.itemId);
+            }
+
+            if (!excludedItems.isEmpty())
+                partialTree.setProperty ("excludedItems", excludedItems.joinIntoString (","), nullptr);
+
+            scopeTree.appendChild (partialTree, nullptr);
+        }
+    }
+
+    /** The reader of writeScopeMatrix. `slotOf` maps an on-disk key to a live
+        slot, negative when nothing live carries it: such entries are dropped.
+        fullChannels is never read - absent is already included. */
+    void readScopeMatrix (const juce::ValueTree& scopeTree, WFSFileManager::ScopeMatrix& matrix,
+                          int numChannels, const std::function<int (int)>& slotOf)
+    {
+        auto excludedStr = scopeTree.getProperty ("excludedChannels").toString();
+        if (excludedStr.isNotEmpty())
+        {
+            juce::StringArray indices;
+            indices.addTokens (excludedStr, ",", "");
+            for (const auto& idx : indices)
+            {
+                int ch = slotOf (idx.getIntValue());
+                if (ch >= 0 && ch < numChannels)
+                    matrix.setAllItemsForChannel (ch, false);
+            }
+        }
+
+        for (int i = 0; i < scopeTree.getNumChildren(); ++i)
+        {
+            auto partialTree = scopeTree.getChild (i);
+            if (partialTree.getType().toString() == "PartialChannel")
+            {
+                int ch = slotOf (static_cast<int> (partialTree.getProperty ("index")));
+                if (ch >= 0 && ch < numChannels)
+                {
+                    auto excludedItems = partialTree.getProperty ("excludedItems").toString();
+                    if (excludedItems.isNotEmpty())
+                    {
+                        juce::StringArray items;
+                        items.addTokens (excludedItems, ",", "");
+                        for (const auto& itemId : items)
+                            matrix.setIncluded (itemId, ch, false);
+                    }
+                }
+            }
+        }
+    }
+
+    /** The highest channel index any key of `matrix` names, or -1. An effects
+        grid read from a file keeps the keys of ids the session lacks today, so
+        this can be past the live count. */
+    int highestKeyedChannel (const WFSFileManager::ScopeMatrix& matrix)
+    {
+        int highest = -1;
+        for (const auto& [key, included] : matrix.itemChannelStates)
+            highest = juce::jmax (highest, key.fromLastOccurrenceOf ("_", false, false).getIntValue());
+        return highest;
+    }
+}
+
 juce::ValueTree WFSFileManager::serializeExtendedScope (const ExtendedSnapshotScope& scope, int numChannels) const
 {
     juce::ValueTree scopeTree ("ExtendedScope");
     scopeTree.setProperty ("applyMode", scope.applyMode == ExtendedSnapshotScope::ApplyMode::OnSave ? "OnSave" : "OnRecall", nullptr);
 
-    // Find channels that are fully included, fully excluded, or partial
-    std::vector<int> fullChannels, excludedChannels, partialChannels;
+    // On disk, input channels are identified by their PERMANENT number
+    // (identical to slot + 1 for legacy dense files, so old snapshots parse
+    // unchanged); in memory the scope stays slot-keyed.
+    writeScopeMatrix (scopeTree, scope.inputs, numChannels,
+                      [this] (int slot) { return valueTreeState.getInputChannelNumber (slot); });
 
-    for (int ch = 0; ch < numChannels; ++ch)
+    // The effects grid, as a child: effect ids are dense, so the key is the
+    // index + 1. Written only while the grid has a column to write, so a
+    // snapshot of an effect-less show is the file it always was - and an
+    // absent <EffectsScope> reads back as "every effect item included".
+    //
+    // The columns run past the live count when the grid holds keys for ids the
+    // session lacks today. Those are a GHOST's scope: the file carries the
+    // ghost's <Effect> data over (saveInputSnapshotWithExtendedScope), so its
+    // exclusions have to travel with it, or shrinking the effect count, touching
+    // the scope and growing the count back would recall what the operator had
+    // excluded. (The input grid has the same gap for a deleted input number,
+    // whose data is carried over too; it is keyed by slot in memory, and a
+    // number with no live slot has nowhere to be kept. Not handled here.)
+    const int effectColumns = juce::jlimit (0, WFSParameterDefaults::maxEffectChannels,
+                                            juce::jmax (valueTreeState.getNumEffectChannels(),
+                                                        highestKeyedChannel (scope.effects) + 1));
+    if (effectColumns > 0)
     {
-        auto state = scope.getChannelState (ch);
-        if (state == ExtendedSnapshotScope::InclusionState::AllIncluded)
-            fullChannels.push_back (ch);
-        else if (state == ExtendedSnapshotScope::InclusionState::AllExcluded)
-            excludedChannels.push_back (ch);
-        else
-            partialChannels.push_back (ch);
-    }
-
-    // On disk, channels are identified by their PERMANENT number (identical
-    // to slot + 1 for legacy dense files, so old snapshots parse unchanged);
-    // in memory the scope stays slot-keyed.
-    // Serialize full channels
-    if (!fullChannels.empty())
-    {
-        juce::StringArray indices;
-        for (int ch : fullChannels)
-            indices.add (juce::String (valueTreeState.getInputChannelNumber (ch)));
-        scopeTree.setProperty ("fullChannels", indices.joinIntoString (","), nullptr);
-    }
-
-    // Serialize excluded channels
-    if (!excludedChannels.empty())
-    {
-        juce::StringArray indices;
-        for (int ch : excludedChannels)
-            indices.add (juce::String (valueTreeState.getInputChannelNumber (ch)));
-        scopeTree.setProperty ("excludedChannels", indices.joinIntoString (","), nullptr);
-    }
-
-    // Serialize partial channels
-    for (int ch : partialChannels)
-    {
-        juce::ValueTree partialTree ("PartialChannel");
-        partialTree.setProperty ("index", valueTreeState.getInputChannelNumber (ch), nullptr);
-
-        // Collect excluded items for this channel (store whichever list is shorter)
-        juce::StringArray excludedItems;
-        for (const auto& item : ExtendedSnapshotScope::getScopeItems())
-        {
-            if (!scope.isIncluded (item.itemId, ch))
-                excludedItems.add (item.itemId);
-        }
-
-        if (!excludedItems.isEmpty())
-            partialTree.setProperty ("excludedItems", excludedItems.joinIntoString (","), nullptr);
-
-        scopeTree.appendChild (partialTree, nullptr);
+        juce::ValueTree effectsTree ("EffectsScope");
+        writeScopeMatrix (effectsTree, scope.effects, effectColumns, [] (int fx) { return fx + 1; });
+        scopeTree.appendChild (effectsTree, nullptr);
     }
 
     return scopeTree;
@@ -2168,44 +2819,19 @@ WFSFileManager::ExtendedSnapshotScope WFSFileManager::deserializeExtendedScope (
         ? ExtendedSnapshotScope::ApplyMode::OnSave
         : ExtendedSnapshotScope::ApplyMode::OnRecall;
 
-    int numChannels = valueTreeState.getNumInputChannels();
+    // Input channels are stored as permanent numbers; entries whose number has
+    // no live channel are dropped.
+    readScopeMatrix (scopeTree, scope.inputs, valueTreeState.getNumInputChannels(),
+                     [this] (int number) { return valueTreeState.getSlotForChannelNumber (number); });
 
-    // Parse excluded channels (stored as permanent numbers; entries whose
-    // number has no live channel are dropped)
-    auto excludedStr = scopeTree.getProperty ("excludedChannels").toString();
-    if (excludedStr.isNotEmpty())
-    {
-        juce::StringArray indices;
-        indices.addTokens (excludedStr, ",", "");
-        for (const auto& idx : indices)
-        {
-            int ch = valueTreeState.getSlotForChannelNumber (idx.getIntValue());
-            if (ch >= 0 && ch < numChannels)
-                scope.setAllItemsForChannel (ch, false);
-        }
-    }
-
-    // Parse partial channels
-    for (int i = 0; i < scopeTree.getNumChildren(); ++i)
-    {
-        auto partialTree = scopeTree.getChild (i);
-        if (partialTree.getType().toString() == "PartialChannel")
-        {
-            int ch = valueTreeState.getSlotForChannelNumber (
-                         static_cast<int> (partialTree.getProperty ("index")));
-            if (ch >= 0 && ch < numChannels)
-            {
-                auto excludedItems = partialTree.getProperty ("excludedItems").toString();
-                if (excludedItems.isNotEmpty())
-                {
-                    juce::StringArray items;
-                    items.addTokens (excludedItems, ",", "");
-                    for (const auto& itemId : items)
-                        scope.setIncluded (itemId, ch, false);
-                }
-            }
-        }
-    }
+    // Effect channels are stored as dense ids, and read up to the largest id a
+    // session can have, NOT the live count: the entries past it are a ghost's
+    // scope, kept in memory so the next write carries them back out (see
+    // serializeExtendedScope). The grid shows the live columns only.
+    auto effectsTree = scopeTree.getChildWithName ("EffectsScope");
+    if (effectsTree.isValid())
+        readScopeMatrix (effectsTree, scope.effects, WFSParameterDefaults::maxEffectChannels,
+                         [] (int effectId) { return effectId - 1; });
 
     return scope;
 }
@@ -2490,7 +3116,37 @@ bool WFSFileManager::applyInputWithExtendedScope (int channelIndex, const juce::
 
 bool WFSFileManager::createBackup (const juce::File& file)
 {
-    return spatcore::control::state::XmlPersistence::createBackup (file, getBackupFolder());
+    // Inside saveCompleteConfig, which backed up all six files before any write.
+    if (sectionBackupsTaken)
+        return true;
+
+    return createBackupIn (file, getBackupFolder());
+}
+
+bool WFSFileManager::createBackupIn (const juce::File& file, const juce::File& backupFolder)
+{
+    if (spatcore::control::state::XmlPersistence::createBackup (file, backupFolder))
+        return true;
+
+    // Every save backs the file up before replacing it, and stops here when
+    // it cannot: going on would lose the version the backup was for.
+    setError (LOC ("fileManager.errors.backupFailed")
+                  .replace ("{file}", file.getFileName())
+                  .replace ("{folder}", backupFolder.getFullPathName()));
+    WFSLogger::getInstance().logWarning ("Backup of " + file.getFullPathName() + " failed; the file was not saved over");
+    return false;
+}
+
+juce::File WFSFileManager::getSnapshotBackupFolder() const
+{
+    const auto backups = getBackupFolder();
+    return backups == juce::File() ? juce::File() : backups.getChildFile ("snapshots");
+}
+
+juce::File WFSFileManager::getTemplateBackupFolder() const
+{
+    const auto backups = getBackupFolder();
+    return backups == juce::File() ? juce::File() : backups.getChildFile ("templates");
 }
 
 juce::Array<juce::File> WFSFileManager::getBackups (const juce::String& fileType) const
@@ -2502,7 +3158,7 @@ void WFSFileManager::cleanupBackups (int keepCount)
 {
     // Clean up each section file type (the WFS multi-file layout)
     spatcore::control::state::XmlPersistence::cleanupBackups (
-        getBackupFolder(), { "system", "network", "inputs", "outputs", "reverbs" }, keepCount);
+        getBackupFolder(), { "system", "network", "inputs", "outputs", "reverbs", "effects" }, keepCount);
 }
 
 juce::String WFSFileManager::getBackupTimestamp()
@@ -2523,13 +3179,19 @@ bool WFSFileManager::writeToXmlFile (const juce::ValueTree& tree, const juce::Fi
         case WriteResult::ok:
             return true;
 
+        // setError reaches the debugger only, so a failed write left no trace
+        // in a Release build (re-audit 2026-09-29, S2): logged here as well.
         case WriteResult::xmlConversionFailed:
             setError (LOC ("fileManager.errors.failedCreateXML"));
+            WFSLogger::getInstance().logWarning ("Save of " + file.getFullPathName()
+                                                 + " failed: the state could not be turned into XML");
             return false;
 
         case WriteResult::fileWriteFailed:
         default:
             setError (LOC ("fileManager.errors.failedWriteFile").replace ("{path}", file.getFullPathName()));
+            WFSLogger::getInstance().logWarning ("Save of " + file.getFullPathName()
+                                                 + " failed: the file could not be written (it is unchanged)");
             return false;
     }
 }
@@ -2651,6 +3313,11 @@ juce::ValueTree WFSFileManager::extractOutputsSection() const
 juce::ValueTree WFSFileManager::extractReverbsSection() const
 {
     return valueTreeState.getState().getChildWithName (Reverbs);
+}
+
+juce::ValueTree WFSFileManager::extractEffectsSection() const
+{
+    return valueTreeState.getState().getChildWithName (Effects);
 }
 
 juce::ValueTree WFSFileManager::extractAudioPatchSection() const
@@ -2783,7 +3450,7 @@ InputChannelIdentityDiff WFSFileManager::preflightProjectChannelIdentity (const 
 
 InputChannelIdentityDiff WFSFileManager::preflightSnapshotChannelIdentity (const juce::String& snapshotName) const
 {
-    auto file = getInputSnapshotsFolder().getChildFile (snapshotName + snapshotExtension);
+    auto file = getNamedXmlFile (getInputSnapshotsFolder(), snapshotName);
     auto root = persistence.readTreeFromFile (file).tree;
     return compareInputChannelIdentity (valueTreeState.getInputChannelIdentity(),
                                         InputChannelIdentity::fromSnapshot (root.getChildWithName (Inputs)));
@@ -2985,6 +3652,7 @@ bool WFSFileManager::applyConfigSection (const juce::ValueTree& configTree)
         int inputCount = ioSection.getProperty (inputChannels, 0);
         int outputCount = ioSection.getProperty (outputChannels, 0);
         int reverbCount = ioSection.getProperty (reverbChannels, 0);
+        int effectCount = ioSection.getProperty (effectChannels, 0);
 
         // The merge copies children too, so the inventory rode in with it —
         // evict it again. Runtime state is the <Input> nodes; keeping a second
@@ -3017,6 +3685,33 @@ bool WFSFileManager::applyConfigSection (const juce::ValueTree& configTree)
 
         valueTreeState.setNumOutputChannels (outputCount);
         valueTreeState.setNumReverbChannels (reverbCount);
+
+        // Effects, on the SAME rule as the three above and for the same reason:
+        // <IO>/effectChannels is the config section's description of how many
+        // channels this show has, and until the family is built from it the
+        // number describes nothing. Two consequences, both of them real:
+        //
+        //  - the count could disagree with the child list and nothing re-synced
+        //    it. A system.xml naming four effect channels beside a project with
+        //    no effects.xml (a "Load System Config" on its own does exactly
+        //    that, and so does the exit auto-save, which writes system.xml
+        //    alone) left <IO>/effectChannels saying four while <Effects> stayed
+        //    empty, and the pair persisted across every later save.
+        //  - the per-family merge had no template to land on. Every other
+        //    family reaches its apply*Section with its channels already built,
+        //    so mergeTreeRecursive merges the file ONTO a schema-complete node
+        //    and a property the file lacks keeps its default. Effects alone
+        //    started at zero, so every <Effect> in the file was appended
+        //    VERBATIM - an older or hand-edited file became a live channel
+        //    missing whatever it did not carry, and setEffectParameter only
+        //    writes where some child already hasProperty(), so the missing
+        //    parameter was a silent no-op for the life of the show.
+        //
+        // Zero on an old system.xml that has no effectChannels attribute at all,
+        // which is a no-op: the family is already empty. applyEffectsSection
+        // still re-syncs afterwards, because a file holding MORE <Effect> nodes
+        // than this count grows the list past it.
+        valueTreeState.setNumEffectChannels (effectCount);
     }
 
     // The channel list has settled, so slots mean what the file meant. This
@@ -3210,6 +3905,45 @@ bool WFSFileManager::applyReverbsSection (const juce::ValueTree& reverbsTree)
         return true;
     }
     return false;
+}
+
+bool WFSFileManager::applyEffectsSection (const juce::ValueTree& effectsTree)
+{
+    auto existingEffects = valueTreeState.getEffectsState();
+    if (! existingEffects.isValid())
+        return false;
+
+    mergeTreeRecursive (existingEffects, effectsTree, valueTreeState.getUndoManager());
+
+    // THE OTHER DIRECTION, and it has to run here rather than only in
+    // ensureCompleteSchema, which this path never reaches (it runs from
+    // replaceState alone). applyConfigSection now builds the family from
+    // <IO>/effectChannels, so the common case merges onto a schema-complete
+    // channel - but mergeTreeRecursive APPENDS any <Effect> the file holds
+    // beyond that count verbatim, and a file written by an older schema is
+    // short of whatever that schema lacked. Either way the channel would go
+    // live half-built, and setEffectParameter writes only where some child
+    // already hasProperty(), so every later write of the absent parameter would
+    // be a silent no-op for the life of the show. Stamp the template's missing
+    // names on before the count is published.
+    valueTreeState.backfillEffectChannelsFromTemplate();
+
+    // The merge carries every attribute the file has, including ones this schema
+    // no longer declares. mergeTreeRecursive and backfillFromTemplate both only
+    // ever ADD - neither removes a property - so without this a retired effect
+    // attribute would ride along in every saved show for ever.
+    valueTreeState.stripObsoleteEffectProperties();
+
+    // OUTPUTS here, not reverbs. mergeTreeRecursive appends unmatched source
+    // children and never removes one, so a file with more <Effect> nodes than
+    // the session has just grew the list; setNumEffectChannels writes the true
+    // child count back to BOTH <Effects count> and Config/IO/effectChannels so
+    // nothing downstream reads a number the tree does not have. When the counts
+    // already agree - the normal case - it writes the same two values and
+    // changes nothing else: the re-layout and the undo clear are both gated on
+    // the count actually having moved.
+    valueTreeState.setNumEffectChannels (valueTreeState.getNumEffectChannels());
+    return true;
 }
 
 bool WFSFileManager::applyAudioPatchSection (const juce::ValueTree& audioPatchTree)

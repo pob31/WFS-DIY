@@ -177,8 +177,7 @@ All 8 button states are reported simultaneously (complete state snapshot).
 |--------|------|------|-------------|
 | 0 | 1 | Report ID | `0x01` |
 | 1 | 1 | Event Type | `0x03` (dial event) |
-| 2 | 1 | Dial Count | Number of dials (4 for SD+) |
-| 3 | 1 | Reserved | `0x00` |
+| 2 | 2 | Payload Length | Number of dials + 1, little-endian (`05 00` on the SD+) |
 | 4 | 1 | Action Type | `0x00`=press/release, `0x01`=rotation |
 | 5 | 1 | Dial 0 Value | See below |
 | 6 | 1 | Dial 1 Value | See below |
@@ -186,7 +185,7 @@ All 8 button states are reported simultaneously (complete state snapshot).
 | 8 | 1 | Dial 3 Value | See below |
 
 **Dial value encoding**:
-- **Rotation** (action type = `0x01`): `0x01` = clockwise, `0xFF` = counter-clockwise (signed byte), `0x00` = no change
+- **Rotation** (action type = `0x01`): a signed byte per dial, the number of clicks since the last report - positive = clockwise, negative = counter-clockwise, `0x00` = that dial did not move. While a dial turns, the firmware sends one report every **50 ms**, so a quick turn puts several clicks in one byte: 1-3 on a slow or medium turn, up to 16 on a flick, and never a reversal inside a flick (measured 2026-09-24 on the then-current firmware with `spatcore/tools/streamdeck/dial_capture.py`). Count every click: reading only the sign drops the rest, and a flick followed by a small correction then comes out the wrong way.
 - **Press** (action type = `0x00`): `0x01` = pressed down, `0x00` = released
 
 #### 3.4.3 Touchstrip Touch Events
@@ -451,7 +450,7 @@ Page "Inputs > Parameters"
 ```
 
 **Binding types**:
-- **Float/Int dial**: Rotation changes value by `step` per detent. LCD shows name + formatted value.
+- **Float/Int dial**: Each click changes the value by `step`, or by `fineStep` while the dial is pressed. A fast unpressed turn multiplies the step (`StreamDeckDialAcceleration`), up to the binding's `maxAcceleration`: 0 = from its range, 1 = never (a dial that picks an item), N = at most N (a relative dial). LCD shows name + formatted value.
 - **ComboBox dial**: Press opens selection overlay on LCD. Rotate to browse options. Press again to confirm.
 - **Toggle button**: Press toggles state. Button image shows on/off indicator.
 - **Momentary button**: Active while held. Image reflects pressed state.

@@ -183,12 +183,30 @@ public:
      * Creates sliders for each output + reverb feed.
      * @param params Pointer to WfsParameters for querying output array assignments (can be nullptr)
      */
-    void configure(int outputCount, int reverbCount, WfsParameters* params = nullptr)
+    void configure(int outputCount, int reverbCount, int effectCount, WfsParameters* params = nullptr)
     {
         parameters = params;
         numOutputs = outputCount;
         numReverbs = reverbCount;
-        int totalSliders = outputCount + reverbCount;
+        numEffects = effectCount;
+        int totalSliders = outputCount + reverbCount + effectCount;
+
+        // One naming rule for the three rows. Outputs carry their array's
+        // colour; the feeds that follow carry only a name.
+        auto nameSlider = [this](VisualisationSlider* slider, int i)
+        {
+            if (i < numOutputs)
+            {
+                slider->setOutputName("Output " + juce::String(i + 1));
+                if (parameters != nullptr)
+                    slider->setArrayNumber(static_cast<int>(parameters->getOutputParam(i, "outputArray")));
+            }
+            else if (i < numOutputs + numReverbs)
+                slider->setOutputName("Reverb " + juce::String(i - numOutputs + 1));
+            else
+                slider->setOutputName("Effect " + juce::String(i - numOutputs - numReverbs + 1));
+        };
+
 
         // Create delay sliders
         delaySliders.clear();
@@ -198,18 +216,7 @@ public:
             slider->setRange(0.0f, 350.0f);
             slider->setColour(juce::Colour(0xFFD4A017));  // Yellow
             slider->setValueUnit("ms");
-            if (i < numOutputs)
-            {
-                slider->setOutputName("Output " + juce::String(i + 1));
-                // Set array number for output bar color indicators
-                if (parameters != nullptr)
-                {
-                    int array = static_cast<int>(parameters->getOutputParam(i, "outputArray"));
-                    slider->setArrayNumber(array);
-                }
-            }
-            else
-                slider->setOutputName("Reverb " + juce::String(i - numOutputs + 1));
+            nameSlider(slider, i);
             addAndMakeVisible(slider);
         }
 
@@ -221,17 +228,7 @@ public:
             slider->setRange(-24.0f, 0.0f);
             slider->setColour(juce::Colour(0xFFE07878));  // Pink/coral
             slider->setValueUnit("dB");
-            if (i < numOutputs)
-            {
-                slider->setOutputName("Output " + juce::String(i + 1));
-                if (parameters != nullptr)
-                {
-                    int array = static_cast<int>(parameters->getOutputParam(i, "outputArray"));
-                    slider->setArrayNumber(array);
-                }
-            }
-            else
-                slider->setOutputName("Reverb " + juce::String(i - numOutputs + 1));
+            nameSlider(slider, i);
             addAndMakeVisible(slider);
         }
 
@@ -243,17 +240,7 @@ public:
             slider->setRange(-60.0f, 0.0f);
             slider->setColour(juce::Colour(0xFF4A90D9));  // Blue
             slider->setValueUnit("dB");
-            if (i < numOutputs)
-            {
-                slider->setOutputName("Output " + juce::String(i + 1));
-                if (parameters != nullptr)
-                {
-                    int array = static_cast<int>(parameters->getOutputParam(i, "outputArray"));
-                    slider->setArrayNumber(array);
-                }
-            }
-            else
-                slider->setOutputName("Reverb " + juce::String(i - numOutputs + 1));
+            nameSlider(slider, i);
             addAndMakeVisible(slider);
         }
 
@@ -309,9 +296,14 @@ public:
      * @param reverbDelaysMs Array of reverb delays [inputIndex * numReverbs + reverbIndex]
      * @param reverbLevels Array of reverb levels (linear 0-1)
      * @param reverbHfDb Array of reverb HF attenuation (dB)
+     * @param effectDelaysMs Array of effect-send delays [inputIndex * numEffects + effectIndex]
+     * @param effectLevels Array of effect-send levels (linear 0-1)
+     * @param effectHfDb Array of effect-send HF attenuation (dB)
      */
     void updateValues(const float* delaysMs, const float* levels, const float* hfDb,
-                      const float* reverbDelaysMs, const float* reverbLevels, const float* reverbHfDb)
+                      const float* reverbDelaysMs, const float* reverbLevels, const float* reverbHfDb,
+                      const float* effectDelaysMs = nullptr, const float* effectLevels = nullptr,
+                      const float* effectHfDb = nullptr)
     {
         int numInputs = (parameters != nullptr) ? parameters->getNumInputChannels() : 0;
         if (numInputs <= 0)
@@ -323,6 +315,9 @@ public:
         if (reverbDelaysMs != nullptr) cachedReverbDelays.assign (reverbDelaysMs, reverbDelaysMs + numInputs * numReverbs);
         if (reverbLevels   != nullptr) cachedReverbLevels.assign (reverbLevels,   reverbLevels   + numInputs * numReverbs);
         if (reverbHfDb     != nullptr) cachedReverbHfDb  .assign (reverbHfDb,     reverbHfDb     + numInputs * numReverbs);
+        if (effectDelaysMs != nullptr) cachedEffectDelays.assign (effectDelaysMs, effectDelaysMs + numInputs * numEffects);
+        if (effectLevels   != nullptr) cachedEffectLevels.assign (effectLevels,   effectLevels   + numInputs * numEffects);
+        if (effectHfDb     != nullptr) cachedEffectHfDb  .assign (effectHfDb,     effectHfDb     + numInputs * numEffects);
         cachedNumInputs = numInputs;
 
         if (selectedInput < 0) return;
@@ -362,14 +357,16 @@ public:
         auto bounds = getLocalBounds();
         const int labelWidth = sc(80);
         const int spacing = sc(2);
-        const int gapBetweenOutputsAndReverbs = sc(10);  // Double padding between outputs and reverbs
+        const int gapBetweenOutputsAndReverbs = sc(10);  // Double padding between groups
 
-        int totalSliders = numOutputs + numReverbs;
+        int totalSliders = numOutputs + numReverbs + numEffects;
         if (totalSliders == 0) totalSliders = 1;
 
-        // Calculate slider width accounting for the gap between outputs and reverbs
+        // Calculate slider width accounting for the gaps between the groups
         int availableWidth = bounds.getWidth() - labelWidth - sc(10);
         if (numOutputs > 0 && numReverbs > 0)
+            availableWidth -= gapBetweenOutputsAndReverbs;
+        if (numOutputs + numReverbs > 0 && numEffects > 0)
             availableWidth -= gapBetweenOutputsAndReverbs;
         int sliderWidth = juce::jmax(sc(15), availableWidth / totalSliders);
         int rowHeight = (bounds.getHeight() - sc(6)) / 3;
@@ -380,8 +377,10 @@ public:
             int x = spacing;
             for (int i = 0; i < sliders.size(); ++i)
             {
-                // Add gap before reverb sliders
+                // Add a gap before each following group
                 if (i == numOutputs && numReverbs > 0)
+                    x += gapBetweenOutputsAndReverbs;
+                if (i == numOutputs + numReverbs && numEffects > 0)
                     x += gapBetweenOutputsAndReverbs;
 
                 sliders[i]->setBounds(x, row.getY() + spacing,
@@ -476,6 +475,25 @@ private:
                 hfSliders[sliderIdx]->setValue (cachedReverbHfDb[(size_t) dataIdx]);
         }
 
+        for (int i = 0; i < numEffects && (numOutputs + numReverbs + i) < delaySliders.size(); ++i)
+        {
+            int dataIdx  = idx * numEffects + i;
+            int sliderIdx = numOutputs + numReverbs + i;
+
+            if (dataIdx < (int) cachedEffectDelays.size())
+                delaySliders[sliderIdx]->setValue (cachedEffectDelays[(size_t) dataIdx]);
+
+            if (dataIdx < (int) cachedEffectLevels.size())
+            {
+                float linearLevel = cachedEffectLevels[(size_t) dataIdx];
+                float dB = (linearLevel > 0.0f) ? 20.0f * std::log10 (linearLevel) : -60.0f;
+                levelSliders[sliderIdx]->setValue (juce::jmax (-60.0f, dB));
+            }
+
+            if (dataIdx < (int) cachedEffectHfDb.size())
+                hfSliders[sliderIdx]->setValue (cachedEffectHfDb[(size_t) dataIdx]);
+        }
+
         repaint();
     }
 
@@ -501,6 +519,7 @@ private:
     WfsParameters* parameters = nullptr;
     int numOutputs = 0;
     int numReverbs = 0;
+    int numEffects = 0;
     int selectedInput = 0;
 
     // Cached matrix from the latest updateValues() call, indexed
@@ -508,9 +527,10 @@ private:
     // the bars when the user switches channels between DSP pushes.
     std::vector<float> cachedDelays, cachedLevels, cachedHfDb;
     std::vector<float> cachedReverbDelays, cachedReverbLevels, cachedReverbHfDb;
+    std::vector<float> cachedEffectDelays, cachedEffectLevels, cachedEffectHfDb;
     int cachedNumInputs = 0;
 
-    // Sliders for each output + reverb
+    // Sliders for each output, reverb feed and effect send
     juce::OwnedArray<VisualisationSlider> delaySliders;
     juce::OwnedArray<VisualisationSlider> hfSliders;
     juce::OwnedArray<VisualisationSlider> levelSliders;

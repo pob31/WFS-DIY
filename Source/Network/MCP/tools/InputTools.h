@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "../MCPCompat.h"
+#include "../MCPParameterValidation.h"
 #include "../../../Parameters/WFSValueTreeState.h"
 #include "../../../Parameters/WFSParameterIDs.h"
 
@@ -284,11 +285,18 @@ inline ToolResult setCartesian (WFSValueTreeState& state, const juce::var& args,
     if (channelIndex < 0)
         return ToolResult::error ("invalid_args", "input_id out of range: " + juce::String (inputId));
 
+    double rawX = 0.0, rawY = 0.0, rawZ = 0.0;
+    ToolResult notANumber;
+    if (! MCPValidation::readFiniteNumber (*obj, "x", rawX, notANumber)
+        || ! MCPValidation::readFiniteNumber (*obj, "y", rawY, notANumber)
+        || ! MCPValidation::readFiniteNumber (*obj, "z", rawZ, notANumber))
+        return notANumber;
+
     // Clamp at the server boundary — LLMs sometimes emit out-of-range values.
-    constexpr float kStageMax = 50.0f;
-    float x = juce::jlimit (-kStageMax, kStageMax, static_cast<float> (obj->getProperty ("x")));
-    float y = juce::jlimit (-kStageMax, kStageMax, static_cast<float> (obj->getProperty ("y")));
-    float z = juce::jlimit (-kStageMax, kStageMax, static_cast<float> (obj->getProperty ("z")));
+    constexpr double kStageMax = 50.0;
+    float x = static_cast<float> (juce::jlimit (-kStageMax, kStageMax, rawX));
+    float y = static_cast<float> (juce::jlimit (-kStageMax, kStageMax, rawY));
+    float z = static_cast<float> (juce::jlimit (-kStageMax, kStageMax, rawZ));
 
     float oldX = static_cast<float> (state.getInputParameter (channelIndex, WFSParameterIDs::inputPositionX));
     float oldY = static_cast<float> (state.getInputParameter (channelIndex, WFSParameterIDs::inputPositionY));
@@ -412,7 +420,11 @@ inline ToolResult setAttenuation (WFSValueTreeState& state, const juce::var& arg
     if (channelIndex < 0)
         return ToolResult::error ("invalid_args", "input_id out of range: " + juce::String (inputId));
 
-    float db = juce::jlimit (-92.0f, 0.0f, static_cast<float> (obj->getProperty ("db")));
+    double rawDb = 0.0;
+    ToolResult notANumber;
+    if (! MCPValidation::readFiniteNumber (*obj, "db", rawDb, notANumber))
+        return notANumber;
+    float db = static_cast<float> (juce::jlimit (-92.0, 0.0, rawDb));
     float oldDb = static_cast<float> (state.getInputParameter (channelIndex, WFSParameterIDs::inputAttenuation));
 
     state.setInputParameter (channelIndex, WFSParameterIDs::inputAttenuation, db);

@@ -44,6 +44,10 @@ public:
         onPositionChanged = std::move(callback);
     }
 
+    /** Fired when a drag starts, before the first position report - the owner
+        opens one undo step for the whole drag, as a map drag does. */
+    std::function<void()> onGestureStart;
+
     std::pair<float, float> getCurrentPosition() const noexcept { return { normalizedPosition.x, normalizedPosition.y }; }
 
     /** Set the thumb position externally (visual only, does NOT trigger onPositionChanged).
@@ -111,6 +115,8 @@ private:
 
     void mouseDown(const juce::MouseEvent& e) override
     {
+        if (onGestureStart != nullptr)
+            onGestureStart();
         dragging = true;
         updateFromPointer(e.position);
         if (onPositionChanged != nullptr)

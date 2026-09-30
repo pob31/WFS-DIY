@@ -1,5 +1,7 @@
 #include "TrackingOSCReceiver.h"
 #include "../../spatcore/dsp/TrackingPositionFilter.h"
+#include "../../spatcore/control/osc/OSCParser.h"
+#include "../WFSLogger.h"
 #include "OSCLogger.h"
 
 namespace WFSNetwork
@@ -34,14 +36,41 @@ bool TrackingOSCReceiver::start(int port, const juce::String& pathPattern)
         }
     }
 
+    // Every datagram goes through a bounded queue drained on the message
+    // thread, as the main OSC receivers do (OSCManager). Without a raw-data
+    // callback the receiver posted one callAsync per datagram holding its raw
+    // `this`: a flood grew the message queue without limit, and a stop() (port
+    // change, tracking switched off, shutdown) freed the receiver under the
+    // calls still queued (re-audit 2026-09-29, N5). Nothing coalesces: the
+    // address is the user's pattern and may carry every tracker at once.
+    using spatcore::control::osc::OSCIngestQueue;
+    ingestQueue = std::make_unique<OSCIngestQueue>(OSCIngestQueue::Classifier {});
+    ingestQueue->setMaxItemsPerTick(256);   // the whole FIFO per tick: the cap bounds memory, not throughput
+    ingestQueue->setDrainIntervalMs(5);
+    ingestQueue->setDispatch([this] (const juce::MemoryBlock& data, const juce::String& senderIP,
+                                     int, spatcore::control::osc::ConnectionMode)
+    {
+        dispatchIngested(data, senderIP);
+    });
+    ingestQueue->setDropReport([] (uint64_t totalDropped, spatcore::control::osc::ConnectionMode)
+    {
+        WFSLogger::getInstance().logWarning("Tracking OSC queue full, dropped "
+                                            + juce::String(totalDropped) + " message(s) in total");
+    });
+
     // Create and start the receiver
     receiver = std::make_unique<OSCReceiverWithSenderIP>();
-    receiver->addListener(this);
+    auto* queuePtr = ingestQueue.get();
+    receiver->setRawDataCallback([queuePtr, port] (juce::MemoryBlock data, juce::String senderIP, int)
+    {
+        queuePtr->push(std::move(data), std::move(senderIP), port, spatcore::control::osc::ConnectionMode::UDP);
+    });
 
     if (!receiver->connect(port))
     {
         DBG("TrackingOSCReceiver: Failed to bind to port " << port);
         receiver.reset();
+        ingestQueue.reset();
         return false;
     }
 
@@ -50,12 +79,15 @@ bool TrackingOSCReceiver::start(int port, const juce::String& pathPattern)
 
 void TrackingOSCReceiver::stop()
 {
+    // In this order: disconnect joins the socket thread, so nothing pushes
+    // into the queue after it; the queue goes next, on the message thread,
+    // and its drain timer with it.
     if (receiver)
     {
-        receiver->removeListener(this);
         receiver->disconnect();
         receiver.reset();
     }
+    ingestQueue.reset();
 }
 
 void TrackingOSCReceiver::setTransformations(float newOffsetX, float newOffsetY, float newOffsetZ,
@@ -94,6 +126,25 @@ void TrackingOSCReceiver::resetStatistics()
 //==============================================================================
 // OSCReceiverWithSenderIP::Listener
 //==============================================================================
+
+void TrackingOSCReceiver::dispatchIngested(const juce::MemoryBlock& data, const juce::String& senderIP)
+{
+    try
+    {
+        const char* bytes = static_cast<const char*>(data.getData());
+        const int size = static_cast<int>(data.getSize());
+        int pos = 0;
+
+        if (size >= 8 && std::memcmp(bytes, "#bundle", 7) == 0)
+            oscBundleReceived(spatcore::control::osc::OSCParser::parseBundle(bytes, size, pos), senderIP);
+        else
+            oscMessageReceived(spatcore::control::osc::OSCParser::parseMessage(bytes, size, pos), senderIP);
+    }
+    catch (const juce::OSCFormatError&)
+    {
+        DBG("TrackingOSCReceiver: parse error from " << senderIP);
+    }
+}
 
 void TrackingOSCReceiver::oscMessageReceived(const juce::OSCMessage& message,
                                               const juce::String& /*senderIP*/)
@@ -172,6 +223,14 @@ void TrackingOSCReceiver::processTrackingMessage(const juce::OSCMessage& message
         if (flipZ) z = -z;
     }
 
+    // A sample that is not a number is dropped whole: one NaN poisoned the
+    // input's position filter for good and reached its offset. Checked after
+    // the transforms, which can take a huge finite value to infinity. (PSN,
+    // RTTrP and MQTT get the same check in TrackingIngestQueue::push.)
+    if ((hasX && ! std::isfinite (x)) || (hasY && ! std::isfinite (y))
+        || (hasZ && ! std::isfinite (z)) || (hasQ && ! std::isfinite (q)))
+        return;
+
     // Route to matching inputs
     routeToInputs(trackingId, x, y, z, hasX, hasY, hasZ, q);
 }
@@ -214,17 +273,19 @@ void TrackingOSCReceiver::routeToInputs(int trackingId, float x, float y, float 
         }
 
         // Update offset coordinates (tracking updates offset, not position)
-        // Using setProperty triggers ValueTree listeners which updates map and broadcasts to targets.
+        // The write fires the ValueTree listeners, which update the map and broadcast to targets.
         // Live tracking is transient — suppress dirty flagging in the snapshot scope.
         // Phase 5b: tag as Tracking-origin for the MCP staleness/notifications path.
         OriginTagScope originScope { OriginTag::Tracking };
         ParameterDirtyTracker::ScopedInternalWrite guard (dirtyTracker);
+        // Through the store (no undo), so its range clamp and its NaN refusal
+        // hold for tracking as for every other writer.
         if (hasX)
-            posSection.setProperty(WFSParameterIDs::inputOffsetX, fx, nullptr);
+            state.setParameterWithoutUndo (WFSParameterIDs::inputOffsetX, fx, ch);
         if (hasY)
-            posSection.setProperty(WFSParameterIDs::inputOffsetY, fy, nullptr);
+            state.setParameterWithoutUndo (WFSParameterIDs::inputOffsetY, fy, ch);
         if (hasZ)
-            posSection.setProperty(WFSParameterIDs::inputOffsetZ, fz, nullptr);
+            state.setParameterWithoutUndo (WFSParameterIDs::inputOffsetZ, fz, ch);
 
         anyRouted = true;
     }

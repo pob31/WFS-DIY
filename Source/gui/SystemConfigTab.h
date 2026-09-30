@@ -13,6 +13,7 @@
 #include "ColumnFocusTraverser.h"
 #include "../AppSettings.h"
 #include "../WFSLogger.h"
+#include "ScreenShareRendering.h"
 #include "../../spatcore/controllers/lightpad/LightpadTypes.h"
 #include "HelpCard.h"
 #include "InputChannelListEditor.h"
@@ -472,7 +473,9 @@ class SystemConfigTab : public juce::Component,
 public:
     // Callback types for notifying MainComponent of changes
     using ProcessingCallback = std::function<void(bool enabled)>;
-    using ChannelCountCallback = std::function<void(int inputs, int outputs, int reverbs)>;
+    // Carries no counts: the receiver reads every family's count from the
+    // parameter tree, which is where this tab read them from anyway.
+    using ChannelCountCallback = std::function<void()>;
     using AlgorithmCallback = std::function<void(int algorithmId)>;
     using GpuDepthCallback = std::function<void(int depthBlocks)>;
     using AudioInterfaceCallback = std::function<void()>;
@@ -535,6 +538,11 @@ public:
         reverbChannelsLabel.setText(LOC("systemConfig.labels.reverbChannels"), juce::dontSendNotification);
         addAndMakeVisible(reverbChannelsEditor);
         // (reverbChannelsEditor uses default border)
+
+        addAndMakeVisible(effectChannelsLabel);
+        effectChannelsLabel.setText(LOC("systemConfig.labels.effectChannels"), juce::dontSendNotification);
+        addAndMakeVisible(effectChannelsEditor);
+        // (effectChannelsEditor uses default border)
 
         addAndMakeVisible(gettingStartedButton);
         gettingStartedButton.setButtonText(LOC("wizard.buttons.gettingStarted"));
@@ -791,6 +799,26 @@ public:
             updateQuickLongPressText();
             if (onQuickLongPressChanged)
                 onQuickLongPressChanged(enabled);
+        };
+
+        // Screen Rendering toggle: Accelerated (GPU) or Compatible (CPU, which
+        // single-window screen sharing can capture). Windows only, Accelerated
+        // at every launch.
+        addChildComponent(screenRenderingLabel);
+        screenRenderingLabel.setText(LOC("systemConfig.labels.screenRendering"), juce::dontSendNotification);
+        addChildComponent(screenRenderingToggle);
+        screenRenderingToggle.setClickingTogglesState(true);
+        screenRenderingToggle.setToggleState(ScreenShareRendering::isOn(), juce::dontSendNotification);
+        updateScreenRenderingText();
+        screenRenderingLabel.setVisible(ScreenShareRendering::isSupported());
+        screenRenderingToggle.setVisible(ScreenShareRendering::isSupported());
+        screenRenderingToggle.onClick = [this]() {
+            bool enabled = screenRenderingToggle.getToggleState();
+            ScreenShareRendering::setOn(enabled);
+            updateScreenRenderingText();
+            WFSLogger::getInstance().logInfo(juce::String("Screen Rendering: ")
+                                             + (enabled ? "Compatible (software renderer)"
+                                                        : "Accelerated (GPU renderer)"));
         };
 
         // Language selector
@@ -1423,6 +1451,7 @@ public:
         stereoChannelsEditor.addListener(this);
         outputChannelsEditor.addListener(this);
         reverbChannelsEditor.addListener(this);
+        effectChannelsEditor.addListener(this);
         stageWidthEditor.addListener(this);
         stageDepthEditor.addListener(this);
         stageHeightEditor.addListener(this);
@@ -1537,8 +1566,11 @@ public:
         g.setFont(juce::FontOptions().withHeight(juce::jmax(10.0f, 14.0f * layoutScale)).withStyle("Bold"));
         g.drawText(LOC("systemConfig.sections.show"), layout.col1X, scaled(10), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.io"), layout.col1X, scaled(130), layout.colWidth, headerH, juce::Justification::left);
-        g.drawText(LOC("systemConfig.sections.ui"), layout.col1X, scaled(328), layout.colWidth, headerH, juce::Justification::left);
-        g.drawText(LOC("systemConfig.sections.controllers"), layout.col1X, scaled(503), layout.colWidth, headerH, juce::Justification::left);
+        // 363 and 538, not 328 and 503: the I/O block grew an effects row
+        // (rowHeight 30 + spacing 5), and every y in this column is absolute.
+        // Controllers drops one more row where UI has the Screen Rendering row.
+        g.drawText(LOC("systemConfig.sections.ui"), layout.col1X, scaled(363), layout.colWidth, headerH, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.controllers"), layout.col1X, scaled(538 + screenRenderingRowRef()), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.stage"), layout.col2X, scaled(10), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.master"), layout.col2X, scaled(400), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.wfsProcessor"), layout.col3X, scaled(10), layout.colWidth, headerH, juce::Justification::left);
@@ -1611,10 +1643,17 @@ public:
             reverbChannelsEditor.setBounds(x + labelWidth + ei, y, editorWidth - ei * 2, rowHeight);
             reverbShiftButton.setBounds(shiftBtnX, y, shiftBtnSize, rowHeight);
             reverbShiftDismissButton.setBounds(shiftBtnX + shiftBtnSize + spacing, y, shiftBtnSize, rowHeight);
+            y += rowHeight + spacing;
+
+            // Effects has no shift button: the shift buttons move a channel's
+            // OSC numbering, and effect ids are dense with no permanent numbers
+            // to preserve.
+            effectChannelsLabel.setBounds(x, y, labelWidth, rowHeight);
+            effectChannelsEditor.setBounds(x + labelWidth + ei, y, editorWidth - ei * 2, rowHeight);
         }
 
         // UI Section
-        y = scaled(358); // Start after "UI" header (I/O grew a stereo row)
+        y = scaled(393); // Start after the "UI" header (I/O grew a stereo row, then an effects row)
         colorSchemeLabel.setBounds(x, y, labelWidth, rowHeight);
         colorSchemeSelector.setBounds(x + labelWidth, y, editorWidth * 2, rowHeight);  // Wider for dropdown text
         y += rowHeight + spacing;
@@ -1622,6 +1661,13 @@ public:
         quickLongPressLabel.setBounds(x, y, labelWidth, rowHeight);
         quickLongPressToggle.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         y += rowHeight + spacing;
+
+        if (ScreenShareRendering::isSupported())
+        {
+            screenRenderingLabel.setBounds(x, y, labelWidth, rowHeight);
+            screenRenderingToggle.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+            y += rowHeight + spacing;
+        }
 
         languageLabel.setBounds(x, y, labelWidth, rowHeight);
         languageSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
@@ -1638,7 +1684,7 @@ public:
         }
 
         // Controllers Section
-        y = scaled(533); // Start after "Controllers" header (shifted down for extra UI rows)
+        y = scaled(568 + screenRenderingRowRef()); // Start after the "Controllers" header (shifted down for the extra UI and I/O rows)
         dialsAndButtonsLabel.setBounds (x, y, labelWidth, rowHeight);
         dialsAndButtonsSelector.setBounds (x + labelWidth, y, editorWidth * 2, rowHeight);
         y += rowHeight + spacing;
@@ -2056,9 +2102,9 @@ public:
 
             // Keyboard Shortcuts help button — same right-aligned column as the
             // overview "?", but up on the "UI" section header line (painted at
-            // scaled(328) with a scaled(20) row, see paint()).
+            // scaled(363) with a scaled(20) row, see paint()).
             shortcutsHelpButton.setBounds (layout.col1X + layout.colWidth - btnSize,
-                                           scaled(328) + (scaled(20) - btnSize) / 2,
+                                           scaled(363) + (scaled(20) - btnSize) / 2,
                                            btnSize, btnSize);
 
             // Keyboard Shortcuts card — large, centered; scrolls if it overflows
@@ -2432,7 +2478,8 @@ public:
             // Column 1: Show
             { &showNameEditor, &showLocationEditor },
             // Column 2: I/O
-            { &inputChannelsEditor, &stereoChannelsEditor, &outputChannelsEditor, &reverbChannelsEditor },
+            { &inputChannelsEditor, &stereoChannelsEditor, &outputChannelsEditor, &reverbChannelsEditor,
+              &effectChannelsEditor },
             // Column 3: Stage (invisible fields skipped automatically per shape)
             { &stageWidthEditor, &stageDepthEditor,
               &stageDiameterEditor, &domeElevationEditor, &stageHeightEditor,
@@ -2500,6 +2547,7 @@ private:
         setupNumericEditor(stereoChannelsEditor, false, false);
         setupNumericEditor(outputChannelsEditor, false, false);
         setupNumericEditor(reverbChannelsEditor, false, false);
+        setupNumericEditor(effectChannelsEditor, false, false);
 
         // Binaural Section
         setupNumericEditor(binauralDistanceEditor, false, true);  // 0.0 to 10.0
@@ -2653,6 +2701,7 @@ private:
         }
         outputChannelsEditor.setText(juce::String(parameters.getNumOutputChannels()), false);
         reverbChannelsEditor.setText(juce::String(parameters.getNumReverbChannels()), false);
+        effectChannelsEditor.setText(juce::String(parameters.getNumEffectChannels()), false);
 
         // Stage shape selector
         int shapeId = (int)parameters.getConfigParam("StageShape");
@@ -3001,6 +3050,58 @@ private:
                 notifyChannelCountChanged();
             }
         }
+        else if (&editor == &effectChannelsEditor)
+        {
+            int newEffects = juce::jlimit(0, WFSParameterDefaults::maxEffectChannels, text.getIntValue());
+            int currentEffects = parameters.getNumEffectChannels();
+
+            // Clamp visibly rather than silently: setNumEffectChannels would
+            // answer "set 40" with a quiet 32, and the operator would be left
+            // believing in eight channels that are not there.
+            if (newEffects != text.getIntValue())
+                effectChannelsEditor.setText(juce::String(newEffects), false);
+
+            if (newEffects < currentEffects)
+            {
+                if (isShowingChannelReductionDialog)
+                {
+                    effectChannelsEditor.setText(juce::String(currentEffects), false);
+                    return;
+                }
+                isShowingChannelReductionDialog = true;
+
+                auto options = juce::MessageBoxOptions()
+                    .withIconType(juce::MessageBoxIconType::WarningIcon)
+                    .withTitle(LOC("systemConfig.dialogs.reduceEffectChannels.title"))
+                    .withMessage(LocalizationManager::getInstance().get(
+                        "systemConfig.dialogs.reduceEffectChannels.message",
+                        {{"current", juce::String(currentEffects)},
+                         {"new", juce::String(newEffects)},
+                         {"start", juce::String(newEffects + 1)},
+                         {"end", juce::String(currentEffects)}}))
+                    .withButton(LOC("systemConfig.dialogs.reduce"))
+                    .withButton(LOC("common.cancel"))
+                    .withAssociatedComponent(this);
+
+                juce::AlertWindow::showAsync(options, [this, newEffects, currentEffects](int result) {
+                    isShowingChannelReductionDialog = false;
+                    if (result == 1)
+                    {
+                        parameters.setNumEffectChannels(newEffects);
+                        notifyChannelCountChanged();
+                    }
+                    else
+                    {
+                        effectChannelsEditor.setText(juce::String(currentEffects), false);
+                    }
+                });
+            }
+            else if (newEffects != currentEffects)
+            {
+                parameters.setNumEffectChannels(newEffects);
+                notifyChannelCountChanged();
+            }
+        }
         else if (&editor == &stageWidthEditor)
         {
             parameters.setConfigParam("StageWidth", text.getFloatValue());
@@ -3210,14 +3311,20 @@ private:
                                  WFSParameterDefaults::binauralListenerRollMax, value);
         else if (&editor == &reverbChannelsEditor)
             value = juce::jlimit(0.0f, (float)WFSParameterDefaults::maxReverbChannels, std::abs(value));
+        else if (&editor == &effectChannelsEditor)
+            value = juce::jlimit(0.0f, (float)WFSParameterDefaults::maxEffectChannels, std::abs(value));
         else if (&editor == &stereoChannelsEditor)
             value = juce::jlimit(0.0f, (float)WFSParameterDefaults::maxStereoChannels, std::abs(value));
 
         // Update display with clamped value
         if (&editor == &inputChannelsEditor || &editor == &stereoChannelsEditor ||
             &editor == &outputChannelsEditor ||
-            &editor == &reverbChannelsEditor || &editor == &binauralOrbitEditor)
+            &editor == &reverbChannelsEditor || &editor == &effectChannelsEditor ||
+            &editor == &binauralOrbitEditor)
         {
+            // A channel count is a whole number of channels. Left out of this
+            // list an editor falls through to the two-decimal branch below and
+            // reads "3.00", which is not a count of anything.
             editor.setText(juce::String((int)value), false);
         }
         else if (&editor == &binauralDistanceEditor || &editor == &binauralAttenEditor ||
@@ -3561,6 +3668,10 @@ public:
         editChannelsButton.setEnabled(enabled);
         outputChannelsEditor.setEnabled(enabled);
         reverbChannelsEditor.setEnabled(enabled);
+        // Stopped-only like every other count: an accepted write reaches
+        // handleChannelCountChange, which stops processing to rebuild the
+        // shared rings the effects engine reads.
+        effectChannelsEditor.setEnabled(enabled);
         audioPatchingButton.setEnabled(enabled);
         algorithmSelector.setEnabled(enabled);
 #if WFS_GPU_NATIVE
@@ -3965,10 +4076,13 @@ public:
         binauralTrackerLabel.setColour(juce::Label::textColourId, enabledColour);
 
         // Sliders - setEnabled drives the isEnabled() check in paintSlider
+        // (dim only: WfsSliderBase stays draggable, so values can be set up
+        // before binaural goes on). The Orbit dial must match - its
+        // setEnabled(false) would refuse input, so it is dimmed instead.
         binauralDistanceSlider.setEnabled(binauralActive);
         binauralAttenSlider.setEnabled(binauralActive);
         binauralDelaySlider.setEnabled(binauralActive);
-        binauralOrbitDial.setEnabled(binauralActive);
+        binauralOrbitDial.setDimmed(! binauralActive);
 
         // Solo mode button - visually dim when binaural inactive
         soloModeButton.setColour(juce::TextButton::textColourOffId, binauralActive ? enabledColour : disabledColour);
@@ -4341,7 +4455,7 @@ public:
                 if (safe == nullptr) return;
                 auto& fm = safe->parameters.getFileManager();
 
-                // Load complete config from individual files (system.xml, network.xml, inputs.xml, outputs.xml, reverbs.xml)
+                // Load complete config from individual files (system.xml, network.xml, inputs.xml, outputs.xml, reverbs.xml, effects.xml)
                 safe->parameters.getDirtyTracker().beginSuppression();
                 bool success = fm.loadCompleteConfig();
 
@@ -4763,6 +4877,8 @@ public:
         helpTextMap[&colorSchemeSelector] = LOC("systemConfig.help.colorScheme");
         helpTextMap[&quickLongPressLabel] = LOC("systemConfig.help.quickLongPress");
         helpTextMap[&quickLongPressToggle] = LOC("systemConfig.help.quickLongPress");
+        helpTextMap[&screenRenderingLabel] = LOC("systemConfig.help.screenRendering");
+        helpTextMap[&screenRenderingToggle] = LOC("systemConfig.help.screenRendering");
         helpTextMap[&languageSelector] = LOC("systemConfig.help.language");
         helpTextMap[&translationTierSelector] = {};  // looked up when shown, see helpTextFor()
         helpTextMap[&dialsAndButtonsSelector] = LOC("systemConfig.help.dialsAndButtons");
@@ -4938,6 +5054,8 @@ public:
     juce::TextEditor outputChannelsEditor;
     juce::Label reverbChannelsLabel;
     juce::TextEditor reverbChannelsEditor;
+    juce::Label effectChannelsLabel;
+    juce::TextEditor effectChannelsEditor;
     juce::TextButton gettingStartedButton;
     juce::TextButton audioPatchingButton;
     juce::Label algorithmLabel;
@@ -5025,6 +5143,8 @@ public:
     juce::ComboBox colorSchemeSelector;
     juce::Label quickLongPressLabel;
     juce::TextButton quickLongPressToggle;
+    juce::Label screenRenderingLabel;
+    juce::TextButton screenRenderingToggle;
     juce::Label languageLabel;
     juce::ComboBox languageSelector;
     juce::StringArray availableLanguages;
@@ -5219,6 +5339,17 @@ public:
                                                : LOC("systemConfig.buttons.quickLongPressOff"));
     }
 
+    void updateScreenRenderingText()
+    {
+        bool on = screenRenderingToggle.getToggleState();
+        screenRenderingToggle.setButtonText(on ? LOC("systemConfig.buttons.screenRenderingCompatible")
+                                              : LOC("systemConfig.buttons.screenRenderingAccelerated"));
+    }
+
+    /** Reference-pixel height of the Screen Rendering row in the UI section
+        (rowHeight 30 + spacing 5), which only Windows shows. */
+    static constexpr int screenRenderingRowRef() { return ScreenShareRendering::isSupported() ? 35 : 0; }
+
     // Channel order dialog (stable-number model): drag to arrange the
     // mono/stereo interleaving, per-row delete (number retires as a gap).
     // Composition is edited through the count fields. Stopped-only via
@@ -5240,7 +5371,10 @@ public:
         options.useNativeTitleBar = false;
         options.resizable = false;
 
-        auto* dialog = options.launchAsync();
+        // launchAsync() without the show, so Compatible rendering applies before it
+        auto* dialog = options.create();
+        ScreenShareRendering::apply(*dialog);
+        dialog->enterModalState(true, nullptr, true);
 
         if (dialog != nullptr)
         {
@@ -5273,12 +5407,7 @@ public:
     void notifyChannelCountChanged()
     {
         if (onChannelCountChanged)
-        {
-            int inputs = parameters.getNumInputChannels();
-            int outputs = parameters.getNumOutputChannels();
-            int reverbs = parameters.getNumReverbChannels();
-            onChannelCountChanged(inputs, outputs, reverbs);
-        }
+            onChannelCountChanged();
     }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SystemConfigTab)

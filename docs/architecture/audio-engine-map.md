@@ -77,12 +77,21 @@ MainComponent::releaseResources  (Source/MainComponent.cpp:5182)   ← teardown 
 | **ReverbEngine** (1, `juce::Thread`) | `ReverbEngine.h:153-158` | JUCE realtime | none | node SPSC rings; internally the fork-join calling thread | `AudioParallelFor` fork/join uses `std::mutex`+CV (`AudioParallelFor.h:120-136`) on *this* thread, not the callback |
 | **AudioParallelFor pool** — up to 7 `std::thread` workers | `ReverbEngine.h:124-128` (`jlimit(0,7,hwThreads-2)`) | macOS: `THREAD_TIME_CONSTRAINT_POLICY` P-core (`RealtimeThreadUtil.h:30-58`); else default | none | atomic `fetch_add` work-steal + CV | mutex/CV at fork/join boundary |
 | **GPU pump** — 1 `GpuAsyncPipelineT` per active GPU path (WFS-direct and each GPU reverb family have their own) | `GpuAsyncPipeline.h:111-113` | JUCE realtime | none | SPSC in/out rings; `wait(50)`+`notify()` | none on audio thread; the pump itself does a *blocking* GPU launch |
+| **EffectsDriver** (1, `juce::Thread`) | `EffectsEngine.h` via `EffectsHost::startRealtimeThread` (`Source/DSP/EffectsHost.h`) | JUCE realtime | none | reads the shared input rings; `SpinLock` snapshot of the source-by-effect feed matrix; per-channel return rings the audio callback pops | brief SpinLock (near-RT, not the callback); the parameter handoff is an `RtTripleBuffer` acquired once per batch |
+| **Effects worker pool** — `AudioParallelFor`, workers from `effectsGlobalWorkerThreads` (-1 = auto) | `EffectsEngineCore.h` | as the reverb pool | none | atomic work-steal over the live channels | mutex/CV at the fork/join boundary, on the driver thread |
 | **BinauralProcessor** (1) | `BinauralProcessor.h:171` | JUCE realtime | none | shared input rings | — |
 | **Metering / analysis** (`InputAnalysisThread`, `OutputMeteringThread`) | `OutputBufferAlgorithm.h:248-255` | **`Priority::normal`** (not RT) | none | metering rings | cannot invert RT workers |
 | **Message/timer thread** (JUCE) | — | normal | none | recomputes `target*` matrices (§1.3); 50 Hz calc-engine tick | not RT |
 | **Network/tracking receivers** (OSC/PSN/RTTrP/MQTT, each a `juce::Thread`) | e.g. `OSCReceiverWithSenderIP.cpp:11-12` | normal | none | write positions into the ValueTree only | never touch audio buffers |
 
 **[V]** for every row above.
+
+**Effect returns and the InputBuffer path.** An effect return is a render source, and on the
+InputBuffer path every render source gets its own gather thread. Thirty-two effect channels
+therefore mean thirty-two more realtime threads on top of the inputs, their stereo slices and the
+reverb pool. The OutputBuffer path, whose thread count follows the OUTPUTS, is the recommended
+configuration for large effect counts; `WFS_EFFECTS_TRACE=1` makes the driver's duty visible while
+deciding.
 
 Key structural fact: the two CPU WFS algorithms do the actual delay-and-sum on their **own
 per-channel realtime worker threads** (`OutputBufferProcessor : juce::Thread`

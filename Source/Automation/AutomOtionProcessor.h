@@ -9,6 +9,134 @@
 #include "../Network/OSCProtocolTypes.h"
 
 /**
+ * What a family of animated channels looks like to the processor.
+ *
+ * Inputs and effect returns are animated by the same motion law. They differ in
+ * where their properties live, what those are called, which guards apply and,
+ * above all, in what a step of the animation DOES: an input's position is
+ * written back to the tree, while an effect return keeps the position the
+ * operator authored and the animation is published as an offset that the
+ * calculation engine adds. A family carries those differences and nothing else,
+ * so the law below has exactly one implementation.
+ *
+ * An invalid Identifier means the family has no such property, and its reader
+ * applies the documented fallback instead of a default value.
+ */
+struct AutomOtionFamily
+{
+    // The sections of one channel. channelSection may return an invalid tree.
+    std::function<juce::ValueTree (int)> otomoSection, positionSection, channelSection;
+
+    /** How the operator names this channel, lower case: "input 3", "effect 2".
+        Status-bar text is built from it, so it carries the number the operator
+        sees - a permanent channel number for inputs - and never a slot. */
+    std::function<juce::String (int)> channelLabel;
+
+    /** The cluster this channel belongs to, 0 = none. Effects have no clusters. */
+    std::function<int (int)> clusterOf;
+
+    // The base position a movement starts from
+    juce::Identifier posX, posY, posZ;
+
+    // The movement itself. stayReturn invalid = this family always returns.
+    juce::Identifier otomoX, otomoY, otomoZ, absRel, stayReturn, speedProfile,
+                     duration, curve, trigger, threshold, reset, coordMode,
+                     r, theta, rsph, phi;
+
+    // Guards. Either one invalid = that guard never blocks this family.
+    juce::Identifier trackingActive, samplerActive;
+
+    int numSlots = 64;
+
+    /** How long the level has to stay below the reset threshold before an audio
+        trigger re-arms. Zero re-arms on the first tick below it. */
+    float rearmHoldSeconds = 0.0f;
+
+    /** Non-null puts the family in OFFSET MODE: every step publishes
+        (current - authored) through this sink and the position properties are
+        never written. Null writes the position itself. */
+    std::function<void (int, float, float, float)> writeOffset;
+
+    /** The input family: today's behaviour, property for property. */
+    static AutomOtionFamily inputs (WFSValueTreeState& vts, int numInputs = 64)
+    {
+        AutomOtionFamily f;
+        f.otomoSection    = [&vts] (int i) { return vts.getInputAutoMotionSection (i); };
+        f.positionSection = [&vts] (int i) { return vts.getInputPositionSection (i); };
+        f.channelSection  = [&vts] (int i) { return vts.getInputChannelSection (i); };
+        f.channelLabel    = [&vts] (int i) { return "input " + juce::String (vts.getInputChannelNumber (i)); };
+        f.clusterOf       = [&vts] (int i)
+        {
+            return static_cast<int> (vts.getInputPositionSection (i)
+                                         .getProperty (WFSParameterIDs::inputCluster, 0));
+        };
+        f.posX = WFSParameterIDs::inputPositionX;
+        f.posY = WFSParameterIDs::inputPositionY;
+        f.posZ = WFSParameterIDs::inputPositionZ;
+        f.otomoX = WFSParameterIDs::inputOtomoX;
+        f.otomoY = WFSParameterIDs::inputOtomoY;
+        f.otomoZ = WFSParameterIDs::inputOtomoZ;
+        f.absRel = WFSParameterIDs::inputOtomoAbsoluteRelative;
+        f.stayReturn = WFSParameterIDs::inputOtomoStayReturn;
+        f.speedProfile = WFSParameterIDs::inputOtomoSpeedProfile;
+        f.duration = WFSParameterIDs::inputOtomoDuration;
+        f.curve = WFSParameterIDs::inputOtomoCurve;
+        f.trigger = WFSParameterIDs::inputOtomoTrigger;
+        f.threshold = WFSParameterIDs::inputOtomoThreshold;
+        f.reset = WFSParameterIDs::inputOtomoReset;
+        f.coordMode = WFSParameterIDs::inputOtomoCoordinateMode;
+        f.r = WFSParameterIDs::inputOtomoR;
+        f.theta = WFSParameterIDs::inputOtomoTheta;
+        f.rsph = WFSParameterIDs::inputOtomoRsph;
+        f.phi = WFSParameterIDs::inputOtomoPhi;
+        f.trackingActive = WFSParameterIDs::inputTrackingActive;
+        f.samplerActive = WFSParameterIDs::inputSamplerActive;
+        f.numSlots = numInputs;
+        return f;
+    }
+
+    /** The effect family: an offset sink, no Stay, no tracking, no sampler.
+        An effect return always comes home, because its authored position is
+        where the operator put that room in the show, and a movement that ended
+        somewhere else would move the room itself, silently and for good. */
+    static AutomOtionFamily effects (WFSValueTreeState& vts,
+                                     std::function<void (int, float, float, float)> sink,
+                                     int numEffects = WFSParameterDefaults::maxEffectChannels)
+    {
+        AutomOtionFamily f;
+        f.otomoSection    = [&vts] (int i) { return vts.getEffectAutoMotionSection (i); };
+        f.positionSection = [&vts] (int i) { return vts.getEffectPositionSection (i); };
+        f.channelSection  = [&vts] (int i) { return vts.getEffectChannelSection (i); };
+        f.channelLabel    = [] (int i) { return "effect " + juce::String (i + 1); };
+        f.clusterOf       = [] (int) { return 0; };
+        f.posX = WFSParameterIDs::effectPositionX;
+        f.posY = WFSParameterIDs::effectPositionY;
+        f.posZ = WFSParameterIDs::effectPositionZ;
+        f.otomoX = WFSParameterIDs::effectOtomoX;
+        f.otomoY = WFSParameterIDs::effectOtomoY;
+        f.otomoZ = WFSParameterIDs::effectOtomoZ;
+        f.absRel = WFSParameterIDs::effectOtomoAbsoluteRelative;
+        // stayReturn deliberately left invalid: this family always returns
+        f.speedProfile = WFSParameterIDs::effectOtomoSpeedProfile;
+        f.duration = WFSParameterIDs::effectOtomoDuration;
+        f.curve = WFSParameterIDs::effectOtomoCurve;
+        f.trigger = WFSParameterIDs::effectOtomoTrigger;
+        f.threshold = WFSParameterIDs::effectOtomoThreshold;
+        f.reset = WFSParameterIDs::effectOtomoReset;
+        f.coordMode = WFSParameterIDs::effectOtomoCoordinateMode;
+        f.r = WFSParameterIDs::effectOtomoR;
+        f.theta = WFSParameterIDs::effectOtomoTheta;
+        f.rsph = WFSParameterIDs::effectOtomoRsph;
+        f.phi = WFSParameterIDs::effectOtomoPhi;
+        // trackingActive / samplerActive left invalid: neither guard applies
+        f.numSlots = numEffects;
+        f.rearmHoldSeconds = 0.5f;
+        f.writeOffset = std::move (sink);
+        return f;
+    }
+};
+
+/**
  * AutomOtion Processor for WFS Input Position Animation
  *
  * Provides programmed point-to-point movement for input channel positions.
@@ -91,6 +219,7 @@ public:
         float currentRmsDb = -200.0f;        // Latest RMS level from audio
         bool triggerArmed = true;            // Ready to trigger on audio peak
         bool waitingForRearm = false;        // Movement complete, waiting for RMS to drop
+        float rearmHoldTime = 0.0f;          // How long the level has held below the reset threshold
 
         // Coordinate mode for this movement (captured at start)
         int coordinateMode = 0;  // 0=Cartesian, 1=Cylindrical, 2=Spherical
@@ -111,10 +240,17 @@ public:
     //==========================================================================
     // Construction
     //==========================================================================
-    explicit AutomOtionProcessor (WFSValueTreeState& state, int numInputs = 64)
-        : valueTreeState (state), numInputChannels (numInputs)
+    AutomOtionProcessor (WFSValueTreeState& state, AutomOtionFamily channelFamily)
+        : valueTreeState (state), family (std::move (channelFamily)),
+          numInputChannels (family.numSlots)
     {
-        states.resize (static_cast<size_t> (numInputs));
+        states.resize (static_cast<size_t> (numInputChannels));
+    }
+
+    /** The input family, which is what every caller that names a count means. */
+    explicit AutomOtionProcessor (WFSValueTreeState& state, int numInputs = 64)
+        : AutomOtionProcessor (state, AutomOtionFamily::inputs (state, numInputs))
+    {
     }
 
     /** Wire up the dirty tracker so playback writes don't flag position as dirty. */
@@ -161,8 +297,8 @@ public:
             // and slot + 1 would send the operator to a different live channel
             // once the list has a gap or has been reordered.
             if (onMotionBlocked && ! suppressBlockedFeedback)
-                onMotionBlocked (inputIndex, "Motion already in progress on input "
-                                             + juce::String (valueTreeState.getInputChannelNumber (inputIndex)));
+                onMotionBlocked (inputIndex, "Motion already in progress on "
+                                             + family.channelLabel (inputIndex));
             return false;
         }
 
@@ -171,8 +307,8 @@ public:
         {
             DBG ("AutomOtion: Cannot start motion on slot " << inputIndex << " - tracking is active");
             if (onMotionBlocked && ! suppressBlockedFeedback)
-                onMotionBlocked (inputIndex, "Tracking is active on input "
-                                             + juce::String (valueTreeState.getInputChannelNumber (inputIndex)));
+                onMotionBlocked (inputIndex, "Tracking is active on "
+                                             + family.channelLabel (inputIndex));
             return false;
         }
 
@@ -181,8 +317,8 @@ public:
         {
             DBG ("AutomOtion: Cannot start motion on slot " << inputIndex << " - sampler is active");
             if (onMotionBlocked && ! suppressBlockedFeedback)
-                onMotionBlocked (inputIndex, "Sampler is active on input "
-                                             + juce::String (valueTreeState.getInputChannelNumber (inputIndex)));
+                onMotionBlocked (inputIndex, "Sampler is active on "
+                                             + family.channelLabel (inputIndex));
             return false;
         }
 
@@ -192,20 +328,23 @@ public:
         // Absolute + Stay input re-triggered while already at its destination.
 
         // Get current base position from ValueTree
-        auto posSection = valueTreeState.getInputPositionSection (inputIndex);
-        float baseX = static_cast<float> (posSection.getProperty (WFSParameterIDs::inputPositionX, 0.0f));
-        float baseY = static_cast<float> (posSection.getProperty (WFSParameterIDs::inputPositionY, 0.0f));
-        float baseZ = static_cast<float> (posSection.getProperty (WFSParameterIDs::inputPositionZ, 0.0f));
+        auto posSection = family.positionSection (inputIndex);
+        float baseX = static_cast<float> (posSection.getProperty (family.posX, 0.0f));
+        float baseY = static_cast<float> (posSection.getProperty (family.posY, 0.0f));
+        float baseZ = static_cast<float> (posSection.getProperty (family.posZ, 0.0f));
 
         // Get AutomOtion parameters (from source input if specified, for cluster support)
         int sourceIndex = (autoMotionSourceIndex >= 0) ? autoMotionSourceIndex : inputIndex;
-        auto otomoSection = valueTreeState.getInputAutoMotionSection (sourceIndex);
-        bool isAbsolute = static_cast<int> (otomoSection.getProperty (WFSParameterIDs::inputOtomoAbsoluteRelative, 0)) == 0;
-        bool shouldReturn = static_cast<int> (otomoSection.getProperty (WFSParameterIDs::inputOtomoStayReturn, 0)) != 0;
-        int speedProfile = static_cast<int> (otomoSection.getProperty (WFSParameterIDs::inputOtomoSpeedProfile, 0));
-        float duration = static_cast<float> (otomoSection.getProperty (WFSParameterIDs::inputOtomoDuration, 5.0f));
-        int curve = static_cast<int> (otomoSection.getProperty (WFSParameterIDs::inputOtomoCurve, 0));
-        int coordMode = static_cast<int> (otomoSection.getProperty (WFSParameterIDs::inputOtomoCoordinateMode, 0));
+        auto otomoSection = family.otomoSection (sourceIndex);
+        bool isAbsolute = static_cast<int> (otomoSection.getProperty (family.absRel, 0)) == 0;
+        // No Stay property at all means the family always returns
+        bool shouldReturn = family.stayReturn.isValid()
+                                ? static_cast<int> (otomoSection.getProperty (family.stayReturn, 0)) != 0
+                                : true;
+        int speedProfile = static_cast<int> (otomoSection.getProperty (family.speedProfile, 0));
+        float duration = static_cast<float> (otomoSection.getProperty (family.duration, 5.0f));
+        int curve = static_cast<int> (otomoSection.getProperty (family.curve, 0));
+        int coordMode = static_cast<int> (otomoSection.getProperty (family.coordMode, 0));
 
         // Clamp duration to valid range
         duration = juce::jlimit (WFSParameterDefaults::inputOtomoDurationMin,
@@ -232,9 +371,9 @@ public:
             // startZ already set
 
             // Get target in cylindrical
-            float targetR = static_cast<float> (otomoSection.getProperty (WFSParameterIDs::inputOtomoR, 0.0f));
-            float targetTheta = static_cast<float> (otomoSection.getProperty (WFSParameterIDs::inputOtomoTheta, 0.0f));
-            float targetZ = static_cast<float> (otomoSection.getProperty (WFSParameterIDs::inputOtomoZ, 0.0f));
+            float targetR = static_cast<float> (otomoSection.getProperty (family.r, 0.0f));
+            float targetTheta = static_cast<float> (otomoSection.getProperty (family.theta, 0.0f));
+            float targetZ = static_cast<float> (otomoSection.getProperty (family.otomoZ, 0.0f));
 
             if (isAbsolute)
             {
@@ -268,9 +407,9 @@ public:
             state.startPhi = startSph.phi;
 
             // Get target in spherical
-            float targetR = static_cast<float> (otomoSection.getProperty (WFSParameterIDs::inputOtomoRsph, 0.0f));
-            float targetTheta = static_cast<float> (otomoSection.getProperty (WFSParameterIDs::inputOtomoTheta, 0.0f));
-            float targetPhi = static_cast<float> (otomoSection.getProperty (WFSParameterIDs::inputOtomoPhi, 0.0f));
+            float targetR = static_cast<float> (otomoSection.getProperty (family.rsph, 0.0f));
+            float targetTheta = static_cast<float> (otomoSection.getProperty (family.theta, 0.0f));
+            float targetPhi = static_cast<float> (otomoSection.getProperty (family.phi, 0.0f));
 
             if (isAbsolute)
             {
@@ -300,9 +439,9 @@ public:
         }
         else  // Cartesian (mode 0)
         {
-            float destX = static_cast<float> (otomoSection.getProperty (WFSParameterIDs::inputOtomoX, 0.0f));
-            float destY = static_cast<float> (otomoSection.getProperty (WFSParameterIDs::inputOtomoY, 0.0f));
-            float destZ = static_cast<float> (otomoSection.getProperty (WFSParameterIDs::inputOtomoZ, 0.0f));
+            float destX = static_cast<float> (otomoSection.getProperty (family.otomoX, 0.0f));
+            float destY = static_cast<float> (otomoSection.getProperty (family.otomoY, 0.0f));
+            float destZ = static_cast<float> (otomoSection.getProperty (family.otomoZ, 0.0f));
 
             if (isAbsolute)
             {
@@ -328,7 +467,8 @@ public:
             DBG ("AutomOtion: No meaningful movement on slot " << inputIndex << " - already at destination");
             if (onMotionBlocked && ! suppressBlockedFeedback)
                 onMotionBlocked (inputIndex, isAbsolute
-                    ? "Input " + juce::String (valueTreeState.getInputChannelNumber (inputIndex))
+                    ? family.channelLabel (inputIndex).substring (0, 1).toUpperCase()
+                        + family.channelLabel (inputIndex).substring (1)
                         + " is already at destination"
                     : "Relative destination is (0, 0, 0)");
             return false;
@@ -369,6 +509,13 @@ public:
         state.offsetZ = 0.0f;
         state.elapsedTime = 0.0f;
         state.inReturnPhase = false;
+        state.returnPhase = AutomOtionState::ReturnPhase::None;
+        state.returnGain = 1.0f;
+
+        // In offset mode the sink holds the last step, so zeroing the local
+        // copy alone would park the channel wherever the stop caught it.
+        if (family.writeOffset != nullptr)
+            family.writeOffset (inputIndex, 0.0f, 0.0f, 0.0f);
     }
 
     /** Pause motion for a specific input channel */
@@ -412,9 +559,10 @@ public:
         // Start the reference input itself
         startMotion (referenceInputIndex);
 
-        // Check if this input belongs to a cluster
-        auto posSection = valueTreeState.getInputPositionSection (referenceInputIndex);
-        int clusterIdx = static_cast<int> (posSection.getProperty (WFSParameterIDs::inputCluster, 0));
+        // Check if this input belongs to a cluster. A family without clusters
+        // reports 0 and returns here, so the input-shaped walk below is only
+        // ever reached by the family whose channels are inputs.
+        int clusterIdx = family.clusterOf (referenceInputIndex);
 
         if (clusterIdx < 1)
             return;  // Not in a cluster, done
@@ -451,8 +599,7 @@ public:
 
         stopMotion (referenceInputIndex);
 
-        auto posSection = valueTreeState.getInputPositionSection (referenceInputIndex);
-        int clusterIdx = static_cast<int> (posSection.getProperty (WFSParameterIDs::inputCluster, 0));
+        int clusterIdx = family.clusterOf (referenceInputIndex);
 
         if (clusterIdx < 1)
             return;
@@ -484,8 +631,7 @@ public:
 
         pauseMotion (referenceInputIndex);
 
-        auto posSection = valueTreeState.getInputPositionSection (referenceInputIndex);
-        int clusterIdx = static_cast<int> (posSection.getProperty (WFSParameterIDs::inputCluster, 0));
+        int clusterIdx = family.clusterOf (referenceInputIndex);
 
         if (clusterIdx < 1)
             return;
@@ -517,8 +663,7 @@ public:
 
         resumeMotion (referenceInputIndex);
 
-        auto posSection = valueTreeState.getInputPositionSection (referenceInputIndex);
-        int clusterIdx = static_cast<int> (posSection.getProperty (WFSParameterIDs::inputCluster, 0));
+        int clusterIdx = family.clusterOf (referenceInputIndex);
 
         if (clusterIdx < 1)
             return;
@@ -730,23 +875,38 @@ private:
         auto& state = states[static_cast<size_t> (inputIndex)];
 
         // Get trigger mode and thresholds
-        auto otomoSection = valueTreeState.getInputAutoMotionSection (inputIndex);
-        bool audioTriggerEnabled = static_cast<int> (otomoSection.getProperty (WFSParameterIDs::inputOtomoTrigger, 0)) == 1;
+        auto otomoSection = family.otomoSection (inputIndex);
+        bool audioTriggerEnabled = static_cast<int> (otomoSection.getProperty (family.trigger, 0)) == 1;
 
         // Handle audio triggering when stopped (skip if tracking or sampler active)
         if (audioTriggerEnabled && state.state == State::Stopped
             && ! isTrackingActive (inputIndex) && ! isSamplerActive (inputIndex))
         {
-            float triggerThresholdDb = static_cast<float> (otomoSection.getProperty (WFSParameterIDs::inputOtomoThreshold, -20.0f));
-            float resetThresholdDb = static_cast<float> (otomoSection.getProperty (WFSParameterIDs::inputOtomoReset, -60.0f));
+            float triggerThresholdDb = static_cast<float> (otomoSection.getProperty (family.threshold, -20.0f));
+            float resetThresholdDb = static_cast<float> (otomoSection.getProperty (family.reset, -60.0f));
 
             // Check rearm condition: RMS dropped below reset threshold
             if (state.waitingForRearm)
             {
+                // A family with a hold wants the level below the reset
+                // threshold for that long before it re-arms. An effect return is
+                // fed by a chain with a tail, and a tail that dips under the
+                // threshold for a single tick would re-arm mid-decay and fire
+                // the movement again on its own ring-out. A hold of zero
+                // re-arms on the first tick below, which is what inputs do.
                 if (state.currentRmsDb < resetThresholdDb)
                 {
-                    state.triggerArmed = true;
-                    state.waitingForRearm = false;
+                    state.rearmHoldTime += deltaTime;
+                    if (state.rearmHoldTime >= family.rearmHoldSeconds)
+                    {
+                        state.triggerArmed = true;
+                        state.waitingForRearm = false;
+                        state.rearmHoldTime = 0.0f;
+                    }
+                }
+                else
+                {
+                    state.rearmHoldTime = 0.0f;
                 }
             }
 
@@ -856,7 +1016,7 @@ private:
             case AutomOtionState::ReturnPhase::Snap:
             {
                 // Instantly move back to original position
-                writePositionToValueTree (inputIndex, state.originalX, state.originalY, state.originalZ);
+                publishStep (inputIndex, state.originalX, state.originalY, state.originalZ);
                 state.currentX = state.originalX;
                 state.currentY = state.originalY;
                 state.currentZ = state.originalZ;
@@ -956,8 +1116,7 @@ private:
         state.currentY = finalY;
         state.currentZ = finalZ;
 
-        // Write directly to input position (not compound offset)
-        writePositionToValueTree (inputIndex, finalX, finalY, finalZ);
+        publishStep (inputIndex, finalX, finalY, finalZ);
     }
 
     //==========================================================================
@@ -981,7 +1140,7 @@ private:
             state.currentX = cart.x;
             state.currentY = cart.y;
             state.currentZ = z;
-            writePositionToValueTree (inputIndex, cart.x, cart.y, z);
+            publishStep (inputIndex, cart.x, cart.y, z);
         }
         else if (state.coordinateMode == 2)  // Spherical
         {
@@ -999,13 +1158,32 @@ private:
             state.currentX = cart.x;
             state.currentY = cart.y;
             state.currentZ = cart.z;
-            writePositionToValueTree (inputIndex, cart.x, cart.y, cart.z);
+            publishStep (inputIndex, cart.x, cart.y, cart.z);
         }
     }
 
     //==========================================================================
     // Position Writing
     //==========================================================================
+
+    /** One step of the animation, published the way the family wants it.
+        In offset mode the channel's authored position is left exactly as the
+        operator wrote it and the movement travels as (current - authored);
+        otherwise the position itself is written, which is what inputs do. */
+    void publishStep (int index, float x, float y, float z)
+    {
+        if (family.writeOffset == nullptr)
+        {
+            writePositionToValueTree (index, x, y, z);
+            return;
+        }
+
+        auto& state = states[static_cast<size_t> (index)];
+        state.offsetX = x - state.originalX;
+        state.offsetY = y - state.originalY;
+        state.offsetZ = z - state.originalZ;
+        family.writeOffset (index, state.offsetX, state.offsetY, state.offsetZ);
+    }
 
     /** Write animated position directly to input ValueTree.
      *  Suppresses snapshot-scope dirty marking — playback is not a user edit.
@@ -1015,10 +1193,10 @@ private:
     {
         WFSNetwork::OriginTagScope originScope { WFSNetwork::OriginTag::Move };
         ParameterDirtyTracker::ScopedInternalWrite guard (dirtyTracker);
-        auto posSection = valueTreeState.getInputPositionSection (inputIndex);
-        posSection.setProperty (WFSParameterIDs::inputPositionX, x, nullptr);
-        posSection.setProperty (WFSParameterIDs::inputPositionY, y, nullptr);
-        posSection.setProperty (WFSParameterIDs::inputPositionZ, z, nullptr);
+        auto posSection = family.positionSection (inputIndex);
+        posSection.setProperty (family.posX, x, nullptr);
+        posSection.setProperty (family.posY, y, nullptr);
+        posSection.setProperty (family.posZ, z, nullptr);
     }
 
     //==========================================================================
@@ -1028,22 +1206,27 @@ private:
     /** Check if tracking is active for an input */
     bool isTrackingActive (int inputIndex) const
     {
-        auto posSection = valueTreeState.getInputPositionSection (inputIndex);
-        return static_cast<int> (posSection.getProperty (WFSParameterIDs::inputTrackingActive, 0)) != 0;
+        if (! family.trackingActive.isValid())
+            return false;   // this family has no tracking to lose to
+        auto posSection = family.positionSection (inputIndex);
+        return static_cast<int> (posSection.getProperty (family.trackingActive, 0)) != 0;
     }
 
     /** Check if sampler is active for an input */
     bool isSamplerActive (int inputIndex) const
     {
-        auto channelSection = valueTreeState.getInputChannelSection (inputIndex);
+        if (! family.samplerActive.isValid())
+            return false;   // this family has no sampler to lose to
+        auto channelSection = family.channelSection (inputIndex);
         if (! channelSection.isValid()) return false;
-        return static_cast<int> (channelSection.getProperty (WFSParameterIDs::inputSamplerActive, 0)) != 0;
+        return static_cast<int> (channelSection.getProperty (family.samplerActive, 0)) != 0;
     }
 
     //==========================================================================
     // Member Variables
     //==========================================================================
     WFSValueTreeState& valueTreeState;
+    AutomOtionFamily family;
     int numInputChannels;
     std::vector<AutomOtionState> states;
     ParameterDirtyTracker* dirtyTracker = nullptr;

@@ -1,5 +1,6 @@
 #include "OSCMessageBuilder.h"
 #include "OSCParameterBounds.h"
+#include "OSCMessageRouter.h"
 #include "../Parameters/VarCoercion.h"
 
 namespace WFSNetwork
@@ -244,6 +245,26 @@ const std::map<juce::Identifier, OSCMessageBuilder::ParamMapping>& OSCMessageBui
     return mappings;
 }
 
+const std::map<juce::Identifier, OSCMessageBuilder::ParamMapping>& OSCMessageBuilder::getEffectMappings()
+{
+    static const std::map<juce::Identifier, ParamMapping> mappings = []
+    {
+        using Kind = OSCMessageRouter::ParsedEffectMessage::Kind;
+
+        std::map<juce::Identifier, ParamMapping> m;
+        for (const auto& [name, paramId] : OSCMessageRouter::getEffectAddressMap())
+        {
+            const auto kind = OSCMessageRouter::getEffectParamKind (paramId);
+            if (kind == Kind::Scalar || kind == Kind::Instanced || kind == Kind::Band
+                || kind == Kind::Tap || kind == Kind::Row)
+                m[paramId] = { juce::String (OSCPaths::EFFECT_PREFIX) + name, {} };
+        }
+        return m;
+    }();
+
+    return mappings;
+}
+
 const std::map<juce::Identifier, OSCMessageBuilder::ParamMapping>& OSCMessageBuilder::getReverbMappings()
 {
     static const std::map<juce::Identifier, ParamMapping> mappings = {
@@ -331,6 +352,25 @@ std::optional<juce::OSCMessage> OSCMessageBuilder::buildReverbMessage(
         return std::nullopt;
 
     return buildMessage(it->second.oscPath, channelId, value);
+}
+
+std::optional<juce::OSCMessage> OSCMessageBuilder::buildReverbBandMessage(
+    const juce::Identifier& paramId,
+    int channelId,
+    int bandIndex,
+    float value)
+{
+    const auto& mappings = getReverbMappings();
+    auto it = mappings.find(paramId);
+
+    if (it == mappings.end())
+        return std::nullopt;
+
+    juce::OSCMessage msg (it->second.oscPath);
+    msg.addInt32 (channelId);
+    msg.addInt32 (bandIndex);
+    msg.addFloat32 (value);
+    return msg;
 }
 
 //==============================================================================

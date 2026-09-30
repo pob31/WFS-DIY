@@ -6,6 +6,7 @@
 #include "MCPParameterRegistry.h"
 #include "tools/SessionTools.h"
 #include "tools/InputTools.h"
+#include "tools/EffectSendTools.h"
 #include "tools/OutputTools.h"
 #include "tools/ReverbTools.h"
 #include "tools/SnapshotTools.h"
@@ -111,6 +112,11 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     registry->registerTool (Tools::Input::describeSetOutputMute (state));
     registry->registerTool (Tools::Input::describeSetCartesian (state));
     registry->registerTool (Tools::Input::describeSetAttenuation (state));
+    // An input's sends into the effects: one cell of the effect's packed rows,
+    // which no generated tool reaches (the codegen reads no effects CSV).
+    registry->registerTool (Tools::EffectSend::describeSetLevel (state));
+    registry->registerTool (Tools::EffectSend::describeSetOn (state));
+    registry->registerTool (Tools::EffectSend::describeGet (state));
     registry->registerTool (Tools::Output::describeSetCartesian (state));
     registry->registerTool (Tools::Reverb::describeSetCartesian (state));
     registry->registerTool (Tools::Snapshot::describe (fileMgr));

@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "../../spatcore/control/osc/OSCReceiverWithSenderIP.h"
+#include "../../spatcore/control/osc/OSCIngestQueue.h"
 #include "../Parameters/WFSValueTreeState.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/ParameterDirtyTracker.h"
@@ -299,12 +300,16 @@ private:
     void oscBundleReceived(const juce::OSCBundle& bundle,
                            const juce::String& senderIP) override;
 
+    /** Drain side of the ingest queue, on the message thread. */
+    void dispatchIngested(const juce::MemoryBlock& data, const juce::String& senderIP);
+
     void processTrackingMessage(const juce::OSCMessage& message);
     void routeToInputs(int trackingId, float x, float y, float z,
                        bool hasX, bool hasY, bool hasZ,
                        float qualityFactor);
 
     WFSValueTreeState& state;
+    std::unique_ptr<spatcore::control::osc::OSCIngestQueue> ingestQueue;
     std::unique_ptr<OSCReceiverWithSenderIP> receiver;
     TrackingPathPattern pattern;
 

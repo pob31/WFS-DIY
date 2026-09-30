@@ -21,6 +21,7 @@
 #include "DSP/BinauralCalculationEngine.h"
 #include "DSP/BinauralProcessor.h"
 #include "DSP/HeadTrackerManager.h"
+#include "DSP/EffectsHost.h"
 #include "MidiSnapshotTrigger.h"
 #include "../spatcore/reverb/ReverbEngine.h"
 #include "../spatcore/reverb/ReverbFeedThread.h"
@@ -37,8 +38,11 @@
 #include "gui/NetworkTab.h"
 #include "gui/OutputsTab.h"
 #include "gui/InputsTab.h"
+#include "gui/snapshots/SnapshotSession.h"
 #include "gui/ClustersTab.h"
 #include "gui/ReverbTab.h"
+#include "gui/effects/EffectsTab.h"
+#include "gui/TabIndex.h"
 #include "gui/MapTab.h"
 #include "gui/AudioInterfaceWindow.h"
 #include "gui/MapTabWindow.h"
@@ -201,6 +205,19 @@ private:
     juce::Label algorithmLabel;
     juce::ComboBox algorithmSelector;
 
+    // Parameter management system. Declared before everything that holds a
+    // reference into it - the snapshot session, the tabs, the Map, the windows
+    // - so that it is destroyed after all of them: members go in reverse order,
+    // and the tabs' destructors reach into it (InputsTab clears the cluster
+    // edit's hook, OutputsTab the array edit's).
+    WfsParameters parameters;
+
+    // The snapshot row's model, actions and Scope window, shared by the Inputs
+    // and Effects tabs (one snapshot file carries both families). Declared
+    // BEFORE tabbedComponent so it outlives the rows the tabs own; shutdown()
+    // closes its window early in the destructor.
+    std::unique_ptr<SnapshotSession> snapshotSession;
+
     // Main tabbed interface with status bar
     AccessibleTabbedComponent tabbedComponent { juce::TabbedButtonBar::TabsAtTop };
     StatusBar* statusBar = nullptr;  // Owned by container component
@@ -210,9 +227,10 @@ private:
     InputsTab* inputsTab = nullptr;
     ClustersTab* clustersTab = nullptr;
     ReverbTab* reverbTab = nullptr;
+    EffectsTab* effectsTab = nullptr;
     std::unique_ptr<MapTab> mapTab;                          // Owned here, not by TabbedComponent
     std::unique_ptr<MapTabWindow> mapTabWindow;              // Non-null when map is detached
-    std::unique_ptr<MapTabPlaceholder> mapTabPlaceholder;    // Shown in tab 6 when map is detached
+    std::unique_ptr<MapTabPlaceholder> mapTabPlaceholder;    // Shown in the Map tab slot when it is detached
 
     std::unique_ptr<AudioInterfaceWindow> audioInterfaceWindow;
     std::unique_ptr<NetworkLogWindow> networkLogWindow;
@@ -255,8 +273,8 @@ private:
     int numRenderSources = 4;
 
     // The retained slot map behind numRenderSources. Rebuilt only by
-    // recomputeRenderSourceCount() (channel-type changes are stopped-only),
-    // so the audio callback may read it without synchronization. Initialized
+    // recomputeRenderSourceCount(), inside a ScopedAudioStructureChange, so
+    // the audio callback may read it without synchronization. Initialized
     // to a valid EMPTY map: a default-constructed RenderSourceMap zero-fills
     // firstDerivedSlot, which would read as "derived slots at row 0".
     spatcore::wfs::RenderSourceMap renderSourceMap = []
@@ -295,6 +313,63 @@ private:
     std::atomic<bool> audioEngineStarted { false };
     std::atomic<double> currentDeviceSampleRate { 48000.0 };
 
+    /** THE ONE RULE FOR RESHAPING WHAT THE AUDIO CALLBACK READS (audit
+        2026-09-28, A1-A4): every change to a structure the callback touches -
+        the channel and render-source counts, the render-source map, the
+        routing matrices, the shared rings, the algorithm processors, the
+        attenuation and EQ banks, the binaural processor's buffers - happens
+        inside one of these scopes.
+
+        The scope is raised under the device's callback lock, which JUCE holds
+        for the whole of every block: taking it waits out a block already
+        running, and every block after sees the count and outputs silence
+        until the last scope ends. Nothing is ever done under the lock itself,
+        so the device thread is held up only for the increment. Worker threads
+        that read the same structures are not stopped by this; the teardown
+        joins them (stopProcessingForConfigurationChange).
+
+        Message thread only. Nests. */
+    struct ScopedAudioStructureChange
+    {
+        explicit ScopedAudioStructureChange (MainComponent& owner);
+        ~ScopedAudioStructureChange();
+
+        MainComponent& owner;
+        JUCE_DECLARE_NON_COPYABLE (ScopedAudioStructureChange)
+    };
+
+    std::atomic<int> audioStructureChanges { 0 };
+
+    // Blocks the callback ran in full, and blocks it spent silent behind a
+    // ScopedAudioStructureChange. Relaxed counters for the self-test
+    // (WFS_TEST_ENGINE_RECONFIG), which proves the gate from both sides.
+    std::atomic<uint32_t> audioBlocksProcessed { 0 };
+    std::atomic<uint32_t> audioBlocksHeldOut { 0 };
+
+    /** What the render-source map is built from. Comparing two of these says
+        whether a rebuild would change the map, without touching it: a load
+        with an unchanged layout (every snapshot recall) must not reshape
+        anything the callback reads. */
+    struct RenderSourceLayout
+    {
+        std::array<uint8_t, spatcore::wfs::RenderSourceMap::kMaxInputChannels> channelTypes {};
+        int numInputs  = -1;    // -1: nothing built yet
+        int numEffects = -1;
+
+        bool operator== (const RenderSourceLayout& other) const
+        {
+            return numInputs == other.numInputs && numEffects == other.numEffects
+                && channelTypes == other.channelTypes;
+        }
+        bool operator!= (const RenderSourceLayout& other) const { return ! (*this == other); }
+    };
+
+    /** The layout the tree describes now, for numInputChannels inputs. */
+    RenderSourceLayout readRenderSourceLayout (int numInputs);
+
+    /** The layout renderSourceMap was last built from. */
+    RenderSourceLayout builtRenderSourceLayout;
+
     // Tracks previous sampler-playing state per input for transition detection
     // in the 50Hz remote-sender timer (message thread only).
     std::vector<uint8_t> prevSamplerPlaying;
@@ -302,8 +377,13 @@ private:
     std::atomic<bool> muteReverbPre  { false };
     std::atomic<bool> muteReverbPost { false };
 
-    // Parameter management system
-    WfsParameters parameters;
+    // Effects: session-only, set by nothing until the Effects tab and its OSC
+    // verbs exist. soloEffects is a calculation-engine mask on the direct rows
+    // (only the effect returns reach the speakers); muteEffectsPre silences
+    // the feed into every chain while the chains keep running, read on the
+    // audio thread exactly as muteReverbPre is.
+    std::atomic<bool> soloEffects { false };
+    std::atomic<bool> muteEffectsPre { false };
 
     // Network OSC management
     std::unique_ptr<WFSNetwork::OSCManager> oscManager;
@@ -373,6 +453,15 @@ private:
 
     // Reverb engine (thread-based DSP processing)
     std::unique_ptr<ReverbEngine> reverbEngine;
+
+    // The effects engine host (spatcore's EffectsEngine plus the cook, the pop
+    // and the config). Declared AFTER the calculation engine and the shared
+    // rings, so it is destroyed before both: the engine caches raw pointers
+    // into the rings and the feed matrices (see EffectsHost.h).
+    std::unique_ptr<EffectsHost> effectsHost;
+    bool effectsTraceEnabled = false;      // WFS_EFFECTS_TRACE: one telemetry block per second in the log
+    int effectsTraceTick = 0;
+    uint32_t lastLoggedEffectCycleMask = 0;
     juce::AudioBuffer<float> reverbFeedBuffer;    // numReverbs channels, accumulates per-node feed sums
     juce::AudioBuffer<float> reverbReturnBuffer;  // numReverbs channels, receives wet reverb output
     std::vector<float> reverbFeedTemp;            // Temporary per-sample feed accumulation
@@ -388,6 +477,12 @@ private:
 
     // AutomOtion processor for programmed input position movement
     std::unique_ptr<AutomOtionProcessor> automOtionProcessor;
+    // The same processor over the effect returns. Its movements never reach the
+    // tree: they are published as an offset the calculation engine adds.
+    std::unique_ptr<AutomOtionProcessor> effectOtomoProcessor;
+    // The LFO over the effect returns, in the same offset mode: its offsets go
+    // to the engine's second slot and add to the AutomOtion's.
+    std::unique_ptr<LFOProcessor> effectLfoProcessor;
 
     // Input speed limiter for smooth position movement
     std::unique_ptr<InputSpeedLimiter> speedLimiter;
@@ -517,6 +612,7 @@ private:
     int timerTicksSinceLastRandom = 0;
     const int rampDurationTicks = 200;          // 1 second at 5ms per tick
     int patchSaveCountdown = 0;                 // Debounce timer for auto-saving patch (0 = idle)
+    bool patchSaveFailing = false;              // The last patch auto-save failed (logged once, retried)
     juce::Random random;
 
     // Master level gain (smoothed for click-free operation).
@@ -577,7 +673,10 @@ private:
 
     /** Recompute numRenderSources from numInputChannels and the channel types.
         Must run whenever numInputChannels is assigned — the renderer dimension
-        may never drift from the channel dimension it derives from. */
+        may never drift from the channel dimension it derives from. The map
+        itself is rebuilt only when its layout changed, and then only inside a
+        ScopedAudioStructureChange (it takes its own; the caller holds the one
+        that also covers the matrices sized from it). */
     void recomputeRenderSourceCount();
 
     /** Hidden diagnostic (WFS_TEST_CHANNEL_LIST=1): drives the structural
@@ -625,6 +724,33 @@ private:
         but latches the channel numbers: run it in a throwaway session. */
     void runInputMutesPersistSelfTest();
 
+    /** WFS_TEST_VALUE_GATES=1 — the gates of audit 2026-09-28 N2 and S1, with
+        no network: the OSC and tablet value reader on constructed messages
+        (a number for a bounded parameter, text for a name), the store's rule
+        for strings, NaN and infinity at a bounded parameter, the clamp where
+        an attenuation becomes a gain, and the snapshot-name resolver, in a
+        scratch project folder. Restores the values and the project folder it
+        touched, but storing its one good snapshot latches the channel
+        numbers: run it in a throwaway session. */
+    void runValueGatesSelfTest();
+
+    /** WFS_TEST_ENGINE_RECONFIG=1 (with WFS_TEST_AUTOSTART_PROCESSING=1 and a
+        project on the command line) — audit 2026-09-28 A1-A4, with the device
+        really calling back: ScopedAudioStructureChange holds every block out
+        and lets them back; a same-shape reload keeps processing and never
+        raises it; a reload that changes the output count stops processing and
+        leaves every buffer the callback reads at the new size; an algorithm
+        switch and twenty reshape cycles, processing on and in the binaural-only
+        path, keep the app alive with the shape right after every step. Ends
+        with processing stopped, so the session quits without the
+        running-processing prompt. Changes the session's output count on the
+        way: run it in a throwaway session. */
+    void runEngineReconfigSelfTest();
+
+    /** WFS_TEST_RENDER_UI=<folder>: every main tab and the Snapshot Scope window
+        (both family grids) rendered offscreen to PNG files. */
+    void renderUiSnapshots (const juce::File& dir);
+
     /** A mono row may hold at most one hardware column. Clears any extra
         columns (keeping the lowest = L) left behind when a count change
         moves the mono/stereo boundary. */
@@ -645,6 +771,13 @@ private:
         path runs no algorithm at all, so anything that asked one for input
         levels read silence while audio was flowing. */
     void meterRenderSourceInputs (int startSample, int numSamples) noexcept;
+
+    /** Re-index the calculation engine's input x effect matrices from their
+        fixed 32-wide stride into the live-width block the Inputs tab reads.
+        Returns the number of effects packed, 0 when there are none. */
+    int packEffectVisualisationRows (std::vector<float>& delays,
+                                     std::vector<float>& levels,
+                                     std::vector<float>& hf) const;
 
     /** Audio-thread-private: how many render sources the previous block metered,
         so slots retired by a channel-count change get silenced instead of
@@ -675,7 +808,15 @@ private:
 
     // Handlers for callbacks from System Config tab
     void handleProcessingChange(bool enabled);
-    void handleChannelCountChange(int inputs, int outputs, int reverbs);
+
+    /** The one funnel every structural channel edit reaches - add, remove,
+        move, type flip, count edit, config load. It reads all four channel
+        counts (inputs, outputs, reverbs, effects) from the parameter tree
+        itself: every caller used to pass three of them and every one of those
+        callers read them off the same tree a moment earlier, so the arguments
+        could only ever agree with the tree or be a bug. Reading here is what
+        lets a new family reach the funnel without touching nine call sites. */
+    void handleChannelCountChange();
     void handleAlgorithmSelectionChange(int selectedId);
     void handleGpuDepthChange(int depthBlocks);
     void handleConfigReloaded();

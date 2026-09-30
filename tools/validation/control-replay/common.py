@@ -1,9 +1,13 @@
 """Shared plumbing for the control-plane replay harnesses.
 
-Stdlib-only (repo convention, see tools/fuzz/). Three drivers build on this:
+Stdlib-only (repo convention, see tools/fuzz/). The drivers that build on this
+include:
   session_roundtrip.py  load fixture -> MCP session_save -> diff vs fixture
   osc_replay.py         scripted OSC writes -> OSCQuery read-back -> golden
   mcp_replay.py         scripted MCP transcript -> normalized -> golden
+  tracking_check.py     OSC tracking on a patched fixture -> OSCQuery read-back
+  run_selftest.py       any WFS_TEST_* self-test, headless, optionally on an
+                        injected audio device
 
 Design: docs/architecture/control-replay-harness.md.
 
@@ -13,8 +17,10 @@ Exit-code contract (same as tools/validation/kernel_hashes.py):
 
 from __future__ import annotations
 
+import base64
 import ctypes
 import difflib
+import http.client
 import json
 import os
 import re
@@ -48,7 +54,7 @@ OSCQUERY_HTTP_PORT = 5005    # networkOscQueryPort in the fixture
 
 # Fixture project files the round-trip driver diffs (backups/ is ignored).
 SECTION_FILES = ("system.xml", "network.xml", "inputs.xml",
-                 "outputs.xml", "reverbs.xml")
+                 "outputs.xml", "reverbs.xml", "effects.xml")
 
 EXE_CANDIDATES = (
     REPO_ROOT / "Builds/VisualStudio2022/x64/Release/App/WFS-DIY.exe",
@@ -204,6 +210,26 @@ class App:
         except urllib.error.HTTPError as exc:
             return exc.code
 
+    def mcp_raw(self, headers: list[tuple[str, str]], body: bytes = b"",
+                method: str = "POST") -> tuple[int, dict[str, str], str]:
+        """One request to /mcp with exactly these headers (no Host, Accept or
+        Content-Type added, only Content-Length), for what a web page would
+        send. Returns (status, reply headers with lower-case names, body)."""
+        conn = http.client.HTTPConnection("127.0.0.1", MCP_PORT, timeout=30.0)
+        try:
+            conn.putrequest(method, "/mcp", skip_host=True,
+                            skip_accept_encoding=True)
+            for name, value in headers:
+                conn.putheader(name, value)
+            conn.putheader("Content-Length", str(len(body)))
+            conn.endheaders(body)
+            resp = conn.getresponse()
+            return (resp.status,
+                    {k.lower(): v for k, v in resp.getheaders()},
+                    resp.read().decode("utf-8", errors="replace"))
+        finally:
+            conn.close()
+
     def mcp(self, method: str, params: dict | None = None) -> dict:
         self._rpc_id += 1
         payload: dict = {"jsonrpc": "2.0", "id": self._rpc_id,
@@ -297,8 +323,50 @@ class OSCSender:
         if self.delay > 0:
             time.sleep(self.delay)
 
+    def send_raw(self, data: bytes) -> None:
+        """One datagram exactly as given, for packets the codec would never
+        build (malformed bundles)."""
+        self.sock.sendto(data, self.addr)
+        if self.delay > 0:
+            time.sleep(self.delay)
+
     def close(self) -> None:
         self.sock.close()
+
+
+def websocket_send_text(port: int, text: str, path: str = "/",
+                        host: str = "127.0.0.1") -> None:
+    """Open a WebSocket, send one text message and close, as any web page
+    can with `new WebSocket(...)` (no CORS rule applies to one). Raises
+    OSError when the upgrade is refused."""
+    key = base64.b64encode(os.urandom(16)).decode("ascii")
+    with socket.create_connection((host, port), timeout=10.0) as sock:
+        sock.sendall((f"GET {path} HTTP/1.1\r\nHost: {host}:{port}\r\n"
+                      "Upgrade: websocket\r\nConnection: Upgrade\r\n"
+                      f"Sec-WebSocket-Key: {key}\r\n"
+                      "Sec-WebSocket-Version: 13\r\n\r\n").encode("ascii"))
+        reply = b""
+        while b"\r\n\r\n" not in reply:
+            chunk = sock.recv(4096)
+            if not chunk:
+                raise OSError("WebSocket upgrade: the server closed the connection")
+            reply += chunk
+        status_line = reply.split(b"\r\n", 1)[0]
+        if b" 101 " not in status_line:
+            raise OSError(f"WebSocket upgrade refused: {status_line!r}")
+
+        # One final text frame, masked as a client's must be.
+        payload = text.encode("utf-8")
+        n = len(payload)
+        if n < 126:
+            head = bytes([0x81, 0x80 | n])
+        elif n < 65536:
+            head = bytes([0x81, 0x80 | 126]) + n.to_bytes(2, "big")
+        else:
+            head = bytes([0x81, 0x80 | 127]) + n.to_bytes(8, "big")
+        mask = os.urandom(4)
+        masked = bytes(b ^ mask[i & 3] for i, b in enumerate(payload))
+        sock.sendall(head + mask + masked)
 
 
 def oscquery_get(path: str, port: int = OSCQUERY_HTTP_PORT,
@@ -459,6 +527,23 @@ def copy_fixture_to_temp(work_root: Path) -> Path:
 
 def fixture_wfs(project_dir: Path) -> Path:
     return project_dir / f"{project_dir.name}.wfs"
+
+
+def set_fixture_effect_channels(project: Path, count: int) -> None:
+    """Rewrite <IO effectChannels="N"> in the TEMP copy's system.xml.
+
+    The committed fixture carries effectChannels="0". applyConfigSection
+    builds the whole effects family from this attribute, so the app comes up
+    with `count` live channels, no UI and no OSC involved. Deliberately not
+    the /wfs/config/effectChannels route: a gate must not depend on the
+    mechanism it tests. Shared by the OSC and MCP drivers."""
+    path = project / "system.xml"
+    text = path.read_text(encoding="utf-8")
+    new_text, n = re.subn(r'effectChannels="\d+"',
+                          f'effectChannels="{count}"', text, count=1)
+    if n != 1:
+        raise SystemExit(f"[common] could not set effectChannels in {path}")
+    path.write_text(new_text, encoding="utf-8")
 
 
 def envelope_result(envelope: dict) -> dict:

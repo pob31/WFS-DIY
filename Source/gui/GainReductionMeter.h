@@ -45,8 +45,12 @@ public:
         else
             displayDb += diff * 0.3f;  // Smooth decay
 
-        // Background
-        g.setColour (ColorScheme::get().chromeBackground.darker (0.3f));
+        // Background. On OLED Black the darkened chrome (~0x090909) vanished
+        // into the black page, so that theme takes its slider-track grey.
+        const bool oledBlack = ColorScheme::Manager::getInstance().getCurrentTheme()
+                                   == ColorScheme::Theme::OLEDBlack;
+        g.setColour (oledBlack ? ColorScheme::get().sliderTrackBg
+                               : ColorScheme::get().chromeBackground.darker (0.3f));
         g.fillRoundedRectangle (bounds, 2.0f);
 
         // Meter bar — extends downward from top

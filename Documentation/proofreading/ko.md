@@ -1,6 +1,6 @@
 # Proofreading checklist — Korean (한국어)
 
-Locale: `ko`  |  Total keys: 770  |  Source: `Resources/lang/en.json` vs `Resources/lang/ko.json`
+Locale: `ko`  |  Total keys: 803  |  Source: `Resources/lang/en.json` vs `Resources/lang/ko.json`
 
 ## How to use this file
 
@@ -59,8 +59,8 @@ Walk through each section. For every entry:
 ## `audioPatch.deviceSettings`
 
 - **`midiTooltip`**
-  - EN: Snapshot recall only. This port is opened for input alone and is used for nothing else: WFS-DIY sends it no MIDI, and the only messages it acts on are note-ons that recall an input snapshot. Bind a channel and note to a snapshot in the Inputs tab's Edit Scope window; a note-on above velocity 64 recalls it.
-  - KO: 스냅샷 호출 전용입니다. 이 포트는 입력으로만 열리며 다른 용도로는 전혀 쓰이지 않습니다: WFS-DIY는 이 포트로 MIDI를 보내지 않고, 반응하는 메시지는 입력 스냅샷을 호출하는 노트 온뿐입니다. Inputs 탭의 Edit Scope 창에서 스냅샷에 채널과 노트를 할당하면, 벨로시티가 64를 넘는 노트 온이 그 스냅샷을 호출합니다.
+  - EN: Snapshot recall only. This port is opened for input alone and is used for nothing else: WFS-DIY sends it no MIDI, and the only messages it acts on are note-ons that recall a snapshot (inputs and effects). Bind a channel and note to a snapshot in the Edit Scope window of the Inputs or Effects tab; a note-on above velocity 64 recalls it.
+  - KO: 스냅샷 호출 전용입니다. 이 포트는 입력으로만 열리며 다른 용도로는 전혀 쓰이지 않습니다: WFS-DIY는 이 포트로 MIDI를 보내지 않고, 반응하는 메시지는 스냅샷(입력 및 이펙트)을 호출하는 노트 온뿐입니다. Inputs 또는 Effects 탭의 Edit Scope 창에서 스냅샷에 채널과 노트를 할당하면, 벨로시티가 64를 넘는 노트 온이 그 스냅샷을 호출합니다.
   - [ ] OK    Fix: 
 
 ## `audioPatch.dialogs`
@@ -433,6 +433,159 @@ Walk through each section. For every entry:
   - KO: 예
   - [ ] OK    Fix: 
 
+## `effects`
+
+- **`noChannels`**
+  - EN: No effects channels. Set the count in System Config, or import an effects configuration.
+  - KO: 이펙트 채널이 없습니다. System Config에서 개수를 설정하거나 이펙트 설정을 가져오세요.
+  - [ ] OK    Fix: 
+
+## `effects.dialogs`
+
+- **`exportTitle`**
+  - EN: Export Effects Configuration
+  - KO: 이펙트 설정 내보내기
+  - [ ] OK    Fix: 
+
+- **`importTitle`**
+  - EN: Import Effects Configuration
+  - KO: 이펙트 설정 가져오기
+  - [ ] OK    Fix: 
+
+## `effects.help`
+
+- **`channelSelector`**
+  - EN: Select the effects channel to edit.
+  - KO: 편집할 이펙트 채널을 선택합니다.
+  - [ ] OK    Fix: 
+
+- **`clear`**
+  - EN: Long-press to flush this effect chain; hold Ctrl to clear every effect.
+  - KO: 길게 누르면 이 이펙트 체인을 비웁니다. Ctrl을 누른 채로 누르면 모든 이펙트를 비웁니다.
+  - [ ] OK    Fix: 
+
+- **`cycle`**
+  - EN: This effect is part of a feedback loop in the sends grid.
+  - KO: 이 이펙트는 센드 그리드의 피드백 루프에 속합니다.
+  - [ ] OK    Fix: 
+
+- **`editOnMap`**
+  - EN: Enable editing effect positions from the Map tab.
+  - KO: Map 탭에서 이펙트 위치 편집을 활성화합니다.
+  - [ ] OK    Fix: 
+
+- **`entry`**
+  - EN: This effect is fed by an input, so it is an entry point of its bunch.
+  - KO: 이 이펙트는 입력에서 신호를 받으므로 해당 묶음의 진입점입니다.
+  - [ ] OK    Fix: 
+
+- **`export`**
+  - EN: Export Effects Configuration to file (with file explorer window).
+  - KO: 파일로 이펙트 설정 내보내기 (파일 탐색기 사용).
+  - [ ] OK    Fix: 
+
+- **`groupMute`**
+  - EN: Long-press to mute or unmute every member of this link group at once.
+  - KO: 길게 누르면 이 링크 그룹의 모든 멤버를 한 번에 음소거하거나 해제합니다.
+  - [ ] OK    Fix: 
+
+- **`import`**
+  - EN: Import Effects Configuration from file (with file explorer window).
+  - KO: 파일에서 이펙트 설정 가져오기 (파일 탐색기 사용).
+  - [ ] OK    Fix: 
+
+- **`linkGroup`**
+  - EN: Link this effect to a group so module edits propagate to the other members.
+  - KO: 이 이펙트를 그룹에 링크하여 모듈 편집이 다른 멤버에게 전파되게 합니다.
+  - [ ] OK    Fix: 
+
+- **`linkMode`**
+  - EN: How this channel takes group edits: off, absolute, or relative.
+  - KO: 이 채널이 그룹 편집을 받는 방식: 끔, 절대, 상대.
+  - [ ] OK    Fix: 
+
+- **`loopGuard`**
+  - EN: The loop guard has muted this channel's effect-to-effect feed.
+  - KO: 루프 가드가 이 채널의 이펙트 간 피드를 음소거했습니다.
+  - [ ] OK    Fix: 
+
+- **`mapVisible`**
+  - EN: Show or hide effect return markers on the Map tab.
+  - KO: Map 탭에서 이펙트 리턴 마커를 표시하거나 숨깁니다.
+  - [ ] OK    Fix: 
+
+- **`mute`**
+  - EN: Mute this effect return.
+  - KO: 이 이펙트 리턴을 음소거합니다.
+  - [ ] OK    Fix: 
+
+- **`name`**
+  - EN: Displayed name of this effects channel.
+  - KO: 이 이펙트 채널의 표시 이름.
+  - [ ] OK    Fix: 
+
+- **`reloadBackup`**
+  - EN: Reload Effects Configuration from backup file (with confirmation).
+  - KO: 백업 파일에서 이펙트 설정 다시 불러오기 (확인 포함).
+  - [ ] OK    Fix: 
+
+- **`reloadConfig`**
+  - EN: Reload Effects Configuration from file (with confirmation).
+  - KO: 파일에서 이펙트 설정 다시 불러오기 (확인 포함).
+  - [ ] OK    Fix: 
+
+- **`solo`**
+  - EN: Long-press to solo this effect return.
+  - KO: 길게 누르면 이 이펙트 리턴을 솔로로 합니다.
+  - [ ] OK    Fix: 
+
+- **`soloEffects`**
+  - EN: Long-press to solo the effect returns: the direct signal is muted.
+  - KO: 길게 누르면 이펙트 리턴을 솔로로 합니다. 직접 신호는 음소거됩니다.
+  - [ ] OK    Fix: 
+
+- **`storeConfig`**
+  - EN: Store Effects Configuration to file (overwrite with confirmation).
+  - KO: 이펙트 설정을 파일에 저장 (덮어쓰기 전 확인).
+  - [ ] OK    Fix: 
+
+## `effects.messages`
+
+- **`cleared`**
+  - EN: Effect chain cleared.
+  - KO: 이펙트 체인을 비웠습니다.
+  - [ ] OK    Fix: 
+
+- **`clearedAll`**
+  - EN: Every effect chain cleared.
+  - KO: 모든 이펙트 체인을 비웠습니다.
+  - [ ] OK    Fix: 
+
+- **`configLoaded`**
+  - EN: Effects configuration loaded.
+  - KO: 이펙트 설정이 로드되었습니다.
+  - [ ] OK    Fix: 
+
+- **`configSaved`**
+  - EN: Effects configuration saved.
+  - KO: 이펙트 설정이 저장되었습니다.
+  - [ ] OK    Fix: 
+
+- **`error`**
+  - EN: Error: {error}
+  - KO: 오류: {error}
+  - [ ] OK    Fix: 
+
+- **`groupMuteNeedsGroup`**
+  - EN: This effect is not in a link group, so there is no group to mute.
+  - KO: 이 이펙트는 링크 그룹에 속하지 않으므로 음소거할 그룹이 없습니다.
+  - [ ] OK    Fix: 
+
+- **`selectFolderFirst`**
+  - EN: Select a project folder first.
+  - KO: 먼저 프로젝트 폴더를 선택하세요.
+  - [ ] OK    Fix: 
+
 ## `eq.status`
 
 - **`off`**
@@ -510,6 +663,18 @@ Walk through each section. For every entry:
 - **`title`**
   - EN: Diagnostics & Feedback
   - KO: 진단 및 피드백
+  - [ ] OK    Fix: 
+
+## `help.effects`
+
+- **`body`**
+  - EN: An effects channel is a chain of eleven modules (distortion, two EQs, two dynamics, chorus/flanger, phaser, tremolo, reverb, multitap delay, bitcrusher) fed by inputs and by other effects through the sends matrix. Its output is a RETURN placed on the stage like an input: it renders through the WFS arrays from its own position, with the same feed orientation, attenuation law and mutes an input has.\nThe header mirrors the Reverb tab: channel selector, name, map visibility, Edit on Map, Solo Effects, Mute, Solo and the emergency Clear (long-press; hold Ctrl to clear every chain). The three dots are the engine's word on this channel: loop guard tripped, part of a feedback cycle, fed by an input (the entry point of its bunch).\nLink groups are not like reverbs, which are one system: a channel in a group shares its chain (order, bypasses, module parameters) with the other members by each member's link mode - Absolute copies, Relative keeps the offset, Off receives nothing - while its movements, sends, mutes and position never propagate. Ctrl-drag any control to edit this channel alone. Mute Group mutes every member once and leaves each independently editable.
+  - KO: 이펙트 채널은 11개 모듈(디스토션, EQ 2개, 다이내믹스 2개, 코러스/플랜저, 페이저, 트레몰로, 리버브, 멀티탭 딜레이, 비트크러셔)의 체인으로, 센드 매트릭스를 통해 입력과 다른 이펙트로부터 신호를 받습니다. 출력은 입력처럼 무대에 배치되는 리턴이며, 자신의 위치에서 WFS 어레이로 재생되고 방향, 감쇠 법칙, 뮤트도 입력과 같습니다.\n헤더는 Reverb 탭과 같습니다: 채널 선택, 이름, 맵 표시, Edit on Map, Solo Effects, Mute, Solo, 비상용 Clear(길게 누름; Ctrl을 누른 채로 모든 체인 비우기). 세 개의 점은 이 채널에 대한 엔진 상태를 나타냅니다: 루프 가드 작동, 피드백 루프의 일부, 입력에서 신호를 받음(해당 묶음의 진입점).\n링크 그룹은 하나의 시스템인 리버브와 다릅니다. 그룹에 속한 채널은 각 멤버의 링크 모드에 따라 체인(순서, 바이패스, 모듈 매개변수)을 다른 멤버와 공유합니다 — Absolute: 복사, Relative: 차이 유지, Off: 수신 안 함. 반면 움직임, 센드, 뮤트, 위치는 전파되지 않습니다. Ctrl을 누른 채 컨트롤을 드래그하면 이 채널만 편집합니다. Mute Group 버튼은 각 멤버를 한 번씩 음소거하고 각각을 따로 편집할 수 있게 둡니다.
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Effects
+  - KO: 이펙트
   - [ ] OK    Fix: 
 
 ## `help.floorReflections`
@@ -875,13 +1040,13 @@ Walk through each section. For every entry:
 ## `help.snapshotScope`
 
 - **`body`**
-  - EN: Snapshots store input parameters, but can have a scope to be recalled during a performance. They can have between all parameters for all inputs and only one parameter for a single channel. They can be updated and renamed for convenience.\nThe Scope tells the system what data to store or recall. It's the opposite of 'safe' parameters.\nThere are several ways to do this in this application:\n- Record only the needed data in local files. The scope filter is applied when storing the data. A recall cue can be created in QLab to trigger the reading of the local file.\n- Record all data and a filter in local files. The scope filter is applied when recalling the data. This allows to eventually recall all data not taking into account the scope filter. This may come in handy when a complete configuration should be recalled during rehearsal for example. A recall cue can be created in QLab to trigger the reading of the local file.\n- Record all data in scope in QLab cues. This should not be used to recall all parameters for large configurations since QLab may stall when recalling so much data.\nThe scope can show and automatically pre-select the parameters that have been manually changed (local UI, hardware controllers, remote Android application). Changed parameters are marked with a yellow mark.
-  - KO: 스냅샷은 입력 매개변수를 저장하며, 공연 중 불러올 범위를 가질 수 있습니다.\n범위는 시스템에 어떤 데이터를 저장하거나 불러올지 지시합니다.\n여러 방법이 있습니다:\n- 필요한 데이터만 로컬 파일에 기록. 필터는 저장 시 적용됩니다.\n- 모든 데이터와 필터를 로컬 파일에 기록. 필터는 불러올 때 적용됩니다.\n- 모든 데이터를 QLab 큐에 기록. 대규모 설정에는 권장하지 않습니다.\n범위는 수동으로 변경된 매개변수를 표시하고 자동으로 사전 선택할 수 있습니다. 변경된 매개변수는 노란색으로 표시됩니다.
+  - EN: Snapshots store input and effect parameters, but can have a scope to be recalled during a performance. They can have between all parameters for all inputs and effects and only one parameter for a single channel. They can be updated and renamed for convenience.\nThe Scope tells the system what data to store or recall. It's the opposite of 'safe' parameters.\nThere are several ways to do this in this application:\n- Record only the needed data in local files. The scope filter is applied when storing the data. A recall cue can be created in QLab to trigger the reading of the local file.\n- Record all data and a filter in local files. The scope filter is applied when recalling the data. This allows to eventually recall all data not taking into account the scope filter. This may come in handy when a complete configuration should be recalled during rehearsal for example. A recall cue can be created in QLab to trigger the reading of the local file.\n- Record all data in scope in QLab cues. This should not be used to recall all parameters for large configurations since QLab may stall when recalling so much data.\nThe scope can show and automatically pre-select the parameters that have been manually changed (local UI, hardware controllers, remote Android application). Changed parameters are marked with a yellow mark.\nOne snapshot carries the inputs and the effects channels. The Scope window has an Inputs tab and an Effects tab, one grid per family; on the Effects grid each module of the chain is one row, its bands and taps included. The Inputs tab and the Effects tab show the same snapshot row, so a snapshot stored or recalled from either covers both, and one MIDI note or OSC cue recalls both.
+  - KO: 스냅샷은 입력 및 이펙트 매개변수를 저장하며, 공연 중 불러올 범위를 가질 수 있습니다.\n범위는 시스템에 어떤 데이터를 저장하거나 불러올지 지시합니다.\n여러 방법이 있습니다:\n- 필요한 데이터만 로컬 파일에 기록. 필터는 저장 시 적용됩니다.\n- 모든 데이터와 필터를 로컬 파일에 기록. 필터는 불러올 때 적용됩니다.\n- 모든 데이터를 QLab 큐에 기록. 대규모 설정에는 권장하지 않습니다.\n범위는 수동으로 변경된 매개변수를 표시하고 자동으로 사전 선택할 수 있습니다. 변경된 매개변수는 노란색으로 표시됩니다.\n하나의 스냅샷에 입력과 이펙트 채널이 모두 담깁니다. 범위 창에는 입력 탭과 이펙트 탭이 있으며 패밀리마다 그리드가 하나씩 있습니다. 이펙트 그리드에서는 체인의 각 모듈이 한 행이며, 밴드와 탭도 포함됩니다. 입력 탭과 이펙트 탭은 같은 스냅샷 행을 표시하므로, 어느 쪽에서 저장하거나 불러온 스냅샷도 둘 다를 포함하며, MIDI 노트나 OSC 큐 하나로 둘 다 불러옵니다.
   - [ ] OK    Fix: 
 
 - **`title`**
-  - EN: Input Snapshots and Scope
-  - KO: 입력 스냅샷 및 범위
+  - EN: Snapshots and Scope
+  - KO: 스냅샷 및 범위
   - [ ] OK    Fix: 
 
 ## `help.tracking`
@@ -1165,8 +1330,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`deleteSnapshot`**
-  - EN: Delete Selected Input Snapshot With Confirmation.
-  - KO: 확인 후 선택한 입력 스냅샷을 삭제합니다.
+  - EN: Delete the selected snapshot, with confirmation.
+  - KO: 확인 후 선택한 스냅샷을 삭제합니다.
   - [ ] OK    Fix: 
 
 - **`directivitySlider`**
@@ -1200,8 +1365,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`editScope`**
-  - EN: Open Selected Input Snapshot Scope Window.
-  - KO: 선택한 입력 스냅샷의 필터 창을 엽니다.
+  - EN: Open the Snapshot Scope window for the selected snapshot.
+  - KO: 선택한 스냅샷의 필터 창을 엽니다.
   - [ ] OK    Fix: 
 
 - **`exportConfig`**
@@ -1625,13 +1790,13 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`reloadSnapshot`**
-  - EN: Reload Selected Input Snapshot for All Objects Taking the Scope into Account.
-  - KO: 필터를 고려하여 선택한 입력 스냅샷을 모든 오브젝트에 다시 불러옵니다.
+  - EN: Reload the selected snapshot (inputs and effects), taking the scope into account.
+  - KO: 필터를 고려하여 선택한 스냅샷(입력 및 이펙트)을 다시 불러옵니다.
   - [ ] OK    Fix: 
 
 - **`reloadWithoutScope`**
-  - EN: Reload Selected Input Snapshot for All Objects Without the Scope.
-  - KO: 필터 없이 선택한 입력 스냅샷을 모든 오브젝트에 다시 불러옵니다.
+  - EN: Reload the selected snapshot (inputs and effects) without the scope.
+  - KO: 필터 없이 선택한 스냅샷(입력 및 이펙트)을 다시 불러옵니다.
   - [ ] OK    Fix: 
 
 - **`sidelinesActiveButton`**
@@ -1645,8 +1810,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`snapshotSelector`**
-  - EN: Select Input Snapshot Without Loading.
-  - KO: 입력 스냅샷을 불러오지 않고 선택합니다.
+  - EN: Select a snapshot without loading it.
+  - KO: 스냅샷을 불러오지 않고 선택합니다.
   - [ ] OK    Fix: 
 
 - **`solo`**
@@ -1680,8 +1845,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`storeSnapshot`**
-  - EN: Store new Input Snapshot for All Objects.
-  - KO: 모든 오브젝트에 대한 새 입력 스냅샷을 저장합니다.
+  - EN: Store a new snapshot of all the inputs and effects.
+  - KO: 모든 입력과 이펙트의 새 스냅샷을 저장합니다.
   - [ ] OK    Fix: 
 
 - **`tiltSlider`**
@@ -1705,8 +1870,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`updateSnapshot`**
-  - EN: Update Selected Input Snapshot (with backup).
-  - KO: 선택한 입력 스냅샷을 업데이트합니다 (백업 포함).
+  - EN: Update the selected snapshot, inputs and effects (with backup).
+  - KO: 선택한 스냅샷의 입력과 이펙트를 업데이트합니다 (백업 포함).
   - [ ] OK    Fix: 
 
 ## `inputs.messages`
@@ -1814,6 +1979,11 @@ Walk through each section. For every entry:
 - **`snapshotDeleted`**
   - EN: Snapshot '{name}' deleted.
   - KO: 스냅샷 '{name}'이(가) 삭제되었습니다.
+  - [ ] OK    Fix: 
+
+- **`snapshotEffectsSkipped`**
+  - EN: Snapshot '{name}': {n} effect entries skipped, no effect channel {ids}
+  - KO: 스냅샷 '{name}': 이펙트 항목 {n}개 건너뜀, 이펙트 채널 {ids} 없음
   - [ ] OK    Fix: 
 
 - **`snapshotEntriesSkipped`**
@@ -3242,6 +3412,13 @@ Walk through each section. For every entry:
 - **`setPos`**
   - EN: Set base position in meters (X, Y, Z)
   - KO: 기본 위치를 미터 단위로 설정 (X, Y, Z)
+  - [ ] OK    Fix: 
+
+## `snapshotScope`
+
+- **`noEffectChannels`**
+  - EN: This session has no effect channels.
+  - KO: 이 세션에는 이펙트 채널이 없습니다.
   - [ ] OK    Fix: 
 
 ## `snapshotScope.midi`

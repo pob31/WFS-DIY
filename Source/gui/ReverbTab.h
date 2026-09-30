@@ -7,6 +7,7 @@
 #include "../Parameters/WFSParameterDefaults.h"
 #include "../Accessibility/TTSManager.h"
 #include "../Localization/LocalizationManager.h"
+#include "../Helpers/TypedValue.h"
 #include "ChannelSelector.h"
 #include "ColorScheme.h"
 #include "SliderUIComponents.h"
@@ -204,6 +205,10 @@ public:
     //==========================================================================
 
     int getCurrentChannel() const { return currentChannel; }
+
+    /** The self-test types into these (TypedValue: a 1:X ratio, a kHz value). */
+    juce::Label& getPostExpRatioLabelForTest()    { return postExpRatioValueLabel; }
+    juce::Label& getEqFreqLabelForTest (int band) { return eqBandFreqValueLabel[juce::jlimit (0, numEqBands - 1, band)]; }
     int getCurrentSubTab() const { return subTabBar.getCurrentTabIndex(); }
 
     void selectChannel (int channel)
@@ -4519,22 +4524,37 @@ private:
         auto& vts = parameters.getValueTreeState();
         const juce::String mutesStr = muteValues.joinIntoString (",");
 
+        // MERGED onto the stored row rather than written over it. This grid has
+        // one button per LIVE output, so on a rig that has shrunk - an interface
+        // that dropped, a System Config edit about to be undone - the row it
+        // builds is NARROWER than the row on the node, and a plain setProperty
+        // would cut the operator's mutes for the outputs that are not there
+        // today. setNumOutputChannels stopped doing exactly that; this write
+        // bypasses the store's interceptor entirely (it is a raw setProperty on
+        // the node), so it has to carry the rule itself - and it carries it by
+        // calling the same helper rather than by repeating it here.
+        auto writeMutes = [&vts, &mutesStr] (juce::ValueTree returnSection)
+        {
+            if (! returnSection.isValid())
+                return;
+
+            returnSection.setProperty (
+                WFSParameterIDs::reverbMutes,
+                WFSValueTreeState::mergePackedRow (
+                    returnSection.getProperty (WFSParameterIDs::reverbMutes), mutesStr),
+                vts.getUndoManager());
+        };
+
         // "Apply to all nodes" link: broadcast mutes to every reverb node when ON.
         if (applyToAllNodes)
         {
             int numChannels = parameters.getNumReverbChannels();
             for (int ch = 0; ch < numChannels; ++ch)
-            {
-                auto returnSection = vts.getReverbReturnSection (ch);
-                if (returnSection.isValid())
-                    returnSection.setProperty (WFSParameterIDs::reverbMutes, mutesStr, vts.getUndoManager());
-            }
+                writeMutes (vts.getReverbReturnSection (ch));
         }
         else
         {
-            auto returnSection = vts.getReverbReturnSection (currentChannel - 1);
-            if (returnSection.isValid())
-                returnSection.setProperty (WFSParameterIDs::reverbMutes, mutesStr, vts.getUndoManager());
+            writeMutes (vts.getReverbReturnSection (currentChannel - 1));
         }
     }
 
@@ -4801,6 +4821,17 @@ private:
 
     void editorShown (juce::Label* label, juce::TextEditor& editor) override
     {
+        labelTextBeforeEdit = label->getText();
+
+        // The label names the sign with a word ("Latency" / "Delay"); the
+        // field opens on the signed number instead, negative for a latency,
+        // so editing it cannot flip one into the other
+        if (label == &delayLatencyValueLabel)
+        {
+            editor.setText (juce::String (static_cast<float> (parameters.getReverbParam (currentChannel - 1, "reverbDelayLatency")), 1), false);
+            editor.selectAll();
+        }
+
         for (auto& col : reverbCircuits)
             if (std::find (col.begin(), col.end(), static_cast<juce::Component*>(label)) != col.end())
             {
@@ -4814,7 +4845,18 @@ private:
         if (isLoadingParameters) return;
 
         juce::String text = label->getText();
-        float value = text.retainCharacters ("-0123456789.").getFloatValue();
+
+        // Read as the label shows it (TypedValue): "2.5 kHz" is 2500, and the
+        // ratios "4.0:1" / "1:2.0" are 4 and 2. Text with no number in it puts
+        // the label back.
+        const bool isRatio = label == &preCompRatioValueLabel || label == &postExpRatioValueLabel;
+        const auto typed = isRatio ? TypedValue::ratio (text) : TypedValue::number (text);
+        if (! typed.has_value())
+        {
+            label->setText (labelTextBeforeEdit, juce::dontSendNotification);
+            return;
+        }
+        float value = *typed;
 
         if (label == &attenuationValueLabel)
         {
@@ -5516,6 +5558,7 @@ private:
     juce::ValueTree configTree;
     juce::ValueTree ioTree;
     bool isLoadingParameters = false;
+    juce::String labelTextBeforeEdit;      // what a value label showed when its editor opened
     bool isSelfWriting = false;         // True while this tab writes the tree itself (controls already up to date, skip reload)
     bool channelReloadPending = false;  // At most one queued loadChannelParameters at a time (external writes are coalesced)
     bool reverbPositionDirty = false;  // Coalesces rapid position updates from map drag

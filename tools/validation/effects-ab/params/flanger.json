@@ -1,0 +1,14 @@
+{
+  "comment": "fx_flanger. delaytime is in SAMPLES: 96 at 48 kHz is 2 ms. feedback is a per cent multiplied by the raw feedbackPolarity inlet, which gives our signed effectModFeedback. LFOphase is in degrees and the mapping adds 90 to it, because the prototype's LFO is sin() and ours is -cos(). drywet is a DRY per cent.",
+  "patch": "fx_flanger",
+  "prototype": {
+    "delaytime": 96.0,
+    "feedback": 40.0,
+    "feedbackPolarity": 1.0,
+    "LFOamount": 60.0,
+    "LFOspeed": 0.3,
+    "LFOphase": 0.0,
+    "loCutFreq": 20.0,
+    "drywet": 50.0
+  }
+}

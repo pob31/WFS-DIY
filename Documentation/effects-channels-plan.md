@@ -1,6 +1,6 @@
 # Effects Channels — Implementation Plan
 
-Status: design synthesis, **revision 2** (read-only exploration, nothing built). Line references were re-verified against main `4334616` (v1.0.0beta44, spatcore `7e7ed63`) on 2026-08-28; `[I]` marks inference. Revision 2 folds in the reverb geometric-path rework that landed on main the same day (`spatcore/dsp/AcousticTap.h`, `spatcore/reverb/ReverbSendMatrix.h`, `spatcore/reverb/ReverbReturnProcessor.h`), the user's second round of answers (§2.4), the bitcrusher/downsampler module (§5.9) the six gen~ prototypes received the same day (§5) and their shared sub-patches read from `Documentation/effects/` (§5.12).
+Status: **revision 3** — Phase 1 is being implemented in the `spatcore` submodule (branch `feature/effects-phase1`, target tag `v0.3.0`); §12.4 logs every correction the implementation forced back into this document. Revisions 1-2 were design synthesis (read-only exploration, nothing built). Line references were re-verified against main `4334616` (v1.0.0beta44, spatcore `7e7ed63`) on 2026-08-28; `[I]` marks inference. Revision 2 folds in the reverb geometric-path rework that landed on main the same day (`spatcore/dsp/AcousticTap.h`, `spatcore/reverb/ReverbSendMatrix.h`, `spatcore/reverb/ReverbReturnProcessor.h`), the user's second round of answers (§2.4), the bitcrusher/downsampler module (§5.9) the six gen~ prototypes received the same day (§5) and their shared sub-patches read from `Documentation/effects/` (§5.12).
 
 ---
 
@@ -10,7 +10,7 @@ WFS-DIY gains a new channel family: up to 32 **effects channels**. Each is a spa
 
 Ownership split (binding, from `docs/architecture/core-boundary-proposal-audio.md` §3 and `tools/validation/spatcore_dep_lint.py:27-43`): the DSP (module algorithms, chain engine, feed renderer, return rings) lives in the `spatcore` submodule under `spatcore/effects/` (namespace `spatcore::effects`), header-only like `reverb/` and `dsp/`, JUCE-only dependencies, all counts/rates as `prepare()` arguments, no app enums in signatures. WFS-DIY owns ValueTree binding, calc-engine geometry, GUI, OSC/OSCQuery/MCP, snapshots, persistence. XOA and Tight-WFS consume the same core.
 
-Non-goals now: ADM-OSC, Android remote tab, per-parameter QLab cues, floor reflections on effect returns, a full loop-gain limiter (a loop guard, a cycle warning and an emergency Clear ARE in scope, §2.2), GPU-executed modules.
+Non-goals now: ADM-OSC, Android remote tab, floor reflections on effect returns, a full loop-gain limiter (a loop guard, a cycle warning and an emergency Clear ARE in scope, §2.2), GPU-executed modules. (Per-parameter QLab cues were a non-goal until revision 8 lifted it, §12.9 R8-5.)
 
 Reuse anchor (new on main since the first draft): the reverb send and return legs are now real acoustic paths — one `spatcore::dsp::AcousticTapCell` per (source, destination) pair (smoothed fractional delay + air-absorption shelf + level, with a vectorised steady-state fast path, `spatcore/dsp/AcousticTap.h:79-240`), driven by `spatcore::reverb::ReverbSendMatrix` (one 1-s delay line per source, `computeNodeFeed` per node, `spatcore/reverb/ReverbSendMatrix.h:32-162`) inside `ReverbFeedThread` (`spatcore/reverb/ReverbFeedThread.h:158-284`), and by `ReverbReturnProcessor` for node→speaker (`spatcore/reverb/ReverbReturnProcessor.h:35-225`, consumed at `Source/MainComponent.cpp:7673-7690`). The effects feed stage is exactly a `ReverbSendMatrix` whose "nodes" are effects channels and whose sources include the effect returns; this plan promotes it to a shared `AcousticSendMatrix` instead of writing a second one.
 
@@ -29,13 +29,13 @@ Development hold: nothing is built until the user gives the go (urgent fixes are
 | 3 | Input→effect feed is geometric like the reverb feed (level AND delay from the input's composite position vs the effect's position), times a per-(source, effect) user **level (dB) + on/off switch**. Effect→effect: same geometric model (confirmed 2026-08-28), diagonal forced off. New channels start with every switch OFF and levels at 0 dB; cells range −92..0 dB (no gain). HF air absorption is applied on every leg — input→effect and effect→effect (per-pair shelf from `effectHFdamping` dB/m plus the source's directivity/HF terms, exactly as the reverb send does now) and effect→speaker (the render rows carry `outputHFdamping` like any source). |
 | 4 | Every chain owns the same 11 module slots: one of each of the 9 module types, with EQ and dynamics doubled from day one (`eq1, eq2, dyn1, dyn2`); each slot bypassed by default; a separate ordered-list parameter defines processing order. Further duplicates and new module types are additive (append-only registry, `instance` sub-index). |
 | 5 | Type-keyed addressing (`/wfs/effect/distDrive <id> <v>`); chain order is its own parameter; reordering never moves parameter state. |
-| 6 | Link groups a la clusters (N groups, each channel in at most one); module parameters, module bypasses AND chain order propagate (confirmed 2026-08-28) — continuous values absolute or relative, discrete values (enums, bypasses, order, mutes) only ever absolute or unlinked; feeds, position, otomo, name never propagate. |
-| 7 | Snapshots: scope grid channels × items mirroring `ExtendedSnapshotScope` (`Source/Parameters/WFSFileManager.h:273-393`), stored under `snapshots/effects/`, MIDI-note + OSC recall. |
+| 6 | Link groups a la clusters (N groups, each channel in at most one); module parameters, module bypasses AND chain order propagate (confirmed 2026-08-28) — continuous values absolute or relative, discrete values (enums, bypasses, order) only ever absolute or unlinked; feeds, position, otomo, name never propagate. **MUTES NO LONGER PROPAGATE AT ALL - see R5-1 (§12.6):** a single channel must be independently mutable whatever it is bunched with, and the group shortcut writes rather than links. |
+| 7 | Snapshots: ONE file per snapshot (`snapshots/inputs/<name>.xml`, root `InputSnapshot`) carries both families. `ExtendedSnapshotScope` holds two scope matrices (inputs: items × channels by permanent number; effects: items × channels by dense id, node-driven for the eleven modules). The Snapshot Scope window shows them on two tabs; the snapshot row (selector, store, reload, update, scope, delete) is shared by the Inputs and Effects tabs over one session; MIDI-note and OSC recall are per file (revision 8, user 2026-09-22, §12.9). |
 | 8 | No self-feed. No full loop-gain limiter in v1, but: a 0..5 ms lookahead on the dynamics module's compressor/limiter stage, a per-channel loop guard against runaway build-up, a cycle warning in the sends grid, and an emergency **Clear** action that flushes every internal buffer (§2.2, §4.4). |
 | 9 | AutomOtion on an effects channel is return-only (no Stay) and moves an OFFSET on top of the base position, never the stored position; feed geometry follows the base position, the return follows base + offset (§6.7). |
-| 10 | One MIDI note may recall one input snapshot AND one effects snapshot; never two of the same family (§6.9). |
+| 10 | Superseded by revision 8 (§12.9): one MIDI note recalls one snapshot file, which carries inputs AND effects; there is no per-family binding, folder or scan. |
 | 11 | Return cushion: 2 blocks at device blocks ≤ 128 samples, 1 block above (auto); user override 1..3 (§3.3). |
-| 12 | Reverb module: selectable models (FDN in v1, more later) with named presets per model (§5.7). No floor reflections on effect returns. |
+| 12 | Reverb module: selectable models - the FDN, a Dattorro plate, a modulated hall and a shimmer, with early-reflection profiles in front of any of them (revision 9, §12.10) - and ONE preset list whose rows set the model too (§5.7). No floor reflections on effect returns. |
 | 13 | The Effects tab sits between Reverb and Inputs (main-tab index 4). |
 | 14 | Denormals: the effects threads run under FTZ/DAZ from day one; the app-wide guard for the existing gather/scatter/reverb threads is its own baseline-changing PR, scheduled right after Phase 3 (9c). |
 | 15 | Effects positions have their own ownership latch (`effectPositionsUserOwned`) plus a "Re-layout effects" action; they never share the input/reverb latch. |
@@ -55,12 +55,12 @@ Development hold: nothing is built until the user gives the go (urgent fixes are
 | Latency | Report-only (`EffectChain::getLatencySamples()` telemetry); user trim `effectDelayLatency` mirrors `reverbDelayLatency`. No pre-subtraction on the feed leg. | C1-10. |
 | Return path | Per-effect SPSC `LockFreeRingBuffer` popped at the top of the callback into `patchedInputBuffer[firstEffectSlot+fx]`, gated by a `ready` flag + `SpinLock` try-lock. | C1-3, pattern `spatcore/wfs/NativeGpuWfsAlgorithm.h:115-128`. |
 | Source rings | Reuse `SharedInputRingBuffer` (SPMC) with an additive monotonic `totalWritten` counter for wrap detection; depth `blockSize * 8` when effects exist (today `* 4`, `Source/MainComponent.cpp:6932`). | C1-2. |
-| Reverb module | `effectReverbModel` selects the algorithm behind an `IEffectReverbModel` seam; model 0 (v1) = `spatcore::reverb::FDNAlgorithm` with `numNodes = 1` at **native** device rate, `MAX_DELAY_SAMPLES` becoming a constructor argument defaulting to 16384 (bit-identical for existing users). Presets (`effectReverbType`) are per model. | C1-18; user round 2 (Q15); `spatcore/reverb/ReverbFDNAlgorithm.h:28, :273-276`. |
-| Link mode | Explicit state `effectsGlobalLinkMode` (0 off / 1 absolute / 2 relative), default 1; relative applies to continuous values only — discrete values (enums, bypasses, chain order, mutes) are always copied absolutely; `effectLinkGroup = 0` = unlinked; keyboard modifiers override on GUI only; hardware follows the state. | C2-13; user round 2 (Q4). |
+| Reverb module | `effectReverbModel` selects the algorithm behind an `IEffectReverbModel` seam; model 0 (v1) = `spatcore::reverb::FDNAlgorithm` with `numNodes = 1` at **native** device rate, `MAX_DELAY_SAMPLES` becoming a constructor argument defaulting to 16384 (bit-identical for existing users). Presets (`effectReverbType`) are per model. **Revision 9 (§12.10):** four models (0 FDN, 1 Plate, 4 Modulated Hall, 5 Shimmer; 2 and 3 reserved, running the FDN), one flat preset list whose rows set the model, and a change of room spills over instead of fading the slot. | C1-18; user round 2 (Q15); user 2026-09-23 (§12.10); `spatcore/reverb/ReverbFDNAlgorithm.h:28, :273-276`. |
+| Link mode | Explicit state `effectsGlobalLinkMode` (0 off / 1 absolute / 2 relative), default 1; relative applies to continuous values only — discrete values (enums, bypasses, chain order) are always copied absolutely; mutes are excluded entirely (R5-1, §12.6); `effectLinkGroup = 0` = unlinked; keyboard modifiers override on GUI only; hardware follows the state. | C2-13; user round 2 (Q4). |
 | Loop guard | Per channel, on the engine thread (`effects/LoopGuard.h`): if the summed fx→fx feed OR the return exceeds `effectsGlobalLoopGuardCeiling` (default +6 dBFS peak) for more than 20 consecutive blocks, that channel's fx→fx feed bus is ramped to −∞ over 5 ms, `loopGuardTripped(fx)` is raised for the GUI/OSCQuery/MCP, and it auto-releases once the return has stayed 12 dB under the ceiling for 500 ms. `effectsGlobalLoopGuard` 0/1, default 1. Input→effect feeds are never touched. | user round 2 (Q11). |
 | Emergency Clear | `EffectsEngine::requestClear(fx / all)`: at the next batch boundary every chain, the feed delay lines and the return ring(s) of the target are silenced and reset (tails, feedback, reverb and delay memory, loop-guard trips). Exposed as a header long-press button, a Stream Deck key, `/wfs/effect/clear <fx>` / `/wfs/effect/clearAll` and MCP `effect_clear`. | user round 2 (Q11). |
 | Cycle warning | Message thread only: on every Sends edit the fx→fx on-switch graph (≤ 32 nodes) is walked for cycles; channels inside a cycle get a warning badge and a read-only `effectInCycle` flag. No audio-side action — the user owns the loops. | user round 2: isolated bunches; Q11. |
-| Snapshots | `SnapshotScopeCore` + `SnapshotFamily` descriptor {folder, root tag, item table, label provider, transient list}; one merged MIDI scan. | C2-14. |
+| Snapshots | `ScopeMatrix` (the per-item/per-channel state machine over a `ScopeItemTable`) twice inside `ExtendedSnapshotScope`; one file, one root tag, one MIDI scan; effects capture/apply/trim in `EffectsSnapshotScope.h` (flat nodes by property, modules by subtree); `SnapshotSession` + `SnapshotRow` shared by both tabs. | C2-14, R8-1..R8-5 (§12.9). |
 | Solo/mute of returns | `effectMute`, `effectSolo` (transient) and a global "solo effects" are applied as masks in the calc engine's level matrices (return rows / input rows), never on the audio thread. | mirrors `soloReverbs` (`Source/MainComponent.cpp:7595-7599`) without touching the callback. |
 | GPU | CPU-only engine. Option (iii) "feed stage on `wfs_pairs/wfs_reduce`" kept as an optional later phase; (i) new `fx` kernel family dropped; (ii) in-chain GPU reverb recorded as incompatible with decision 2. | §8. |
 
@@ -78,8 +78,8 @@ Development hold: nothing is built until the user gives the go (urgent fixes are
 | Q1 | Effect→effect feed geometric? | **Decided: yes**; `effectsGlobalFxFeedGeometric` stays as an escape hatch (default 1). |
 | Q2 | HF damping on feeds? | **Decided: yes, on every leg** (input→effect, effect→effect, effect→speaker). Cost self-gates: the shelf runs only for pairs whose HF term is below −0.005 dB (`spatcore/dsp/AcousticTap.h:104-117`) and only active pairs are visited; no global toggle. |
 | Q3 | Naming `effect` vs `fx`? | **Decided: `effect`** for identifiers/OSC/MCP; `Fx*` only for module node types. |
-| Q4 | Does chain order propagate through links? | **Decided: yes** — order, module bypasses and parameters propagate; continuous values absolute or relative, discrete values absolute only (or the channel is unlinked). |
-| Q5 | MIDI snapshot collisions across families? | **Decided**: one (channel, note) may bind one input snapshot AND one effects snapshot; duplicates are refused per family only; both recall on the trigger (input first, then effects). |
+| Q4 | Does chain order propagate through links? | **Decided: yes** — order, module bypasses and parameters propagate; continuous values absolute or relative, discrete values absolute only (or the channel is unlinked). **AMENDED 2026-09-17 (R5-1, §12.6): mutes are excluded from propagation.** The user needs per-channel mute independence inside a bunch, with a group-mute SHORTCUT that writes every member once and leaves each independently editable afterwards. |
+| Q5 | MIDI snapshot collisions across families? | **Superseded by revision 8 (§12.9 R8-1)**: there is one family of files; a note binds one file and the file recalls both inputs and effects. The per-file duplicate check (`SnapshotScopeContent::refreshMidiRow`) is unchanged. |
 | Q6 | Feed matrix default? | **Decided: all switches OFF, levels 0 dB**; "all inputs on/off for this effect" buttons in the Sends panel. |
 | Q7 | Denormal guard app-wide? | **Decided 2026-08-28: yes, as recommended** — effects threads under FTZ/DAZ from day one; the app-wide guard lands as its own baseline-changing PR (9c) scheduled right after Phase 3. Background: denormals are the tiny float values (< 1e-38) left behind when a filter or reverb tail decays towards silence; x86 CPUs process them 10-100× slower than normal numbers, so a *silent* effects channel can cost more CPU than a loud one. The fix is a per-thread CPU flag (FTZ/DAZ, `juce::ScopedNoDenormals`) that rounds them to exactly zero — inaudible by construction. The effects threads get it from day one. Enabling it on the existing gather/scatter/reverb threads is a one-line change, but it alters the last bits of the 21 offline-render baselines, so it must be its own small baseline-changing PR (9c). |
 | Q8 | Otomo on effects | **Decided**: return-only, offset-based (§6.7). The feed geometry follows the base position, so the trigger level cannot chase the motion; no `effectOtomoFeedFollow`. |
@@ -89,7 +89,7 @@ Development hold: nothing is built until the user gives the go (urgent fixes are
 | Q12 | Send cell range? | **Decided: −92..0 dB** (no gain in the matrix; gain, if wanted, comes from the modules). |
 | Q13 | Floor reflections for returns? | **Decided: none** (return rows carry FR = 0; no `effectFR*` parameters). |
 | Q14 | Tab position? | **Decided**: between Reverb and Inputs → main-tab index 4; Inputs→5, Clusters→6, Map→7 through one `TabIndex` header (`Source/MainComponent.cpp:744-750`, `:754-764`; the seven `*_MAIN_TAB_INDEX` constants under `Source/Controllers/DialsAndButtons/pages/`). |
-| Q15 | Reverb models | **Decided**: `effectReverbModel` selects an algorithm (0 = FDN in v1; Dattorro plate, SDN-style and IR are later candidates), `effectReverbType` selects a named preset within the model. |
+| Q15 | Reverb models | **Decided**: `effectReverbModel` selects an algorithm (0 = FDN in v1; Dattorro plate, SDN-style and IR are later candidates), `effectReverbType` selects a named preset within the model. **Amended 2026-09-23 (revision 9, §12.10):** the Dattorro plate (1), a modulated hall (4) and a shimmer (5) are built; SDN-style (2) and IR (3) stay reserved ids that run the FDN. The presets are ONE list, not one per model: a row sets the model too, so "Vocal Plate" picks the plate from any surface. |
 | Q16 | Module details | **Partly received**: the distortion, tremolo, delay, compressor+expander, chorus/flanger and bitcrusher gen~ prototypes were decoded and folded into §5 (their shared sub-patches were read on 2026-08-28 from `Documentation/effects/` — laws in §5.12); phaser and reverb are designed from scratch (the user's Max models "were not great"); EQ reuses the output EQ, the user's existing model. §5 stays a range table to confirm in Phase 0. |
 | Q17 | Duplicate modules | **Decided**: EQ and dynamics ship doubled (`<FxEQ id="1|2">`, `<FxDyn id="1|2">`, `instance` sub-index on the wire); other types single; the registry is append-only for future types and further instances. |
 
@@ -179,7 +179,7 @@ Late-batch policy: the pop silence-fills and counts underruns; on the **source**
 | `effects/EffectsTypes.h` | `enum class ModuleId : uint8_t { Dist=0, EQ, Dyn, Mod, Phaser, Trem, Reverb, Delay, Crush, Count }` (append-only), `kNumModuleTypes = 9`, `kNumModuleSlots = 11`, `kMaxEffectChannels = 32`, slot table `kSlots[11] = {Dist, EQ#1, EQ#2, Dyn#1, Dyn#2, Mod, Phaser, Trem, Reverb, Delay, Crush}` with tokens `dist,eq1,eq2,dyn1,dyn2,mod,phaser,trem,reverb,delay,crush`, `bool parseChainOrder(const char* csv, std::array<uint8_t,kNumModuleSlots>&)` (pure, allocation-free). |
 | `effects/EffectParams.h` | POD structs per module + `EffectChannelParams` (§4.3), `static_assert(std::is_trivially_copyable_v<…>)`. |
 | `effects/EffectModule.h` | `IEffectModule`, `ModuleSlot` (bypass/variant fades, NaN trip). |
-| `effects/EffectChain.h` | `EffectChain` (8 slots, order, reorder envelope, latency sum). |
+| `effects/EffectChain.h` | `EffectChain` (11 slots, order, reorder envelope, chain bypass/mute fades, latency sum) + the `createModule` factory. |
 | `effects/EffectPresets.h` | `applyReverbType(int type, ReverbParams&)` table (§5.7). |
 | `dsp/AcousticSendMatrix.h` | today's `reverb/ReverbSendMatrix.h` moved verbatim into `dsp/` and renamed; `reverb/ReverbSendMatrix.h` becomes `using ReverbSendMatrix = spatcore::dsp::AcousticSendMatrix;`. Zero behaviour change — the three `testReverbSendMatrix*` tests keep passing untouched. |
 | `effects/LoopGuard.h` | per-channel build-up detector + ramped fx→fx feed attenuator (§4.4-9). |
@@ -193,40 +193,60 @@ Late-batch policy: the pop silence-fills and counts underruns; on the **source**
 ### 4.2 Class sketches
 
 ```cpp
-// effects/EffectModule.h
+// effects/EffectModule.h — one config POD instead of a growing prepare() argument list, so
+// phases 2-3 add fields without touching every module signature (R3-1).
+struct ChainConfig { double sampleRate = 48000.0; int maxBlock = 512;
+                     int reverbMaxDelaySamples = 16384; double maxEffectDelaySeconds = 5.0;
+                     uint32_t noiseKey = 1; };                 // EffectsEngine::Config maps onto it
+inline constexpr float kFadeTauSeconds  = 0.005f;              // slot + chain fades (§4.6)
+inline constexpr float kParamTauSeconds = 0.010f;              // in-module gain/mix/depth glides
+struct ParamApplyInfo { bool bypass = true; bool variantChanged = false; };
+
 class IEffectModule {
 public:
     virtual ~IEffectModule() = default;
     virtual ModuleId type() const noexcept = 0;
-    virtual void prepare (double sampleRate, int maxBlock) = 0;        // allocates; never RT
+    virtual void prepare (const ChainConfig&) = 0;                      // allocates; never RT
     virtual void reset() noexcept = 0;                                  // clear state, keep params
-    virtual void process (float* inout, int n) noexcept = 0;           // mono, in place, RT
+    virtual ParamApplyInfo applyParams (const EffectChannelParams&, int instance) noexcept = 0;
+    virtual void commitPendingVariant() noexcept {}                     // called by the slot at silence
+    virtual void process (float* inout, int n) noexcept = 0;            // mono, in place, RT
     virtual int  getLatencySamples() const noexcept = 0;
     virtual float getMeterDb() const noexcept { return 0.0f; }          // relaxed atomic (GR or level)
 };
-// each module adds: void setParams (const XxxParams&) noexcept;  // diff-check + retarget smoothers
+// A module picks its OWN sub-struct out of EffectChannelParams (p.trem, p.eq[instance & 1], ...) and
+// reports back its bypass flag plus whether a state-resetting VARIANT field changed. A changed
+// variant is staged as `pending` and keeps running the old one until the slot calls reset() +
+// commitPendingVariant() at silence — so the slot never switches on module type (R3-5).
 
 class ModuleSlot {                      // one per module in a chain
 public:
-    void prepare (double sr, int maxBlock, std::unique_ptr<IEffectModule>);
-    void apply (bool bypass, bool variantChanged) noexcept;   // schedules fades / retrigger
+    void prepare (const ChainConfig&, std::unique_ptr<IEffectModule>);  // nullptr = pass-through slot
+    void applyParams (const EffectChannelParams&, int instance) noexcept;   // sets the fade target
     void process (float* inout, int n) noexcept;              // out = dry*(1-g) + wet*g, 5 ms one-pole g
-    bool isSilentBypassed() const noexcept;                    // g == 0 → module skipped, reset once
-    std::atomic<uint32_t> nanTrips { 0 };
+    bool isBypassedSettled() const noexcept;                   // g == 0 → module skipped, reset once
+    bool isActiveSettled() const noexcept;                     // g == 1 → NO crossfade arithmetic
+    std::atomic<uint32_t> nanTrips { 0 }, silentResets { 0 };
 };
 
 // effects/EffectChain.h
+using ModuleFactory = std::unique_ptr<IEffectModule> (*) (ModuleId, int instance, const ChainConfig&);
+std::unique_ptr<IEffectModule> createModule (ModuleId, int instance, const ChainConfig&);
+
 class EffectChain {
 public:
-    void prepare (double sr, int maxBlock, int maxReverbDelaySamples);
+    void prepare (const ChainConfig&, ModuleFactory = &createModule);   // injectable for tests (R3-7)
     void reset() noexcept;
     void process (float* inout, int n, const EffectChannelParams& p) noexcept;
     int  getLatencySamples() const noexcept;                   // Σ non-bypassed module latencies
 private:
     std::array<ModuleSlot, kNumModuleSlots> slots;             // indexed by slot (kSlots table)
-    std::array<uint8_t, kNumModuleSlots> currentOrder;
-    OnePoleSmoother reorderEnvelope;                            // mute-switch-unmute, 5 ms
+    std::array<uint8_t, kNumModuleSlots> currentOrder, pendingOrder;
+    OnePoleSmoother reorderEnvelope, bypassEnvelope, muteEnvelope;   // 5 ms; reorder = mute-switch-unmute
+    uint32_t lastRevision = 0;                                 // params re-applied only when p.revision moves
 };
+// The atomics make ModuleSlot and EffectChain non-movable: the engine (Phase 3) must hold chains as
+// std::vector<std::unique_ptr<EffectChain>>, never std::vector<EffectChain>.
 
 // dsp/AcousticSendMatrix.h — today's spatcore::reverb::ReverbSendMatrix, API unchanged:
 //   prepare (sr, numSources, numNodes)                       ReverbSendMatrix.h:38
@@ -344,8 +364,9 @@ Layout: `[0,numIn)` primaries, then `5·numStereo` derived, then `numEffects` re
 
 | Event | Policy |
 |---|---|
-| Module bypass ↔ active | 5 ms one-pole crossfade dry/wet; at g = 0 the module is skipped and `reset()` once. |
-| Variant switch (dist type, dyn mode, chorus/flanger, reverb type/size, delay pattern) | fade out 5 ms → `reset()` + apply → fade in (tails dropped, documented). |
+| Module bypass ↔ active | one-pole crossfade dry/wet with **τ = 5 ms** and an exact snap at |g − target| ≤ 1e-4, so g reaches exactly 0/1 after ≈ 9.2 τ ≈ 46 ms (63 % at 5 ms, −20 dB at ≈ 12 ms). At g = 0 the module is skipped and `reset()` once; at g = 1 the crossfade arithmetic is skipped entirely, so an active settled slot is bit-transparent for a module at identity (`dry·(1−g) + wet·g` at g = 1 turns −0.0 into +0.0). A 5 ms *completion* rather than a 5 ms time constant is one constant, `kFadeTauSeconds ≈ 0.54 ms`. |
+| Variant switch (dist type, dyn mode, chorus/flanger, reverb type/size, delay pattern, crusher filter) | the module stages the new value as `pending` and keeps running the old one; the slot fades out (τ = 5 ms), calls `reset()` + `commitPendingVariant()` at g = 0, then fades back in (tails dropped, documented). Cancelling before g reaches 0 costs nothing. |
+| Chain bypass / mute | the same envelopes: `chainBypass` settled at 0 → every slot skipped and reset once, the dry signal passes; `mute` is an output-gain fade to silence with the modules still running. Settled at 1, neither applies any arithmetic. |
 | Chain reorder | mute-switch-unmute 5 ms envelope at a block boundary; module state untouched. |
 | Linear gains (drive, output, mix, feedback, depth) | in-module `OnePoleSmoother` 10 ms. |
 | Filter coefficients | stepped at the 50 Hz tick with short-circuit on unchanged values. |
@@ -376,7 +397,7 @@ Layout: `[0,numIn)` primaries, then `5·numStereo` derived, then `numEffects` re
 
 Interface: §4.2. Column key for the tables: **Identifier** (ValueTree property), **Type** (F float / I int / S string), **Ramp** = OSC trailing-seconds arg accepted (`isEffectParamRampCapable`, mirrors the CSV "OSC path optional value" column), **Tier** = MCP tier (1 default; 2 = loud/wide or store/load; 3 = structural).
 
-Shared primitives (`spatcore/dsp/`): `AcousticSendMatrix` (promoted `ReverbSendMatrix`, §2.2), `FractionalDelayLine` (pow2 ring, `readLinear`, same interpolation as `spatcore/wfs/InputBufferProcessor.h:516-521`), `DcBlocker` (`R = 1 − 2π·5/sr`), `OnePoleSmoother` (`coef = 1 − exp(−1/(τ·sr))`, `spatcore/reverb/ReverbPreProcessor.h:226-227`), `LfoPhasor` (wraps `LFOWaveforms::applyWaveform`, shapes 1..8 `spatcore/dsp/LFOWaveforms.h:17-28`), `EnvelopeFollower` (peak: instant attack / exp release as `LiveSourceLevelDetector.h:82-88`; RMS: one-pole on x²), `Waveshaper` (static curves), `FastDecibels` (polynomial log2/exp2, deterministic across platforms, shared by both apps).
+Shared primitives (`spatcore/dsp/`): `AcousticSendMatrix` (promoted `ReverbSendMatrix`, §2.2), `FractionalDelayLine` (pow2 ring, `readLinear`, same interpolation as `spatcore/wfs/InputBufferProcessor.h:516-521`), `DcBlocker` (`R = 1 − 2π·5/sr`), `OnePoleSmoother` (`coef = 1 − exp(−1/(τ·sr))`, `spatcore/reverb/ReverbPreProcessor.h:226-227`, plus a stall guard that snaps to the target when a step no longer changes the float — a one-pole in float otherwise freezes short of its target forever), `LfoPhasor` (wraps `LFOWaveforms::applyWaveform`, shapes 1..8 `spatcore/dsp/LFOWaveforms.h:17-28`; phase accumulates in **double**; `hashNoiseBipolar`-keyed Random targets), `EnvelopeFollower` (peak or RMS, **attack and release**, 0 ms = the instant attack of `LiveSourceLevelDetector.h:82-88` — the dynamics module needs both), `Waveshaper` (static curves), `FastDecibels` (**libm-free** log2/exp2: exponent/mantissa split plus fixed-coefficient polynomials, so every platform runs the same +, −, × sequence; ≤ 1e-6 relative on gains and ≤ 1e-4 dB over −120..+24 dB, with `dbToGain(0) == 1.0f` and `exp2(k) == 2^k` exact by construction).
 
 ### 5.1 Distortion (`FxDist`)
 
@@ -492,17 +513,27 @@ Derived from the user's Max gen~ prototype (received 2026-08-28): the LFO is a c
 | effectTremShape | F | 0..1 (0 = sine, 1 = triangle; continuous blend — the prototype's "waveform") | 0 | — | yes | 1 |
 | effectTremMix | F | 0..100 | 100 | % | yes | 1 |
 
-`m = (1−s)·(sin(2πφ) − 1)/2 + s·(−tri(φ))` ∈ [−1, 0]; `gainDb = m·depth`; `out = in·((1−w) + w·10^(gainDb/20))` (`FastDecibels`). Phase φ from `LfoPhasor`, no square edges to smooth. Cost ≈ 10 flops/sample. First module implemented (proves `LfoPhasor` + slot fades).
+`m = −(1 + (1−s)·sine(φ) + s·tri(φ))/2` ∈ [−1, 0], where `sine` and `tri` are the `LFOWaveforms` shapes (both −1 at φ = 0 and +1 at φ = 0.5); `gainDb = m·depth`; `out = in·((1−w) + w·10^(gainDb/20))` (`FastDecibels`). **Correction (revision 3):** the prototype's two legs are `(cos(2πφ) − 1)/2` and `−triangle(φ)`, which are PHASE-ALIGNED — both 0 at φ = 0 and −1 at φ = 0.5 — because Max's `cycle` is a cosine. Revision 2 wrote the first leg as `(sin(2πφ) − 1)/2`, which rotates the sine leg a quarter cycle against the triangle, so the blend control would cancel rather than morph. The form above is the aligned one (a half-cycle offset from the prototype, which has no phase parameter to notice it). Phase φ from `LfoPhasor`, no square edges to smooth. Cost ≈ 10 flops/sample. First module implemented (proves `LfoPhasor` + slot fades).
 
 ### 5.7 Reverb (`FxReverb`)
+
+> **Revision 9 (2026-09-23, §12.10) rebuilt this module.** The model selects a real tail - 0 FDN,
+> 1 Dattorro plate, 4 modulated hall, 5 shimmer (2 and 3 reserved, running the FDN) - with four
+> early-reflection profiles in front of any of them; the type is a PRESET from one list whose
+> rows set the model and fifteen values, applied by the state from every surface; and a change
+> of model, size or reflection profile spills over instead of fading the slot. The table below
+> carries the revision-9 rows. The preset table and the size paragraph under it are the v1
+> design, kept for the record; §12.10 is the reference.
 
 `effectReverbModel` selects the algorithm behind an `IEffectReverbModel` seam (prepare/reset/process/setParams + a preset table); model 0, the only one in v1, wraps `spatcore::reverb::FDNAlgorithm` with `numNodes = 1` (`ReverbFDNAlgorithm.h:33-77`, standalone use proven in `SpatcoreTests.cpp` reverb tests) at **native** device rate; `MAX_DELAY_SAMPLES` becomes a constructor argument (default 16384 keeps every existing instance byte-identical, incl. the GPU mirror `spatcore/gpu/FdnHostConfig.h:9-19`); the module passes `16384 · ceil(sr/48000)`. Predelay: `FractionalDelayLine` 250 ms; tone: one-pole LP on the wet (the FDN already has an 8 kHz LP and +12 dB, `:417-426` — calibrate `mix`).
 
 | Identifier | Type | Range | Default | Unit | Ramp | Tier |
 |---|---|---|---|---|---|---|
 | effectReverbBypass | I | 0..1 | 1 | — | no | 1 |
-| effectReverbModel | I | 0 FDN (v1); later 1 Plate (Dattorro), 2 SDN-style, 3 IR | 0 | enum | no | 1 |
-| effectReverbType | I | preset within the model: 0 Room / 1 Chamber / 2 Hall / 3 Cathedral / 4 Plate / 5 Custom | 0 | enum | no | 1 |
+| effectReverbModel | I | 0..5: 0 FDN, 1 Plate (Dattorro), 4 Modulated Hall, 5 Shimmer; 2 SDN-style and 3 IR reserved (run the FDN) | 0 | enum | no | 1 |
+| effectReverbType | I | the PRESET (label "Preset"), 0..22 from one list (§12.10 R9-7): 0-4 the v1 rooms "(FDN)", 5 Custom, 6 Medium Hall, 7-22 rooms, halls, plates, shimmers | 6 | enum | no | 1 |
+| effectReverbERProfile | I | 0 Off / 1 Room / 2 Chamber / 3 Hall / 4 Cathedral (revision 9) | 0 | enum | no | 1 |
+| effectReverbERLevel | F | -30..+6 (revision 9) | -6 | dB | yes | 1 |
 | effectReverbPredelay | F | 0..250 | 10 | ms | yes | 1 |
 | effectReverbRT60 | F | 0.2..8 | 1.5 | s | yes | 1 |
 | effectReverbRT60LowMult | F | 0.1..9 | 1.3 | × | yes | 1 |
@@ -511,10 +542,14 @@ Derived from the user's Max gen~ prototype (received 2026-08-28): the LFO is a c
 | effectReverbCrossoverHigh | F | 1000..10000 | 4000 | Hz | yes | 1 |
 | effectReverbDiffusion | F | 0..1 | 0.5 | — | yes | 1 |
 | effectReverbSize | F | 0.5..2 | 1.0 | × | no | 1 |
+| effectReverbModRate | F | 0.05..5, log (revision 9; models 1, 4, 5) | 0.8 | Hz | yes | 1 |
+| effectReverbModDepth | F | 0..100 (revision 9; models 1, 4, 5) | 50 | % | yes | 1 |
+| effectReverbShimmerPitch | I | 0 +12 / 1 +7 / 2 +7 & +12 / 3 +19 / 4 +24 / 5 +5 / 6 -12 / 7 -12 & +12 (revision 9; model 5) | 0 | enum | no | 1 |
+| effectReverbShimmerAmount | F | 0..100 (revision 9; model 5) | 50 | % | yes | 1 |
 | effectReverbTone | F | 1000..20000 | 12000 | Hz | yes | 1 |
 | effectReverbMix | F | 0..100 | 30 | % | yes | 1 |
 
-Type presets for model 0 (`EffectPresets.h`; each model owns its own table; selecting a type writes the expanded values into the tree so state stays explicit; editing any of them flips the type to Custom). Designed from scratch — the user's Max reverb model is not used:
+**v1, superseded by §12.10 R9-7 (one list of 23 ids; these five rows are ids 0-4, frozen).** Type presets for model 0 (`EffectPresets.h`; each model owns its own table; selecting a type writes the expanded values into the tree so state stays explicit; editing any of them flips the type to Custom). Designed from scratch — the user's Max reverb model is not used:
 
 | Type | rt60 | lowMult | highMult | xLow | xHigh | diffusion | size | predelay |
 |---|---|---|---|---|---|---|---|---|
@@ -524,7 +559,7 @@ Type presets for model 0 (`EffectPresets.h`; each model owns its own table; sele
 | Cathedral | 5.0 | 1.5 | 0.3 | 150 | 3000 | 0.4 | 1.8 | 40 |
 | Plate | 1.8 | 0.8 | 0.9 | 300 | 8000 | 0.95 | 0.7 | 0 |
 
-`size` is prepare-time in the FDN (`FdnHostConfig.h:17-19`): a size change prepares a **shadow** `FDNAlgorithm` on the message thread, publishes its pointer, and the slot retriggers and swaps at a block boundary (engine precedent: fade swap `ReverbEngine.h:851+`). Memory ≤ ~0.8 MB per instance at 96 k; ×2 shadow ×32 ≈ 50 MB worst case. Cost ≈ 300 flops/sample.
+**v1, superseded by §12.10 R9-2 (two tails of every class, and a size change spills over).** `size` is prepare-time in the FDN (`FdnHostConfig.h:17-19`): a size change prepares a **shadow** `FDNAlgorithm` on the message thread, publishes its pointer, and the slot retriggers and swaps at a block boundary (engine precedent: fade swap `ReverbEngine.h:851+`). Memory ≤ ~0.8 MB per instance at 96 k; ×2 shadow ×32 ≈ 50 MB worst case. Cost ≈ 300 flops/sample.
 
 ### 5.8 Multitap delay (`FxDelay`, taps as `<Tap id="1..8">` children)
 
@@ -565,13 +600,53 @@ Purpose: lo-fi degradation — word-length reduction (quantisation) and sample-r
 | effectCrushDither | F | −96..0 (−96 = off; white noise added before the quantiser, as in the prototype) | −96 | dB | yes | 1 |
 | effectCrushMix | F | 0..100 | 100 | % | yes | 1 |
 
-Algorithm: fractional-rate sample-and-hold (`phase += rate/sr; if (phase >= 1) { hold = q(x); phase -= 1; }`), quantiser `q(x) = round(x · 2^bits) / 2^bits` (the prototype's law; fractional bits give a continuous step), dither = white noise from `hashNoiseBipolar` (deterministic, `spatcore/dsp/FrDiffusionModel.h:52-63`) scaled by the dither level (the prototype's `noise · dbtoa(dither)` with a default of 0 dB, i.e. full-scale noise — a placeholder; ours defaults to off). Bits and rate changes glide through the 10 ms `OnePoleSmoother`. State: hold value, phase, LP; latency 0. Cost ≈ 5-15 flops/sample. Second module implemented (after tremolo): proves the quantiser and a stateful hold under the slot fades.
+Algorithm: fractional-rate sample-and-hold — the trigger is tested BEFORE the phase accumulates (`if (phase >= 1) { phase -= 1; hold = q(x); } phase += rate/sr;`, with `phase = 1` after `prepare()`/`reset()`), so the first hold lands on sample 0 and every run is full length; the other order costs the first run one sample. Quantiser `q(x) = round(x · 2^bits) / 2^bits` (the prototype's law; `std::round` = half away from zero, symmetric; fractional bits give a continuous step; `2^bits` from `FastDecibels::exp2`, exact for integer bits), dither = white noise from `hashNoiseBipolar` (deterministic, `spatcore/dsp/FrDiffusionModel.h:52-63`, keyed per module instance through `makeKey`; the index advances every sample whether or not dither is on, so the stream never depends on when it was switched in) scaled by the dither level (the prototype's `noise · dbtoa(dither)` with a default of 0 dB, i.e. full-scale noise — a placeholder; ours defaults to off). Bits and rate changes glide through the 10 ms `OnePoleSmoother`. State: hold value, phase, LP; latency 0. Cost ≈ 5-15 flops/sample. Second module implemented (after tremolo): proves the quantiser and a stateful hold under the slot fades.
+
+### 5.13 Prototype defects found on re-decoding (2026-09-16, Phase 2)
+
+Before writing the six remaining modules every prototype was decoded again and then **independently
+re-traced by a second reader**. Three of the six first readings turned out to be materially wrong,
+which is the justification for having done it twice. More importantly, the pass found four genuine
+DEFECTS in the prototypes themselves. They are recorded here because the modules deliberately do
+**not** reproduce them, and an A/B against the Max patches (§10) will therefore show a difference
+that is correct rather than a regression.
+
+| # | Defect | Consequence | What the modules do |
+|---|---|---|---|
+| P1 | **Shelf alpha is missing a pair of brackets.** `loShelf.gendsp` / `hiShelf.gendsp` compute `alpha = (sin ω/2)·sqrt((A + 1/A)·1/S − 1 + 2)`, which parses as `(A + 1/A)/S + 1`. The RBJ law, and what §5.12's table records, is `(A + 1/A)(1/S − 1) + 2`. The two agree only at A = 1, where the shelf is flat anyway. | The prototype's low shelf at a nominal S = 0.7 is really running an effective S ≈ 0.52, a difference of 0.19 dB at ±3 dB of gain rising to 2.07 dB at ±24 dB. | Implement the **correct** RBJ law: `OutputEQBiquadFilter` shapes 2 and 5 at slope 0.7. An exact match to the prototype would need a gain-dependent slope, `S' = 1/(1/S + 1 − 1/(A + 1/A))`, which is not worth carrying a bug for. |
+| P2 | **Shelf gain is converted from dB twice.** The gain inlet passes through a `dbtoa` box *before* the codebox, and the codebox then computes `A = 10^(in2/40)` as though it were still dB. | A nominal 0 dB shelf is **not neutral**: it applies about +0.5 dB, and two shelves in series about +1 dB. The mapping is doubly exponential, so a nominal +40 dB asks for +100 dB. It also destabilises `fx_delay`, whose shelves sit inside the feedback loop. | Gain in dB means gain in dB. This is why a port that "corrects" only the alpha still would not match: both defects sit on the same parameter. |
+| P3 | **The expander realises the wrong ratio.** `fx_dynamics`'s expander stage computes a gain equivalent to a ratio of `2 − 1/R` rather than `R`. The compressor stage beside it is textbook-correct (`out_dB = T + (L − T)/R`), which is what makes the expander's arithmetic look deliberate at a glance. | At a nominal 2:1 the expander expands at 1.5:1; the error grows with R and inverts the meaning of the control at high settings. | Implement the correct downward expander of §5.3, `g = max(range, (R − 1)·over)` below threshold. |
+| P4 | **A stale sidechain default that mutes the detector.** `hiCut.gendsp`'s second inlet still carries the label and default of a high *shelf*: `@default 20`. In `fx_dynamics` that inlet is left unconnected, so both sidechain high cuts default to **20 Hz** rather than 20 kHz. | The detector sees essentially nothing, so the dynamics stage barely responds at its own default settings. | The plan's default of 20 kHz is the intent and is what ships. |
+
+Three further findings that are **not** defects but change what the modules must do:
+
+- **`gen~`'s `delay` interpolates linearly by default.** The first reading of `fx_chorus` asserted the
+  opposite and the verifier overturned it. So `spatcore/dsp/FractionalDelayLine.h` *matches* the
+  prototypes rather than improving on them, and the plan's earlier note that the prototype "does not
+  interpolate at all" is withdrawn.
+- **The low and high CUTS do reproduce exactly.** `OutputEQBiquadFilter` shapes 1 and 6 at q = 0.6
+  give coefficients identical to `loCut.gendsp` / `hiCut.gendsp` to the bit, checked in double at six
+  frequencies from 20 Hz to 20 kHz. §5.12's claim is confirmed. The shelves are the only part that
+  cannot be matched, and P1/P2 are why.
+- **`fx_delay` is a single tap with feedback, not a multitap.** The taps, the pattern modes and the
+  per-tap levels of §5.8 are all additions. Its verified topology is worth keeping: the dry is tapped
+  **before** the input low cut, the wet **before** the feedback shelves, and the two shelves sit
+  strictly **inside** the feedback loop after the feedback gain. One consequence the re-trace drew
+  out: the first repeat is at unity whatever the feedback control says, because the line is written
+  at unity and only the recirculating path is scaled.
+
+Also corrected: §5.12's quirk list attributes the stale `hiShelfFreq` inlet label to `loCut.gendsp`;
+it is `hiCut.gendsp`. And `hiShelfParam.gendsp`, the display twin, hard-codes `1/0.7` in the same
+expression the audio version leaves at its `@default 0` — good evidence that the high shelf's S = 0
+is an accident rather than a choice.
+
+---
 
 ### 5.10 Chain-level parameters
 
 | Identifier | Type | Range | Default | Ramp | Tier |
 |---|---|---|---|---|---|
-| effectChainOrder | S | permutation of `dist,eq,dyn,mod,phaser,trem,reverb,delay` | that order | no | 1 |
+| effectChainOrder | S | permutation of the 11 tokens `dist,eq1,eq2,dyn1,dyn2,mod,phaser,trem,reverb,delay,crush` (§4.1 is the binding table; revision 2 left a stale 8-token list here) | that order | no | 1 |
 | effectChainBypass | I | 0..1 | 0 | no | 1 |
 | (action) clear | — | `/wfs/effect/clear <fx>`, `/wfs/effect/clearAll`, MCP `effect_clear`, header button, Stream Deck key — flushes the chain, feed lines and return ring (§4.4-10); not a stored parameter | — | no | 1 |
 
@@ -589,7 +664,7 @@ Sixteen gen~ files: `fx_{bitcrusher,chorus,delay,distortion,dynamics,flanger,tre
 |---|---|---|
 | `wetDry` | `out = dry·m + wet·(1−m)`, `m = mix/100` — a **linear** crossfade whose argument is the **dry** fraction (`mix = 100` → fully dry, the `@default 1` → 99 % wet) | every module's `effect*Mix` is a wet %, so the harness maps `mix_ours = 100 − mix_max`; no equal-power law anywhere. |
 | `loCut` / `hiCut` | RBJ 2nd-order high-/low-pass, `alpha = sin ω / 1.2` (Q = 0.6), Direct Form I `y = b0·x + b1·x1 + b2·x2 − a1·y1 − a2·y2` | `OutputEQBiquadFilter` LowCut / HighCut shapes with q = 0.6 (`spatcore/dsp/OutputEQBiquadFilter.h:14-22`) reproduce them exactly; used for the dynamics sidechains and the delay / chorus / flanger input low-cut. |
-| `loShelf` / `hiShelf` | RBJ shelving, `A = 10^(dB/40)`, `alpha = sin ω/2 · sqrt((A + 1/A)(1/S − 1) + 2)`; the module patches connect only freq and gain, so S falls back to the sub-patch default — 0.7 for the low shelf, **0 for the high shelf**, which under gen~'s divide-by-zero-returns-0 rule collapses to `alpha = sin ω/2` (a slightly steeper corner than S = 1) | both implemented as `OutputEQBiquadFilter` LowShelf / HighShelf with slope 0.7; the high-shelf quirk is recorded for the A/B (expect a small corner difference on the distortion and delay tests). |
+| `loShelf` / `hiShelf` | RBJ shelving, `A = 10^(dB/40)`, `alpha = sin ω/2 · sqrt((A + 1/A)(1/S − 1) + 2)`; the module patches connect only freq and gain, so S falls back to the sub-patch default — 0.7 for the low shelf, **0 for the high shelf**, which under gen~'s divide-by-zero-returns-0 rule collapses to `alpha = sin ω/2` (a slightly steeper corner than S = 1) | both implemented as `OutputEQBiquadFilter` LowShelf / HighShelf with slope 0.7. **Revised in §5.13:** the codebox does not actually implement the law in this row, and the difference is not small - see defects P1 and P2. |
 | `slide` (dynamics) | `y += (x − y)/n`, n = t_ms · sr/1000 samples, applied to the linear gain | our one-pole `1 − exp(−1/n)` matches to first order. |
 | `cycle` / `phasor` / `triangle 0.5` | sine; saw 0..1; symmetric triangle 0..1 | `LfoPhasor` + `LFOWaveforms` cover them. |
 | `mstosamps`, `dbtoa` / `atodb`, `delay … @interp linear` | ms → samples at the device rate; 20·log10; linear interpolation | identical to the plan's primitives. |
@@ -714,7 +789,7 @@ Per-effect packed CSV rows (precedent `reverbMutes`, `WFSValueTreeState.cpp:4424
 
 ### 6.6 Link groups — `Source/Parameters/EffectParamEdit.h`
 
-Clone of `ClusterParamEdit.h` with: `write(fx, id, var)`, `writeBand(fx, band, id, var)`, `writeTap(fx, tap, id, var)`; membership = `effectLinkGroup == group`; mode from `effectsGlobalLinkMode` (0 off / 1 absolute / 2 relative), GUI modifiers override per gesture (Ctrl/Cmd = this channel only, Shift = relative) — hardware and OSC-driven GUI states follow the global mode since dials carry no modifiers (`ClusterParamEdit.h:174-189` reads realtime modifiers). One undo transaction per gesture for every origin (today only Hardware, `:227-228`). Timers 25/50/500 ms as `:164-166`. `isExcluded`: name, position XYZ, return offset XYZ, coordinate mode, link group, all `effectOtomo*`, the four Sends rows, `effectSolo`. `isAbsoluteOnly`: every bypass/mode/type/shape/enum, chain order, chain bypass, minimal-latency flags, attenuation law, mutes/macro/muteReverbSends. Chain order and mutes propagate (Q4); relative mode only ever applies to continuous parameters, so a link group is either "same chain" or nothing (user, round 2). OSC/MCP/snapshot writes bypass the funnel (`ClusterParamEdit.h:35-36` rule). Group names in `effectsGlobalLinkNames` (one CSV property, editable via long-press on the group combo).
+Clone of `ClusterParamEdit.h` with: `write(fx, id, var)`, `writeBand(fx, band, id, var)`, `writeTap(fx, tap, id, var)`; membership = `effectLinkGroup == group`; mode from `effectsGlobalLinkMode` (0 off / 1 absolute / 2 relative), GUI modifiers override per gesture (Ctrl/Cmd = this channel only, Shift = relative) — hardware and OSC-driven GUI states follow the global mode since dials carry no modifiers (`ClusterParamEdit.h:174-189` reads realtime modifiers). One undo transaction per gesture for every origin (today only Hardware, `:227-228`). Timers 25/50/500 ms as `:164-166`. `isExcluded`: name, position XYZ, return offset XYZ, coordinate mode, link group, all `effectOtomo*`, the four Sends rows, `effectSolo`, and — per R5-1 (§12.6) — `effectMute`, `effectMutes`, `effectMuteMacro`, `effectMuteReverbSends`. `isAbsoluteOnly`: every bypass/mode/type/shape/enum, chain order, chain bypass, minimal-latency flags, attenuation law. (Mutes were here until R5-1 moved them to `isExcluded`.) Chain order propagates (Q4); relative mode only ever applies to continuous parameters, so a link group is either "same chain" or nothing (user, round 2). OSC/MCP/snapshot writes bypass the funnel (`ClusterParamEdit.h:35-36` rule). Group names in `effectsGlobalLinkNames` (one CSV property, editable via long-press on the group combo).
 
 ### 6.7 AutomOtion generalisation (`Source/Automation/AutomOtionProcessor.h`)
 
@@ -735,7 +810,7 @@ AutomOtionProcessor (WFSValueTreeState&, AutomOtionFamily);
 
 Effects otomo is **return-only and offset-based** (user, round 2): the processor never writes `effectPositionX/Y/Z`; it publishes an offset `(dx, dy, dz)` per effect through `WFSCalculationEngine::setEffectOtomoOffset` (the twin of `setLFOOffset`, `Source/DSP/WFSCalculationEngine.h:112`), so the family descriptor's position sink becomes a `writeOffset` callback and `stayReturn` is fixed to Return (no `effectOtomoStayReturn` parameter). Consequences: no `OriginTag::Move` writes, no undo/dirty-tracker interaction, the map shows the base marker plus a grey moving dot exactly like the LFO offset, and the feed geometry — computed from the base position — cannot chase the motion, so the trigger level stays stable (no `effectOtomoFeedFollow`). Return sequence: 50 ms fade-out → offset snaps to 0 → 50 ms fade-in (`processReturnFade`, `AutomOtionProcessor.h:836-891` idiom), gain applied in the callback on the popped slot (§6.5 B). Rearm: RMS < `effectOtomoReset` after the return completed + 500 ms.
 
-Level source: `LevelMeteringManager::getEffectLevel(fx)` (second table `effectFeedPeakLin/MeanSq[32]` pushed at 50 Hz from the engine's block-rate atomics, same freshness gating and dB conversion as `refreshInputLevels`, `Source/DSP/LevelMeteringManager.h:525-548`) — no dB math in spatcore. `ParameterDirtyTracker::isInputParameterTree` (`Source/Parameters/ParameterDirtyTracker.h:234-240`) is inputs-only: `ScopedInternalWrite` is a harmless no-op for effects; the effects snapshot "auto-preselect dirty" gets its own tracker scope in Phase 7.
+Level source: `LevelMeteringManager::getEffectLevel(fx)` (second table `effectFeedPeakLin/MeanSq[32]` pushed at 50 Hz from the engine's block-rate atomics, same freshness gating and dB conversion as `refreshInputLevels`, `Source/DSP/LevelMeteringManager.h:525-548`) — no dB math in spatcore. `ParameterDirtyTracker::isInputParameterTree` (`Source/Parameters/ParameterDirtyTracker.h:234-240`) is inputs-only: `ScopedInternalWrite` is a harmless no-op for effects. Phase 7 taught the one tracker the effects keys (R8-4): an effect write marks its scope item for the Scope window's auto-preselect.
 
 ### 6.8 LevelMeteringManager / binaural / visualisation
 
@@ -748,23 +823,31 @@ Level source: `LevelMeteringManager::getEffectLevel(fx)` (second table `effectFe
 
 - Section file `effects.xml`: `getEffectConfigFile`, `save/load/loadBackup/export/importEffectConfig`, `extractEffectsSection`, `applyEffectsSection` (`mergeTreeRecursive`, mirror `:3126-3135`). **Absent file = zero effects and success** (`loadCompleteConfig` marks failure per missing section `:451-487` and skips the number-ownership latch `:494-495`; the effects loader must return true and set count 0). Count reconciliation (`:2909-2949`) adds `setNumEffectChannels(io.getProperty(effectChannels, 0))`. Backup rotation list (`:2434-2435`) and `tools/validation/control-replay/common.py:50-51` `SECTION_FILES` add `"effects"`; the session_roundtrip fixture is regenerated by the bootstrap procedure (no `--update`, `session_roundtrip.py:9-11`).
 - Schema backfill: `ensureCompleteSchema` creates `<Effects count="0">` and `Config/EffectsGlobal` (no globals under `<Effects>`).
-- Snapshot model: extract the per-item/per-channel state machine of `ExtendedSnapshotScope` into `SnapshotScopeCore` over a `const ScopeItemTable*`; `SnapshotFamily { folder, rootTag ("InputSnapshot"/"EffectsSnapshot"), itemTable, channelLabelProvider, transientList, showQLabToggle, showSamplerGate }`. `SnapshotScopeWindow` (1418 lines, input-sized at `:540`, `:587`, MIDI duplicate check `:1151-1155`) takes the family instead of `params.getNumInputChannels()`. `withGlobals` (`.h:386-389`), `isPropertyCoveredBySnapshotScope` (`.h:439`), `stripTransientToggles` (`.cpp:1621`) become family-driven.
-- Effects scope items (sectionId = display grouping): Channel {level: attenuation, delayLatency, minimalLatency, mute; link: linkGroup}, Position {position, returnOffset}, Feed {feedShaping}, Return {returnShaping, hfShelf, mutes}, Sends {sendsIn, sendsFx} (granularity is the whole row — cells cannot be scoped individually), Chain {chainOrder + chainBypass}, one item per module (FxEQ / FxDelay subtree-copied like gradient layers `:1308-1311`), AutomOtion {otomoDestination, otomoMovement, otomoAudioTrigger}. `effectName` always written (table-driven `<Channel>` rule, `Documentation/CLAUDE.md:1836-1846`); `effectSolo` and `effectOtomoPauseResume` excluded (transient).
-- File: `snapshots/effects/<name>.xml` = `<EffectsSnapshot version="1.0" name midiChannel midiNote><ExtendedScope/><Effects><Effect id=N>…</Effects>`; `writeMidiBindingToRoot` reused (`:1997-2013`). Recall skips ids beyond the live count.
-- MIDI: `scanSnapshotMidiBindings` (root tag filter `:1201`) scans both folders into one table keyed `(channel, note)` whose value is the pair `{inputSnapshot, effectsSnapshot}` (either may be empty); `MidiSnapshotTrigger` (`Source/MidiSnapshotTrigger.h:119-147`) stays a 16×128 atomic table; the recall handler fires the input recall first, then the effects recall, each through its family's scope-aware path. Duplicates are refused per family (the scope window's check at `SnapshotScopeWindow.h:1151-1155` becomes family-scoped); a note bound in both families is the intended use (user, round 2 — Q5).
-- OSC: `/wfs/effect/snapshot/{load,store} "<name>"` intercepted before routing with the same space-joining parser (`Source/Network/OSCManager.cpp:1782-1819`).
-- QLab: `QLabCueBuilder::buildSnapshotLoadCue` hard-codes `/wfs/input/snapshot/load` and `/store` (`Source/Network/QLabCueBuilder.h:189, :202`) → parameterise both with an address prefix; effects export only the snapshot-load group (no per-parameter cue table `:43-140`); gated by `writeSnapshotLoadCue` (`WFSParameterIDs.h:74`).
+- **Revision 8 (§12.9) replaced the design this section used to describe - a second snapshot family with its own folder, root tag, window and MIDI table - by one snapshot carrying both families.** What was built:
+- Snapshot model: the per-item/per-channel state machine of `ExtendedSnapshotScope` moved into `ScopeMatrix` over a `ScopeItemTable` (inputs first, byte-identical files); `ExtendedSnapshotScope { applyMode, midi, inputs, effects }`, the old API kept as forwarders. Effects items (display section in brackets): fxLevel / fxMute / fxLink [Effect], fxPosition / fxReturnOffset [Position], fxFeed [Feed], fxReturnLaw / fxMutes / fxArrayAttens [Return], fxChain [Chain], one whole-node item per module [Modules], fxSendsInputs / fxSendsEffects [Sends], fxLfoEnable / X / Y / Z [LFO], fxOtomoDestination / Movement / AudioTrigger [AutomOtion]. `effectName` always carried; `effectSolo` and `effectOtomoPauseResume` never (self-test Q).
+- File: the SAME `<InputSnapshot>` (version 2.1 once it carries effects): `<ExtendedScope …><PartialChannel/><EffectsScope fullChannels excludedChannels><PartialChannel index excludedItems/></EffectsScope></ExtendedScope><Inputs/><Effects><Effect id=N>…</Effect></Effects>`. Absent `<Effects>` (older files) recalls no effect; ids beyond the live count are skipped and reported; ghosts carried forward on re-store. The five packed rows are applied through `setEffectParameter` so the interceptor canonicalises them; every other value is written raw under `ScopedUndoDomain (Effects)`.
+- MIDI: unchanged (`scanSnapshotMidiBindings`, `MidiSnapshotTrigger`); one note, one file, both families.
+- OSC: `/wfs/input/snapshot/{load,store}` recalls / stores both families; `/wfs/effect/snapshot/*` is refused with a reason naming the input address.
+- QLab: per-parameter effect cues in each parameter's shape (`OSCMessageRouter::getEffectParamKind`), names from the module descriptors; `buildSnapshotLoadCue` unchanged (it recalls the whole file).
+
+The superseded bullets, kept for the record:
+- (superseded) Snapshot model: extract the per-item/per-channel state machine of `ExtendedSnapshotScope` into `SnapshotScopeCore` over a `const ScopeItemTable*`; `SnapshotFamily { folder, rootTag ("InputSnapshot"/"EffectsSnapshot"), itemTable, channelLabelProvider, transientList, showQLabToggle, showSamplerGate }`. `SnapshotScopeWindow` (1418 lines, input-sized at `:540`, `:587`, MIDI duplicate check `:1151-1155`) takes the family instead of `params.getNumInputChannels()`. `withGlobals` (`.h:386-389`), `isPropertyCoveredBySnapshotScope` (`.h:439`), `stripTransientToggles` (`.cpp:1621`) become family-driven.
+- (superseded) Effects scope items (sectionId = display grouping): Channel {level: attenuation, delayLatency, minimalLatency, mute; link: linkGroup}, Position {position, returnOffset}, Feed {feedShaping}, Return {returnShaping, hfShelf, mutes}, Sends {sendsIn, sendsFx} (granularity is the whole row — cells cannot be scoped individually), Chain {chainOrder + chainBypass}, one item per module (FxEQ / FxDelay subtree-copied like gradient layers `:1308-1311`), AutomOtion {otomoDestination, otomoMovement, otomoAudioTrigger}. `effectName` always written (table-driven `<Channel>` rule, `Documentation/CLAUDE.md:1836-1846`); `effectSolo` and `effectOtomoPauseResume` excluded (transient).
+- (superseded) File: `snapshots/effects/<name>.xml` = `<EffectsSnapshot version="1.0" name midiChannel midiNote><ExtendedScope/><Effects><Effect id=N>…</Effects>`; `writeMidiBindingToRoot` reused (`:1997-2013`). Recall skips ids beyond the live count.
+- (superseded) MIDI: `scanSnapshotMidiBindings` (root tag filter `:1201`) scans both folders into one table keyed `(channel, note)` whose value is the pair `{inputSnapshot, effectsSnapshot}` (either may be empty); `MidiSnapshotTrigger` (`Source/MidiSnapshotTrigger.h:119-147`) stays a 16×128 atomic table; the recall handler fires the input recall first, then the effects recall, each through its family's scope-aware path. Duplicates are refused per family (the scope window's check at `SnapshotScopeWindow.h:1151-1155` becomes family-scoped); a note bound in both families is the intended use (user, round 2 — Q5).
+- (superseded) OSC: `/wfs/effect/snapshot/{load,store} "<name>"` intercepted before routing with the same space-joining parser (`Source/Network/OSCManager.cpp:1782-1819`).
+- (superseded) QLab: `QLabCueBuilder::buildSnapshotLoadCue` hard-codes `/wfs/input/snapshot/load` and `/store` (`Source/Network/QLabCueBuilder.h:189, :202`) → parameterise both with an address prefix; effects export only the snapshot-load group (no per-parameter cue table `:43-140`); gated by `writeSnapshotLoadCue` (`WFSParameterIDs.h:74`).
 
 ### 6.10 GUI
 
-- `Source/gui/effects/EffectsTab.h` (header + sub-tab switch + footer), `EffectsChannelPanel.h`, `EffectsSendsPanel.h`, `EffectsChainPanel.h`, `EffectsModulePanels.h` — deliberately not a 5877-line monolith (`Source/gui/ReverbTab.h`). Header: `ChannelSelectorButton`, name editor, link-group combo + link-mode toggle, `effectsMapVisible`, Edit-on-Map, long-press Solo/Mute and long-press **Clear** (this channel; Ctrl = all) with a loop-guard LED (`LongPressButton`). Footer: store/reload/backup/import/export long-press buttons (`ReverbTab.h:1996-2022` pattern) + snapshot selector/store/scope. Guards `isLoadingParameters` / `isSelfWriting` (`ReverbTab.h:3167-3180`).
+- `Source/gui/effects/EffectsTab.h` (header + sub-tab switch + footer), `EffectsChannelPanel.h`, `EffectsSendsPanel.h`, `EffectsChainPanel.h`, `EffectsModulePanels.h` — deliberately not a 5877-line monolith (`Source/gui/ReverbTab.h`). Header: `ChannelSelectorButton`, name editor, link-group combo + link-mode toggle, `effectsMapVisible`, Edit-on-Map, long-press Solo/Mute and long-press **Clear** (this channel; Ctrl = all) with a loop-guard LED (`LongPressButton`). Footer: the shared snapshot row (`SnapshotRow` over the one `SnapshotSession`, its Edit Scope opening the window on the Effects grid) above the store/reload/backup/import/export long-press buttons (`ReverbTab.h:1996-2022` pattern) - revision 8. Guards `isLoadingParameters` / `isSelfWriting` (`ReverbTab.h:3167-3180`).
 - Channel sub-tab: position (3 coordinate modes), feed shaping, return shaping, mutes row + macro, otomo block with level indicators (twin of `updateOtomoLevelIndicators`).
 - Sends sub-tab: **new shared widget** `spatcore/ui/sends/SendMatrixComponent` + `SendMatrixConfig.h` (provider pattern of `spatcore/ui/patch/PatchMatrixConfig.h`; the patch matrix is boolean 1:1 hardware routing, `PatchMatrixConfig.h:48-67`, unsuitable for dB sends). Rows = 64 inputs then 32 effects (sources), columns = 32 effects; rows grouped by link group and collapsible, so an isolated bunch of effects channels reads as one block; channels inside a detected cycle carry a warning badge; cell = level bar + on/off; drag = level, click = toggle, Shift = fine, keyboard navigation + `announce`; diagonal disabled. App shim `Source/gui/effects/SendMatrixShim.cpp` (as `Source/gui/PatchMatrixShim.cpp:1-12`) writes through `setEffectSendCell`. "All on/off for this effect" buttons.
 - Chain sub-tab: strip of 11 module tiles in `effectChainOrder` (drag-to-reorder writes the string via `EffectParamEdit`), bypass LED per tile, selected tile's panel below. EQ panel = `EQDisplayComponent` shim (`forEffectEQ()`) + `EQBandToggle`; Dyn panel = `GainReductionMeter` fed at 50 Hz from `moduleMeterDb`.
 - Map (`Source/gui/MapTab.h`): `drawEffects` after `drawReverbs` (`:403`, impl `:3552`), `getEffectAtPosition` (hit sites `:657`, `:939`), `setEffectEditMode` (twin of `:136`), drag → `setEffectParameter(position)`, otomo grey dot, navigate callback `tabType 4` (`MainComponent.cpp:818-842`).
 - SystemConfigTab: `effectChannelsLabel/Editor` after `:534-537`, reduction dialog twin (`:2949-2974`), `notifyChannelCountChanged` struct (`:5238-5246`).
 - Stream Deck: `Source/Controllers/DialsAndButtons/pages/EffectsTabPages.h` (`EFFECTS_MAIN_TAB_INDEX = 4`, sub-tabs Channel / Sends / Chain, link-mode button, solo/mute, Clear key), registration loop like `MainComponent.cpp:1104-1116`; main-tab constants in `InputsTabPages.h`, `ClustersTabPages.h`, `MapTabPages.h`, `ReverbTabPages.h` move to one `TabIndex` header (Q14 decided: Effects = 4, between Reverb 3 and Inputs 5).
-- Localisation: `Resources/lang/en.json` `effects.*` + `snapshotScope.effects.*` (other locales fall back to en, `Source/Localization/LocalizationManager.h:68-76`). Help cards: `Documentation/helpCards.md` + `HelpCard.h`. Every new header/cpp in `WFS-DIY.jucer`.
+- Localisation: `Resources/lang/en.json` `effects.*` + the `snapshotScope.sections.*` / `families.*` keys of the shared window (other locales fall back to en, `Source/Localization/LocalizationManager.h:68-76`). Help cards: `Documentation/helpCards.md` + `HelpCard.h`. Every new header/cpp in `WFS-DIY.jucer`.
 
 ---
 
@@ -781,9 +864,9 @@ Level source: `LevelMeteringManager::getEffectLevel(fx)` (second table `effectFe
 | send cell | `/wfs/effect/sendLevel <fx> <inputNumber> <dB> [sec]`, `/wfs/effect/sendOn <fx> <inputNumber> <0/1>`, `/wfs/effect/fxSendLevel <fx> <srcFx> <dB> [sec]`, `/wfs/effect/fxSendOn <fx> <srcFx> <0/1>` | `/wfs/effect/<fx>/sendLevel <in> <dB> [sec]` … | `isCell` set → `setEffectSendCell`; ingest classifier key `addr|fx|sub` (today `/wfs/reverb/` coalesces on `addr|first int`, `OSCManager.cpp:107-114`) |
 | send row | `/wfs/effect/sendLevels <fx> "<csv>"` (+ `sendOns`, `fxSendLevels`, `fxSendOns`) | `/wfs/effect/<fx>/sendLevels "<csv>"` | distinct identifiers → distinct reverse-map entries (`OSCQueryServer.cpp:381-398` is keyed by Identifier, last wins) |
 | mutes | `/wfs/effect/mutes <fx> "<csv>"` | — | row form only (the reverb `mutes <id> <out> <v>` 3-arg form is broken today and not copied) |
-| chain order | `/wfs/effect/chainOrder <fx> "eq,dist,dyn,mod,phaser,trem,reverb,delay"` | `/wfs/effect/<fx>/chainOrder "<csv>"` | validated permutation; rejection → `invalidReason` |
+| chain order | `/wfs/effect/chainOrder <fx> "eq1,dist,eq2,dyn1,dyn2,mod,phaser,trem,reverb,delay,crush"` | `/wfs/effect/<fx>/chainOrder "<csv>"` | validated permutation; rejection → `invalidReason` |
 | position polar | `/wfs/effect/positionR|positionTheta|positionRsph|positionPhi <fx> <v>` and `offset*` | — | same conversion path as inputs (`OSCManager.cpp:1825-1837`) generalised by family |
-| snapshot | `/wfs/effect/snapshot/load "<name>"`, `/wfs/effect/snapshot/store "<name>"` | — | intercept before routing |
+| snapshot | — (`/wfs/effect/snapshot/load|store` refused with a reason pointing at `/wfs/input/snapshot/load|store "<name>"`, which covers both families, revision 8) | — | router `Kind::Verb` refusal |
 | clear | `/wfs/effect/clear <fx>`, `/wfs/effect/clearAll` | — | intercept before routing; no stored parameter (§4.4-10) |
 | globals | `/wfs/config/effects/<param>` (`linkNames`, `linkMode`, `fxFeedGeometric`, `workerThreads`, `returnCushion`, `loopGuard`, `loopGuardCeiling`, `maxDelaySeconds`, `feedGpuDevice`), `/wfs/config/io/effectChannels`, `/wfs/config/effects/mapVisible` | — | config map; dispatched under `UndoDomain::Effects` (the `/wfs/config/` branch is hard-wired to `UndoDomain::Reverb`, `OSCManager.cpp:2267-2273`) |
 
@@ -807,7 +890,7 @@ Outbound: `OSCMessageBuilder::buildEffectMessage` (new `getEffectMappings`), row
 | `DOMAIN_BY_SECTION_KEYWORD` / `DOMAIN_DEFAULT_BY_CSV` | new domain tag `effects` |
 | `CSV_FILES_ORDER` (`:485-495`) | append `WFS-UI_effects.csv` **last** (hash order) |
 | `ABBREVIATIONS` | `Dyn`, `Trem`, `EQ`, `Fx` |
-| `tool_tier_overrides.json` | `effect_channel_set_attenuation`, `…delay_latency`, `…dist_set_drive` → 2; snapshot store/load → 2 (keywords `:132-133`); `system_i_o_set_effect_channels` → 3 (`channels` keyword `:130`) |
+| `tool_tier_overrides.json` | `effect_channel_set_attenuation`, `…delay_latency`, `…dist_set_drive` → 2; no effects snapshot tools (revision 8); `system_i_o_set_effect_channels` → 3 (`channels` keyword `:130`) |
 | `tool_generation_ignores.json` | `effectSolo` (transient), row properties are generated as string setters and kept |
 | `validate()` (`:1237-1246`) | fix the inert namespace check (`name.startswith(csv_ns + ".")` vs `_`-joined names) before adding the namespace |
 | tests | `tools/mcp/test_generate_mcp_tools.py` (25 today): add `source_input_id` / `tap` sub-index cases and the 19-column effects fixture |
@@ -817,7 +900,7 @@ Outbound: `OSCMessageBuilder::buildEffectMessage` (new `getEffectMappings`), row
 - `MCPGeneratedToolLoader.cpp`: `detectChannelArg` candidates + `effect_id` (`:89`), `channelArgToScopeLabel` (`:127-131`), `EqFamily::EffectEQ` → `getEffectEQBand` (`:425-442`), new sub-tree prefix rules `effectSend` / `effectFxSend` → `SubTree::EffectSendCell / EffectFxSendCell`, `effectEQ` → `SubTree::EffectEqBand {instance, band}`, `effectDyn` → `SubTree::EffectDynInstance`, `effectDelayTap` → `SubTree::EffectTap` (`:803-826` are prefix rules), `isChannelCount` + `effectChannels` (`:981-984`). `MCPGenericDispatch.h` `SubTree` enum (`:49-60`) + three entries. `MCPParameterRegistry.cpp:32, :50` add `effect_id` → scope `"effect"`; `GetParameterTool.h` / `SetParameterTool.h` scope switches add `effect`; `DescribeParametersTool.h:44` domain enum adds `effects`.
 - `MCPSurfaceAudit.h`: candidates + `effect_id` (`:115-118`), `liveOfKind` + `getNumEffectChannels` (`:126-130`), `isSubTreeRouted` + `tap`, `source_input_id`, `source_effect_id` (`:61-63`). `WFS_TEST_MCP_SURFACE` self-test creates one effect channel first (a zero-count family is `skippedNoChannel`, `:131-136`). `MCPOSCQueryAuditor` learns `/wfs/effect`.
 - `ChannelLifecycleTools.h:22-30` adds `effectCfg {"effect", effectChannels, maxEffectChannels}`; `MCPServer.cpp:161-167` loop adds `"effect"`.
-- Hand-written `Source/Network/MCP/tools/EffectTools.h` (registered after generated, overwrite by name): `effect_chain_reorder(effect_id, order[11])`, `effect_link_group_set`, `effect_position_set(x,y,z)`, `effect_send_set_batch(effect_id, [{source_input_id|source_effect_id, level_db, on}])` (one undo entry), `effect_sends_enable_all/disable_all`, `effect_snapshot_{store,load,list}` (generalise `SnapshotTools.h` by family), `effect_reverb_apply_type`, `effect_clear(effect_id | all)`, read-only `effect_get_telemetry` (chain latency, duty, underruns, NaN trips, loop-guard trips) and `effect_loop_report` (cycles in the fx→fx graph). `SessionTools.h` / `StateInspectionTools.h` add an effects section. Knowledge resource `Documentation/MCP/resources/knowledge_effects_chains.md`.
+- Hand-written `Source/Network/MCP/tools/EffectTools.h` (registered after generated, overwrite by name): `effect_chain_reorder(effect_id, order[11])`, `effect_link_group_set`, `effect_position_set(x,y,z)`, `effect_send_set_batch(effect_id, [{source_input_id|source_effect_id, level_db, on}])` (one undo entry), `effect_sends_enable_all/disable_all` (no snapshot tools: `snapshot_list` lists the files, which carry both families - revision 8), `effect_reverb_apply_type`, `effect_clear(effect_id | all)`, read-only `effect_get_telemetry` (chain latency, duty, underruns, NaN trips, loop-guard trips) and `effect_loop_report` (cycles in the fx→fx graph). `SessionTools.h` / `StateInspectionTools.h` add an effects section. Knowledge resource `Documentation/MCP/resources/knowledge_effects_chains.md`.
 - Tool count estimate: generated ≈ 165 per-channel (instances are arguments, not extra tools) + ≈ 50 nudges + 11 globals ≈ 225; hand-written ≈ 12; total ≈ 331 + 237 ≈ **568** (main is at 331 generated tools since `125e00b` dropped `reverbLSenable`). `mcp_replay.py` `count >= 350` still passes; the per-tier census golden is regenerated with `--update` (`mcp_replay.py:7, :26`).
 
 ### 7.5 Auditors / self-tests / replays to extend
@@ -875,15 +958,15 @@ Branch/PR strategy: spatcore PRs first on `github.com/pob31/spatcore` (branch `f
 | Phase | Scope | Files (summary) | Gates | Size |
 |---|---|---|---|---|
 | **0. Design sign-off + Max prototype review** | Walk this document with the user; review each Max prototype module by module (formulas, ranges, defaults, tonal variants); confirm Q1-Q17; freeze the identifier table and the CSV. Output: this file updated + `WFS-UI_effects.csv` draft. | `Documentation/effects-channels-plan.md`, `Documentation/WFS-UI_effects.csv` (draft) | review only | S |
-| **1. spatcore primitives + contract** (spatcore PR 1, tag v0.3.0) | promote `reverb/ReverbSendMatrix.h` → `dsp/AcousticSendMatrix.h` (alias kept, the three reverb-send tests untouched); `dsp/` primitives, `rt/RtTripleBuffer.h`, `effects/EffectsTypes.h`, `EffectParams.h`, `EffectModule.h` (ModuleSlot), `EffectChain.h` skeleton (11 slots), Tremolo + Bitcrusher + EQ modules; compile-check entries; unit tests (neutrality, identity, slot fades, triple buffer, chain order parse, quantiser). | spatcore only | b, c, d (a trivially: nothing in the app changed) | M |
+| **1. spatcore primitives + contract** (spatcore PR 1, branch `feature/effects-phase1`, tag v0.3.0) — IN PROGRESS | promote `reverb/ReverbSendMatrix.h` → `dsp/AcousticSendMatrix.h` (alias kept, the three reverb-send tests untouched); `dsp/` primitives, `rt/RtTripleBuffer.h`, `effects/EffectsTypes.h`, `EffectParams.h`, `EffectModule.h` (ModuleSlot), `EffectChain.h` skeleton (11 slots), Tremolo + Bitcrusher + EQ modules; compile-check entries; unit tests (neutrality, identity, slot fades, triple buffer, chain order parse, quantiser). | spatcore only | b, c, d (a trivially: nothing in the app changed) | M |
 | **2. spatcore remaining modules** (PR 2, tag v0.3.1) | Multitap (shelved feedback + time modulation), Chorus/Flanger (LFO phase), Phaser, Dynamics (comp→expander pair, both instances share the code; lookahead), Distortion (per the gen~ prototype), Reverb (`IEffectReverbModel` seam + FDN model, `EffectPresets.h`, FDN `maxDelaySamples` ctor arg, shadow-size swap); tests (waveshaper tables, static curves, impulse goldens, latency report, NaN guard, preset ordering, all rates); offline-render `--path effects` scenarios per module; `effects-ab` harness. | spatcore + `tools/validation/offline-render/{main.cpp,scenarios.h}` + `tools/validation/effects-ab/` | a (FDN default path bit-exact), b, c, d | L |
 | **3. spatcore engine + map** (PR 3, tag v0.3.2) | `EffectsEngine.h` (drain loop over `AcousticSendMatrix`, wrap detection, ready gate, `requestClear`, telemetry), `effects/LoopGuard.h`, `SharedInputRingBuffer` counter, `RenderSourceMap` 3-arg build + `kMaxInputRenderSources`; tests (feed impulse, sum-order determinism, block ledger n+1 / n+2, backlog skip, wrap resync); `EffectChain` offline scenario with reorder/bypass/variant timeline; `docs/audio-engine-map.md` thread table. | spatcore | a, b, c, d | L |
 | **4. App data model + parameter surface** (WFS-DIY PR, after bump) | IDs/defaults (incl. `maxRenderSources = 136`, static_asserts), `UndoDomain::Effects`, `WFSValueTreeState` (get/set, sections, `setNumEffectChannels`, scope/tree/resolve, schema backfill, send-cell accessors, input-delete column zeroing, renumber hook, `effectMutes` width in `setNumOutputChannels`), facade, persistence (`effects.xml`, absent-file rule, backups, reconciliation), OSC router/parser/bounds/dispatch/builder/ramper, ingest classifier, OSCQuery, codegen (CSV, config, overrides, tests, regenerate JSON), MCP loader/audit/registry/lifecycle/EffectTools, `ChannelCounts` plumbing (count stays 0 by default). | see §12 | a (count 0), e (goldens regenerated), f, g | XL |
 | **5. App audio wiring** | Calc engine (§6.4, incl. `setEffectOtomoOffset` and the cycle warning), MainComponent (§6.5, incl. Clear wiring), `LevelMeteringManager`, binaural kind guard, otomo family adapter (offset sink) + second instance, `InputVisualisation` block, `ReverbNodePlacement::layout(standoff)` for default positions, the effects-only ownership latch `effectPositionsUserOwned` + "Re-layout effects" action (Q9, decided). | `Source/DSP/*`, `Source/MainComponent.*`, `Source/Automation/AutomOtionProcessor.h`, `Source/Helpers/ReverbNodePlacement.h` | a (count 0), g, manual audio check with 1-2 effects | L |
 | **6. GUI** | EffectsTab + panels (Clear button, loop-guard LED, cycle badges, grouped/collapsible sends grid), `SendMatrixComponent` (spatcore-ui, own small spatcore PR + tag) + shim, Map, SystemConfig, Stream Deck pages, `TabIndex` header (Effects = 4), localisation, help cards, jucer. | `Source/gui/effects/*`, `Source/gui/{MapTab,SystemConfigTab,LevelMeterWindow}.h`, `Source/Controllers/DialsAndButtons/pages/*`, `Resources/lang/en.json`, `Documentation/helpCards.md`, `WFS-DIY.jucer` | g, manual | XL |
-| **7. Snapshots + links + QLab** | `SnapshotScopeCore` / `SnapshotFamily`, `EffectsSnapshot` files, scope window generalisation, merged MIDI scan with the `{input, effects}` pair per note, OSC snapshot verbs, `EffectParamEdit.h`, link-mode UI/Stream Deck, QLab prefix parameterisation. | `WFSFileManager.*`, `SnapshotScopeWindow.h`, `MidiSnapshotTrigger.h`, `EffectParamEdit.h`, `QLabCueBuilder.h`, `OSCManager.cpp` | e, f, g, manual | L |
+| **7. Snapshots + QLab** (DONE 2026-09-23, revision 8) | `ScopeMatrix` refactor (inputs only, byte-identical files), node-driven effects item table, `<Effects>` / `<EffectsScope>` in the same file, effects undo domain, dirty-tracker effects keys, `SnapshotSession` / `SnapshotRow` shared by both tabs, two-tab Scope window, per-parameter effect QLab cues (`getEffectMappings`), refusal reason for `/wfs/effect/snapshot/*`, self-test phases N and Q. (Link-mode UI landed in phase 6, R7-4.) | `WFSFileManager.*`, `EffectsSnapshotScope.h`, `ParameterDirtyTracker.h`, `SnapshotScopeWindow.h`, `gui/snapshots/*`, `InputsTab.h`, `EffectsTab.h`, `MainComponent.cpp`, `QLabCueBuilder.h`, `OSCMessageBuilder.*`, `OSCMessageRouter.cpp` | e, f, g, manual | L |
 | **8. Verification + docs** | Control-replay fixtures/goldens with effects, offline-render baselines on every device file, `audio-engine-map.md` + `control-plane-map.md` updates, `WFS_DIY_EFFECTS_SPEC.md` (user-facing, from this plan), change log. | docs, `tools/validation/**` | all | M |
-| **9. Optional follow-ups** | 9a GPU feed (option iii); 9b full loop-gain limiter on the effect→effect path (beyond the v1 loop guard); 9c app-wide FTZ/DAZ (own baseline-changing PR — decided, scheduled right after Phase 3); 9d dynamic-EQ bands, transient designer; 9e further module duplicates / new module types (append-only registry, `instance` arg); 9f tempo sync for delay/LFOs; 9g selectable otomo detection point (`effectOtomoDetect` = feed sum / after slot k / return — the engine already keeps a level atomic per slot); 9h additional reverb models (Dattorro plate, SDN-style, IR) behind `effectReverbModel`; 9i per-parameter QLab cues if ever wanted (the `QLabCueBuilder` table is family-agnostic once 6.9 lands). | — | per item | M each |
+| **9. Optional follow-ups** | 9a GPU feed (option iii); 9b full loop-gain limiter on the effect→effect path (beyond the v1 loop guard); 9c app-wide FTZ/DAZ (own baseline-changing PR — decided, scheduled right after Phase 3); 9d dynamic-EQ bands, transient designer; 9e further module duplicates / new module types (append-only registry, `instance` arg); 9f tempo sync for delay/LFOs; 9g selectable otomo detection point (`effectOtomoDetect` = feed sum / after slot k / return — the engine already keeps a level atomic per slot); 9h additional reverb models behind `effectReverbModel` - the Dattorro plate, a modulated hall and a shimmer DONE with early reflections (revision 9, §12.10), SDN-style and IR still candidates (ids 2 and 3 reserved); 9i per-parameter QLab cues - DONE in Phase 7 (R8-5). | — | per item | M each |
 
 ---
 
@@ -904,6 +987,10 @@ Branch/PR strategy: spatcore PRs first on `github.com/pob31/spatcore` (branch `f
 | `testEffectImpulseGoldens` | linear configs vs literal IR taps (style `testBiquadGoldenCoefficients`). |
 | `testWaveshaperTables`, `testDynamicsStaticCurve`, `testReverbPresetsOrdering`, `testDelayGlideVsSnap`, `testLatencyReport`, `testAllRates` | as specified in §5 (knee C0-continuity, gate hysteresis, limiter ceiling +0.1 dB, Room < Chamber < Hall < Cathedral energy, dist latency == `Oversampling::getLatencyInSamples`). |
 | `testChainReorderDeterminism`, `testResetOnFullBypass`, `testNaNGuard` | order A→B→A returns to reference after the envelope; tails cleared; NaN → finite, `nanTrips == 1`. |
+| `testEffectParamsPod` | every parameter struct is trivially copyable (compile-time) and its defaults are the §5 table (spot-checked: bypasses, `order`, EQ shapes, `crush.ditherDb`, the last delay tap). |
+| `testModuleSlotBypassFade`, `testModuleSlotVariantSwitch` | the fade is monotonic, passes 63 % at τ = 5 ms, reaches exactly 0/1, and resets the module exactly once at silence; a settled slot is bit-transparent both ways; a staged variant commits exactly at g = 0 and cancels cleanly if it is revoked first. |
+| `testChainLatencySum`, `testChainBypassAndMute` | latency is the sum over non-bypassed slots and 0 under `chainBypass`; bypass and mute fade monotonically to exactly dry / exactly silence and back. |
+| `testOnePoleSmoother`, `testFastDecibels`, `testLfoPhasor`, `testFractionalDelayLine`, `testDcBlocker`, `testEnvelopeFollower`, `testWaveshaperCurves` | the primitives of §5.0: coefficient law + stall-guard snap; dB↔linear accuracy (≤ 1e-6 gain, ≤ 1e-4 dB) and the exact pins; phase wrap, shape values and keyed-noise determinism; the 10.5-sample impulse splitting 0.5/0.5 and bit-equality with a `% length` reference; DC removal; attack/release envelopes; curve symmetry and monotonicity. |
 | `testFeedDelayImpulse`, `testFeedSumOrderDeterminism` | 10.5 ms delay splits 0.5/0.5 across two samples; workers 0 vs 3 bit-identical; level-0 pairs touch no state. |
 | `testEffectsEngineBlockLedger`, `testEngineBacklogSkip`, `testEngineRingWrapResync` | return of batch n at pop n+1; fx→fx at n+2; 3 pending blocks → skip + reset + counter; producer laps consumer → resync + counter. |
 
@@ -930,10 +1017,10 @@ Branch/PR strategy: spatcore PRs first on `github.com/pob31/spatcore` (branch `f
 | Runaway effect→effect loops (user-built cycles) | loop guard (engine), cycle warning (GUI), emergency Clear; a full loop-gain limiter as 9b. |
 | Row-property corruption via generic setters/ramper | unbound row identifiers + bounded cell pseudo-identifiers + `canWriteParameter` refusal + SubTree routing + replay cases. |
 | Surface drift across CSV / router / bounds / OSCQuery | CSV generated from the single identifier table; `getParamRange` fallback to bounds; surface audit with ≥ 1 live effect; `validate()` namespace check fixed. |
-| Snapshot generalisation regressions on inputs | `SnapshotScopeCore` refactor lands first with the input family only and the input replay goldens unchanged, then the effects family. |
+| Snapshot generalisation regressions on inputs | The `ScopeMatrix` refactor and the `SnapshotSession` extraction each landed alone: byte-identical snapshot files (diffed against the pre-phase exe), `midi_snapshot_check.py`, `remote_tablet_mock.py` and self-test phase T unchanged; the effects family followed in separate commits. |
 | Old projects and missing `effects.xml` | absent = zero effects, success; schema backfill; fixture regenerated. |
 | `maxRenderSources` 104 → 136 changing allocations | only `WFSCalculationEngine.cpp:63-80`, `LevelMeteringManager.h:826-827`, `MainComponent.cpp:1996-2000` are size-dependent; offline-render never includes `RenderSourceMap`; `--check` before/after. |
-| Reverb module memory (shadow instances) and multitap buffers at 192 k | allocated only for existing channels; shadow freed after swap; documented per-channel footprint. |
+| Reverb module memory and multitap buffers at 192 k | allocated in `prepare()`, only for existing channels; since revision 9 the reverb holds two tails of every class for the spillover - about 1.7 MiB per module at 48 kHz (54 MiB for 32 channels), doubling with the rate (§12.10 R9-8); documented per-channel footprint. |
 | GPU renderer scratch growth (136 sources) | 68 pair groups, ~18 MB scratch — verified fine; no kernel change. |
 
 ---
@@ -1028,7 +1115,7 @@ Branch/PR strategy: spatcore PRs first on `github.com/pob31/spatcore` (branch `f
 | Tremolo gen~ prototype | §5.6: depth in dB, sine↔triangle blend, mix; the prototype's wet-leg sign flagged as a bug. |
 | Delay gen~ prototype | §5.8: input low-cut, shelved feedback loop, time-modulation LFO (rate, depth %), global max-delay cap `effectsGlobalMaxDelaySeconds`. |
 | Compressor + expander gen~ prototype | §5.3: comp→expander pair with per-stage sidechain low/high-cut, hard knee default, linear-domain slide smoothing, makeup; the detector delay kept as the deliberate transient-pass control `effectDynCompDetectorDelay` next to an audio-path lookahead; mode enum dropped. |
-| Chorus/flanger gen~ prototype | §5.4: LFO phase offset and input low-cut added; depth defined as % of the centre delay; signed feedback covers the polarity switch. |
+| Chorus/flanger gen~ prototype | §5.4: LFO phase offset and input low-cut added; depth defined as % of the centre delay; signed feedback covers the polarity switch. (§5.13 withdraws the claim that the prototype does not interpolate its delay reads - `gen~`'s `delay` interpolates linearly by default.) |
 | "Phaser and reverb models were not great"; "EQ: we already have a model" | §5.5/§5.7 designed from scratch; §5.2 = the output EQ. |
 | Q2 HF damping on all legs | §2.1-3, §2.4; no global toggle; the shelf self-gates. |
 | Isolated bunches of effects channels | §2.3 assumption; cost model, loop guard and sends grid built around sparsity; cycle warning per bunch. |
@@ -1046,3 +1133,505 @@ Branch/PR strategy: spatcore PRs first on `github.com/pob31/spatcore` (branch `f
 | Q15 several reverb models | `effectReverbModel` + `IEffectReverbModel` seam (§5.7); follow-up 9h = more models. |
 | Q16 module details | six prototypes folded in (above); §5 stays a range table for Phase 0; the shared sub-patches were read from `Documentation/effects/*.gendsp` (16 files) — laws and quirks in §5.12. |
 | Q17 EQ and dynamics doubled now | 11 slots, `instance` sub-index, `iif` OSCQuery nodes, `SUB_INDEX_RULES` two-arg rule (§2.1-4, §5.2, §5.3, §6.1, §7). |
+
+### 12.4 Revision-3 resolution log (corrections the Phase 1 implementation forced back, 2026-09-16)
+
+Phase 1 is being built on spatcore branch `feature/effects-phase1` (target tag `v0.3.0`). Everything
+below is a change to THIS document, not a new decision: each entry is a place where writing the code
+showed the revision-2 text to be wrong, under-specified, or stale.
+
+| # | Correction | Where |
+|---|---|---|
+| R3-1 | `ChainConfig` POD `{ sampleRate, maxBlock, reverbMaxDelaySamples = 16384, maxEffectDelaySeconds = 5.0, noiseKey = 1 }` replaces the positional argument lists of `IEffectModule::prepare` and `EffectChain::prepare`, so phases 2-3 add fields without editing every module. `EffectsEngine::Config` maps onto it. | §4.2 |
+| R3-2 | **Tremolo LFO was misaligned.** Max's `cycle` is a cosine, so the prototype's two legs are both 0 at φ = 0 and −1 at φ = 0.5; revision 2's `sin(2πφ)` would rotate one leg a quarter cycle and make the shape blend cancel instead of morph. Implemented as `m = −(1 + (1−s)·sine(φ) + s·tri(φ))/2` over the `LFOWaveforms` shapes. | §5.6 |
+| R3-3 | The `effectChainOrder` row in §5.10 and the OSC example in §7.1 still carried revision 1's 8 tokens, and §4.1 said "8 slots"; the binding table is the 11 tokens of §2.2/§4.1. | §4.1, §5.10, §7.1 |
+| R3-4 | "5 ms one-pole" is a **time constant**, not a completion time: with the exact snap at ≤ 1e-4 a fade settles after ≈ 9.2 τ ≈ 46 ms. Stated explicitly, with the one constant to change if completion-in-5-ms is ever wanted. A settled fade applies no crossfade arithmetic at all, so a bypassed or identity slot is bit-transparent (−0.0 survives). | §4.6 |
+| R3-5 | `ModuleSlot::apply (bypass, variantChanged)` becomes `applyParams (const EffectChannelParams&, int instance)` on both slot and module: the module picks its own sub-struct and reports back, staging a changed variant until the slot calls `reset()` + `commitPendingVariant()` at silence. The slot never switches on module type. | §4.2, §4.6 |
+| R3-6 | Chain-level `chainBypass` and `mute` get the same treatment as a module bypass (skip + reset once at silence; mute is an output-gain fade with the modules still running) — revision 2 only specified the module case. | §4.6 |
+| R3-7 | `EffectChain::prepare` takes an injectable `ModuleFactory` (default `createModule`), which is what lets the unit tests drive the chain with counting test doubles instead of real modules. | §4.2 |
+| R3-8 | Bitcrusher: the sample-and-hold trigger is tested **before** the phase accumulates (otherwise the first hold run is one sample short), `std::round` is the quantiser's rounding, `2^bits` comes from `FastDecibels::exp2`, and the dither stream is keyed per instance with its index advancing whether or not dither is on. | §5.9 |
+| R3-9 | `EnvelopeFollower` carries attack **and** release (0 ms = the instant attack of the existing detector), since the Phase 2 dynamics module needs both; `LfoPhasor` accumulates phase in double; `FastDecibels` is specified as libm-free with stated accuracy and exact pins; `OnePoleSmoother` needs a stall guard, because a float one-pole otherwise freezes short of its target forever and a fade would never reach exactly 0 or 1. | §5.0 |
+| R3-10 | Test list extended with the parameter-POD, slot-fade, variant-switch, chain latency/bypass/mute and seven primitive tests. Also noted: `spatcore/docs/audio-engine-map.md` claimed "zero `ScopedNoDenormals`" — stale since the binaural engine gained one (`binaural/BinauralEngine.h:108`). | §10 |
+
+Unchanged by revision 3: every binding decision of §2.1, the answers of §2.4, the parameter surface of
+§§6-7, and the phase plan of §9. Nothing in the app repo has been touched.
+
+### 12.5 Revision-4 resolution log (corrections the Phase 3 engine forced back, 2026-09-16)
+
+Phase 3 built the engine on spatcore branch `feature/effects-phase3`. Before writing it, four audits
+read the code the design leans on. Several things this document specified turned out not to be
+buildable as written, and two were wrong in ways that would have shipped.
+
+| # | Correction | Where |
+|---|---|---|
+| R4-1 | **The loop guard's release criterion was wrong.** §4.4-9 releases when the RETURN peak stays 12 dB under the ceiling. The return is on the far side of the chain from the only thing the guard controls: a self-sustaining chain (a delay at unity feedback, a long reverb) keeps its return hot with the feed already silenced, so the guard would latch forever on a channel whose loop the operator removed minutes ago; a memoryless chain collapses the moment the feed is cut, so it would release on a timer whether or not the loop was still dangerous. Both decisions now read the pre-gain feed peak, and the return is a veto that can delay a release but never cause one. | §4.4-9, §2.2 |
+| R4-2 | **The trip threshold is a time, not a block count.** "20 consecutive blocks" is 27 ms at a 64-sample buffer and 232 ms at 512: the same event letting eight times as much runaway reach the speakers depending on a setting the operator may never have touched. Default 60 ms, which is what §10's own venue check already assumed. A bounded backoff ladder was added for repeated trips, because a guard sitting inside the loop it watches cannot distinguish "the danger passed" from "the guard is working". | §4.4-9 |
+| R4-3 | **`computeNodeFeed` could not render a source subset.** §4.4-9 describes "two `computeNodeFeed` calls over disjoint row ranges", but the function had no row-range argument and always cleared its destination, so the loop guard as described was unimplementable. It now takes `srcBegin`, `srcEnd` and `clearDest`, all defaulted to today's behaviour. `prepare` also gained a history length, and with it a constraint that was previously implicit: the history must exceed the longest delay by at least one block, because `writeInputs` fills the current block before the taps read it. | §4.4-9, §4.2 |
+| R4-4 | **The §4.2 class sketch does not compile.** It declares `std::vector<EffectChain>` and a vector of `RtTripleBuffer`; both types hold a `std::atomic` and are therefore non-movable, so neither vector can be resized. All three of chains, parameter buffers and return rings are held by `unique_ptr`. `LoopGuard` is deliberately the exception - it holds no atomic, so a plain vector of values stays legal, and its GUI-visible counter lives in the engine's telemetry instead. | §4.2 |
+| R4-5 | **The return cushion was off by one between §3.3 and §4.4-6.** The ledger tabulates a cushion of 1 as costing no extra block; the discard rule permitted two resident blocks at that setting. Since the ledger is the published latency claim, the rule moved to match it and the rings are primed with exactly the cushion. The headline "input to effect to speaker = 1 block" is now true as written. | §3.3, §4.4-6 |
+| R4-6 | **Chain latency as telemetry was a data race.** `EffectChain::getLatencySamples` reads plain bools that the driver's own sweep writes, so a message thread polling it for the pipeline strip would tear. It is computed once per batch after the join and published as a per-channel atomic; nothing else calls the chain getter. The same reasoning removed the per-module meter from the engine's surface for now: polling a chain from the message thread is a use-after-free during release. | §4.2, §6.5 |
+| R4-7 | **The NaN guard has a hole the document acknowledges but does not close.** §4.6 has `ModuleSlot` test the block's last sample and says the chain checks its own output as the second net - but the chain tests only its last sample too, so a memoryless module can pass a single non-finite sample straight through both. The engine scans the whole return block, at no cost: the meter already walks every sample, so the sum of squares accumulates in a double and one test of the accumulator detects a non-finite sample anywhere. | §4.6, §4.4-11 |
+| R4-8 | **Mute must not skip the sweep.** The reverb feed's muted branch skips its whole pass, which is right for a send. Doing that here would freeze every effect tail for the duration of the mute and resume it unchanged, so mute silences the feed entering the chain and lets every chain keep running. | §4.4-8 |
+| R4-9 | **`kMaxRenderSources` cannot be redefined to 136 on its own.** The app compiles spatcore from the working tree rather than from the recorded pin, and asserts `==` against its own mirror, so there is no order of two independent commits that keeps the app building. Phase 3 adds `kMaxInputRenderSources`, `kMaxEffectChannels` and `kMaxRenderSourceSlots` and leaves `kMaxRenderSources` at 104; Phase 4 renames it in the same commit that moves the app mirror. §4.5's sketch assumes the rename lands immediately. | §4.5 |
+| R4-10 | **Emergency Clear is not instantaneous.** §10's venue check 8 says Clear "silences everything instantly". Clearing everything memsets one delay line per source - 52 MB at 136 sources and 96 kHz - on the realtime thread. It is an emergency button, so dropping a block or two is defensible, but the documentation should say so and the engine counts it. | §4.4-10, §10 |
+
+Also worth recording: the plan's §3.3 latency ledger lists module latencies as if they were
+constants, but the through-zero flanger reports its alignment delay as a continuously moving value
+of up to 30 ms at 48 kHz, which is by far the largest in the set and is absent from the table.
+
+---
+
+### 12.7 Revision-6: what the Phase 5 wiring forced back (2026-09-17)
+
+The corrections below come from wiring the engine into the application. Where this section and the
+body disagree, this section is right.
+
+- **R6-1 — the render budget is app-only.** spatcore v0.3.2 already defines
+  `kMaxRenderSourceSlots = 136` and sizes `desc` from it. The app mirrors that number and asserts
+  against that name; the `kMaxRenderSources` alias beside it is stale at 104 and is a doc-only
+  spatcore follow-up. No rename, no spatcore edit, one app commit.
+
+- **R6-2 — two grades of dirtiness, and the otomo offset uses the cheap one.**
+  `effectsDirty` re-times every input's feed row; `effectReturnsDirty` re-times only the return
+  rows, the effect-to-effect legs and the return-to-reverb legs. A moving return sets the second at
+  50 Hz and nothing else, which is what keeps a travelling return from re-timing the whole feed
+  matrix twenty times a second. The feed rows read the effect's BASE position for the same reason:
+  an effect whose feed chased its own movement would ride its own send level.
+
+- **R6-3 — per-channel mute is cooked, solo is masked.** `effectMute` goes into
+  `EffectChannelParams` and the engine fades the output with its modules still running, so a tail
+  survives the mute. `effectSolo` and the session's global effects solo cannot be expressed that
+  way (they silence rows the engine does not own), so they stay calculation-engine masks.
+
+- **R6-4 — a closed send keeps its geometry.** The feed cell of a send that is switched off carries
+  its delay and its HF at level zero, so opening a send does not teleport the tap. The cell is only
+  zeroed outright when the feed cone rejects the source, which is a different thing entirely.
+
+- **R6-5 — the feedback-cycle warning is session state.** The calculation engine walks the
+  effect-to-effect on-switch graph when the sends change and publishes a bitmask; the message thread
+  logs it on change. No tree property, nothing persisted.
+
+- **R6-6 — an effect return always comes home.** The AutomOtion family for effects has no Stay
+  property at all, and a family with no Stay returns. The authored position is where the operator
+  put that room in the show, so a movement that ended somewhere else would move the room itself,
+  silently and for good. The movement travels as an offset the calculation engine adds, and the
+  position properties are never written.
+
+- **R6-7 — an effect's audio trigger holds before it re-arms.** Half a second below the reset
+  threshold, because an effect return is fed by a chain with a tail and a tail that dips under the
+  threshold for one tick would re-arm mid-decay and fire the movement again on its own ring-out.
+  Inputs keep the zero hold they always had.
+
+- **R6-8 — the engine's meters are polled at 5 ms, not 20.** The engine overwrites its per-channel
+  peaks on every batch and gives them no ballistics, so the metering tick would step over three
+  batches out of four. The app max-holds between polls and then applies the input meter's decay.
+  Freshness comes from the engine's batch counter: a driver that stopped batching reads as silence
+  within 250 ms. Decayed peak atomics in spatcore would make the 5 ms poll unnecessary.
+
+- **R6-9 — the effects duty is not in `GpuPipelineStats`.** That struct is cleared wholesale
+  whenever nothing is on a GPU, which is the configuration the effects engine usually runs in, so
+  the fields the plan put there would have read zero exactly where they were needed. The effects
+  driver gets its own small struct.
+
+- **R6-10 — minimal latency hides a moving return's delay.** The return row's delay follows the
+  input rule, parallax included, so its source-dependent term is identical across the row; in
+  minimal-latency mode the row's own minimum is subtracted and the two cancel. On a rig whose
+  outputs share a listening point the row is flat at zero however far the return travels. A moved
+  return re-levels its row in both modes, and re-times it only in absolute-latency mode.
+
+- **R6-11 — `effectArrayAtten1..10` is a zero-filled hook.** The return rows apply the per-array
+  trim already; the identifiers arrive with the control surface (phase 6/7).
+
+- **R6-12 — the reverb reload gap is recorded, not fixed.** A project load whose reverb count
+  differs from the prepared one does not re-prepare the reverb engine. The effects path has the
+  guard the reverb path lacks. Out of scope by decision (user, 2026-09-17).
+
+### 12.6 Revision-5: mute independence and channel bunches (user, 2026-09-17)
+
+The user described how effects channels are expected to be used in practice: grouped into
+**bunches**, where one channel is the entry point and the others bounce sound around from it, or
+other configurations of the same idea. Two requirements follow, and the first contradicts a
+decision this document records as confirmed.
+
+| # | Correction | Where |
+|---|---|---|
+| R5-1 | **Mute must NOT propagate through link groups.** Decision 6 and Q4 put mutes in the propagating set, and 6.8 spells it out: `isAbsoluteOnly` carries `mutes/macro/muteReverbSends`, so two linked channels share one mute state and neither can be silenced alone. The requirement is the opposite - a single effects channel must be independently mutable whatever it is grouped with. Move `effectMute`, `effectMutes`, `effectMuteMacro` and `effectMuteReverbSends` from `isAbsoluteOnly` to `isExcluded`. Note that `effectSolo` is ALREADY in `isExcluded`: solo independent while mute is shared was never coherent, and that inconsistency is evidence the propagating half was an oversight rather than a choice. | 2.1-6, 2.2 Link mode, 6.8, Q4 |
+| R5-2 | **Group mute is an ACTION, not a coupling.** The requirement asks for "groups of channels mute shortcuts" in the same breath as independence, and the two are only compatible if the shortcut WRITES rather than LINKS: one gesture sets the mute of every member, and afterwards each member is still independently editable. Propagation cannot express that - under it, unmuting one member unmutes all. This is exactly the shape `inputMutes` + `muteMacro` already has in the input family: independent per-channel state, plus a macro that writes many at once. | 5.10, 6.8, 6.10 |
+| R5-3 | **The bunch needs no new membership if the link group addresses it.** With R5-1 applied, `effectLinkGroup` no longer couples mute state, which frees the same membership to address a group-mute action without coupling anything. One membership, two semantics: links propagate parameters continuously, the group-mute button writes once. If bunches turn out to need a membership independent of parameter linking, that is a second grouping identifier and should be decided before the GUI lands, not after. | 2.2, 6.8 |
+
+**The three matrix levels, and which of them is complete** (user, 2026-09-17). The operator named
+three levels of muting and level matrixing. Mapping them onto the schema:
+
+| Level | Matrix | Mute | Level | Lives on |
+|---|---|---|---|---|
+| 1 | inputs -> each effect's entry point | `effectSendOns`, 64 wide | `effectSendLevels`, -92..0 dB | `<Sends>` |
+| 2 | effect output points -> other effects' entry points | `effectFxSendOns`, 32 wide | `effectFxSendLevels`, -92..0 dB | `<Sends>` |
+| 3 | effect output points -> outputs | `effectMutes`, one token per output | **MISSING** | `<Return>` |
+
+Both `<Sends>` rows are RECEIVE-side: effect N's rows say who feeds N, which is why the diagonal is
+the only forbidden cell.
+
+| # | Correction | Where |
+|---|---|---|
+| R5-4 | **Level 3 has mutes but no matrixed level, and the input family shows what is missing.** An input carries `inputArrayAtten1..10`, a per-array trim of -60..0 dB, and the effects family has no equivalent - the plan never mentions per-array attenuation at all. Levels 1 and 2 each got an on/off row AND a level row; level 3 got only the on/off row. Add `effectArrayAtten1..10` on `<Return>`, mirroring the input identifiers, their range and their default. | 5.x Return, 6.1 |
+
+**Two codegen registration traps, found while writing the CSV** (2026-09-17). Neither fails loudly.
+
+| # | Correction | Where |
+|---|---|---|
+| R5-7 | **There are TWO hardcoded CSV lists, and 7.3 names only one.** `tools/mcp/wfs_codegen_config.py` has `CSV_FILES_ORDER`, and `tools/audit_param_bounds.py` has its own independent `CSV_FILES` at :45-53. The second is the tool whose entire job is catching drift between a CSV, `WFSParameterDefaults.h` and `OSCParameterBounds.cpp` - so registering the effects CSV in only the first means the bounds auditor silently skips all 174 effect parameters, and the zero-drift property verified when the file was written stops being checked from that commit onward. Register in BOTH. | 7.3 |
+| R5-8 | **The globals mostly stay in the channel CSV; only the count moves.** 7.3 says the eleven global rows belong in `WFS-UI_config.csv`, but the config layout is 13 columns with NO OSC path column, so moving `effectsMapVisible` there forces `/wfs/config/effectsMapVisible` and loses the `/wfs/<family>/mapVisible` convention every family follows. The shipped answer already exists: `GLOBAL_ROWS_IN_CHANNEL_CSVS` (wfs_codegen_config.py:460) declares `reverbsMapVisible` global WHILE it stays in `WFS-UI_reverb.csv`, which is exactly what stops the generator giving it a channel argument. So: `effectsMapVisible` and the nine `effectsGlobal*` stay in `WFS-UI_effects.csv` and are added to that table; only `effectChannels` moves to the config CSV, where `/wfs/config/effectChannels` is both automatic and correct beside `reverbChannels`. | 7.3 |
+
+**The bunch propagates parameters, on the OUTPUT-ARRAY model** (user, 2026-09-17). The operator
+named the reference explicitly: a bunch should share parameters the way an output array does, with
+the ability to disengage temporarily, disengage permanently, and conserve relative offsets where
+applicable. All three already exist in the output family, and the effects design currently cannot
+express the first.
+
+| # | Correction | Where |
+|---|---|---|
+| R5-5 | **The link mode must be PER CHANNEL, not one global setting.** An output carries `outputArray` (membership, 0 = Single, 1..10) AND `outputApplyToArray` (0 OFF / 1 ABSOLUTE / 2 RELATIVE, default 1) - a mode on every member. Effects have `effectLinkGroup` per channel but only `effectsGlobalLinkMode` for the whole application, so switching propagation off to detach ONE channel detaches every group at once. Add `effectLinkMode` on `<Channel>`, the exact mirror of `outputApplyToArray`, and demote the global to the DEFAULT a new channel is stamped with. Then: disengage temporarily = set that channel's mode to 0 and flip it back later; disengage permanently = leave the group (`effectLinkGroup = 0`); conserve offsets = mode 2. | 2.2 Link mode, 6.8, 5.x Channel |
+| R5-6 | **Propagation must consult the RECEIVER's mode, not only the origin's.** `WFSValueTreeState.cpp:1186` reads each member's own `outputApplyToArray` and skips members set to OFF, under the comment "per-output unlinking". That is what makes "disengage temporarily" work from the detached channel's side rather than requiring the operator to remember which channel they edit from. The plan specifies `EffectParamEdit.h` as a clone of `ClusterParamEdit.h`, and clusters have membership with NO per-member mode - cloning that template inherits exactly the gap R5-5 closes. Model the funnel on `ArrayParamEdit.h` plus the array propagation in `WFSValueTreeState.cpp:1157-1250` instead, and keep the cluster file only for its timer and undo-transaction shape. | 6.8 |
+
+**Two consequences worth stating.** First, a per-channel mode makes detaching reachable from
+hardware and OSC. The plan currently notes that hardware and OSC-driven edits follow the global mode
+"since dials carry no modifiers" - so on a Stream Deck or over OSC there is today no way to detach a
+single channel at all. A per-channel mode is an ordinary parameter, so every surface gets it for
+free. Second, "where applicable" is already the shipped rule and needs no new thinking: the output
+code copies a toggle absolutely in ANY mode, because a toggle has no meaningful offset and a delta
+would invert already-matching members instead of sharing the state. Relative applies to continuous
+values only, which is what 2.2 already says for effects.
+
+**Why level 3 cannot become a free per-output matrix, and should not.** Levels 1 and 2 are true
+mixing matrices: a cell is a gain the operator sets outright. Level 3 is not a mixer at all - an
+effect return is a WFS render source, so its per-output gains are SOLVED from the geometry of the
+return position against each speaker. Handing the operator an arbitrary per-output level there would
+overwrite the spatialisation that makes the return localise where its marker sits. What the family
+offers instead, and what inputs have proven, is exactly two overrides on top of the solution: a
+per-output MUTE, which removes a speaker from the solution, and a per-ARRAY TRIM, which rebalances
+whole arrays without disturbing the within-array solution. That is the shape R5-4 completes, and it
+is the reason level 3's surface is deliberately smaller than levels 1 and 2 rather than accidentally
+so.
+
+**What is already safe, verified rather than assumed.** The bounce topology itself needs nothing
+new. `effectFxSendLevels` / `effectFxSendOns` express any effect-to-effect routing; only the
+DIAGONAL is forced off, so a channel cannot feed itself but A -> B -> A is fully expressible, which
+is what "bouncing around" means. And the loop guard will not fight a musical bounce: it trips only
+when the PRE-GAIN effect-to-effect feed peak holds above the ceiling (+6 dBFS by default) for the
+trip time (60 ms), so a bounce whose loop gain is under unity decays and never reaches it. The
+ceiling is an operator setting, `effectsGlobalLoopGuardCeiling`, adjustable 0..24 dB. The guard
+catches runaway, not recirculation.
+
+**Open, and worth settling before Phase 6 draws the interface.** (a) Is the entry point an explicit
+role - a channel property the interface shows and the send matrix respects - or is it purely
+emergent from who feeds whom? Nothing in the schema names one today. (b) Does a bunch want its own
+membership separate from `effectLinkGroup`, per R5-3? (c) Should the group-mute shortcut reach the
+per-output mute ROW as well as the channel mute, or only the channel mute?
+
+**Phase impact: none on Phases 4 or 5.** The mute identifiers are already declared and stamped, the
+send matrix already expresses the topology, and nothing built so far propagates anything - the link
+funnel is Phase 6 work and `EffectParamEdit.h` does not exist yet. R5-1 is a one-line change to a
+table that has not been written.
+
+---
+
+### 12.8 Revision-7: what the Phase 6 interface forced back (2026-09-22)
+
+The corrections below come from drawing the Effects tab, its Stream Deck pages and its OSC verbs.
+Where this section and the body disagree, this section is right. The user's four decisions taken
+before the first commit (D1-D4) open the list.
+
+- **R7-1 — the entry point is emergent.** No property names it: the tab derives an "entry" badge
+  for any effect with at least one input send switched on, from the send rows, stored nowhere (D1).
+
+- **R7-2 — membership follows the output-array model.** One `effectLinkGroup` plus a per-channel
+  `effectLinkMode` (Off / Absolute / Relative, the mirror of `outputApplyToArray`); no second bunch
+  identifier. Propagation reads the RECEIVER's mode (D2, R5-5).
+
+- **R7-3 — the group mute is an action on `effectMute` only.** It writes every member once, in one
+  undo transaction, and never touches the per-output row (D3, R5-2).
+
+- **R7-4 — the link funnel landed in phase 6, not 7.** `EffectParamEdit.h` mirrors `ArrayParamEdit`
+  (write / writeModule / writeBand / writeTap, Ctrl = bypass per write); every GUI and Stream Deck
+  write goes through it, OSC and MCP writes bypass it (D4).
+
+- **R7-5 — the effects gained an LFO** (user request during the phase): fifteen `effectLFO*` on a
+  new `<LFO>` node, the input set MINUS gyrophone because a return is an omnidirectional render
+  source. `LFOProcessor` learned which family it animates (`LFOFamily`, the twin of
+  `AutomOtionFamily`); the engine keeps a second per-effect offset slot that ADDS to the AutomOtion
+  offset in both return compositions, and the Map reads the sum. Excluded from link propagation
+  like every movement.
+
+- **R7-6 — the reverb module applies no preset.** Nothing in the engine reads `effectReverbType`
+  beyond copying it into the params POD, so the GUI applies the preset: choosing a type writes the
+  preset's eight values through the funnel, and an edit to one of them turns the type back to
+  Custom. The CSV default (Room) does not match the default values; open. **Closed by revision 9
+  (§12.10 R9-7):** the preset is an action of `WFSValueTreeState`, reached from the panel, the
+  Stream Deck and OSC alike, and the default type is 6, Medium Hall, whose row IS the defaults.
+
+- **R7-7 — the module controls are generated.** `tools/gen_effects_module_ui.py` reads the
+  116 module rows of the CSV and emits `EffectsModuleDescriptors.h` (kind, range, default, unit,
+  enum per row) together with the `effects.labels / help / enums / modules / chain` strings, so the
+  two cannot drift; the GUI panel and the Stream Deck Chain page both consume the descriptors. Only
+  the EQ display and band strips, the Dynamics GR meter, the delay tap rows and the reverb presets
+  are hand-written.
+
+- **R7-8 — the per-slot meter indexes the declared slot.** `getSlotMeterDb (fx, slot)` reads
+  `chains[fx]->getSlot (slot)`, i.e. `kSlots` order, not the chain position; Dynamics report gain
+  reduction, the others their output peak. With no engine the GUI passes -120 dB and treats
+  anything below -60 dB as "no data".
+
+- **R7-9 — the verbs log to the session log.** Each accepted `selected` / `editOnMap` / `clear` /
+  `clearAll` writes one session-log line by address, and every refusal (a missing channel, a bad
+  value, the phase-7 snapshot verbs) reaches the session log through the same throttled path as
+  the parser's - the OSC replay asserts both halves, and the mutation of the clearAll line was
+  caught. No golden moved: the verbs store nothing.
+
+- **R7-10 — the globals are config, written outside the funnel.** The Settings sub-tab and the
+  Stream Deck Settings page write the nine `effectsGlobal*` through `setConfigParam` /
+  `setParameter` under the main undo manager; all but the loop-guard switch apply at the next
+  Processing start, and the tab says so. An `<EffectsGlobal>` write refreshes every reader of the
+  link-group names (the channel combo, the chain badge, the sends matrix).
+
+- **R7-11 — the tab reads like its neighbours.** The header follows `ReverbTab::layoutHeader` width
+  for width; the Movements sub-tab follows `InputsTab::layoutMovementsTab` constant for constant
+  (minus gyrophone, jitter and Stay/Return); the sub-tab order is Channel Parameters / Chain /
+  Post-Processing (the matrix) / Movements / Settings. The three transport buttons moved from
+  InputsTab.h to `gui/buttons/TransportButtons.h` so both tabs draw the same transport.
+
+**Phase impact.** Phase 7 keeps the snapshot / MIDI / QLab scope (the two snapshot verbs and the
+footer's snapshot row are its); the outbound OSC / OSCQuery echo (C8) and the codegen / MCP
+registration of the effects CSV (C9 / C10) remain Phase 4 remainders. Revision 8 (§12.9) then
+reshaped Phase 7 itself.
+
+### 12.9 Revision-8: one snapshot for both families (user, 2026-09-22; built 2026-09-23)
+
+The user's decision before Phase 7 started, and the three answers that followed it: snapshots of
+the effects REUSE the input snapshots. Where this section and the body disagree, this section is
+right; §2.1 rows 7 / 10, §2.2, Q5, §6.7, §6.9, §6.10, §7.1, §7.3, §7.4, §9 and §11 were amended to
+match.
+
+- **R8-1 - one snapshot, two families.** No `snapshots/effects/` folder, no `EffectsSnapshot` root
+  tag, no `SnapshotFamily` descriptor, no merged MIDI scan, no per-note `{input, effects}` pair.
+  One `InputSnapshot` file carries `<Inputs>` and `<Effects>`; `ExtendedSnapshotScope` carries two
+  matrices (`inputs`, `effects`); the scope window shows them on two tabs; a MIDI note, an OSC
+  `/wfs/input/snapshot/load` and the Reload button recall one file and therefore both families.
+  `/wfs/effect/snapshot/load|store` are retired: recognised and refused with a reason naming the
+  input address (user answer: retire, rather than alias or effects-only recall). A show with no
+  effects writes exactly the file it always wrote (checked byte for byte against the pre-phase
+  exe); one that has effects is marked `version="2.1"` (read nowhere). A ghost `<Effect>` (an id
+  beyond the live count, carried over on re-store) keeps its column of the effects grid too: the
+  grid is read up to `maxEffectChannels` and written up to its highest keyed column, and a Store
+  over an existing name carries the previous file's ghost columns wherever the new scope is silent,
+  so an excluded effect stays excluded across a count shrink and regrow. A scope template without
+  `<EffectsScope>` leaves the effects grid alone.
+
+- **R8-2 - the effects scope is node-driven where it must be.** The input rule - `hasProperty`
+  finds a parameter's node because no input property lives on two `<Input>` children - holds for
+  the eight flat `<Effect>` nodes and fails for the modules: FxEq1 / FxEq2 and FxDyn1 / FxDyn2
+  repeat their names, and bands and taps repeat theirs by index. So the effects table
+  (`WFSFileManager::effectScopeTable`, helpers in `Source/Parameters/EffectsSnapshotScope.h`) is a
+  hybrid: property items over the flat nodes, one WHOLE-NODE item per module keyed by node type.
+  Apply writes only what the live node already has, children matched by type and id, never
+  adding or removing one; the five packed rows go through `setEffectParameter` so the row guards
+  run (the fx diagonal is forced off on recall too); nothing goes through `EffectParamEdit`.
+
+- **R8-3 - the snapshot row is shared, and it is a full row on both tabs** (user answer: full row,
+  not a scope button alone). The Inputs tab's snapshot code moved whole into `SnapshotSession`
+  (`Source/gui/snapshots/SnapshotSession.h`), owned by MainComponent and declared before the tab
+  container so it outlives both rows; `SnapshotRow` draws it on the Inputs tab and on the Effects
+  tab (second footer row, the Inputs tab's geometry). One selection, one session scope, one Scope
+  window; each row's Edit Scope opens the window on its own family, or switches the open one.
+
+- **R8-4 - undo per domain, suppression shared; dirty keys per family.** The input half of a
+  recall writes under `ScopedUndoDomain (Input)`, the effects half under `(Effects)`, both through
+  the ACTIVE manager, so a manual Reload is one Ctrl+Z per tab and a MIDI / OSC recall writes no
+  entry in either (`getUndoManagerForDomain` would bypass the suppression - mutation-tested). The
+  dirty tracker resolves an effect write to its item through the same `itemIdFor` the store and
+  recall use (a band reports its module); every effects item id starts with `fx`, so both
+  families share one key set.
+
+- **R8-5 - per-parameter effect QLab cues** (user answer: export them; the §1 non-goal is lifted).
+  `QLabCueBuilder::collectEffectCues` emits each value in its parser shape
+  (`getEffectParamKind`): Scalar `<ID> <v>`, Instanced `<ID> <instance> <v>`, Band
+  `<ID> <instance> <band> <v>`, Tap `<ID> <tap> <v>`, Row `<ID> "<row>"`. Addresses come from
+  `OSCMessageBuilder::getEffectMappings` (the inverse of the router's address map - the first brick
+  of the C8 outbound echo). A one-output rig's effect mute row is a lone number the receiver
+  refuses as a row, so it is skipped and the export logs it. Volume: about 275 cues per effect
+  channel, all in scope; the self-test sends every one back through the router.
+
+**Verification.** Self-test phases Q (every effect property covered or excluded, 278 walked;
+every module property one of its module's CSV controls), N (N0-N10: the round trip of every node
+kind, partial scopes, old files, skipped ids, the row guard, transients, scope serialisation,
+OnSave trim, undo domains; N14 a ghost's scope, N15 an inputs-only template), N11 (dirty keys),
+N12 / N13 (QLab shapes, parse-back, every stored value exported, grid, address map), N16 (a
+dismissed Scope window keeps the QLab toggles) - every assertion mutation-tested. The seven control
+replays unchanged; the OSC replay gained the refusal's pointer as a needle.
+
+### 12.10 Revision-9: reverb models, presets as an action, spillover (user, 2026-09-23)
+
+The user asked for real reverb models - plate, room, hall, chamber, cathedral, shimmer - with
+typical presets and early-reflection profiles, and offered generic `rev_param1..N` slots in case
+named parameters made snapshots tricky. They do not: a snapshot carries a module node whole
+(R8-2), so every `<FxReverb>` carries the union of the models' parameters under their own names.
+The user's answers, the same day: the effects-chain reverb only (the Reverb tab's `<Reverbs>`
+family is untouched); named parameters shared across models, the panel showing what the selected
+model uses; the Dattorro plate, the shimmer, early-reflection profiles and a modulated hall this
+round; a preset sets the model and its values from every surface; a change of room spills over.
+Built on spatcore `feature/effects-reverb-models` (`fda3446..ab6ffbc`, eight commits, to be tagged
+v0.4.0 once merged) and app `effects/reverb-models` (`ea702a4..`). Where this section and the body
+disagree, this section is right; §2.1 row 12, §2.2, Q15, §5.7, §9 (9h), §11 and R7-6 were
+amended to match.
+
+- **R9-1 - model ids, append-only.** `effectReverbModel`: 0 FDN, **1 Plate** (the id the enum had
+  always declared), 2 SDN-style and 3 IR stay RESERVED (accepted by the bounds, not offered in the
+  menu, and running the FDN so an old file still sounds), **4 Modulated Hall**, **5 Shimmer**. One
+  function, `spatcore::effects::resolveReverbModel`, says what a stored id runs (1, 4 and 5
+  themselves, anything else 0); the engine, the panel and the Stream Deck all ask it, so they
+  cannot disagree - a stored 2 shows "FDN" in the menu and the FDN's controls.
+
+- **R9-2 - a change of room spills over.** The module keeps each tail class TWICE (the FDN node,
+  the plate, and the hall that runs models 4 and 5), all built in `prepare()`, the only
+  allocation. A WORLD is one tail instance plus the reflection pattern it runs with. A change of
+  tail class, size, reflection profile or shimmer build (on / off, interval) starts a new world:
+  the idle twin is rebuilt on the audio thread inside the capacity `prepare()` gave it, and the
+  input is partitioned between the worlds by the time each sample was WRITTEN (a 5 ms raised
+  cosine), so sound that arrived before a cue plays out entirely in the old room and sound after
+  it entirely in the new one - exact, since every world is linear. At most three worlds run
+  (active, ringing, dying: a ringing world the next change needs is faded over 5 ms); a ringing
+  world is released after 50 ms under -96 dBFS, or faded at 30 s. With nothing to spill (the
+  first apply after `prepare()`, a bypassed slot) a change is immediate. Settled with reflections
+  off, the per-sample path is the pre-revision FDN's to the bit. The module no longer reports
+  `variantPending`, so the slot never fades the reverb; §5.7's shadow `FDNAlgorithm` is gone.
+
+- **R9-3 - early reflections, in front of any model.** `effectReverbERProfile` Off / Room /
+  Chamber / Hall / Cathedral: 16 / 18 / 20 / 24 taps from an image-source model of a shoebox
+  (`spatcore/tools/reverb/gen_er_profiles.py` generates `EarlyReflections.h`), first-order taps
+  as they are, higher orders through a one-pole "dark" low pass (6 / 8 / 5 / 4 kHz); times scaled
+  by Size and jittered up to 4 % per channel, higher-order signs drawn from the channel's noise
+  key, so 32 returns of one room spread instead of combing. The tail's input comes a profile's
+  tail delay later (7 / 11 / 29 / 68 ms at Size 1). `effectReverbERLevel` -30..+6 dB; at 0 dB the
+  reflections carry the dry's energy. Off skips the stage.
+
+- **R9-4 - the models.** All decay by one law - three bands, gains
+  `exp2(-9.9658 L / (sr RT60 mult))` per stretch of loop - so RT60, both multipliers and both
+  crossovers mean the same on every model, and each is levelled to the FDN's wet (about -5 dB
+  against the dry at 1.5 s, fully wet). All libm-free, so renders hash the same across builds.
+  - *Plate (1)*: Dattorro's 1997 figure-of-eight tank at 29761 Hz, rescaled to the device rate.
+    Departures from the paper: the FDN's three-band filter at every decay point; Diffusion drives
+    all four diffusion coefficients; ModDepth 50 % is the paper's 16-sample excursion; each tank
+    line up to 3 % longer or shorter per channel, and each of the fourteen output taps taking the
+    paper's sign or its opposite per channel - the lengths alone left eight channels' plates
+    correlated at 0.4-0.5 on low material, the signs bring them to 0.1 like every other tail
+    (spatcore `c93c001`, found by the audition below); the output calibrated (the paper's gain
+    sits 1.6 dB hot).
+  - *Modulated Hall (4)*: sixteen lines, primes 997..3407 samples at 48 kHz scaled by rate and
+    Size and jittered up to 6.25 % per channel, an orthonormal Hadamard mix, four input diffusers
+    at 0.75 x Diffusion, every read point moving by up to 1 ms (ModDepth 100 %) on four sine /
+    cosine LFO pairs at ModRate x 1, 1.13, 0.87 and 1.27 through 4-point Catmull-Rom reads, so the
+    modes drift and nothing rings metallic. No fixed 8 kHz low pass inside: Tone owns brightness.
+  - *Shimmer (5)*: the hall with its four longest lines read through `ShimmerTap` - two heads
+    sweeping a sawtooth of delay around the line's own length (so the loop length, and with it
+    the decay law, hold), half a period apart, crossfaded by triangles - at the interval
+    `effectReverbShimmerPitch` names (+12, +7, +7 & +12, +19, +24, +5, -12, -12 & +12; the
+    two-voice entries split the four lines two and two), in the proportion
+    `effectReverbShimmerAmount` sets. The amount glides; shimmer on / off and the interval are
+    build-time and spill over. Off, the lines run the model-4 arithmetic to the bit.
+
+- **R9-5 - two departures from the approved design, both in the shimmer.** (a) The design's convex
+  crossfade `(1 - a) normal + a shifted` drained the tail: the two reads sit at different pitches,
+  so their POWERS add, and the crossfade threw away half a line's power a pass (a 5 s shimmer
+  rang 1.7 s). The lines mix at equal power, `sqrt(1 - a)` and `sqrt(a) x trim`, with the
+  shifter's 2/3 average power made up (`sqrt(3/2)`); at 50 % a shimmer keeps about two thirds of
+  its RT60 on music, and 0 % is the hall. The loop is held by power rather than by amplitude:
+  the reads correlate only at DC, which the 80 Hz high pass on the shifted read removes, and the
+  trims (-2 dB an octave up, -4.5 two octaves up, -2.2 an octave down, -0.5 otherwise, re-measured
+  by a unit test) keep even an in-phase octave chain under unity; the soft clip past |8| stays the
+  last resort. (b) The guard low passes on the shimmer writes sit at `min (12 kHz, 0.25 sr /
+  ratio)`, not `0.45 sr / ratio`: at the design's corner a 9 kHz tone two octaves up aliased at
+  -10 dB (-16.7 dB now).
+
+- **R9-6 - named parameters; the panel and the deck show the model's.** Six properties on
+  `<FxReverb>`, stamped by the builder so a load backfills them:
+
+  | Identifier (OSC `/wfs/effect/…`) | UI | Range | Default | Models | Ramp | Link |
+  |---|---|---|---|---|---|---|
+  | `effectReverbERProfile` (`reverbERProfile`) | combo | 0..4 | 0 Off | all | no | absolute |
+  | `effectReverbERLevel` (`reverbERLevel`) | slider dB | -30..+6 | -6 | all | yes | abs / rel |
+  | `effectReverbModRate` (`reverbModRate`) | log slider Hz | 0.05..5 | 0.8 | 1, 4, 5 | yes | abs / rel |
+  | `effectReverbModDepth` (`reverbModDepth`) | slider % | 0..100 | 50 | 1, 4, 5 | yes | abs / rel |
+  | `effectReverbShimmerPitch` (`reverbShimmerPitch`) | combo | 0..7 | 0 (+12) | 5 | no | absolute |
+  | `effectReverbShimmerAmount` (`reverbShimmerAmount`) | slider % | 0..100 | 50 | 5 | yes | abs / rel |
+
+  The CSV gained a `Models` column (empty = every model, else the ids that use the control),
+  which `tools/gen_effects_module_ui.py` turns into `ControlDesc::modelMask` and
+  `EffectsUi::isVisibleForModel` (and refuses outside the reverb). The panel shows the resolved
+  model's rows - 15 with the bypass for the FDN, 17 for the plate and the hall, 19 for the shimmer
+  - and hidden rows take no room; the Preset menu lists each model's presets under its name,
+  Custom last. The Stream Deck's Chain page gained BANKS of twelve (a "Page n/N" button on every
+  module section, back to the first bank on a module change), which also gives back what a
+  single page used to drop - two Distortion, ten Dynamics and four Delay controls; its reverb
+  dials are the model's (14 / 16 / 16 / 18), and a deck turn that changes the model asks for a
+  deferred rebuild.
+
+- **R9-7 - a preset is an ACTION of the state, from every surface.** One flat, append-only list
+  of 23 ids (`spatcore/effects/EffectPresets.h`): 0-4 the v1 FDN rooms, frozen and relabelled
+  "(FDN)"; 5 Custom, with no row; **6 Medium Hall, exactly the defaults and the default type** -
+  a fresh channel no longer claims Room over values that match no row, and not a sample moved;
+  7-10 Small, Medium and Large Room and Live Chamber (the FDN behind reflections); 11-14 Concert
+  Hall, Large Hall, Stone Cathedral, Lush Hall (the modulated hall); 15-18 Vocal, Bright, Drum and
+  Dark Plate; 19-22 Shimmer Octave, Fifth + Octave, Octave Down, Ethereal. The values are
+  starting points to be tuned by ear. A row owns fifteen values - model, reflection profile and
+  level, predelay, RT60, both multipliers, both crossovers, diffusion, size, modulation rate and
+  depth, shimmer interval and amount; Bypass, Tone and Mix stay outside (taste, not room: a mix
+  dialled for a song survives auditioning rooms). `WFSValueTreeState::applyEffectReverbPreset
+  (fx, type, propagate)` writes the row, then the type, as one undo transaction; a type written
+  through either GUI funnel IS that call, and each linked member not set OFF runs the same
+  expansion itself - never a delta, so a RELATIVE member holds exactly the row it is labelled
+  with. A REAL edit (beyond 1e-6 relative) to an owned value makes the reverb Custom first, on
+  the source and on every member whose own value moved; re-sending the value already there (a
+  fader echo, a replayed cue) keeps the preset. OSC effect scalars go through
+  `applyExternalEffectEdit` - the same rules, never propagated - and the OSC drain applies reverb
+  types in a first pass, so a burst of a preset and a tweak ends Custom with the tweak whatever
+  the arrival order. Snapshot recall and file loads write raw: never an expansion, never a flip.
+  **The effect MCP tools (C9 / C10) must write through `applyExternalEffectEdit`**, or a tool edit
+  would leave a preset's name over values that are no longer its own.
+
+- **R9-8 - cost.** Measured on the dev laptop (Core Ultra 7 255H, one core, Release, 48 kHz):
+
+  | Tail | Memory (the pair) | CPU per channel |
+  |---|---|---|
+  | FDN (0) | ~430 KiB | 109 ns/sample, 0.52 % of a core |
+  | Plate (1) | ~576 KiB | 56 ns/sample, 0.27 % |
+  | Modulated Hall (4) | ~580 KiB, shared with 5 | 134 ns/sample, 0.64 % |
+  | Shimmer (5) | (the hall pair) | 174 ns/sample, 0.84 % |
+  | + early reflections | 77 KiB ring | +15-20 ns/sample |
+
+  Every module holds all three pairs, the predelay ring and the reflection ring: about 1.7 MiB at
+  48 kHz, 54 MiB for 32 effects channels, doubling with the rate. A spillover runs two tails for
+  as long as the old one rings. The hall's fallback (modulating only its eight longest lines)
+  was not needed.
+
+**Verification.** spatcore, per model: wet level, the decay law by interrupted noise at 48 and
+96 kHz and Size 2, band decay against the FDN's, block-size invariance, key determinism, DC,
+reset, NaN, the maximum corner bounded over 20 s; spillover partitions exact against isolated
+renders, click-free and deterministic under a storm of changes, and zero heap allocations across
+`applyParams`, `process` and every transition (a global `operator new` counter in the test TU);
+the reflections' tap placement, energy and partitions; the shimmer's intervals, alias, rumble,
+sustain and trims. 73 spatcore mutants across S1-S7 and one for the plate's signs, all caught.
+App: self-test phase RP (20 checks - the owned set against the CSV, the combo against the table,
+a fresh channel, one undo for a whole preset and nothing before it, a flip only on a real edit
+and never for taste, the Stream Deck, the generic funnel, a link group with ABSOLUTE / RELATIVE /
+OFF members, OSC without propagation, both burst orders, a replayed preset, a raw recall), phase
+RD (10 - the rows and the menu for every stored id 0..5, no overlap, hidden rows taking no room,
+the deck's banks reaching every control once with each model's count, a module change opening at
+the first bank, a relayout only when the model changes) and C8 (the six fields and the model and
+preset reach the engine's parameters); 870 PASS with the Stream Deck's SD, every assertion
+mutation-tested. offline-render gained five reverb scenarios (reflections, plate, hall, shimmer, a
+model storm faster than the pool can clear) and moved `effects/reverb` deliberately: its timeline
+changes Size, which now spills over, and with the old fade emulated inside the pool it reproduces
+the old hash, so the move is the spillover alone;
+`reverb-plate` and `reverb-models` moved again with the plate's signs. The seven control replays
+are unchanged. `offline-render --audition <dir>` renders listening reels of every preset and a
+measured sheet (decay per band, wet level, how alike eight returns are). **Not verified: the
+ears** - the listening checklist and what the sheet says are in the status document (§11).

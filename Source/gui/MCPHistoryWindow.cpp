@@ -3,6 +3,7 @@
 #include "../Localization/LocalizationManager.h"
 #include "WfsLookAndFeel.h"
 #include "WindowUtils.h"
+#include "ScreenShareRendering.h"
 
 namespace
 {
@@ -523,6 +524,7 @@ MCPHistoryWindow::MCPHistoryWindow (WFSNetwork::MCPUndoEngine& engine,
     setUsingNativeTitleBar (true);
     setResizable (true, true);
     WindowUtils::enableRawMultiTouch (this);
+    ScreenShareRendering::apply (*this);   // shown later, by MainComponent
 
     auto* content = new MCPHistoryWindowContent (engine, undoRing);
     setContentOwned (content, false);

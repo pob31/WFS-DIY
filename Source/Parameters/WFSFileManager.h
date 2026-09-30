@@ -23,8 +23,8 @@ void setFolderIconMac (const char* folderPath);
  * Composes spatcore::control::state::XmlPersistence for the app-agnostic
  * machinery (XML file I/O with header convention, rolling backups, and the
  * merge/backfill engine). This class keeps everything WFS-shaped: the
- * section-split file layout (show/system/inputs/outputs/reverbs/audio_patch/
- * network), the .wfs manifest, snapshots + scope filtering, dialogs, and the
+ * section-split file layout (show/system/inputs/outputs/reverbs/effects/
+ * audio_patch/network), the .wfs manifest, snapshots + scope filtering, dialogs, and the
  * WFSParameterDefaults-range merge validator injected into the core engine.
  */
 class WFSFileManager
@@ -94,6 +94,9 @@ public:
     /** Get path for reverb configuration file */
     juce::File getReverbConfigFile() const;
 
+    /** Get path for effects configuration file */
+    juce::File getEffectsConfigFile() const;
+
     /** Get path for audio patch file */
     juce::File getAudioPatchFile() const;
 
@@ -120,6 +123,18 @@ public:
 
     /** Get scope templates folder (<project>/snapshots/scopes) */
     juce::File getScopeTemplatesFolder() const;
+
+    /** The file a snapshot or scope-template NAME stands for in `folder`, or
+        an invalid juce::File when the name is not a plain file name. Names
+        arrive from OSC, the GUI and MIDI bindings and become a file name and
+        nothing more: one holding a path separator or a drive colon, or one
+        that resolves anywhere but directly inside `folder`, is refused.
+        OSC /wfs/input/snapshot/store "../../system" used to overwrite the
+        project's system.xml. */
+    static juce::File getNamedXmlFile (const juce::File& folder, const juce::String& itemName);
+
+    /** Why getNamedXmlFile refused `itemName`, as the error to show. */
+    static juce::String describeUnusableName (const juce::String& itemName);
 
     //==========================================================================
     // Complete Configuration
@@ -152,7 +167,8 @@ public:
         whose config hasn't been loaded (or explicitly saved) this session — otherwise
         selecting a work folder and starting audio before reloading would clobber the
         on-disk config with the in-memory defaults. */
-    bool autoSaveSystemConfig();
+    enum class AutoSave { saved, skipped, failed };
+    AutoSave autoSaveSystemConfig();
 
     /** Load system configuration from project folder */
     bool loadSystemConfig();
@@ -243,6 +259,54 @@ public:
     bool importReverbConfig (const juce::File& file);
 
     //==========================================================================
+    // Effects Configuration
+    //==========================================================================
+    // ONE DIVERGENCE FROM THE REVERB QUARTET, AND IT IS DELIBERATE: an ABSENT
+    // effects.xml is SUCCESS. Every project this application has ever saved
+    // predates the family, so a loader that copied importReverbConfig's
+    // "missing file == false" would report a load failure on the first open of
+    // every existing show. That is the cost that is always real.
+    //
+    // The second-order one is smaller than it looks, and is written down here
+    // because the obvious reading of loadCompleteConfig overstates it: a false
+    // would also clear `success` there and skip the markChannelNumbersUserOwned
+    // at its tail. But applyConfigSection calls markChannelNumbersUserOwned
+    // UNCONDITIONALLY at its top, before any per-family file is touched, so any
+    // project carrying a system.xml with a <Config> in it - every project this
+    // application has ever written - is already latched by the time the effects
+    // file is read. The tail latch is the belt to that brace, not the only one.
+    //
+    // The exists() test therefore lives in loadEffectsConfig (and the
+    // empty-backup-set test in loadEffectsConfigBackup), never in
+    // importEffectsConfig: a file the caller NAMED and that is not there is a
+    // genuine error, and so is a present-but-malformed one.
+
+    /** Save effects configuration to project folder */
+    bool saveEffectsConfig();
+
+    /** Load effects configuration from project folder.
+
+        Returns TRUE when the project has no effects.xml at all, leaving the
+        family exactly as applyConfigSection built it from <IO>/effectChannels -
+        do NOT force the count to zero here, because that count has by now been
+        MATERIALISED into real channels and zeroing it would delete them. A file
+        that IS there and cannot be read, or carries no <Effects>, is an error. */
+    bool loadEffectsConfig();
+
+    /** Load effects configuration from backup. An empty backup set is SUCCESS,
+        for the same reason an absent effects.xml is: every backup set written
+        before this family existed has no effects_*.xml, and failing here would
+        fail loadCompleteConfigBackup for all of them. */
+    bool loadEffectsConfigBackup (int backupIndex = 0);
+
+    /** Export effects configuration to specified file */
+    bool exportEffectsConfig (const juce::File& file);
+
+    /** Import effects configuration from the named file. A missing file is an
+        ERROR here - the caller named it. */
+    bool importEffectsConfig (const juce::File& file);
+
+    //==========================================================================
     // Cluster LFO Presets
     //==========================================================================
 
@@ -267,7 +331,90 @@ public:
         juce::String displayName;      // Display name in UI
         juce::Identifier sectionId;    // Section this item belongs to (Position, Attenuation, etc.)
         std::vector<juce::Identifier> parameterIds;  // Parameters included in this group
+
+        /** Effects family only: the <Effect> child node this item is the WHOLE of
+            (one of the eleven module nodes, bands and taps included). Invalid for
+            every input item and for the effects' property items, which their
+            parameterIds describe. */
+        juce::Identifier nodeType {};
     };
+
+    /** One family's rows: its items, and the order its display sections appear in.
+        The input and effect families each own one; a ScopeMatrix points at it. */
+    struct ScopeItemTable
+    {
+        std::vector<ScopeItem> items;
+        std::vector<juce::Identifier> sectionIds;
+
+        /** sectionId -> LOC key of the section's heading in the scope window.
+            A section with no entry is shown by its raw id. */
+        std::vector<std::pair<juce::Identifier, juce::String>> sectionLabelKeys;
+
+        std::vector<const ScopeItem*> itemsForSection (const juce::Identifier& sectionId) const;
+        const ScopeItem* find (const juce::String& itemId) const;
+        juce::String sectionLabelKey (const juce::Identifier& sectionId) const;
+    };
+
+    /** The input family's table. */
+    static const ScopeItemTable& inputScopeTable();
+
+    /** The effects family's table (plan revision 8: one snapshot file carries
+        both families). Property items over the eight flat <Effect> nodes, one
+        WHOLE-NODE item per module - see EffectsSnapshotScope.h for why. */
+    static const ScopeItemTable& effectScopeTable();
+
+    /** Per-item, per-channel inclusion over ONE family's table: the state machine
+        the scope grid edits. Channels are live SLOTS in memory; the serializer
+        writes them as each family's on-disk key. */
+    struct ScopeMatrix
+    {
+        enum class InclusionState { AllIncluded, AllExcluded, Partial };
+
+        explicit ScopeMatrix (const ScopeItemTable& t) noexcept : table (&t) {}
+
+        const ScopeItemTable& getTable() const noexcept { return *table; }
+
+        /** Per-item, per-channel inclusion state
+         *  Key format: "itemId_channelIndex"
+         *  Default: all items included (true) -- an ABSENT key means included
+         */
+        std::map<juce::String, bool> itemChannelStates;
+
+        /** Check if a scope item is included for a channel */
+        bool isIncluded (const juce::String& itemId, int channelIndex) const;
+
+        /** Check if a parameter is included for a channel (via its scope item) */
+        bool isParameterIncluded (const juce::Identifier& paramId, int channelIndex) const;
+
+        /** Same per-item/per-channel inclusion over every item and channel. Raw
+            map comparison would be wrong — an absent key and an explicit `true`
+            entry both mean "included". */
+        bool isEquivalentTo (const ScopeMatrix& other, int numChannels) const;
+
+        void setIncluded (const juce::String& itemId, int channelIndex, bool included);
+        void toggle (const juce::String& itemId, int channelIndex);
+        void setAllItemsForChannel (int channelIndex, bool included);
+        void setItemForAllChannels (const juce::String& itemId, bool included, int numChannels);
+        void setSectionForAllChannels (const juce::Identifier& sectionId, bool included, int numChannels);
+        void setAll (bool included, int numChannels);
+
+        InclusionState getSectionState (const juce::Identifier& sectionId, int numChannels) const;
+        InclusionState getSectionStateForChannel (const juce::Identifier& sectionId, int channelIndex) const;
+        InclusionState getChannelState (int channelIndex) const;
+        InclusionState getOverallState (int numChannels) const;
+
+        void clear() { itemChannelStates.clear(); }
+
+        /** Create key string for itemId and channel */
+        static juce::String makeKey (const juce::String& itemId, int channelIndex);
+
+    private:
+        const ScopeItemTable* table;
+    };
+
+    /** The two families a snapshot carries (plan revision 8), i.e. the two grids
+        of its scope - which the Scope window shows first, for one. */
+    enum class SnapshotFamily { Inputs, Effects };
 
     /** Extended scope supporting parameter-level, per-channel granularity */
     struct ExtendedSnapshotScope
@@ -276,11 +423,15 @@ public:
         enum class ApplyMode { OnSave, OnRecall };
         ApplyMode applyMode = ApplyMode::OnRecall;
 
-        /** Per-item, per-channel inclusion state
-         *  Key format: "itemId_channelIndex"
-         *  Default: all items included (true)
-         */
-        std::map<juce::String, bool> itemChannelStates;
+        /** The input grid: input items x input SLOTS (permanent numbers on disk). */
+        ScopeMatrix inputs { inputScopeTable() };
+
+        /** The effects grid: effect items x DENSE effect indexes (id - 1 on disk,
+            in <ExtendedScope><EffectsScope>). Absent there = every item included,
+            which is what a snapshot written before the effects existed reads as. */
+        ScopeMatrix effects { effectScopeTable() };
+
+        using InclusionState = ScopeMatrix::InclusionState;
 
         /** MIDI note trigger. A note-on above the velocity threshold on
             (midiChannel, midiNote) recalls this snapshot.
@@ -308,88 +459,53 @@ public:
         void clearMidiBinding() noexcept { midiChannel = 0; midiNote = 0; }
 
         //----------------------------------------------------------------------
-        // Static scope item definitions
+        // The input family's table (forwarders kept so no caller had to move)
         //----------------------------------------------------------------------
 
-        /** Get all scopeable items with their grouped parameters */
-        static const std::vector<ScopeItem>& getScopeItems();
-
-        /** Get all unique section identifiers in order */
-        static const std::vector<juce::Identifier>& getSectionIds();
-
-        /** Get scope items for a specific section */
-        static std::vector<const ScopeItem*> getItemsForSection (const juce::Identifier& sectionId);
+        static const std::vector<ScopeItem>& getScopeItems()           { return inputScopeTable().items; }
+        static const std::vector<juce::Identifier>& getSectionIds()   { return inputScopeTable().sectionIds; }
+        static std::vector<const ScopeItem*> getItemsForSection (const juce::Identifier& sectionId)
+        {
+            return inputScopeTable().itemsForSection (sectionId);
+        }
 
         //----------------------------------------------------------------------
-        // Query methods
+        // Input-grid forwarders
         //----------------------------------------------------------------------
 
-        /** Check if a scope item is included for a channel */
-        bool isIncluded (const juce::String& itemId, int channelIndex) const;
+        bool isIncluded (const juce::String& itemId, int channelIndex) const          { return inputs.isIncluded (itemId, channelIndex); }
+        bool isParameterIncluded (const juce::Identifier& paramId, int channelIndex) const { return inputs.isParameterIncluded (paramId, channelIndex); }
 
-        /** Check if a parameter is included for a channel (via its scope item) */
-        bool isParameterIncluded (const juce::Identifier& paramId, int channelIndex) const;
+        void setIncluded (const juce::String& itemId, int channelIndex, bool included) { inputs.setIncluded (itemId, channelIndex, included); }
+        void toggle (const juce::String& itemId, int channelIndex)                      { inputs.toggle (itemId, channelIndex); }
+        void setAllItemsForChannel (int channelIndex, bool included)                    { inputs.setAllItemsForChannel (channelIndex, included); }
+        void setItemForAllChannels (const juce::String& itemId, bool included, int numChannels)            { inputs.setItemForAllChannels (itemId, included, numChannels); }
+        void setSectionForAllChannels (const juce::Identifier& sectionId, bool included, int numChannels)  { inputs.setSectionForAllChannels (sectionId, included, numChannels); }
+        void setAll (bool included, int numChannels)                                    { inputs.setAll (included, numChannels); }
 
-        /** Semantic equality: same apply mode and same per-item/per-channel
-            inclusion across all scope items and channels. Raw map comparison
-            would be wrong — an absent key and an explicit `true` entry both
-            mean "included". */
-        bool isEquivalentTo (const ExtendedSnapshotScope& other, int numChannels) const;
+        InclusionState getSectionState (const juce::Identifier& sectionId, int numChannels) const          { return inputs.getSectionState (sectionId, numChannels); }
+        InclusionState getSectionStateForChannel (const juce::Identifier& sectionId, int channelIndex) const { return inputs.getSectionStateForChannel (sectionId, channelIndex); }
+        InclusionState getChannelState (int channelIndex) const                         { return inputs.getChannelState (channelIndex); }
+        InclusionState getOverallState (int numChannels) const                          { return inputs.getOverallState (numChannels); }
 
-        //----------------------------------------------------------------------
-        // Modification methods
-        //----------------------------------------------------------------------
-
-        /** Set inclusion state for a scope item and channel */
-        void setIncluded (const juce::String& itemId, int channelIndex, bool included);
-
-        /** Toggle inclusion state for a scope item and channel */
-        void toggle (const juce::String& itemId, int channelIndex);
-
-        /** Set all items for a specific channel */
-        void setAllItemsForChannel (int channelIndex, bool included);
-
-        /** Set a specific item for all channels */
-        void setItemForAllChannels (const juce::String& itemId, bool included, int numChannels);
-
-        /** Set all items in a section for all channels */
-        void setSectionForAllChannels (const juce::Identifier& sectionId, bool included, int numChannels);
-
-        /** Set all items for all channels */
-        void setAll (bool included, int numChannels);
+        static juce::String makeKey (const juce::String& itemId, int channelIndex)      { return ScopeMatrix::makeKey (itemId, channelIndex); }
 
         //----------------------------------------------------------------------
-        // State queries for UI
+        // Whole-scope operations
         //----------------------------------------------------------------------
 
-        enum class InclusionState { AllIncluded, AllExcluded, Partial };
+        /** Semantic equality: same apply mode, same MIDI binding and the same
+            inclusion across every item and channel of BOTH grids - the effects
+            grid over numEffects channels. */
+        bool isEquivalentTo (const ExtendedSnapshotScope& other, int numInputs, int numEffects) const;
 
-        /** Get the inclusion state for a section across all channels */
-        InclusionState getSectionState (const juce::Identifier& sectionId, int numChannels) const;
-
-        /** Get the inclusion state for a section in a specific channel */
-        InclusionState getSectionStateForChannel (const juce::Identifier& sectionId, int channelIndex) const;
-
-        /** Get the inclusion state for a channel (all items) */
-        InclusionState getChannelState (int channelIndex) const;
-
-        /** Get overall state (all items, all channels) */
-        InclusionState getOverallState (int numChannels) const;
-
-        //----------------------------------------------------------------------
-        // Initialization
-        //----------------------------------------------------------------------
-
-        /** Initialize with all items included for all channels */
+        /** Initialize with all items included for all channels of both grids */
         void initializeDefaults (int numChannels);
 
         /** Return a copy of this scope with global-master gates folded in.
             When samplerMasterOn is false, every `sampler_<ch>` key is forced
             to excluded so callers cannot accidentally include sampler data. */
         ExtendedSnapshotScope withGlobals (bool samplerMasterOn, int numChannels) const;
-
-        /** Create key string for itemId and channel */
-        static juce::String makeKey (const juce::String& itemId, int channelIndex);
     };
 
     /** Delete an input snapshot */
@@ -431,9 +547,11 @@ public:
     // Snapshot Scope Operations
     //==========================================================================
 
-    /** Save a new input snapshot with extended scope. Also latches channel-number
-        ownership: the file keys its entries by permanent channel number, so those
-        numbers stop being reassignable the moment it is written. */
+    /** Save a new snapshot with extended scope - the inputs AND, since plan
+        revision 8, the effects: one file carries both families. Also latches
+        channel-number ownership: the file keys its <Input> entries by permanent
+        channel number, so those numbers stop being reassignable the moment it is
+        written. <Effect> entries are keyed by dense id. */
     /** True if `propertyId` is carried by an input snapshot — i.e. it appears in
         some ScopeItem's parameterIds, or in the <Channel> table.
 
@@ -493,8 +611,22 @@ public:
     // Backup Management
     //==========================================================================
 
-    /** Create a backup of a file */
+    /** Copy a section file (system, network, inputs, ...) into the backups
+        folder before it is saved over. True when the copy was made or there
+        is no file yet; false, with the error set, when it exists and could
+        not be copied. A save must stop on false. */
     bool createBackup (const juce::File& file);
+
+    /** The same into `backupFolder`: snapshots and scope templates keep their
+        backups apart from the section files (getSnapshotBackupFolder,
+        getTemplateBackupFolder). */
+    bool createBackupIn (const juce::File& file, const juce::File& backupFolder);
+
+    /** backups/snapshots and backups/templates. A snapshot backup used to sit
+        among the section backups, where one named "inputs..." was listed as
+        an inputs.xml backup and Reload Input Backup could load it. */
+    juce::File getSnapshotBackupFolder() const;
+    juce::File getTemplateBackupFolder() const;
 
     /** Get list of backups for a file type */
     juce::Array<juce::File> getBackups (const juce::String& fileType) const;
@@ -525,6 +657,7 @@ public:
     static constexpr const char* inputConfigExtension = ".xml";
     static constexpr const char* outputConfigExtension = ".xml";
     static constexpr const char* reverbConfigExtension = ".xml";
+    static constexpr const char* effectsConfigExtension = ".xml";
     static constexpr const char* audioPatchExtension = ".xml";
     static constexpr const char* snapshotExtension = ".xml";
 
@@ -593,6 +726,11 @@ public:
         live channel and were skipped. Recall used to be silent about them. */
     const std::vector<int>& getLastRecallSkippedNumbers() const { return lastRecallSkippedNumbers; }
 
+    /** After loadInputSnapshotWithExtendedScope: the <Effect> ids the snapshot
+        carries beyond the live effect count, which were skipped (and stay in the
+        file, applying again once the channel exists). */
+    const std::vector<int>& getLastRecallSkippedEffectIds() const { return lastRecallSkippedEffectIds; }
+
 private:
     //==========================================================================
     // Private Members
@@ -607,6 +745,10 @@ private:
     // folder (loaded from it, or explicitly saved to it). Gates autoSaveSystemConfig
     // so background saves can't clobber a config the user hasn't loaded yet.
     bool systemConfigSynced = false;
+
+    // Set by saveCompleteConfig while it writes: it has already backed up all
+    // six section files, so createBackup must not make a second copy.
+    bool sectionBackupsTaken = false;
 
     // Whether the last system config applied carried an <InputChannelList>.
     //
@@ -665,6 +807,7 @@ private:
     int channelIdentityBypassDepth = 0;
     juce::File channelIdentityClearance;
     std::vector<int> lastRecallSkippedNumbers;
+    std::vector<int> lastRecallSkippedEffectIds;
 
     /** The gate itself. True = proceed. False = refused; lastError and the log
         say why. Takes the already-parsed root so the primitive parses once. */
@@ -704,6 +847,9 @@ private:
     /** Extract reverbs section from state */
     juce::ValueTree extractReverbsSection() const;
 
+    /** Extract effects section from state */
+    juce::ValueTree extractEffectsSection() const;
+
     /** Extract audio patch section from state */
     juce::ValueTree extractAudioPatchSection() const;
 
@@ -721,6 +867,17 @@ private:
 
     /** Apply reverbs section to state */
     bool applyReverbsSection (const juce::ValueTree& reverbs);
+
+    /** Apply effects section to state.
+
+        Mirrors applyOutputsSection, NOT applyReverbsSection: the count is
+        re-synced from the child count after the merge. mergeTreeRecursive
+        appends unmatched source children and removes none, so an effects.xml
+        with more <Effect> nodes than the session has would otherwise leave
+        <Effects count> and Config/IO/effectChannels lying about a list that had
+        already grown - the drift getNumReverbChannels' counting loop exists to
+        paper over. */
+    bool applyEffectsSection (const juce::ValueTree& effects);
 
     /** Apply audio patch section to state */
     bool applyAudioPatchSection (const juce::ValueTree& audioPatch);

@@ -13,11 +13,12 @@
 #include "../../../Parameters/WFSParameterIDs.h"
 #include "../../../Parameters/WFSParameterDefaults.h"
 #include "../../../Localization/LocalizationManager.h"
+#include "../../../gui/TabIndex.h"
 
 namespace ClustersTabPages
 {
 
-static constexpr int CLUSTERS_MAIN_TAB_INDEX = 5;
+static constexpr int CLUSTERS_MAIN_TAB_INDEX = TabIndex::Clusters;
 
 //==============================================================================
 // Callbacks struct — actions that must go through the GUI
@@ -423,6 +424,7 @@ inline StreamDeckPage createPage (int /*subTab*/,
             d.step          = 1.0f;
             d.fineStep      = 0.0f;
             d.decimalPlaces = 0;
+            d.maxAcceleration = 1;  // picks a preset: one per click, never accelerated
 
             d.getDynamicName = [presetCol, presetRow]()
             {

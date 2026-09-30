@@ -3,6 +3,9 @@
 #include <JuceHeader.h>
 #include "OSCProtocolTypes.h"
 #include "OSCMessageBuilder.h"
+#include "OSCMessageRouter.h"
+#include "../Parameters/EffectsSnapshotScope.h"
+#include "../gui/effects/EffectsModuleDescriptors.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSFileManager.h"
 #include "../Localization/LocalizationManager.h"
@@ -52,6 +55,10 @@ public:
      *                         it (WFSValueTreeState::getSlotForChannelNumber)
      * @param numOutputs       Live output count: each input's mute list is fitted to it,
      *                         so the cue carries exactly one entry per output (0 = as stored)
+     * @param effectsData      The <Effects> ValueTree from the snapshot (plan revision 8:
+     *                         one snapshot carries both families); invalid = none
+     * @param numEffects       Live effect count: an <Effect> beyond it is a ghost and gets
+     *                         no cue, exactly as recall skips it
      * @return QLabCueSequence with group messages and per-cue messages
      */
     static QLabCueSequence buildSnapshotCues (
@@ -61,7 +68,9 @@ public:
         int numChannels,
         int qlabPatchNumber,
         const std::function<int (int)>& numberToSlot = {},
-        int numOutputs = 0)
+        int numOutputs = 0,
+        const juce::ValueTree& effectsData = {},
+        int numEffects = 0)
     {
         QLabCueSequence sequence;
 
@@ -94,6 +103,18 @@ public:
                                scope, qlabPatchNumber, numOutputs, cueCounter);
         }
 
+        // 5. The effects half, after the inputs, in the same group.
+        for (const auto& effectCue : collectEffectCues (effectsData, scope.effects, numEffects, numOutputs))
+        {
+            QLabCueSequence::NetworkCue cue;
+            cue.movePosition = ++cueCounter;  // 1-based
+            cue.messages.push_back (juce::OSCMessage ("/new", juce::String ("network")));
+            cue.messages.push_back (juce::OSCMessage ("/cue/selected/patch", qlabPatchNumber));
+            cue.messages.push_back (juce::OSCMessage ("/cue/selected/customString", effectCue.customString));
+            cue.messages.push_back (juce::OSCMessage ("/cue/selected/name", effectCue.name));
+            sequence.networkCues.push_back (std::move (cue));
+        }
+
         return sequence;
     }
 
@@ -104,7 +125,10 @@ public:
         const juce::ValueTree& snapshotData,
         const WFSFileManager::ExtendedSnapshotScope& scope,
         int numChannels,
-        const std::function<int (int)>& numberToSlot = {})
+        const std::function<int (int)>& numberToSlot = {},
+        const juce::ValueTree& effectsData = {},
+        int numEffects = 0,
+        int numOutputs = 0)
     {
         int count = 0;
         const auto& inputMappings = OSCMessageBuilder::getInputMappings();
@@ -139,7 +163,71 @@ public:
                 }
             }
         }
-        return count;
+        return count + static_cast<int> (collectEffectCues (effectsData, scope.effects, numEffects, numOutputs).size());
+    }
+
+    /** One effect cue: what QLab sends, and what the cue is called. */
+    struct EffectCue
+    {
+        juce::String customString;
+        juce::String name;
+    };
+
+    /** The per-parameter cues of a snapshot's effects half (plan revision 8).
+
+        Each value goes out in the shape the /wfs/effect/ parser expects for it -
+        OSCMessageRouter::getEffectParamKind is the one table:
+          Scalar     /wfs/effect/<name> <ID> <value>
+          Instanced  /wfs/effect/<name> <ID> <instance 1|2> <value>        (FxEq1/2, FxDyn1/2)
+          Band       /wfs/effect/<name> <ID> <instance> <band 1..6> <value>
+          Tap        /wfs/effect/<name> <ID> <tap 1..8> <value>
+          Row        /wfs/effect/<name> <ID> "<whole row>"                  (quoted: one string)
+        The effects grid decides what is exported, per item and per channel,
+        through the same EffectsSnapshotScope::itemIdFor the store and the recall
+        use; effectName is never exported (as inputName is not), and a ghost
+        <Effect> beyond the live count gets no cue. `oneTokenRowsSkipped` counts
+        the per-output mute rows of a ONE-output rig: such a row is a lone
+        number, which the receiver refuses as a row, and effects have no
+        per-output mute form. */
+    static std::vector<EffectCue> collectEffectCues (const juce::ValueTree& effectsData,
+                                                     const WFSFileManager::ScopeMatrix& grid,
+                                                     int numEffects, int numOutputs,
+                                                     int* oneTokenRowsSkipped = nullptr)
+    {
+        std::vector<EffectCue> cues;
+
+        for (int e = 0; e < effectsData.getNumChildren(); ++e)
+        {
+            const auto entry = effectsData.getChild (e);
+            if (! entry.hasType (WFSParameterIDs::Effect))
+                continue;
+
+            const int effectId = entry.getProperty (WFSParameterIDs::id).toString().getIntValue();
+            if (effectId < 1 || effectId > numEffects)
+                continue;
+
+            for (int c = 0; c < entry.getNumChildren(); ++c)
+            {
+                const auto node = entry.getChild (c);
+                const auto nodeType = node.getType();
+                const int instance = effectInstanceOf (nodeType);
+
+                appendEffectNodeCues (cues, node, nodeType, instance, 0, 0, effectId, grid, numOutputs, oneTokenRowsSkipped);
+
+                for (int k = 0; k < node.getNumChildren(); ++k)
+                {
+                    const auto child = node.getChild (k);
+                    const int index = child.getProperty (WFSParameterIDs::id).toString().getIntValue();
+
+                    if (child.hasType (WFSParameterIDs::Band))
+                        appendEffectNodeCues (cues, child, nodeType, instance, index, 0, effectId, grid, numOutputs, oneTokenRowsSkipped);
+                    else if (child.hasType (WFSParameterIDs::Tap))
+                        appendEffectNodeCues (cues, child, nodeType, instance, 0, index, effectId, grid, numOutputs, oneTokenRowsSkipped);
+                }
+            }
+        }
+
+        return cues;
     }
 
     /**
@@ -286,6 +374,283 @@ private:
 
         const int denseSlot = channelNumber - 1;
         return denseSlot < numChannels ? denseSlot : -1;
+    }
+
+    /** 1 / 2 for the doubled module nodes, 0 for every other node. */
+    static int effectInstanceOf (const juce::Identifier& nodeType)
+    {
+        using namespace WFSParameterIDs;
+        if (nodeType == FxEq1 || nodeType == FxDyn1) return 1;
+        if (nodeType == FxEq2 || nodeType == FxDyn2) return 2;
+        return 0;
+    }
+
+    /** The cues of one node of an <Effect> entry (a flat node, a module, or one
+        of a module's <Band> / <Tap> children, `band` / `tap` 1-based). */
+    static void appendEffectNodeCues (std::vector<EffectCue>& cues, const juce::ValueTree& node,
+                                      const juce::Identifier& nodeType, int instance, int band, int tap,
+                                      int effectId, const WFSFileManager::ScopeMatrix& grid,
+                                      int numOutputs, int* oneTokenRowsSkipped)
+    {
+        using Kind = OSCMessageRouter::ParsedEffectMessage::Kind;
+        const auto& paths = OSCMessageBuilder::getEffectMappings();
+
+        for (int p = 0; p < node.getNumProperties(); ++p)
+        {
+            const auto paramId = node.getPropertyName (p);
+            if (paramId == WFSParameterIDs::id || paramId == WFSParameterIDs::effectName)
+                continue;
+
+            const auto itemId = EffectsSnapshotScope::itemIdFor (nodeType, paramId);
+            if (itemId.isEmpty() || ! grid.isIncluded (itemId, effectId - 1))
+                continue;
+
+            const auto path = paths.find (paramId);
+            if (path == paths.end())
+                continue;
+
+            const auto value = node.getProperty (paramId);
+            juce::String args (effectId);
+
+            switch (OSCMessageRouter::getEffectParamKind (paramId))
+            {
+                case Kind::Scalar:
+                    break;
+
+                case Kind::Instanced:
+                    if (instance < 1) continue;
+                    args << " " << instance;
+                    break;
+
+                case Kind::Band:
+                    if (instance < 1 || band < 1) continue;
+                    args << " " << instance << " " << band;
+                    break;
+
+                case Kind::Tap:
+                    if (tap < 1) continue;
+                    args << " " << tap;
+                    break;
+
+                case Kind::Row:
+                {
+                    const auto text = paramId == WFSParameterIDs::effectMutes
+                                          ? WFSValueTreeState::normaliseMuteList (value, numOutputs)
+                                          : value.toString().trim();
+
+                    // A row is ONE string. A lone number is not one: the receiver
+                    // refuses it rather than wiping the row to one column.
+                    if (text.isEmpty() || text.containsOnly ("0123456789.+-eE"))
+                    {
+                        if (oneTokenRowsSkipped != nullptr)
+                            ++*oneTokenRowsSkipped;
+                        continue;
+                    }
+
+                    cues.push_back ({ path->second.oscPath + " " + args + " " + text.quoted(),
+                                      effectCueName (paramId, nodeType, band, tap, effectId, text, true) });
+                    continue;
+                }
+
+                default:
+                    continue;
+            }
+
+            cues.push_back ({ path->second.oscPath + " " + args + " " + formatEffectValue (value),
+                              effectCueName (paramId, nodeType, band, tap, effectId, value, false) });
+        }
+    }
+
+    /** A value as QLab should send it: a float keeps a decimal point, an int has
+        none, text goes quoted (the rule formatCustomString applies to inputs). */
+    static juce::String formatEffectValue (const juce::var& value)
+    {
+        const auto text = value.toString().trim();
+        if (text.isNotEmpty() && ! text.containsOnly ("0123456789.+-eE"))
+            return text.quoted();
+        if (text.containsChar ('.'))
+            return juce::String (text.getDoubleValue(), 6);
+        return juce::String (text.getIntValue());
+    }
+
+    /** "Effect 2 EQ 2 Band 3 EQ Gain 5.5 dB", "Effect 1 Attenuation -6.0 dB",
+        "Effect 1 Mutes: 2, 4". Module parameters take their label and unit from
+        the generated descriptors (the CSV), prefixed with the module's name;
+        the flat ones from effectParamDisplayMap. */
+    static juce::String effectCueName (const juce::Identifier& paramId, const juce::Identifier& nodeType,
+                                       int band, int tap, int effectId, const juce::var& value, bool isRow)
+    {
+        juce::String what, unit;
+
+        if (const auto* desc = effectModuleDescriptor (paramId))
+        {
+            what = effectModuleName (nodeType);
+            if (band > 0) what << " Band " << band;
+            if (tap > 0)  what << " Tap " << tap;
+            what << " " << LOC (juce::String ("effects.labels.") + desc->key).trimCharactersAtEnd (": ");
+            unit = desc->unit;
+        }
+        else
+        {
+            const auto& flat = effectParamDisplayMap();
+            const auto it = flat.find (paramId);
+            what = it != flat.end() ? juce::String (it->second.first)
+                                    : paramId.toString().fromFirstOccurrenceOf ("effect", false, false);
+            unit = it != flat.end() ? juce::String (it->second.second) : juce::String();
+        }
+
+        const juce::String prefix = "Effect " + juce::String (effectId) + " ";
+
+        if (paramId == WFSParameterIDs::effectMutes)
+        {
+            juce::StringArray tokens, runs;
+            tokens.addTokens (value.toString(), ",", "");
+            for (int i = 0; i < tokens.size(); ++i)
+            {
+                if (tokens[i].trim() != "1")
+                    continue;
+                int last = i;
+                while (last + 1 < tokens.size() && tokens[last + 1].trim() == "1")
+                    ++last;
+                runs.add (last == i ? juce::String (i + 1) : juce::String (i + 1) + "-" + juce::String (last + 1));
+                i = last;
+            }
+            return prefix + "Mutes: " + (runs.isEmpty() ? juce::String ("none") : runs.joinIntoString (", "));
+        }
+
+        if (isRow)
+            return prefix + what + (paramId == WFSParameterIDs::effectChainOrder ? " " + value.toString() : juce::String());
+
+        const auto text = value.toString().trim();
+        juce::String shown = text.containsChar ('.') ? juce::String (text.getDoubleValue(), 1)
+                                                     : juce::String (text.getIntValue());
+        if (unit.isNotEmpty())
+            shown << " " << unit;
+        return prefix + what + " " + shown;
+    }
+
+    /** The generated descriptor of a module parameter, or null for a flat one. */
+    static const EffectsUi::ControlDesc* effectModuleDescriptor (const juce::Identifier& paramId)
+    {
+        static const std::map<juce::Identifier, const EffectsUi::ControlDesc*> table = []
+        {
+            std::map<juce::Identifier, const EffectsUi::ControlDesc*> t;
+            for (int slot = 0; slot < 11; ++slot)
+            {
+                const auto controls = EffectsUi::controlsForSlot (slot);
+                for (int i = 0; i < controls.count; ++i)
+                    t[controls.controls[i].id] = &controls.controls[i];
+            }
+            for (const auto* d : { &EffectsUi::descEQshape(), &EffectsUi::descEQfreq(), &EffectsUi::descEQgain(),
+                                   &EffectsUi::descEQq(), &EffectsUi::descEQslope(),
+                                   &EffectsUi::descDelayTapTime(), &EffectsUi::descDelayTapLevel() })
+                t[d->id] = d;
+            return t;
+        }();
+
+        const auto it = table.find (paramId);
+        return it != table.end() ? it->second : nullptr;
+    }
+
+    /** "EQ 2", "Dynamics 1", "Multitap Delay" - the Chain tab's own names. */
+    static juce::String effectModuleName (const juce::Identifier& nodeType)
+    {
+        using namespace WFSParameterIDs;
+        const char* token = nodeType == FxDist ? "dist" : nodeType == FxEq1 ? "eq1" : nodeType == FxEq2 ? "eq2"
+                          : nodeType == FxDyn1 ? "dyn1" : nodeType == FxDyn2 ? "dyn2" : nodeType == FxMod ? "mod"
+                          : nodeType == FxPhaser ? "phaser" : nodeType == FxTrem ? "trem"
+                          : nodeType == FxReverb ? "reverb" : nodeType == FxDelay ? "delay"
+                          : nodeType == FxCrush ? "crush" : nullptr;
+        return token != nullptr ? LOC (juce::String ("effects.modules.") + token) : nodeType.toString();
+    }
+
+    /** Names and units of the flat effect parameters, for cue names. */
+    static const std::map<juce::Identifier, std::pair<const char*, const char*>>& effectParamDisplayMap()
+    {
+        using namespace WFSParameterIDs;
+        static const std::map<juce::Identifier, std::pair<const char*, const char*>> map = {
+            // Channel
+            { effectAttenuation,           { "Attenuation",             "dB"   } },
+            { effectDelayLatency,          { "Delay",                   "ms"   } },
+            { effectMinimalLatency,        { "Min Latency",             ""     } },
+            { effectLinkGroup,             { "Link Group",              ""     } },
+            { effectLinkMode,              { "Link Mode",               ""     } },
+            { effectMute,                  { "Mute",                    ""     } },
+            // Position
+            { effectPositionX,             { "Position X",              "m"    } },
+            { effectPositionY,             { "Position Y",              "m"    } },
+            { effectPositionZ,             { "Position Z",              "m"    } },
+            { effectCoordinateMode,        { "Coordinate Mode",         ""     } },
+            { effectReturnOffsetX,         { "Return Offset X",         "m"    } },
+            { effectReturnOffsetY,         { "Return Offset Y",         "m"    } },
+            { effectReturnOffsetZ,         { "Return Offset Z",         "m"    } },
+            // Feed
+            { effectOrientation,           { "Orientation",             "deg"  } },
+            { effectAngleOn,               { "Angle On",                "deg"  } },
+            { effectAngleOff,              { "Angle Off",               "deg"  } },
+            { effectPitch,                 { "Pitch",                   "deg"  } },
+            { effectHFdamping,             { "HF Damping",              "dB/m" } },
+            { effectFeedMiniLatency,       { "Feed Min Latency",        ""     } },
+            { effectDistanceAttenPercent,  { "Distance Atten",          "%"    } },
+            // Return
+            { effectAttenuationLaw,        { "Attenuation Law",         ""     } },
+            { effectDistanceAttenuation,   { "Distance Atten",          "dB/m" } },
+            { effectDistanceRatio,         { "Distance Ratio",          ""     } },
+            { effectCommonAtten,           { "Common Atten",            "%"    } },
+            { effectHFshelf,               { "HF Shelf",                "dB"   } },
+            { effectMuteMacro,             { "Mute Macro",              ""     } },
+            { effectMuteReverbSends,       { "Mute Reverb Sends",       ""     } },
+            { effectArrayAtten1,           { "Array 1 Atten",           "dB"   } },
+            { effectArrayAtten2,           { "Array 2 Atten",           "dB"   } },
+            { effectArrayAtten3,           { "Array 3 Atten",           "dB"   } },
+            { effectArrayAtten4,           { "Array 4 Atten",           "dB"   } },
+            { effectArrayAtten5,           { "Array 5 Atten",           "dB"   } },
+            { effectArrayAtten6,           { "Array 6 Atten",           "dB"   } },
+            { effectArrayAtten7,           { "Array 7 Atten",           "dB"   } },
+            { effectArrayAtten8,           { "Array 8 Atten",           "dB"   } },
+            { effectArrayAtten9,           { "Array 9 Atten",           "dB"   } },
+            { effectArrayAtten10,          { "Array 10 Atten",          "dB"   } },
+            // AutomOtion
+            { effectOtomoX,                { "AutomOtion X",            "m"    } },
+            { effectOtomoY,                { "AutomOtion Y",            "m"    } },
+            { effectOtomoZ,                { "AutomOtion Z",            "m"    } },
+            { effectOtomoAbsoluteRelative, { "AutomOtion Abs/Rel",      ""     } },
+            { effectOtomoCoordinateMode,   { "AutomOtion Coord Mode",   ""     } },
+            { effectOtomoR,                { "AutomOtion R",            "m"    } },
+            { effectOtomoTheta,            { "AutomOtion Theta",        "deg"  } },
+            { effectOtomoRsph,             { "AutomOtion R (sph)",      "m"    } },
+            { effectOtomoPhi,              { "AutomOtion Phi",          "deg"  } },
+            { effectOtomoSpeedProfile,     { "AutomOtion Speed",        "%"    } },
+            { effectOtomoDuration,         { "AutomOtion Duration",     "s"    } },
+            { effectOtomoCurve,            { "AutomOtion Curve",        ""     } },
+            { effectOtomoTrigger,          { "AutomOtion Trigger",      ""     } },
+            { effectOtomoThreshold,        { "AutomOtion Threshold",    "dB"   } },
+            { effectOtomoReset,            { "AutomOtion Reset",        "dB"   } },
+            // LFO
+            { effectLFOactive,             { "LFO Active",              ""     } },
+            { effectLFOperiod,             { "LFO Period",              "s"    } },
+            { effectLFOphase,              { "LFO Phase",               "deg"  } },
+            { effectLFOshapeX,             { "LFO Shape X",             ""     } },
+            { effectLFOshapeY,             { "LFO Shape Y",             ""     } },
+            { effectLFOshapeZ,             { "LFO Shape Z",             ""     } },
+            { effectLFOrateX,              { "LFO Rate X",              ""     } },
+            { effectLFOrateY,              { "LFO Rate Y",              ""     } },
+            { effectLFOrateZ,              { "LFO Rate Z",              ""     } },
+            { effectLFOamplitudeX,         { "LFO Amplitude X",         "m"    } },
+            { effectLFOamplitudeY,         { "LFO Amplitude Y",         "m"    } },
+            { effectLFOamplitudeZ,         { "LFO Amplitude Z",         "m"    } },
+            { effectLFOphaseX,             { "LFO Phase X",             "deg"  } },
+            { effectLFOphaseY,             { "LFO Phase Y",             "deg"  } },
+            { effectLFOphaseZ,             { "LFO Phase Z",             "deg"  } },
+            // Chain and sends (rows: named, not valued)
+            { effectChainOrder,            { "Chain Order",             ""     } },
+            { effectChainBypass,           { "Chain Bypass",            ""     } },
+            { effectSendLevels,            { "Send Levels from Inputs", ""     } },
+            { effectSendOns,               { "Sends on from Inputs",    ""     } },
+            { effectFxSendLevels,          { "Send Levels from Effects",""     } },
+            { effectFxSendOns,             { "Sends on from Effects",   ""     } },
+        };
+        return map;
     }
 
     /** Append QLab network cue entries for all in-scope parameters of one channel */

@@ -36,6 +36,7 @@ change and need to stay visible.
 | `session_get_global_state` | Stage, master, binaural, network and other globals. Use `sections` to keep it small. |
 | `session_get_channel_full` | Everything on one channel. Large — prefer the targeted reads above. |
 | `session_get_state_delta` | What changed since your last call. Use between turns to notice operator, OSC or automation edits. |
+| `input_get_effect_sends` | One input's sends into every effect channel: on/off and level in dB per effect. |
 | `mcp_get_ai_change_history` | What you have already done this session. Compact by default. |
 
 ## Writing state
@@ -46,6 +47,7 @@ change and need to stay visible.
 | `wfs_set_parameter_batch` | Several writes at once — atomic, one undo entry, one confirmation. Preferred for multi-write flows. |
 | `wfs_nudge_parameter` | Relative moves ("a bit louder"). Clamps at the range limit. Tier 1. Numeric, non-EQ, tier-1 parameters only. |
 | `input_create` / `input_delete` (also output, reverb) | Channel lifecycle, one channel at a time. Tier 2. |
+| `input_set_effect_send_level` / `input_set_effect_send_on` | One input's send into one effect channel: the level in dB (tier 2) or the on/off switch, which keeps the level (tier 1). No generated tool covers these cells - an effect stores them as packed rows. |
 | `reverb_auto_layout` | High-level reverb placement from speaker topology, written as one atomic batch. |
 | `session_save` | Persist the project to disk. Tier 2, overwrites the operator's files, and cannot be undone. |
 
