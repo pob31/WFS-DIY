@@ -59,8 +59,8 @@
       "outputChannels": "Numero di Output Channels.",
       "reverbChannels": "Numero di Reverb Channels.",
       "audioPatch": "Apre la finestra dell'interfaccia audio e routing.",
-      "levelMeter": "Opens the Level Meter Window.",
-      "clearSolo": "Clear all input solo states.",
+      "levelMeter": "Apre la finestra degli indicatori di livello.",
+      "clearSolo": "Cancella tutti gli stati di solo degli ingressi.",
       "algorithm": "Seleziona l'algoritmo di rendering dal menu.",
       "processing": "Blocca tutti i parametri I/O e avvia il DSP. Tenere premuto per fermare il DSP.",
       "soloMode": "Singolo: un ingresso alla volta. Multi: più ingressi simultaneamente.",
@@ -104,6 +104,7 @@
       "importSystem": "Importa la configurazione di sistema da file (con finestra esplora file).",
       "exportSystem": "Esporta la configurazione di sistema su file (con finestra esplora file).",
       "language": "Seleziona la lingua dell'interfaccia utente. Le modifiche avranno pieno effetto dopo il riavvio dell'applicazione.",
+      "translationTier": "Scegli quanta parte dell'interfaccia viene tradotta. 'Help & messages' mantiene i controlli in inglese e traduce solo l'aiuto, i messaggi e le finestre di dialogo; 'Everything' traduce l'intera interfaccia, comprese le etichette. Ha pieno effetto dopo il riavvio.",
       "dialsAndButtons": "Selezionare il controller hardware per manopole e tasti: Stream Deck+.",
       "positionControl": "Selezionare il controller hardware per il controllo di posizione: Space Mouse, Joystick o gamepad. Con uno Space Mouse, tenere premuto Shift su un ingresso stereo trasforma la torsione nell'asse stereo e spingere/tirare nella larghezza stereo.",
       "sampler": "Attivare o disattivare la funzione Sampler per i canali di ingresso. Selezionare il controller: Lightpad o Telecomando.",
@@ -111,7 +112,19 @@
       "remoteSetup": "Selezionare il numero di pad nella scheda XY Pads del Remote.",
       "binauralEnable": "Attivare o disattivare l'elaborazione del renderer binaurale.",
       "binauralOutput": "Selezionare la coppia di canali di uscita per il monitoraggio binaurale. Off disattiva l'uscita binaurale.",
+      "binauralMode": "Algoritmo di rendering binaurale: ORTF (legacy) con coppia di microfoni virtuali, HRTF strutturale (modello parametrico della testa) o file SOFA (HRTF misurate).",
+      "binauralListenerX": "Scostamento laterale dell'ascoltatore binaurale rispetto alla posizione determinata da Orbita e Distanza (metri, positivo = verso la destra dell'ascoltatore). Solo modalità HRTF.",
+      "binauralSofa": "Set di HRTF per la modalità di rendering SOFA: il SADIE II KU100 integrato o un file SOFA personalizzato nella cartella sofa del progetto.",
+      "binauralTracker": "Sorgente dell'orientamento della testa: manuale (controlli yaw/pitch/roll) o un head tracker collegato. L'assetto dal tracker aggira lo smorzamento dei parametri per una risposta immediata.",
+      "binauralSetZero": "Guardare il centro del palco, poi cliccare per calibrare l'orientamento zero dell'head tracker. Il tracking via webcam richiede qualche istante per avviarsi dopo la selezione.",
+      "binauralAttitude": "Assetto in tempo reale della testa dal tracker attivo (yaw, pitch, roll in gradi). Mostra 'no face tracked' finché la webcam non vi vede.",
+      "binauralAdvanced": "Apre il pannello della geometria dell'ascoltatore: scostamento laterale, altezza delle orecchie, raggio della testa, angolo dell'ascoltatore e orientamento manuale della testa (usato quando nessun tracker è attivo).",
+      "binauralAdvancedClose": "Chiude il pannello della geometria dell'ascoltatore.",
+      "binauralHeight": "Altezza delle orecchie dell'ascoltatore binaurale (metri). Solo modalità HRTF.",
+      "binauralHeadRadius": "Raggio della testa per il modello HRTF strutturale (centimetri). Teste più grandi producono differenze interaurali di tempo maggiori.",
+      "binauralOrientation": "Scostamenti manuali dell'orientamento della testa rispetto alla direzione verso l'origine: yaw, pitch, roll (gradi). Ruotano la testa sul posto — a differenza di Orbita, che sposta la posizione di ascolto. Ignorati mentre un head tracker è attivo.",
       "binauralDistance": "Distanza dell'ascoltatore binaurale dall'origine del palco (metri).",
+      "binauralYaw": "Ruota la testa dell'ascoltatore sul posto, senza spostare la posizione di ascolto (gradi, 0 = rivolto verso l'origine del palco, positivo = rotazione a destra). Riflette lo yaw rilevato dal tracker ed è bloccato mentre un head tracker è attivo. Solo modalità HRTF.",
       "binauralAngle": "Rotazione orizzontale del punto di vista dell'ascoltatore binaurale (gradi, 0 = rivolto al palco).",
       "binauralAtten": "Offset di livello globale per l'uscita binaurale (dB).",
       "binauralDelay": "Ritardo aggiuntivo per l'uscita binaurale (millisecondi).",
@@ -137,6 +150,7 @@
       "partialLoadFromBackup": "Caricamento parziale dal backup: {error}",
       "error": "Errore: {error}",
       "languageChanged": "Lingua cambiata in: {language} (richiede riavvio per effetto completo)",
+      "translationTierChanged": "Traduzione impostata su: {tier} (riavvio necessario per l'effetto completo)",
       "restartTitle": "Riavvio necessario",
       "restartBody": "Riavviare l'applicazione affinché il cambio di lingua abbia pieno effetto.",
       "logsExported": "Log esportati in {path}",
@@ -195,6 +209,10 @@
         "title": "Ridurre i Reverb Channels?",
         "message": "Riducendo da {current} a {new} canali di riverbero verranno rimosse le impostazioni per i canali da {start} a {end}.\n\nQuesta operazione non può essere annullata."
       },
+      "reduceEffectChannels": {
+        "title": "Ridurre i Canali Effetti?",
+        "message": "Riducendo da {current} a {new} canali effetti verranno rimosse le impostazioni per i canali da {start} a {end}.\n\nQuesta operazione non può essere annullata."
+      },
       "reduce": "Riduci",
       "selectProjectFolder": "Seleziona Cartella Progetto",
       "importSystemConfig": "Importa Configurazione Sistema",
@@ -203,6 +221,7 @@
   },
   "network": {
     "remote": {
+      "protocolMismatch": "L'app remota usa il protocollo v{remote}, atteso v{local} — aggiornare l'app sul tablet",
       "notResponding": "Remote non risponde — controllare IP/porta del tablet e che WFS Control sia avviato e aggiornato",
       "sendFailing": "L'invio al tablet non riesce — su macOS, consentire WFS-DIY in Impostazioni di Sistema › Privacy e sicurezza › Rete locale, e verificare che questo computer sia sulla rete del tablet"
     },
@@ -340,6 +359,14 @@
       "solo": "Mostra il contributo dell'ingresso a tutte le uscite nell'indicatore di livello (in modalità Solo singolo) e riproduce il rendering binaurale degli ingressi in solo",
       "clearSolo": "Disattiva tutti i solo",
       "soloMode": "Singolo: un ingresso alla volta. Multi: più ingressi simultaneamente."
+    },
+    "gpuStrip": {
+      "status": "underrun W:{wu} R:{ru} | profondità {wd}/{rd} | latenza {wl}/{rl} ms",
+      "tooltip": "ultimo {last} ms | budget {budget} ms | picco 3 s {peak} ms | underrun {under}",
+      "tooltipNoUnderruns": "ultimo {last} ms | budget {budget} ms | picco 3 s {peak} ms"
+    },
+    "effects": {
+      "tooltip": "motore effetti: ultimo {last} ms | budget {budget} ms | picco 3 s {peak} ms | {batches} batch per risveglio"
     }
   },
   "clusters": {
@@ -565,6 +592,7 @@
       "groupMuteNeedsGroup": "Questo effetto non è in un gruppo di collegamento, quindi non c'è alcun gruppo da mettere in mute.",
       "assignedGroup": "Effetto {channel} assegnato a {group}",
       "unlinked": "Effetto {channel} rimosso dal suo gruppo di collegamento",
+      "relayoutDone": "Tutti i ritorni effetto sono stati disposti di nuovo sull'anello predefinito.",
       "configLoaded": "Configurazione effetti caricata.",
       "selectFolderFirst": "Selezionare prima una cartella progetto.",
       "error": "Errore: {error}"
@@ -588,7 +616,188 @@
       "reloadConfig": "Ricaricare la configurazione degli effetti da file (con conferma).",
       "reloadBackup": "Ricaricare la configurazione degli effetti dal file di backup (con conferma).",
       "import": "Importare la configurazione degli effetti da file (con esplora file).",
-      "export": "Esportare la configurazione degli effetti su file (con esplora file)."
+      "export": "Esportare la configurazione degli effetti su file (con esplora file).",
+      "lfoActive": "Attivare o disattivare il movimento periodico del ritorno effetto (LFO).",
+      "lfoPeriod": "Periodo di base del movimento del ritorno effetto.",
+      "lfoPhase": "Sfasamento del movimento del ritorno effetto.",
+      "lfoShapeX": "Comportamento del movimento del ritorno effetto in larghezza.",
+      "lfoRateX": "Movimento più rapido o più lento rispetto al periodo di base, in larghezza.",
+      "lfoAmplitudeX": "Larghezza del movimento rispetto alla posizione di base del ritorno effetto.",
+      "lfoPhaseX": "Sfasamento del movimento del ritorno effetto in larghezza.",
+      "lfoShapeY": "Comportamento del movimento del ritorno effetto in profondità.",
+      "lfoRateY": "Movimento più rapido o più lento rispetto al periodo di base, in profondità.",
+      "lfoAmplitudeY": "Profondità del movimento rispetto alla posizione di base del ritorno effetto.",
+      "lfoPhaseY": "Sfasamento del movimento del ritorno effetto in profondità.",
+      "lfoShapeZ": "Comportamento del movimento del ritorno effetto in altezza.",
+      "lfoRateZ": "Movimento più rapido o più lento rispetto al periodo di base, in altezza.",
+      "lfoAmplitudeZ": "Altezza del movimento rispetto alla posizione di base del ritorno effetto.",
+      "lfoPhaseZ": "Sfasamento del movimento del ritorno effetto in altezza.",
+      "otomoCoordMode": "Modalità coordinate per le destinazioni AutomOtion: Cartesiano (X/Y/Z), Cilindrico (r/θ/Z) o Sferico (r/θ/φ).",
+      "otomoDest": "Destinazione relativa o assoluta {name} ({unit}).",
+      "otomoAbsRel": "Scegliere coordinate di spostamento relative o assolute.",
+      "otomoDuration": "Durata del movimento in secondi (0,1 s a 1 ora).",
+      "otomoCurve": "Curvare il percorso a sinistra (negativo) o a destra (positivo) della direzione di movimento.",
+      "otomoSpeedProfile": "Velocità costante o accelerazione e decelerazione graduali all'inizio e alla fine del movimento.",
+      "otomoTrigger": "Avvio manuale dello spostamento o trigger automatico sul livello audio.",
+      "otomoThreshold": "Impostare la soglia per il trigger automatico del movimento.",
+      "otomoReset": "Impostare il livello di reset per il trigger automatico.",
+      "otomoStart": "Avviare il movimento manualmente. Un ritorno effetto torna sempre a casa: il movimento è uno scostamento sulla posizione impostata.",
+      "otomoStop": "Fermare il movimento.",
+      "otomoPause": "Mettere in pausa e riprendere il movimento.",
+      "otomoStopAll": "Fermare tutti i movimenti attivi su ogni ritorno effetto.",
+      "otomoPauseResumeAll": "Mettere in pausa o riprendere tutti i movimenti attivi su ogni ritorno effetto.",
+      "distBypass": "Bypassare il modulo distorsione.",
+      "distDrive": "Guadagno in ingresso ai saturatori (0 - 40 dB).",
+      "distShape": "Passaggio dal clipping duro (0) alla saturazione tanh (1).",
+      "distBias": "Asimmetria del saturatore, per un colore ad armoniche pari (tipo valvolare).",
+      "distPreLoShelfFreq": "Frequenza di taglio dello shelf dei bassi prima del saturatore.",
+      "distPreLoShelfGain": "Guadagno dello shelf dei bassi prima del saturatore.",
+      "distPreHiShelfFreq": "Frequenza di taglio dello shelf degli alti prima del saturatore.",
+      "distPreHiShelfGain": "Guadagno dello shelf degli alti prima del saturatore.",
+      "distPostLoShelfFreq": "Frequenza di taglio dello shelf dei bassi dopo il saturatore.",
+      "distPostLoShelfGain": "Guadagno dello shelf dei bassi dopo il saturatore.",
+      "distPostHiShelfFreq": "Frequenza di taglio dello shelf degli alti dopo il saturatore.",
+      "distPostHiShelfGain": "Guadagno dello shelf degli alti dopo il saturatore.",
+      "distOutput": "Livello di uscita della distorsione (da -24 a +12 dB).",
+      "distMix": "Mix dry/wet del modulo distorsione (% wet).",
+      "distOversample": "Fattore di oversampling del saturatore.",
+      "dynBypass": "Bypassare questa istanza di dinamica.",
+      "dynDetector": "Rilevamento Peak o RMS per entrambi gli stadi.",
+      "dynLookahead": "Ritarda l'audio in modo che il rilevatore veda prima il transiente (aggiunge latenza dichiarata).",
+      "dynMakeup": "Guadagno di compensazione applicato dopo entrambi gli stadi.",
+      "dynAutoMakeup": "Ricava il guadagno di compensazione dalla soglia e dal rapporto del compressore.",
+      "dynCompOn": "Attivare lo stadio compressore di questa istanza di dinamica.",
+      "dynCompThreshold": "Livello di soglia del compressore (da -60 a 0 dB).",
+      "dynCompRatio": "Rapporto del compressore (da 1:1 a 100:1; 100 è un limiter).",
+      "dynCompKnee": "Ampiezza del soft knee del compressore (0 = hard knee).",
+      "dynCompAttack": "Tempo di attacco del compressore (0.05 - 200 ms).",
+      "dynCompRelease": "Tempo di rilascio del compressore (5 - 2000 ms).",
+      "dynCompDetectorDelay": "Lascia passare un transiente prima che il compressore intervenga (transient pass, senza latenza).",
+      "dynCompScLoCut": "Filtro passa-alto sul rilevatore sidechain del compressore.",
+      "dynCompScHiCut": "Filtro passa-basso sul rilevatore sidechain del compressore.",
+      "dynExpOn": "Attivare lo stadio espansore di questa istanza di dinamica.",
+      "dynExpThreshold": "Livello di soglia dell'espansore (da -90 a 0 dB).",
+      "dynExpRatio": "Rapporto dell'espansore verso il basso (da 1:1 a 1:100; 100 è un gate).",
+      "dynExpAttack": "Tempo di attacco dell'espansore (0.05 - 200 ms).",
+      "dynExpRelease": "Tempo di rilascio dell'espansore (5 - 2000 ms).",
+      "dynExpRange": "Attenuazione massima che l'espansore può applicare (da -80 a 0 dB).",
+      "dynExpHold": "Tempo di hold prima che l'espansore inizi a chiudere.",
+      "dynExpScLoCut": "Filtro passa-alto sul rilevatore sidechain dell'espansore.",
+      "dynExpScHiCut": "Filtro passa-basso sul rilevatore sidechain dell'espansore.",
+      "modBypass": "Bypassare il modulo chorus / flanger.",
+      "modMode": "Voicing chorus o flanger.",
+      "modRate": "Frequenza dell'LFO del chorus / flanger (0.05 - 10 Hz).",
+      "modDepth": "Profondità di modulazione in percentuale del ritardo centrale.",
+      "modDelay": "Ritardo centrale della linea modulata.",
+      "modFeedback": "Feedback con segno attorno alla linea modulata.",
+      "modVoices": "Numero di voci modulate (1 - 3).",
+      "modShape": "Forma d'onda dell'LFO del chorus / flanger.",
+      "modPhase": "Sfasamento dell'LFO per questo canale (0 - 360 gradi).",
+      "modLoCut": "Filtro passa-alto sul segnale che entra nella linea modulata.",
+      "modThroughZero": "Ritarda il segnale dry in modo che la linea modulata possa passare per lo zero.",
+      "modMix": "Mix dry/wet del chorus / flanger (% wet).",
+      "phaserBypass": "Bypassare il modulo phaser.",
+      "phaserStages": "Numero di stadi passa-tutto (4, 6, 8 o 12).",
+      "phaserCentre": "Frequenza centrale dello sweep passa-tutto (100 - 5000 Hz).",
+      "phaserSpread": "Distribuzione degli stadi passa-tutto attorno al centro, in ottave.",
+      "phaserRate": "Frequenza dell'LFO del phaser (0.02 - 10 Hz).",
+      "phaserDepth": "Profondità dello sweep del phaser, in ottave.",
+      "phaserShape": "Forma d'onda dell'LFO del phaser.",
+      "phaserFeedback": "Feedback con segno attorno alla catena passa-tutto.",
+      "phaserMix": "Mix dry/wet del phaser (% wet).",
+      "tremBypass": "Bypassare il modulo tremolo.",
+      "tremRate": "Frequenza del tremolo (0.05 - 20 Hz).",
+      "tremDepth": "Profondità del tremolo in dB (0 - 60 dB).",
+      "tremShape": "Passaggio dell'LFO del tremolo da sinusoide (0) a triangolare (1).",
+      "tremMix": "Mix dry/wet del tremolo (% wet).",
+      "reverbBypass": "Bypassare il modulo riverbero in catena.",
+      "reverbModel": "Selezionare l'algoritmo di riverbero di questo modulo: FDN, Plate, Modulated Hall o Shimmer.",
+      "reverbType": "Preset di riverbero: imposta in un colpo solo modello, riflessioni e ambiente. Modificarne uno in seguito lo porta a Custom.",
+      "reverbPredelay": "Predelay prima della coda del modulo riverbero (0 - 250 ms).",
+      "reverbRT60": "Tempo di decadimento del riverbero RT60 (0.2 - 8.0 secondi).",
+      "reverbRT60LowMult": "Moltiplicatore RT60 bassa frequenza (0.1 - 9.0x).",
+      "reverbRT60HighMult": "Moltiplicatore RT60 alta frequenza (0.1 - 9.0x).",
+      "reverbCrossoverLow": "Frequenza di crossover bassa per decadimento a 3 bande (50 - 500 Hz).",
+      "reverbCrossoverHigh": "Frequenza di crossover alta per decadimento a 3 bande (1 - 10 kHz).",
+      "reverbDiffusion": "Quantità di diffusione che controlla la densità degli echi (0 - 1).",
+      "reverbSize": "Moltiplicatore della dimensione della stanza del modulo riverbero (0.5 - 2.0x).",
+      "reverbTone": "Filtro passa-basso sulla coda del riverbero (1 - 20 kHz).",
+      "reverbMix": "Mix dry/wet del modulo riverbero (% wet).",
+      "delayBypass": "Bypassare il modulo delay multitap.",
+      "delayTime": "Tempo di ritardo di base del delay multitap.",
+      "delayTaps": "Numero di tap attivi (1 - 8).",
+      "delayTapMode": "Prendere i tempi dei tap dal pattern o dai singoli tap.",
+      "delayPattern": "Pattern di spaziatura dei tap (solo in modalità Pattern).",
+      "delayFeedback": "Quantità di feedback della linea di ritardo (0 - 95 %).",
+      "delayFeedbackTap": "Tap che alimenta il loop di feedback.",
+      "delayInLoCut": "Filtro passa-alto sul segnale che entra nella linea di ritardo.",
+      "delayFbLoShelfFreq": "Frequenza di taglio dello shelf dei bassi dentro il loop di feedback.",
+      "delayFbLoShelfGain": "Guadagno dello shelf dei bassi dentro il loop di feedback.",
+      "delayFbHiShelfFreq": "Frequenza di taglio dello shelf degli alti dentro il loop di feedback.",
+      "delayFbHiShelfGain": "Guadagno dello shelf degli alti dentro il loop di feedback.",
+      "delayModRate": "Frequenza dell'LFO di modulazione del tempo di ritardo.",
+      "delayModDepth": "Profondità della modulazione del tempo di ritardo, in percentuale del tempo.",
+      "delayDiffusion": "Sfuma la somma dei tap con due passa-tutto (0 - 1).",
+      "delayGlide": "Tempo di glide quando cambia un tempo di ritardo.",
+      "delayMix": "Mix dry/wet del delay multitap (% wet).",
+      "delayTapTime": "Tempo di ritardo del Tap <Tap ID> (modalità Manual).",
+      "delayTapLevel": "Livello del Tap <Tap ID>.",
+      "crushBypass": "Bypassare il modulo bitcrusher / downsampler.",
+      "crushBits": "Lunghezza di parola del quantizzatore (1 - 24 bit).",
+      "crushRate": "Frequenza di sample-and-hold del downsampler.",
+      "crushFilter": "Aliasing libero, oppure passa-basso prima dell'hold.",
+      "crushDither": "Livello di dither prima del quantizzatore (-96 = off).",
+      "crushMix": "Mix dry/wet del bitcrusher (% wet).",
+      "chainTile": "Cliccare per modificare questo modulo; trascinare a sinistra o a destra per spostarlo nella catena. Il punto indica se il modulo è ON, la barra il suo livello di uscita (riduzione di guadagno per Dynamics).",
+      "chainBypass": "Bypassa l'intera catena: la mandata passa direttamente al ritorno mantenendo la latenza della catena, così il ritorno alla catena avviene senza click.",
+      "chainLatency": "Latenza attuale della catena, data dai moduli attivi (oversampling, lookahead, linee di ritardo). Applicata dal blocco successivo.",
+      "linkBadge": "Indica se questa catena è condivisa con un gruppo di collegamento. Impostare il gruppo e la modalità di collegamento nella scheda Channel Parameters.",
+      "eqFlatten": "Pressione lunga: riporta ogni banda di questo EQ a forma, frequenza, guadagno e Q predefiniti.",
+      "eqBandReset": "Pressione lunga: riporta questa banda a forma, frequenza, guadagno e Q predefiniti.",
+      "eqBandToggle": "Attivare o disattivare questa banda. Da disattivata conserva le sue impostazioni per quando tornerà attiva.",
+      "eqDisplay": "Trascinare la maniglia di una banda per impostarne frequenza e guadagno; la rotellina ne imposta il Q.",
+      "grMeter": "Riduzione di guadagno che il modulo di dinamica sta applicando in questo momento.",
+      "tapTime": "Tempo di ritardo di questo tap. In modalità Pattern lo imposta il pattern e lo slider lo segue.",
+      "tapLevel": "Livello di questo tap.",
+      "eqShape": "Selezionare la modalità EQ della banda <Band ID> di questa istanza EQ.",
+      "eqFreq": "Selezionare la frequenza EQ della banda <Band ID> di questa istanza EQ.",
+      "eqGain": "Selezionare il guadagno/attenuazione EQ della banda <Band ID> di questa istanza EQ.",
+      "eqQ": "Selezionare il Q EQ della banda <Band ID> di questa istanza EQ.",
+      "eqSlope": "Selezionare la pendenza EQ della banda <Band ID> di questa istanza EQ.",
+      "eqBypass": "Bypassare questa istanza EQ.",
+      "settingsLinkNames": "Nomi degli otto gruppi di collegamento degli effetti. Mostrati nel combo di Channel Parameters, nel badge della Chain e nella matrice delle mandate.",
+      "settingsLinkMode": "Modalità di collegamento con cui viene impostato un NUOVO canale effetto (disattivato, assoluto o relativo). I canali esistenti mantengono la propria.",
+      "settingsRelayout": "Pressione lunga per disporre di nuovo ogni ritorno effetto sull'anello predefinito. Cancella il blocco di proprietà delle posizioni degli effetti.",
+      "settingsFxFeed": "Alimentare gli effetti tra loro in modo geometrico, oppure solo tramite la matrice (senza ritardo né attenuazione geometrici).",
+      "settingsWorkerThreads": "Numero di thread di lavoro degli effetti (-1 = automatico, la regola del feed riverbero). Si applica al prossimo avvio del Processing.",
+      "settingsReturnCushion": "Blocchi di margine sugli anelli dei ritorni effetto (Auto = decide il ledger). Si applica al prossimo avvio del Processing.",
+      "settingsLoopGuard": "Mette automaticamente in mute una mandata da effetto a effetto che sta andando fuori controllo. L'unica impostazione qui che si applica in tempo reale.",
+      "settingsLoopGuardCeiling": "Livello di picco al quale interviene la protezione anello (dBFS). Si applica al prossimo avvio del Processing.",
+      "settingsMaxDelay": "Ritardo massimo che un canale effetto può mettere in buffer, in secondi; dimensiona ogni modulo di ritardo. Si applica al prossimo avvio del Processing.",
+      "settingsFeedDevice": "Dispositivo di calcolo usato per lo stadio di mandata degli effetti. Si applica al prossimo avvio del Processing.",
+      "reverbERProfile": "Prime riflessioni davanti al riverbero: Off, Room, Chamber, Hall o Cathedral.",
+      "reverbERLevel": "Livello delle prime riflessioni (da -30 a +6 dB rispetto al dry).",
+      "reverbModRate": "Velocità della modulazione dentro il tank del riverbero (0.05 - 5 Hz).",
+      "reverbModDepth": "Profondità della modulazione dentro il tank del riverbero (0 - 100 %).",
+      "reverbShimmerPitch": "Intervallo di cui lo shimmer sale a ogni passaggio nel tank.",
+      "reverbShimmerAmount": "Quanta parte della coda viene trasposta (0 - 100 %)."
+    },
+    "sends": {
+      "hint": "Cliccare una cella per attivare una mandata; trascinare in su o in giù per impostarne il livello (Shift = fine). Righe: ogni ingresso, poi ogni ritorno effetto. Colonne: ogni effetto. La diagonale tratteggiata è un effetto che alimenta se stesso, cosa non consentita."
+    },
+    "chain": {
+      "unlinked": "Non collegata: questa catena appartiene solo a questo canale.",
+      "linked": "Collegata, {group} ({mode}): l'ordine della catena, i bypass e ogni parametro dei moduli sono condivisi con {count} altri canali. Ctrl+trascinamento per modificare solo questo canale.",
+      "linkedAlone": "Collegata, {group} ({mode}): nessun altro canale è ancora in questo gruppo.",
+      "linkedOff": "{group}, modalità di collegamento OFF: questo canale non invia né riceve modifiche alla catena.",
+      "reorderHint": "Trascinare un modulo per riordinare la catena. Cliccare un modulo per modificarlo.",
+      "presetApplied": "Preset di riverbero \"{name}\" applicato a questa catena."
+    },
+    "settings": {
+      "note": "Tutto ciò che è qui, eccetto l'interruttore Loop guard, si applica al prossimo avvio del Processing: il motore legge queste impostazioni quando si prepara."
+    },
+    "labels": {
+      "returnsHome": "Un ritorno effetto torna sempre a casa: il movimento viaggia come scostamento e la posizione impostata non viene mai sovrascritta."
     },
     "noChannels": "Nessun canale effetto. Impostare il numero in System Config oppure importare una configurazione effetti."
   },
@@ -598,6 +807,9 @@
       "none": "Nessun canale effetto. Impostate un numero di Effects Channels in System Config."
     },
     "gradientMap": {
+      "warnings": {
+        "heightRatioZero": "Height Ratio è 0% — aumentalo perché l'altezza abbia effetto"
+      },
       "help": {
         "layerSelect": "Seleziona questo livello per la modifica",
         "layerEnable": "Attiva/disattiva livello (influisce su uscita e OSC)",
@@ -640,6 +852,7 @@
       "snapshotNameLabel": "Nome:",
       "snapshotOverwriteWarning": "Esiste già uno snapshot con questo nome — verrà sovrascritto.",
       "selectChannel": "Seleziona canale",
+      "selectColour": "Colore ingresso",
       "trackingConflictTitle": "Conflitto di tracking",
       "trackingConflictCluster": "L'ingresso {current} ha il tracking attivo, ma l'ingresso {existing} nel cluster {cluster} è già tracciato.\n\nÈ consentito solo un ingresso tracciato per cluster.",
       "trackingConflictContinue": "Continua (disattiva tracking)",
@@ -704,6 +917,7 @@
       "channelSelector": "Numero e selezione del canale di ingresso.",
       "nameEditor": "Nome visualizzato del canale di ingresso (modificabile).",
       "clusterSelector": "L'oggetto fa parte di un cluster.",
+      "colourSwatch": "Colore ingresso: il colore che identifica questo ingresso sulla mappa, nei riquadri dei canali e nella matrice di patch. Auto lo ricava dal numero del canale.",
       "mapLockButton": "Impedire l'interazione sulla scheda Mappa.",
       "mapVisibilityButton": "Mostrare o nascondere l'ingresso selezionato sulla mappa.",
       "attenuationSlider": "Attenuazione del canale di ingresso.",
@@ -809,6 +1023,16 @@
       "nudgeHint2": " Regolare con i tasti Su e Giù.",
       "nudgeHint3": " Regolare con Pagina Su e Pagina Giù.",
       "admMapping": "Assegnare questo ingresso a una mappatura ADM-OSC per la ricezione/trasmissione della posizione."
+    },
+    "warnings": {
+      "short": "nessun effetto",
+      "minimalLatency": "La latenza minima è attivata per questo ingresso, ma nessun altoparlante ha la latenza minima attivata. Attivarla su almeno un'uscita perché abbia effetto.",
+      "liveSource": "Il live-source tamer è attivato per questo ingresso, ma nessun altoparlante ha l'attenuazione live-source attivata. Attivarla su almeno un'uscita perché abbia effetto.",
+      "floorReflections": {
+        "base": "Le riflessioni a pavimento sono attivate per questo ingresso ma non possono essere prodotte:",
+        "noSpeakers": "nessun altoparlante ha le riflessioni a pavimento attivate con parallasse orizzontale e verticale strettamente positive (testa dell'ascoltatore lontana e sopra l'altoparlante).",
+        "onFloor": "la sorgente è sul pavimento — sollevarla sopra il pavimento (Z > 0) per ottenere le riflessioni."
+      }
     }
   },
   "snapshotScope": {
@@ -816,7 +1040,22 @@
       "tooltip": "Un note-on con velocity superiore a 64 su questo canale e questa nota richiama questo snapshot. I note-off e le note più deboli vengono ignorati. Scegliere l'ingresso MIDI in Audio Interface ▸ Device Settings.",
       "conflict": "Usata da '{name}' (canale {ch}, nota {note}) — scegliere un'altra nota per salvare."
     },
-    "noEffectChannels": "Questa sessione non ha canali effetto."
+    "noEffectChannels": "Questa sessione non ha canali effetto.",
+    "buttons": {
+      "updateSnapshotScopeTooltip": "Scrive l'ambito modificato nello snapshot selezionato senza risalvarne i valori. Per gli snapshot 'When Saving', i valori memorizzati fuori dal nuovo ambito vengono rimossi (prima viene creato un backup)."
+    },
+    "writeToQLabTooltip": "Esporta lo scope su QLab invece di salvare su file",
+    "writeSnapshotLoadCueTooltip": "Crea anche un cue QLab per caricare questo snapshot via OSC",
+    "templates": {
+      "storeTooltip": "Salva la griglia attuale come nuovo modello",
+      "reloadTooltip": "Sostituisce la griglia con il modello selezionato (la modalità di applicazione non cambia)",
+      "updateTooltip": "Sovrascrive il modello selezionato con la griglia attuale",
+      "deleteTooltip": "Elimina il modello selezionato",
+      "storeTitle": "Memorizza modello di ambito",
+      "storeMessage": "Inserisci un nome per questo modello di ambito:",
+      "errorTitle": "Errore del modello di ambito",
+      "overwriteWarning": "Esiste già un modello con questo nome — verrà sovrascritto."
+    }
   },
   "fileManager": {
     "dialogs": {
@@ -1006,6 +1245,22 @@
     "effects": {
       "title": "Effetti",
       "body": "Un canale effetto è una catena di undici moduli (distorsione, due EQ, due dinamiche, chorus/flanger, phaser, tremolo, riverbero, delay multitap, bitcrusher) alimentata dagli ingressi e da altri effetti tramite la matrice delle mandate. La sua uscita è un RITORNO posizionato sul palco come un ingresso: viene riprodotto dagli array WFS dalla propria posizione, con lo stesso orientamento, la stessa legge di attenuazione e gli stessi mute di un ingresso.\nL'intestazione riprende quella della scheda Reverb: selettore del canale, nome, visibilità sulla mappa, Edit on Map, Solo Effects, Mute, Solo e Clear di emergenza (pressione lunga; tenere premuto Ctrl per svuotare tutte le catene). I tre indicatori riportano lo stato del motore per questo canale: protezione anello scattata, parte di un anello di retroazione, alimentato da un ingresso (punto di ingresso del suo gruppo).\nI gruppi di collegamento non sono come i riverberi, che formano un unico sistema: un canale in un gruppo condivide la sua catena (ordine, bypass, parametri dei moduli) con gli altri membri secondo la modalità di collegamento di ciascuno — Absolute copia, Relative mantiene lo scarto, Off non riceve nulla — mentre movimenti, mandate, mute e posizione non si propagano mai. Trascinare un controllo con Ctrl per modificare solo questo canale. Mute Group mette in mute ogni membro una volta e lascia ciascuno modificabile separatamente."
+    },
+    "effectsChain": {
+      "title": "Effects Chain",
+      "body": "La striscia mostra gli undici moduli nel loro ordine attuale: cliccare un riquadro per modificare quel modulo, trascinarlo a sinistra o a destra per spostarlo nella catena. Il punto su un riquadro indica se il modulo è ON, la barra mostra il suo livello di uscita (riduzione di guadagno per Dynamics). Il badge sopra indica chi altro sente una modifica; accanto ci sono il bypass della catena (senza click, con latenza mantenuta) e la latenza della catena.\nI controlli di ogni modulo provengono dal CSV che li documenta. Gli EQ aggiungono un display interattivo e sei strisce di banda con Flatten e Reset a pressione lunga per banda; le Dynamics aggiungono un indicatore di riduzione di guadagno; il delay aggiunge le sue otto righe di tap (tap dormienti e tempi in modalità Pattern attenuati); il riverbero aggiunge modelli e preset: il menu Model sceglie il riverbero vero e proprio (FDN, Plate, Modulated Hall o Shimmer) e mostra solo i controlli di quel modello, mentre un preset imposta in una volta modello, prime riflessioni e ambiente - modificare uno qualsiasi di questi valori lo riporta a Custom, mentre Tone e Mix restano come li avete impostati."
+    },
+    "effectsSends": {
+      "title": "Effects Post-Processing",
+      "body": "L'intera matrice delle mandate, non una sola riga: ogni ingresso e ogni ritorno effetto come riga sorgente, ogni effetto come colonna di destinazione. Cliccare una cella per attivare una mandata, trascinare in su o in giù per impostarne il livello (Shift = fine), usare la rotellina per ritoccarlo. La diagonale tratteggiata è un effetto che alimenta se stesso, cosa non consentita.\nLa colonna dell'effetto selezionato è evidenziata e i due pulsanti attivano tutte le mandate verso di essa. Un badge verde segna una colonna alimentata da un ingresso - il punto di ingresso del suo gruppo - e uno ambra una colonna dentro un ciclo di retroazione. Il Loop guard (Settings) mette in mute una mandata che sta andando fuori controllo; Clear nell'intestazione svuota una catena che ci è già andata."
+    },
+    "effectsMovements": {
+      "title": "Effects Movements",
+      "body": "L'LFO e l'AutomOtion di un ritorno effetto, disposti come la scheda Inputs dispone gli stessi due blocchi. Entrambi viaggiano come SCOSTAMENTI che il motore di calcolo aggiunge alla posizione impostata, e i due si sommano tra loro: il ritorno torna sempre a casa e la posizione impostata non viene mai sovrascritta.\nNon c'è Stay/Return (un movimento che finisse altrove sposterebbe la stanza stessa), né Gyrophone (un ritorno non ha un cono di brillantezza da ruotare), né jitter. La geometria della mandata segue la posizione di base; solo il ritorno segue base + scostamenti."
+    },
+    "effectsSettings": {
+      "title": "Effects Settings",
+      "body": "Le nove impostazioni condivise da ogni canale effetto: i nomi degli otto gruppi di collegamento e la modalità con cui viene impostato un NUOVO canale; se gli effetti si alimentano tra loro in modo geometrico o solo tramite la matrice; i thread di lavoro, il margine dei ritorni, il loop guard e la sua soglia, il ritardo più lungo che una catena può mettere in buffer e il dispositivo di calcolo dello stadio di mandata.\nTutto ciò che è qui, eccetto l'interruttore del loop guard, si applica al prossimo avvio del Processing, perché il motore legge queste impostazioni quando si prepara. Re-layout (pressione lunga) dispone di nuovo ogni ritorno effetto sull'anello predefinito e restituisce le posizioni all'applicazione."
     }
   },
   "ai": {

@@ -34,6 +34,9 @@
     "none": "无"
   },
   "systemConfig": {
+    "binauralSofa": {
+      "noProject": "请先打开项目，再导入 SOFA 文件"
+    },
     "channelList": {
       "title": "排列输入通道",
       "status": "单声道 {mono} + 立体声 {stereo}",
@@ -104,6 +107,7 @@
       "importSystem": "从文件导入系统配置 (使用文件浏览器)。",
       "exportSystem": "将系统配置导出到文件 (使用文件浏览器)。",
       "language": "选择用户界面语言。重启应用程序后更改将完全生效。",
+      "translationTier": "选择界面的翻译程度。“Help & messages”保持控件为英文，仅翻译帮助、消息和对话框；“Everything”翻译包括标签在内的整个界面。重启后完全生效。",
       "dialsAndButtons": "为旋钮和按钮选择硬件控制器: Stream Deck+。",
       "positionControl": "为位置控制选择硬件控制器: Space Mouse、操纵杆或游戏手柄。 使用Space Mouse时，在立体声输入上按住Shift，扭转变为立体声轴，按压/上提变为立体声宽度。",
       "sampler": "启用或禁用输入通道的采样器功能。选择控制器: Lightpad 或遥控器。",
@@ -111,7 +115,19 @@
       "remoteSetup": "选择Remote XY Pads选项卡中的触控板数量。",
       "binauralEnable": "启用或禁用双声道渲染器处理。",
       "binauralOutput": "选择用于双声道监听的输出通道对。Off 禁用双声道输出。",
+      "binauralMode": "双耳渲染算法：ORTF (legacy) 虚拟麦克风对、Structural HRTF（参数化头部模型）或 SOFA file（实测 HRTF）。",
+      "binauralListenerX": "双耳听者相对于座位的侧向偏移，座位由 Orbit 和 Listener Distance 确定（米，正值 = 听者右侧）。仅限 HRTF 模式。",
+      "binauralSofa": "SOFA 渲染模式使用的 HRTF 集：内置的 SADIE II KU100，或存放在项目 sofa 文件夹中的自定义 SOFA 文件。",
+      "binauralTracker": "头部朝向来源：手动（偏航/俯仰/横滚控件）或已连接的头部追踪器。追踪器姿态绕过参数阻尼，以获得即时响应。",
+      "binauralSetZero": "注视舞台中心，然后点击以校准头部追踪器的零点朝向。选择摄像头追踪后需要片刻才能启动。",
+      "binauralAttitude": "当前追踪器给出的实时头部姿态（偏航、俯仰、横滚，单位为度）。摄像头看不到您时显示“no face tracked”。",
+      "binauralAdvanced": "打开听者几何面板：侧向偏移、耳部高度、头部半径、听者角度，以及手动头部朝向（无追踪器启用时使用）。",
+      "binauralAdvancedClose": "关闭听者几何面板。",
+      "binauralHeight": "双耳听者的耳部高度（米）。仅限 HRTF 模式。",
+      "binauralHeadRadius": "结构化 HRTF 模型的头部半径（厘米）。头越大，双耳时间差越大。",
+      "binauralOrientation": "相对于面向原点的手动头部朝向偏移：偏航、俯仰、横滚（度）。这些参数是让头部原地转动 —— 不同于 Orbit 移动座位。头部追踪器启用时忽略。",
       "binauralDistance": "双声道听者距舞台原点的距离 (米)。",
+      "binauralYaw": "让听者的头部原地转动，不移动座位（度，0 = 面向舞台原点，正值 = 向右转）。反映实时追踪的偏航，头部追踪器启用时锁定。仅限 HRTF 模式。",
       "binauralAngle": "双声道听者视角的水平旋转 (度，0 = 面向舞台)。",
       "binauralAtten": "双声道输出的整体电平偏移 (dB)。",
       "binauralDelay": "双声道输出的额外延迟 (毫秒)。",
@@ -137,6 +153,7 @@
       "partialLoadFromBackup": "从备份部分加载: {error}",
       "error": "错误: {error}",
       "languageChanged": "语言已更改为: {language} (需要重启才能完全生效)",
+      "translationTierChanged": "翻译已设置为：{tier}（需要重启才能完全生效）",
       "restartTitle": "需要重启",
       "restartBody": "请重启应用程序以使语言更改完全生效。",
       "logsExported": "日志已导出到 {path}",
@@ -148,7 +165,7 @@
     "dialogs": {
       "reduceInputChannels": {
         "title": "减少Input Channels?",
-        "messageList": "显示顺序中该类型的最后几个通道将连同其设置一起被移除:\n\n{rows}\n\n会话使用后，它们的编号将被退役，其余通道保留各自编号，因此跳线、快照和提示仍然有效。\n\n此操作无法撤销，并会清除所有选项卡的撤销历史。",
+        "messageList": "显示顺序中该类型的最后几个通道将连同其设置一起被移除:\n\n{rows}\n\n会话使用后，这些编号将作为空缺保留，其余通道保留各自编号，因此跳线、快照和提示仍然有效。\n\n此操作无法撤销，并会清除所有选项卡的撤销历史。",
         "row": "  {channel}"
       },
       "channelIdentity": {
@@ -195,6 +212,10 @@
         "title": "减少Reverb Channels?",
         "message": "从 {current} 减少到 {new} 个混响通道将删除通道 {start} 到 {end} 的设置。\n\n此操作无法撤销。"
       },
+      "reduceEffectChannels": {
+        "title": "减少效果通道?",
+        "message": "从 {current} 减少到 {new} 个效果通道将删除通道 {start} 到 {end} 的设置。\n\n此操作无法撤销。"
+      },
       "reduce": "减少",
       "selectProjectFolder": "选择项目文件夹",
       "importSystemConfig": "导入系统配置",
@@ -203,6 +224,7 @@
   },
   "network": {
     "remote": {
+      "protocolMismatch": "遥控应用使用协议 v{remote}，需要 v{local} — 请更新平板应用",
       "notResponding": "Remote 无响应 — 请检查平板电脑的 IP/端口，并确认 WFS Control 正在运行且为最新版本",
       "sendFailing": "向平板电脑发送失败 — 在 macOS 上，请在“系统设置 › 隐私与安全性 › 本地网络”中允许 WFS-DIY，并确认这台电脑与平板电脑位于同一网络"
     },
@@ -327,6 +349,7 @@
       "detach": "将地图分离到单独窗口以适配双屏设置",
       "secondaryTouch": "暂停或恢复第二根手指的编辑：输入旋转和高度、立体声像、集群旋转和缩放。地图平移和缩放仍然有效。此设置不会保存。"
     },
+    "detachedMessage": "地图正在单独的窗口中显示。",
     "messages": {
       "assignedCluster": "输入 {channel} 已分配到集群 {cluster}",
       "assignedClusterMulti": "{count} 个输入已分配到集群 {cluster}",
@@ -340,6 +363,13 @@
       "solo": "在电平表显示中显示输入对所有输出的贡献（单独模式下）并播放独奏输入的双耳渲染",
       "clearSolo": "取消所有独奏",
       "soloMode": "单选：一次只听一个输入。多选：可同时听多个输入。"
+    },
+    "gpuStrip": {
+      "tooltip": "最近 {last} ms | 预算 {budget} ms | 3 秒峰值 {peak} ms | 欠载 {under}",
+      "tooltipNoUnderruns": "最近 {last} ms | 预算 {budget} ms | 3 秒峰值 {peak} ms"
+    },
+    "effects": {
+      "tooltip": "效果引擎：最近 {last} ms | 预算 {budget} ms | 3 秒峰值 {peak} ms | 每次唤醒 {batches} 个批次"
     }
   },
   "clusters": {
@@ -385,7 +415,14 @@
       "lfoPhaseZDial": "高度方向上集群运动的相位偏移。",
       "lfoPhaseRotDial": "集群旋转的相位偏移。",
       "lfoPhaseScaleDial": "集群缩放的相位偏移。"
-    }
+    },
+    "presets": {
+      "stored": "LFO 预设已保存到方格 {n}。",
+      "recalled": "已从方格 {n} 调用 LFO 预设。",
+      "exported": "LFO 预设已导出。",
+      "imported": "LFO 预设已导入。"
+    },
+    "qlabPresetCueCreated": "QLab提示已创建: 集群 {cluster} 预设 \"{name}\""
   },
   "eq": {
     "status": {
@@ -460,9 +497,20 @@
       "ready": "就绪",
       "calculated": "已计算 {count} 个位置",
       "applied": "已将 {count} 个扬声器应用到阵列 {array}。准备下一个阵列。"
+    },
+    "errors": {
+      "speakerCountZero": "扬声器数量必须大于0",
+      "noPositions": "没有可应用的位置。请检查几何参数。",
+      "notEnoughOutputs": "输出通道不足! 从 {start} 开始需要 {count} 个",
+      "prefix": "错误: "
     }
   },
   "reverbs": {
+    "noChannels": "未配置混响通道。\n\n请在 System Config 中设置 Reverb Channels 的数量。",
+    "algorithm": {
+      "irGpuActive": "GPU: {device}（湿声 +{ms} ms）",
+      "irGpuFallback": "GPU 不可用 - 正在使用 CPU: {error}"
+    },
     "dialogs": {
       "import": "导入混响配置",
       "export": "导出混响配置"
@@ -554,6 +602,9 @@
     }
   },
   "effects": {
+    "labels": {
+      "returnsHome": "效果返回始终会回到原位：运动以偏移量的形式叠加，您设置的位置不会被覆盖。"
+    },
     "dialogs": {
       "importTitle": "导入效果配置",
       "exportTitle": "导出效果配置"
@@ -565,6 +616,7 @@
       "groupMuteNeedsGroup": "此效果不在任何链接组中，因此没有可静音的组。",
       "assignedGroup": "效果 {channel} 分配到 {group}",
       "unlinked": "效果 {channel} 已移出链接组",
+      "relayoutDone": "所有效果返回已重新排布到默认环上。",
       "configLoaded": "效果配置已加载。",
       "selectFolderFirst": "请先选择项目文件夹。",
       "error": "错误: {error}"
@@ -588,7 +640,185 @@
       "reloadConfig": "从文件重新加载效果配置（需确认）。",
       "reloadBackup": "从备份文件重新加载效果配置（需确认）。",
       "import": "从文件导入效果配置（使用文件浏览器）。",
-      "export": "将效果配置导出到文件（使用文件浏览器）。"
+      "export": "将效果配置导出到文件（使用文件浏览器）。",
+      "lfoActive": "启用或禁用效果返回的周期性运动（LFO）。",
+      "lfoPeriod": "效果返回运动的基础周期。",
+      "lfoPhase": "效果返回运动的相位偏移。",
+      "lfoShapeX": "宽度方向上效果返回运动的行为。",
+      "lfoRateX": "宽度方向上相对于基础周期的更快或更慢的运动。",
+      "lfoAmplitudeX": "相对于效果返回基础位置的宽度运动幅度。",
+      "lfoPhaseX": "宽度方向上效果返回运动的相位偏移。",
+      "lfoShapeY": "深度方向上效果返回运动的行为。",
+      "lfoRateY": "深度方向上相对于基础周期的更快或更慢的运动。",
+      "lfoAmplitudeY": "相对于效果返回基础位置的深度运动幅度。",
+      "lfoPhaseY": "深度方向上效果返回运动的相位偏移。",
+      "lfoShapeZ": "高度方向上效果返回运动的行为。",
+      "lfoRateZ": "高度方向上相对于基础周期的更快或更慢的运动。",
+      "lfoAmplitudeZ": "相对于效果返回基础位置的高度运动幅度。",
+      "lfoPhaseZ": "高度方向上效果返回运动的相位偏移。",
+      "otomoCoordMode": "AutomOtion 目标坐标显示模式：笛卡尔（X/Y/Z）、柱面（r/θ/Z）或球面（r/θ/φ）。",
+      "otomoDest": "相对或绝对目标{name}（{unit}）。",
+      "otomoAbsRel": "选择相对或绝对的位移坐标。",
+      "otomoDuration": "运动持续时间（秒，0.1 秒至 1 小时）。",
+      "otomoCurve": "将路径向运动方向的左（负） 或右（正） 弯曲。",
+      "otomoSpeedProfile": "运动开始和结束时的恒定速度或渐进加速和减速。",
+      "otomoTrigger": "手动启动位移或基于音频电平的自动触发。",
+      "otomoThreshold": "设置运动自动触发的阈值。",
+      "otomoReset": "设置自动触发的重置电平。",
+      "otomoStart": "手动启动运动。效果返回始终会回到原位：运动是叠加在设定位置上的偏移。",
+      "otomoStop": "停止运动。",
+      "otomoPause": "暂停和恢复运动。",
+      "otomoStopAll": "停止每个效果返回上所有活动的运动。",
+      "otomoPauseResumeAll": "暂停或恢复每个效果返回上所有活动的运动。",
+      "distBypass": "旁通失真模块。",
+      "distDrive": "进入整形器的输入增益（0 - 40 dB）。",
+      "distShape": "从硬削波（0） 到 tanh 饱和（1） 的混合。",
+      "distBias": "整形器的不对称度，用于产生偶次谐波（类似电子管）的音色。",
+      "distPreLoShelfFreq": "失真整形器之前的低频搁架转折频率。",
+      "distPreLoShelfGain": "失真整形器之前的低频搁架增益。",
+      "distPreHiShelfFreq": "失真整形器之前的高频搁架转折频率。",
+      "distPreHiShelfGain": "失真整形器之前的高频搁架增益。",
+      "distPostLoShelfFreq": "失真整形器之后的低频搁架转折频率。",
+      "distPostLoShelfGain": "失真整形器之后的低频搁架增益。",
+      "distPostHiShelfFreq": "失真整形器之后的高频搁架转折频率。",
+      "distPostHiShelfGain": "失真整形器之后的高频搁架增益。",
+      "distOutput": "失真输出电平（-24 至 +12 dB）。",
+      "distMix": "失真模块的干/湿混合（湿声 %）。",
+      "distOversample": "失真整形器的过采样倍数。",
+      "dynBypass": "旁通此动态处理实例。",
+      "dynDetector": "两级共用的峰值或 RMS 检测。",
+      "dynLookahead": "延迟音频，使检测器先看到瞬态（增加报告的延迟）。",
+      "dynMakeup": "两级之后施加的补偿增益。",
+      "dynAutoMakeup": "根据压缩器阈值和比率自动推算补偿增益。",
+      "dynCompOn": "启用此动态处理实例的压缩器级。",
+      "dynCompThreshold": "压缩器阈值电平（-60 至 0 dB）。",
+      "dynCompRatio": "压缩器比率（1:1 至 100:1；100 即限幅器）。",
+      "dynCompKnee": "压缩器的软拐点宽度（0 = 硬拐点）。",
+      "dynCompAttack": "压缩器启动时间（0.05 - 200 ms）。",
+      "dynCompRelease": "压缩器释放时间（5 - 2000 ms）。",
+      "dynCompDetectorDelay": "让瞬态在压缩器起作用之前通过（瞬态通过，无延迟）。",
+      "dynCompScLoCut": "对压缩器的侧链检测器进行高通滤波。",
+      "dynCompScHiCut": "对压缩器的侧链检测器进行低通滤波。",
+      "dynExpOn": "启用此动态处理实例的扩展器级。",
+      "dynExpThreshold": "扩展器阈值电平（-90 至 0 dB）。",
+      "dynExpRatio": "向下扩展器比率（1:1 至 1:100；100 即噪声门）。",
+      "dynExpAttack": "扩展器启动时间（0.05 - 200 ms）。",
+      "dynExpRelease": "扩展器释放时间（5 - 2000 ms）。",
+      "dynExpRange": "扩展器可施加的最大衰减（-80 至 0 dB）。",
+      "dynExpHold": "扩展器开始关闭之前的保持时间。",
+      "dynExpScLoCut": "对扩展器的侧链检测器进行高通滤波。",
+      "dynExpScHiCut": "对扩展器的侧链检测器进行低通滤波。",
+      "modBypass": "旁通合唱/镶边模块。",
+      "modMode": "合唱或镶边音色。",
+      "modRate": "合唱/镶边的 LFO 速率（0.05 - 10 Hz）。",
+      "modDepth": "调制深度，以中心延迟的百分比表示。",
+      "modDelay": "被调制延迟线的中心延迟。",
+      "modFeedback": "围绕被调制延迟线的带符号反馈。",
+      "modVoices": "被调制的声部数量（1 - 3）。",
+      "modShape": "合唱/镶边的 LFO 波形。",
+      "modPhase": "此通道的 LFO 相位偏移（0 - 360 度）。",
+      "modLoCut": "对进入被调制延迟线的信号进行高通滤波。",
+      "modThroughZero": "延迟干声，使被调制的延迟线可以穿过零点。",
+      "modMix": "合唱/镶边的干/湿混合（湿声 %）。",
+      "phaserBypass": "旁通移相器模块。",
+      "phaserStages": "全通级数量（4、6、8 或 12）。",
+      "phaserCentre": "全通扫频的中心频率（100 - 5000 Hz）。",
+      "phaserSpread": "全通级围绕中心的分布范围，以倍频程计。",
+      "phaserRate": "移相器的 LFO 速率（0.02 - 10 Hz）。",
+      "phaserDepth": "移相器的扫频深度，以倍频程计。",
+      "phaserShape": "移相器的 LFO 波形。",
+      "phaserFeedback": "围绕全通链的带符号反馈。",
+      "phaserMix": "移相器的干/湿混合（湿声 %）。",
+      "tremBypass": "旁通颤音模块。",
+      "tremRate": "颤音速率（0.05 - 20 Hz）。",
+      "tremDepth": "颤音深度，单位 dB (0 - 60 dB)。",
+      "tremShape": "颤音 LFO 从正弦（0） 到三角（1） 的混合。",
+      "tremMix": "颤音的干/湿混合（湿声 %）。",
+      "reverbBypass": "旁通链内的混响模块。",
+      "reverbModel": "选择此模块背后的混响算法：FDN、Plate、Modulated Hall 或 Shimmer。",
+      "reverbType": "混响预设：一次性设定模型、反射和房间。之后编辑其中任何一项都会使其变为 Custom。",
+      "reverbPredelay": "混响模块尾音之前的预延迟（0 - 250 ms）。",
+      "reverbRT60": "混响衰减时间 RT60 (0.2 - 8.0 秒)。",
+      "reverbRT60LowMult": "低频 RT60 倍数（0.1 - 9.0x）。",
+      "reverbRT60HighMult": "高频 RT60 倍数（0.1 - 9.0x）。",
+      "reverbCrossoverLow": "三频段衰减的低分频频率（50 - 500 Hz）。",
+      "reverbCrossoverHigh": "三频段衰减的高分频频率（1 - 10 kHz）。",
+      "reverbDiffusion": "控制回声密度的扩散量（0 - 1）。",
+      "reverbSize": "混响模块的房间尺寸倍数（0.5 - 2.0x）。",
+      "reverbTone": "对混响尾音进行低通滤波（1 - 20 kHz）。",
+      "reverbMix": "混响模块的干/湿混合（湿声 %）。",
+      "delayBypass": "旁通多抽头延迟模块。",
+      "delayTime": "多抽头延迟的基础延迟时间。",
+      "delayTaps": "启用的抽头数量（1 - 8）。",
+      "delayTapMode": "抽头时间取自图案，或取自各抽头本身。",
+      "delayPattern": "抽头间隔图案（仅限图案模式）。",
+      "delayFeedback": "延迟线的反馈量（0 - 95 %）。",
+      "delayFeedbackTap": "为反馈环路供给信号的抽头。",
+      "delayInLoCut": "对进入延迟线的信号进行高通滤波。",
+      "delayFbLoShelfFreq": "反馈环路内低频搁架的转折频率。",
+      "delayFbLoShelfGain": "反馈环路内低频搁架的增益。",
+      "delayFbHiShelfFreq": "反馈环路内高频搁架的转折频率。",
+      "delayFbHiShelfGain": "反馈环路内高频搁架的增益。",
+      "delayModRate": "延迟时间调制 LFO 的速率。",
+      "delayModDepth": "延迟时间调制的深度，以时间的百分比表示。",
+      "delayDiffusion": "用两个全通滤波器涂抹抽头之和（0 - 1）。",
+      "delayGlide": "延迟时间改变时的滑移时间。",
+      "delayMix": "多抽头延迟的干/湿混合（湿声 %）。",
+      "delayTapTime": "抽头 <Tap ID> 的延迟时间（手动模式）。",
+      "delayTapLevel": "抽头 <Tap ID> 的电平。",
+      "crushBypass": "旁通比特粉碎/降采样模块。",
+      "crushBits": "量化器的字长（1 - 24 位）。",
+      "crushRate": "降采样器的采样保持速率。",
+      "crushFilter": "任由混叠，或在保持之前进行低通滤波。",
+      "crushDither": "量化器之前的抖动电平（-96 = 关）。",
+      "crushMix": "比特粉碎的干/湿混合（湿声 %）。",
+      "chainTile": "点击以编辑此模块；向左或向右拖动可在效果链中移动它。圆点显示模块是否开启（ON），条形显示其输出电平（动态处理器显示增益衰减）。",
+      "chainBypass": "旁通整条效果链：馈送直接进入返回，同时保持效果链的延迟，因此切换回来时没有爆音。",
+      "chainLatency": "效果链当前的延迟，来自已开启的模块（过采样、前瞻、延迟线）。在下一个块生效。",
+      "linkBadge": "此效果链是否与某个链接组共享。请在 Channel Parameters 标签页中设置组和链接模式。",
+      "eqFlatten": "长按：将此 EQ 的每个频段重置为默认的形状、频率、增益和 Q 值。",
+      "eqBandReset": "长按：将此频段重置为默认的形状、频率、增益和 Q 值。",
+      "eqBandToggle": "开启或关闭此频段。关闭时会保留该频段的设置，待重新开启时恢复。",
+      "eqDisplay": "拖动频段手柄以设置其频率和增益；滚轮设置其 Q 值。",
+      "grMeter": "动态处理模块当前正在施加的增益衰减。",
+      "tapTime": "此抽头的延迟时间。在图案模式下由图案设定，滑块随之移动。",
+      "tapLevel": "此抽头的电平。",
+      "eqShape": "为此 EQ 实例的频段 <Band ID> 选择 EQ 模式。",
+      "eqFreq": "为此 EQ 实例的频段 <Band ID> 选择 EQ 频率。",
+      "eqGain": "为此 EQ 实例的频段 <Band ID> 选择 EQ 增益/衰减。",
+      "eqQ": "为此 EQ 实例的频段 <Band ID> 选择 EQ 的 Q 值。",
+      "eqSlope": "为此 EQ 实例的频段 <Band ID> 选择 EQ 斜率。",
+      "eqBypass": "旁通此 EQ 实例。",
+      "settingsLinkNames": "八个效果链接组的名称。显示在 Channel Parameters 下拉框、效果链徽标和发送矩阵中。",
+      "settingsLinkMode": "新建效果通道所带的链接模式（关、绝对或相对）。已有通道保持各自的模式。",
+      "settingsRelayout": "长按以将每个效果返回重新排布到默认环上。同时清除效果位置的所有权锁定。",
+      "settingsFxFeed": "让效果按几何方式相互馈送，或仅通过矩阵馈送（无几何延迟或衰减）。",
+      "settingsWorkerThreads": "效果工作线程数量（-1 = 自动，采用混响馈送规则）。在下次启动 Processing 时生效。",
+      "settingsReturnCushion": "效果返回环上的缓冲块数（Auto = 由账本决定）。在下次启动 Processing 时生效。",
+      "settingsLoopGuard": "自动将失控的效果间馈送静音。这是此处唯一即时生效的设置。",
+      "settingsLoopGuardCeiling": "环路保护触发的峰值电平（dBFS）。在下次启动 Processing 时生效。",
+      "settingsMaxDelay": "任一效果通道可缓冲的最长延迟（秒）；决定每个延迟模块的大小。在下次启动 Processing 时生效。",
+      "settingsFeedDevice": "用于效果馈送级的计算设备。在下次启动 Processing 时生效。",
+      "reverbERProfile": "混响之前的早期反射：Off、Room、Chamber、Hall 或 Cathedral。",
+      "reverbERLevel": "早期反射的电平（相对于干声 -30 至 +6 dB）。",
+      "reverbModRate": "混响腔体内部的调制速度（0.05 - 5 Hz）。",
+      "reverbModDepth": "混响腔体内部的调制深度（0 - 100 %）。",
+      "reverbShimmerPitch": "闪烁音在每次经过腔体时上升的音程。",
+      "reverbShimmerAmount": "尾音中被移调的比例（0 - 100 %）。"
+    },
+    "sends": {
+      "hint": "点击单元格开关发送；上下拖动设置其电平（Shift = 精细）。行：每个输入，然后是每个效果返回。列：每个效果。带斜线的对角线表示效果馈送自身，这是不允许的。"
+    },
+    "chain": {
+      "unlinked": "未链接：此效果链仅属于本通道。",
+      "linked": "已链接，{group}（{mode}）：效果链顺序、旁通和所有模块参数与另外 {count} 个通道共享。按住 Ctrl 拖动可仅编辑本通道。",
+      "linkedAlone": "已链接，{group}（{mode}）：该组中暂时没有其他通道。",
+      "linkedOff": "{group}，链接模式关：本通道既不发送也不接收效果链编辑。",
+      "reorderHint": "拖动模块可调整效果链顺序。点击模块进行编辑。",
+      "presetApplied": "混响预设“{name}”已应用于此效果链。"
+    },
+    "settings": {
+      "note": "除环路保护开关外，此处所有设置都在下次启动 Processing 时生效：引擎在准备时读取这些设置。"
     },
     "noChannels": "没有效果通道。请在 System Config 中设置数量，或导入效果配置。"
   },
@@ -598,6 +828,12 @@
       "none": "没有效果通道。请在 System Config 中设置 Effects Channels 的数量。"
     },
     "gradientMap": {
+      "warnings": {
+        "heightRatioZero": "Height Ratio 为 0% — 请增大它以使高度生效"
+      },
+      "hints": {
+        "polygonClose": "双击关闭多边形"
+      },
       "help": {
         "layerSelect": "选择此图层进行编辑",
         "layerEnable": "启用/禁用图层（影响输出和OSC）",
@@ -640,6 +876,7 @@
       "snapshotNameLabel": "名称：",
       "snapshotOverwriteWarning": "已存在同名快照 — 将被覆盖。",
       "selectChannel": "选择通道",
+      "selectColour": "输入颜色",
       "trackingConflictTitle": "追踪冲突",
       "trackingConflictCluster": "输入 {current} 已启用追踪，但集群 {cluster} 中的输入 {existing} 已被追踪。\n\n每个集群仅允许一个追踪输入。",
       "trackingConflictContinue": "继续（禁用追踪）",
@@ -704,6 +941,7 @@
       "channelSelector": "输入通道编号与选择。",
       "nameEditor": "显示的输入通道名称（可编辑）。",
       "clusterSelector": "对象所属集群。",
+      "colourSwatch": "输入颜色：在地图、通道条和跳线矩阵上标识此输入的颜色。Auto 会根据通道编号生成颜色。",
       "mapLockButton": "防止在地图标签页上交互。",
       "mapVisibilityButton": "在地图上显示或隐藏选定的输入。",
       "attenuationSlider": "输入通道衰减。",
@@ -809,6 +1047,15 @@
       "nudgeHint2": " 使用上下箭头键调整。",
       "nudgeHint3": " 使用Page Up/Down调整。",
       "admMapping": "将此输入分配到ADM-OSC映射，用于位置接收/发送。"
+    },
+    "warnings": {
+      "minimalLatency": "此输入已启用最小延时，但没有任何扬声器启用最小延时。请至少在一个输出上启用它，此设置才会生效。",
+      "liveSource": "此输入已启用现场声源驯服器，但没有任何扬声器启用现场声源衰减。请至少在一个输出上启用它，此设置才会生效。",
+      "floorReflections": {
+        "base": "此输入已启用地板反射，但无法产生：",
+        "noSpeakers": "没有扬声器启用地板反射，且水平和垂直视差均严格为正（听者头部远离并高于扬声器）。",
+        "onFloor": "声源位于地板上 — 请将其抬高到地板以上（Z > 0） 才能产生反射。"
+      }
     }
   },
   "snapshotScope": {
@@ -816,14 +1063,76 @@
       "tooltip": "在此通道和音符上收到力度高于 64 的 Note On 时，将调用此快照。Note Off 及力度较低的音符将被忽略。请在 Audio Interface ▸ Device Settings 中选择 MIDI 输入。",
       "conflict": "已被“{name}”占用（通道 {ch}，音符 {note}）— 请另选音符以便保存。"
     },
-    "noEffectChannels": "此会话没有效果通道。"
+    "noEffectChannels": "此会话没有效果通道。",
+    "buttons": {
+      "updateSnapshotScopeTooltip": "将编辑后的范围写入选定的快照，而不重新保存其数值。对于“When Saving”快照，新范围之外的已存数值将被删除（会先创建备份）。"
+    },
+    "writeToQLabTooltip": "将范围导出到 QLab 而非保存到文件",
+    "writeSnapshotLoadCueTooltip": "同时创建一个通过 OSC 加载此快照的 QLab 提示",
+    "templates": {
+      "storeTooltip": "将当前网格保存为新模板",
+      "reloadTooltip": "用所选模板替换网格（应用模式不变）",
+      "updateTooltip": "用当前网格覆盖所选模板",
+      "deleteTooltip": "删除所选模板",
+      "storeTitle": "保存范围模板",
+      "storeMessage": "请输入此范围模板的名称：",
+      "errorTitle": "范围模板错误",
+      "overwriteWarning": "已存在同名模板 — 将被覆盖。"
+    }
+  },
+  "snapshot": {
+    "qlabNoTarget": "未配置QLab目标",
+    "qlabExportStarted": "正在向 QLab 写入 {count} 个 Cue...",
+    "qlabExportDone": "QLab 导出完成：已创建 {count} 个 Cue",
+    "qlabMemoText": "运行以下任一 Cue 来加载或更新此快照"
+  },
+  "setAllInputs": {
+    "warning": "更改将应用于所有输入"
   },
   "fileManager": {
     "dialogs": {
       "selectProjectFolder": "选择项目文件夹"
+    },
+    "errors": {
+      "noProjectFolder": "未指定项目文件夹",
+      "failedCreateFolder": "创建项目文件夹失败：{path}",
+      "noValidProjectFolder": "没有有效的项目文件夹",
+      "invalidConfigStructure": "配置文件结构无效",
+      "backupNotFound": "未找到备份",
+      "noSystemDataInFile": "文件中未找到有效的系统数据：{path}",
+      "noNetworkDataInFile": "文件中未找到网络数据",
+      "noNetworkSections": "文件中未找到网络部分",
+      "noInputDataInFile": "文件中未找到输入数据",
+      "channelListMismatchNotConfirmed": "加载被拒绝：{path} 中的通道列表与此会话不同，且加载未获确认。",
+      "noOutputDataInFile": "文件中未找到输出数据",
+      "noReverbDataInFile": "文件中未找到混响数据",
+      "noEffectDataInFile": "文件中未找到效果数据",
+      "noLFOPresetDataInFile": "文件中未找到LFO预设数据",
+      "noInputDataInSnapshot": "快照中没有输入数据",
+      "noScopeDataInTemplate": "模板文件中未找到范围数据",
+      "snapshotDoesNotExist": "快照不存在",
+      "snapshotNotFound": "未找到快照",
+      "snapshotNotFoundNamed": "未找到快照：{name}",
+      "unusableSnapshotName": "无法使用的快照名称：{name}。名称不能包含 /、\\ 或 :",
+      "reservedSnapshotName": "无法使用的快照名称：{name}。Windows 将其保留给设备（CON、PRN、AUX、NUL、COM1-9、LPT1-9），或者名称中含有 < > \" | ? * 之一或控制字符。",
+      "failedCreateXML": "从状态创建 XML 失败",
+      "failedWriteFile": "写入文件失败：{path}。磁盘上的文件未改动。",
+      "backupFailed": "无法将 {file} 备份到 {folder}，因此未保存：磁盘上的文件未改动。",
+      "fileNotFound": "未找到文件：{path}",
+      "failedParseXML": "解析 XML 文件失败：{path}",
+      "failedCreateValueTree": "从 XML 创建 ValueTree 失败：{path}",
+      "configStateInvalid": "配置状态无效",
+      "failedApply": "应用失败：{sections}",
+      "prefixSystem": "系统：",
+      "prefixNetwork": "网络：",
+      "prefixInputs": "输入：",
+      "prefixOutputs": "输出：",
+      "prefixReverbs": "混响：",
+      "prefixEffects": "效果："
     }
   },
   "sampler": {
+    "exportFailed": "无法将采样器配置写入 {path}。",
     "grid": {
       "help": "单击=选择 | Shift=多选 | Ctrl=切换集合 | 双击=加载"
     },
@@ -852,6 +1161,7 @@
       "import": "从文件导入采样器配置",
       "export": "将采样器配置导出到文件"
     },
+    "qlabSetCueCreated": "QLab提示已创建: 输入 {channel} 采样器集 \"{name}\"",
     "guide": "在网格上选择一个单元格以编辑其属性。\n双击以加载样本。\n使用 Ctrl+点击将单元格分配给活动集合。"
   },
   "help": {
@@ -1006,14 +1316,94 @@
     "effects": {
       "title": "效果",
       "body": "效果通道是由十一个模块（失真、两个均衡器、两个动态处理器、合唱/镶边、移相器、颤音、混响、多抽头延迟、比特粉碎器）组成的效果链，通过发送矩阵由输入和其他效果馈送。其输出是一个返回，像输入一样放置在舞台上：从自身位置经 WFS 阵列渲染，具有与输入相同的朝向、衰减曲线和静音。\n标题栏与 Reverb 标签页相同：通道选择、名称、地图显示、Edit on Map、Solo Effects、Mute、Solo 以及紧急Clear（长按；按住 Ctrl 清空所有效果链）。三个指示点显示引擎对此通道的状态：环路保护已触发、属于反馈环路、由输入馈送（其所在组的入口点）。\n链接组不同于构成单一系统的混响：组内通道按各成员的链接模式与其他成员共享其效果链（顺序、旁通、模块参数）——Absolute为复制，Relative为保持差值，Off为不接收——而其运动、发送、静音和位置从不传播。按住 Ctrl 拖动任一控件可只编辑此通道。Mute Group 会将每个成员静音一次，并让每个成员仍可单独编辑。"
+    },
+    "effectsChain": {
+      "title": "效果链",
+      "body": "这条带子按当前顺序显示十一个模块：点击一个磁贴可编辑该模块，向左或向右拖动可在效果链中移动它。磁贴上的圆点表示该模块是否开启（ON），条形显示其输出电平（动态处理器显示增益衰减）。上方的徽标说明还有谁会听到您的编辑；旁边是效果链旁通（无爆音，保持延时）和效果链的延时。\n每个模块的控件均来自记录它们的 CSV。EQ 增加了交互式显示和六个频段条，并带有 Flatten 与逐频段 Reset 长按；动态处理器增加了增益衰减表；延迟增加了八行抽头（休眠的抽头和图案模式下的时间会变暗）；混响增加了模型和预设：Model 菜单选择混响本身（FDN、Plate、Modulated Hall 或 Shimmer），且只显示该模型的控件，预设则一次性设定模型、早期反射和房间 - 编辑其中任何一个值都会使其变回 Custom，而 Tone 和 Mix 保持您设置的值。"
+    },
+    "effectsSends": {
+      "title": "效果后处理",
+      "body": "整张发送矩阵，而不只是一行：每个输入和每个效果返回作为声源行，每个效果作为目标列。点击单元格开关发送，上下拖动设置其电平（Shift = 精细），滚轮可微调。带斜线的对角线表示效果馈送自身，这是不允许的。\n所选效果的列会高亮，两个按钮可一次开关送入该列的所有发送。绿色徽标标记由输入馈送的列 - 即其分组的入口点 - 琥珀色徽标标记位于反馈环路内的列。环路保护（Settings）会将失控的馈送静音；标题栏上的 Clear 会清空已经失控的效果链。"
+    },
+    "effectsMovements": {
+      "title": "效果运动",
+      "body": "效果返回的 LFO 和 AutomOtion，布局与 Inputs 标签页对同样两个模块的布局相同。两者都以偏移量的形式传递，由计算引擎叠加到设定位置上，并且彼此叠加：返回始终会回到原位，您设置的位置不会被覆盖。\n没有 Stay/Return（结束在别处的运动会移动房间本身），没有 Gyrophone（返回没有亮度锥可供旋转），也没有抖动。馈送的几何关系跟随基础位置；只有返回跟随基础位置加偏移。"
+    },
+    "effectsSettings": {
+      "title": "效果设置",
+      "body": "所有效果通道共用的九项设置：八个链接组的名称，以及新建通道所带的模式；效果之间是按几何方式还是仅通过矩阵相互馈送；工作线程、返回缓冲、环路保护及其上限、任一效果链可缓冲的最长延迟，以及馈送级的计算设备。\n除环路保护开关外，此处所有设置都在下次启动 Processing 时生效，因为引擎在准备时读取这些设置。重新排布（长按）会将每个效果返回重新放回默认环上，并把位置交还给应用程序。"
     }
   },
   "ai": {
+    "history": {
+      "noChanges": "暂无 AI 修改。"
+    },
+    "server": {
+      "copyUrlConfirm": "MCP URL 已复制到剪贴板: {url}"
+    },
     "tooltips": {
       "urlButton": "点击复制 MCP 服务器 URL。适用于 Claude Code (claude mcp add wfs-diy <URL> -t http) 或任何接受 URL 的 MCP 客户端。Claude Desktop 改为使用 JSON 配置片段 — 打开 (?) 帮助卡。",
       "openHistory": "打开 AI 历史窗口: 每个最近 AI 更改的可滚动时间线，每行支持撤销/重做和分步光标。",
       "gate": "允许破坏性 AI 操作 (通道数更改、端口重新配置、runDSP 等)，并在打开时跳过较少破坏性的二级操作的逐次确认握手。作为二级自动确认开关的超集。红色填充在 5 分钟内消失，然后自动重新阻止。",
       "aiToggle": "整个 MCP 集成的主开关。OFF 时拒绝每个 AI 工具调用; ON 时应用正常的分级处理 (关键操作开关单独控制破坏性调用)。"
     }
+  },
+  "wizard": {
+    "buttons": {
+      "gettingStartedHelp": "帮助卡片，引导您完成新项目启动时需要调整的第一批参数"
+    },
+    "steps": {
+      "projectFolder": {
+        "title": "选择项目文件夹",
+        "description": "选择一个文件夹来存储您的WFS项目文件。它将保存配置、快照、IR文件和采样。点击按钮打开文件夹选择器。"
+      },
+      "inputChannels": {
+        "title": "设置单声道和立体声输入",
+        "description": "您将空间化多少个音频源？人声、乐器等单一声源请设置 Mono Inputs，回放、键盘、子混音等立体声信号请设置 Stereo Inputs。一个立体声输入只占一个通道编号，并使用两个硬件输入（L 和 R）。\n优点：这一对作为一个声源移动、加入集群和调用，并由按其 Width 分开的两个声源播放，因此立体声声像在整个阵列上保持宽阔。\n局限：左右之间的声像在观众区中部附近最稳定；坐在一侧的听众主要听到较近的一侧。整个混音一起移动；Floor Reflections、Live Source Tamer、Gradient Maps 和 Sampler 不可用；最多 8 对。需要精确定位声源时，请使用单声道分轨。\nCPU 负载：每个立体声输入按 6 个声源渲染（总数显示在立体声数量旁边），因此每个立体声输入请预估约 6 个单声道输入的负载。"
+      },
+      "outputChannels": {
+        "title": "设置输出通道数",
+        "description": "根据您的扬声器阵列设置输出通道数。\n每个输出对应一个物理扬声器。"
+      },
+      "reverbChannels": {
+        "title": "设置混响通道数",
+        "description": "混响通道添加房间模拟。如果不需要混响，请设置为0。"
+      },
+      "stageConfig": {
+        "title": "定义舞台",
+        "description": "设置演出空间的形状和尺寸。选择 Box、Cylinder 或 Dome，然后以米为单位输入尺寸。"
+      },
+      "originPoint": {
+        "title": "设置原点",
+        "description": "原点是所有坐标的参考点。使用预设按钮或输入自定义值。'Front'将其放置在观众边缘。"
+      },
+      "audioInterface": {
+        "title": "打开音频接口",
+        "description": "点击上方按钮或按 Next 打开 Audio Interface 窗口。"
+      },
+      "audioDevice": {
+        "title": "配置音频接口",
+        "description": "选择音频驱动程序和设备，设置采样率和缓冲区大小。检查跳线并测试输出。完成后关闭此窗口。"
+      },
+      "wizardOfOutZ": {
+        "title": "定位输出",
+        "description": "点击 Wizard of OutZ 按钮或按 Next 打开定位助手。"
+      },
+      "configureOutputs": {
+        "title": "配置输出位置",
+        "description": "使用阵列预设和几何工具计算扬声器位置。完成后关闭此窗口。"
+      },
+      "startProcessing": {
+        "title": "启动WFS引擎",
+        "description": "一切就绪！长按 Processing 按钮启动 WFS 引擎。您也可以启动 Binaural Renderer 进行耳机监听。"
+      },
+      "exploreInputs": {
+        "title": "开始创作！",
+        "description": "点击地图上的输入进行选择，或用套索选择多个。拖动定位您的声源。用鼠标滚轮或捏合手势缩放，用右键拖动或双指拖动平移。添加输入，将它们分组为集群，塑造您的声场。您还可以用键盘、SpaceMouse或其他控制器控制位置。尽情享受！"
+      }
+    }
+  },
+  "updateBanner": {
+    "available": "WFS-DIY v{version} 现已可用！"
   }
 }

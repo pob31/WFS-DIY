@@ -1,6 +1,6 @@
 # Proofreading checklist — Korean (한국어)
 
-Locale: `ko`  |  Total keys: 803  |  Source: `Resources/lang/en.json` vs `Resources/lang/ko.json`
+Locale: `ko`  |  Total keys: 1143  |  Source: `Resources/lang/en.json` vs `Resources/lang/ko.json`
 
 ## How to use this file
 
@@ -16,6 +16,27 @@ Walk through each section. For every entry:
 - `\n` in the value is a literal newline in the rendered UI; preserve it.
 
 ---
+
+## `ai.history`
+
+- **`noChanges`**
+  - EN: No AI changes yet.
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+## `ai.server`
+
+- **`copyUrlConfirm`**
+  - EN: MCP URL copied to clipboard: {url}
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+## `ai.toast`
+
+- **`moreOlder`**
+  - EN: …and {count} older
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
 
 ## `ai.tooltips`
 
@@ -37,6 +58,35 @@ Walk through each section. For every entry:
 - **`urlButton`**
   - EN: Click to copy the MCP server URL. Useful for Claude Code (claude mcp add wfs-diy <URL> -t http) or any MCP client that takes a URL. Claude Desktop instead uses the JSON config snippet — open the (?) help card.
   - KO: MCP 서버 URL을 복사하려면 클릭하세요. Claude Code (claude mcp add wfs-diy <URL> -t http) 또는 URL을 받는 모든 MCP 클라이언트에 유용합니다. Claude Desktop은 대신 JSON 구성 스니펫을 사용합니다 — (?) 도움말 카드를 여세요.
+  - [ ] OK    Fix: 
+
+## `ai.undo`
+
+- **`errorPrefix`**
+  - EN: AI {verb}: {message}
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+## `arrayHelper.errors`
+
+- **`noPositions`**
+  - EN: No positions to apply. Check geometry parameters.
+  - KO: 적용할 위치가 없습니다. 기하 매개변수를 확인하세요.
+  - [ ] OK    Fix: 
+
+- **`notEnoughOutputs`**
+  - EN: Not enough output channels! Need {count} starting from {start}
+  - KO: 출력 채널이 부족합니다! {start}부터 {count}개가 필요합니다
+  - [ ] OK    Fix: 
+
+- **`prefix`**
+  - EN: Error: 
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`speakerCountZero`**
+  - EN: Number of speakers must be greater than 0
+  - KO: 스피커 수는 0보다 커야 합니다
   - [ ] OK    Fix: 
 
 ## `arrayHelper.status`
@@ -100,6 +150,13 @@ Walk through each section. For every entry:
 - **`stopProcessingFirst`**
   - EN: Stop WFS processing to open the Audio Interface window
   - KO: 오디오 인터페이스 창을 열려면 WFS 처리를 중지하세요
+  - [ ] OK    Fix: 
+
+## `clusters`
+
+- **`qlabPresetCueCreated`**
+  - EN: QLab cue created: Cluster {cluster} preset "{name}"
+  - KO: (missing — falls back to English)
   - [ ] OK    Fix: 
 
 ## `clusters.help`
@@ -284,6 +341,28 @@ Walk through each section. For every entry:
   - KO: 클러스터의 모든 입력을 Z축(높이)을 따라 이동합니다.
   - [ ] OK    Fix: 
 
+## `clusters.presets`
+
+- **`exported`**
+  - EN: LFO presets exported.
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`imported`**
+  - EN: LFO presets imported.
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`recalled`**
+  - EN: LFO preset recalled from tile {n}.
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`stored`**
+  - EN: LFO preset stored in tile {n}.
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
 ## `clusters.status`
 
 - **`noInputs`**
@@ -440,6 +519,38 @@ Walk through each section. For every entry:
   - KO: 이펙트 채널이 없습니다. System Config에서 개수를 설정하거나 이펙트 설정을 가져오세요.
   - [ ] OK    Fix: 
 
+## `effects.chain`
+
+- **`linked`**
+  - EN: Linked, {group} ({mode}): the chain order, the bypasses and every module parameter are shared with {count} other channel(s). Ctrl-drag to edit this channel alone.
+  - KO: 링크됨, {group} ({mode}): 체인 순서, 바이패스, 모든 모듈 매개변수가 다른 채널 {count}개와 공유됩니다. Ctrl을 누른 채 드래그하면 이 채널만 편집합니다.
+  - [ ] OK    Fix: 
+
+- **`linkedAlone`**
+  - EN: Linked, {group} ({mode}): no other channel is in this group yet.
+  - KO: 링크됨, {group} ({mode}): 이 그룹에는 아직 다른 채널이 없습니다.
+  - [ ] OK    Fix: 
+
+- **`linkedOff`**
+  - EN: {group}, link mode OFF: this channel neither sends nor receives chain edits.
+  - KO: {group}, 링크 모드 Off: 이 채널은 체인 편집을 보내지도 받지도 않습니다.
+  - [ ] OK    Fix: 
+
+- **`presetApplied`**
+  - EN: Reverb preset "{name}" applied to this chain.
+  - KO: 리버브 프리셋 "{name}"을(를) 이 체인에 적용했습니다.
+  - [ ] OK    Fix: 
+
+- **`reorderHint`**
+  - EN: Drag a module to reorder the chain. Click a module to edit it.
+  - KO: 모듈을 드래그하여 체인 순서를 바꿉니다. 모듈을 클릭하면 편집합니다.
+  - [ ] OK    Fix: 
+
+- **`unlinked`**
+  - EN: Unlinked: this chain is this channel's alone.
+  - KO: 링크 없음: 이 체인은 이 채널만의 것입니다.
+  - [ ] OK    Fix: 
+
 ## `effects.dialogs`
 
 - **`exportTitle`**
@@ -454,6 +565,21 @@ Walk through each section. For every entry:
 
 ## `effects.help`
 
+- **`chainBypass`**
+  - EN: Bypass the whole chain: the feed passes straight to the return with the chain's latency held, so switching back is click-free.
+  - KO: 체인 전체를 바이패스합니다. 피드가 체인의 레이턴시를 유지한 채 곧바로 리턴으로 전달되므로 다시 켤 때 클릭 노이즈가 없습니다.
+  - [ ] OK    Fix: 
+
+- **`chainLatency`**
+  - EN: The chain's current latency, from the modules that are on (oversampling, lookahead, delay lines). Applied at the next block.
+  - KO: 켜져 있는 모듈(오버샘플링, 룩어헤드, 딜레이 라인)에서 발생하는 체인의 현재 레이턴시. 다음 블록부터 적용됩니다.
+  - [ ] OK    Fix: 
+
+- **`chainTile`**
+  - EN: Click to edit this module; drag left or right to move it in the chain. The dot shows whether the module is ON, the bar its output level (gain reduction for Dynamics).
+  - KO: 클릭하면 이 모듈을 편집하고, 좌우로 드래그하면 체인 안에서 이동합니다. 점은 모듈이 켜져 있는지, 막대는 출력 레벨(다이내믹스는 게인 리덕션)을 나타냅니다.
+  - [ ] OK    Fix: 
+
 - **`channelSelector`**
   - EN: Select the effects channel to edit.
   - KO: 편집할 이펙트 채널을 선택합니다.
@@ -464,9 +590,324 @@ Walk through each section. For every entry:
   - KO: 길게 누르면 이 이펙트 체인을 비웁니다. Ctrl을 누른 채로 누르면 모든 이펙트를 비웁니다.
   - [ ] OK    Fix: 
 
+- **`crushBits`**
+  - EN: Word length of the quantiser (1 - 24 bits).
+  - KO: 양자화기의 워드 길이 (1 - 24 비트).
+  - [ ] OK    Fix: 
+
+- **`crushBypass`**
+  - EN: Bypass the bitcrusher / downsampler module.
+  - KO: 비트크러셔/다운샘플러 모듈을 바이패스합니다.
+  - [ ] OK    Fix: 
+
+- **`crushDither`**
+  - EN: Dither level before the quantiser (-96 = off).
+  - KO: 양자화기 앞단의 디더 레벨 (-96 = 끔).
+  - [ ] OK    Fix: 
+
+- **`crushFilter`**
+  - EN: Alias freely, or low-pass before the hold.
+  - KO: 앨리어싱을 그대로 두거나, 홀드 전에 로우패스를 적용합니다.
+  - [ ] OK    Fix: 
+
+- **`crushMix`**
+  - EN: Dry/wet mix of the bitcrusher (wet %).
+  - KO: 비트크러셔의 드라이/웨트 믹스 (웨트 %).
+  - [ ] OK    Fix: 
+
+- **`crushRate`**
+  - EN: Sample-and-hold rate of the downsampler.
+  - KO: 다운샘플러의 샘플 앤 홀드 속도.
+  - [ ] OK    Fix: 
+
 - **`cycle`**
   - EN: This effect is part of a feedback loop in the sends grid.
   - KO: 이 이펙트는 센드 그리드의 피드백 루프에 속합니다.
+  - [ ] OK    Fix: 
+
+- **`delayBypass`**
+  - EN: Bypass the multitap delay module.
+  - KO: 멀티탭 딜레이 모듈을 바이패스합니다.
+  - [ ] OK    Fix: 
+
+- **`delayDiffusion`**
+  - EN: Smear the tap sum with two allpasses (0 - 1).
+  - KO: 두 개의 올패스로 탭 합계를 번지게 합니다 (0 - 1).
+  - [ ] OK    Fix: 
+
+- **`delayFbHiShelfFreq`**
+  - EN: Corner frequency of the high shelf inside the feedback loop.
+  - KO: 피드백 루프 안 하이 쉘프의 코너 주파수.
+  - [ ] OK    Fix: 
+
+- **`delayFbHiShelfGain`**
+  - EN: Gain of the high shelf inside the feedback loop.
+  - KO: 피드백 루프 안 하이 쉘프의 게인.
+  - [ ] OK    Fix: 
+
+- **`delayFbLoShelfFreq`**
+  - EN: Corner frequency of the low shelf inside the feedback loop.
+  - KO: 피드백 루프 안 로우 쉘프의 코너 주파수.
+  - [ ] OK    Fix: 
+
+- **`delayFbLoShelfGain`**
+  - EN: Gain of the low shelf inside the feedback loop.
+  - KO: 피드백 루프 안 로우 쉘프의 게인.
+  - [ ] OK    Fix: 
+
+- **`delayFeedback`**
+  - EN: Feedback amount of the delay line (0 - 95 %).
+  - KO: 딜레이 라인의 피드백 양 (0 - 95 %).
+  - [ ] OK    Fix: 
+
+- **`delayFeedbackTap`**
+  - EN: Tap that feeds the feedback loop.
+  - KO: 피드백 루프에 신호를 공급하는 탭.
+  - [ ] OK    Fix: 
+
+- **`delayGlide`**
+  - EN: Glide time when a delay time changes.
+  - KO: 딜레이 시간이 바뀔 때의 글라이드 시간.
+  - [ ] OK    Fix: 
+
+- **`delayInLoCut`**
+  - EN: High-pass the signal entering the delay line.
+  - KO: 딜레이 라인으로 들어가는 신호에 하이패스를 적용합니다.
+  - [ ] OK    Fix: 
+
+- **`delayMix`**
+  - EN: Dry/wet mix of the multitap delay (wet %).
+  - KO: 멀티탭 딜레이의 드라이/웨트 믹스 (웨트 %).
+  - [ ] OK    Fix: 
+
+- **`delayModDepth`**
+  - EN: Depth of the delay-time modulation, as a percentage of the time.
+  - KO: 딜레이 타임 모듈레이션의 깊이 (시간에 대한 백분율).
+  - [ ] OK    Fix: 
+
+- **`delayModRate`**
+  - EN: Rate of the delay-time modulation LFO.
+  - KO: 딜레이 타임 모듈레이션 LFO의 속도.
+  - [ ] OK    Fix: 
+
+- **`delayPattern`**
+  - EN: Tap spacing pattern (Pattern mode only).
+  - KO: 탭 간격 패턴 (Pattern 모드 전용).
+  - [ ] OK    Fix: 
+
+- **`delayTapLevel`**
+  - EN: Level of Tap <Tap ID>.
+  - KO: 탭 <Tap ID>의 레벨.
+  - [ ] OK    Fix: 
+
+- **`delayTapMode`**
+  - EN: Take tap times from the pattern or from the taps.
+  - KO: 탭 시간을 패턴에서 가져올지, 각 탭에서 가져올지 정합니다.
+  - [ ] OK    Fix: 
+
+- **`delayTapTime`**
+  - EN: Delay time of Tap <Tap ID> (Manual mode).
+  - KO: 탭 <Tap ID>의 딜레이 시간 (Manual 모드).
+  - [ ] OK    Fix: 
+
+- **`delayTaps`**
+  - EN: Number of live taps (1 - 8).
+  - KO: 활성 탭 수 (1 - 8).
+  - [ ] OK    Fix: 
+
+- **`delayTime`**
+  - EN: Base delay time of the multitap delay.
+  - KO: 멀티탭 딜레이의 기본 딜레이 시간.
+  - [ ] OK    Fix: 
+
+- **`distBias`**
+  - EN: Asymmetry of the shaper, for even-harmonic (tube-like) colour.
+  - KO: 셰이퍼의 비대칭성. 짝수 배음(진공관 같은) 색채를 만듭니다.
+  - [ ] OK    Fix: 
+
+- **`distBypass`**
+  - EN: Bypass the distortion module.
+  - KO: 디스토션 모듈을 바이패스합니다.
+  - [ ] OK    Fix: 
+
+- **`distDrive`**
+  - EN: Input gain into the shapers (0 - 40 dB).
+  - KO: 셰이퍼로 들어가는 입력 게인 (0 - 40 dB).
+  - [ ] OK    Fix: 
+
+- **`distMix`**
+  - EN: Dry/wet mix of the distortion module (wet %).
+  - KO: 디스토션 모듈의 드라이/웨트 믹스 (웨트 %).
+  - [ ] OK    Fix: 
+
+- **`distOutput`**
+  - EN: Distortion output level (-24 to +12 dB).
+  - KO: 디스토션 출력 레벨 (-24 ~ +12 dB).
+  - [ ] OK    Fix: 
+
+- **`distOversample`**
+  - EN: Oversampling factor for the distortion shaper.
+  - KO: 디스토션 셰이퍼의 오버샘플링 배율.
+  - [ ] OK    Fix: 
+
+- **`distPostHiShelfFreq`**
+  - EN: Corner frequency of the high shelf after the distortion shaper.
+  - KO: 디스토션 셰이퍼 뒷단 하이 쉘프의 코너 주파수.
+  - [ ] OK    Fix: 
+
+- **`distPostHiShelfGain`**
+  - EN: Gain of the high shelf after the distortion shaper.
+  - KO: 디스토션 셰이퍼 뒷단 하이 쉘프의 게인.
+  - [ ] OK    Fix: 
+
+- **`distPostLoShelfFreq`**
+  - EN: Corner frequency of the low shelf after the distortion shaper.
+  - KO: 디스토션 셰이퍼 뒷단 로우 쉘프의 코너 주파수.
+  - [ ] OK    Fix: 
+
+- **`distPostLoShelfGain`**
+  - EN: Gain of the low shelf after the distortion shaper.
+  - KO: 디스토션 셰이퍼 뒷단 로우 쉘프의 게인.
+  - [ ] OK    Fix: 
+
+- **`distPreHiShelfFreq`**
+  - EN: Corner frequency of the high shelf before the distortion shaper.
+  - KO: 디스토션 셰이퍼 앞단 하이 쉘프의 코너 주파수.
+  - [ ] OK    Fix: 
+
+- **`distPreHiShelfGain`**
+  - EN: Gain of the high shelf before the distortion shaper.
+  - KO: 디스토션 셰이퍼 앞단 하이 쉘프의 게인.
+  - [ ] OK    Fix: 
+
+- **`distPreLoShelfFreq`**
+  - EN: Corner frequency of the low shelf before the distortion shaper.
+  - KO: 디스토션 셰이퍼 앞단 로우 쉘프의 코너 주파수.
+  - [ ] OK    Fix: 
+
+- **`distPreLoShelfGain`**
+  - EN: Gain of the low shelf before the distortion shaper.
+  - KO: 디스토션 셰이퍼 앞단 로우 쉘프의 게인.
+  - [ ] OK    Fix: 
+
+- **`distShape`**
+  - EN: Blend from hard clipping (0) to tanh saturation (1).
+  - KO: 하드 클리핑(0)에서 tanh 새츄레이션(1)까지 블렌드합니다.
+  - [ ] OK    Fix: 
+
+- **`dynAutoMakeup`**
+  - EN: Derive the makeup gain from the compressor threshold and ratio.
+  - KO: 컴프레서 임계값과 비율로 메이크업 게인을 자동 산출합니다.
+  - [ ] OK    Fix: 
+
+- **`dynBypass`**
+  - EN: Bypass this dynamics instance.
+  - KO: 이 다이내믹스 인스턴스를 바이패스합니다.
+  - [ ] OK    Fix: 
+
+- **`dynCompAttack`**
+  - EN: Compressor attack time (0.05 - 200 ms).
+  - KO: 컴프레서 어택 타임 (0.05 - 200 ms).
+  - [ ] OK    Fix: 
+
+- **`dynCompDetectorDelay`**
+  - EN: Let a transient through before the compressor grabs (transient pass, no latency).
+  - KO: 컴프레서가 작동하기 전에 트랜지언트를 통과시킵니다 (트랜지언트 패스, 레이턴시 없음).
+  - [ ] OK    Fix: 
+
+- **`dynCompKnee`**
+  - EN: Soft-knee width of the compressor (0 = hard knee).
+  - KO: 컴프레서의 소프트 니 폭 (0 = 하드 니).
+  - [ ] OK    Fix: 
+
+- **`dynCompOn`**
+  - EN: Enable the compressor stage of this dynamics instance.
+  - KO: 이 다이내믹스 인스턴스의 컴프레서 스테이지를 켭니다.
+  - [ ] OK    Fix: 
+
+- **`dynCompRatio`**
+  - EN: Compressor ratio (1:1 to 100:1; 100 is a limiter).
+  - KO: 컴프레서 비율 (1:1 ~ 100:1, 100은 리미터).
+  - [ ] OK    Fix: 
+
+- **`dynCompRelease`**
+  - EN: Compressor release time (5 - 2000 ms).
+  - KO: 컴프레서 릴리스 타임 (5 - 2000 ms).
+  - [ ] OK    Fix: 
+
+- **`dynCompScHiCut`**
+  - EN: Low-pass the compressor's sidechain detector.
+  - KO: 컴프레서 사이드체인 검출기에 로우패스를 적용합니다.
+  - [ ] OK    Fix: 
+
+- **`dynCompScLoCut`**
+  - EN: High-pass the compressor's sidechain detector.
+  - KO: 컴프레서 사이드체인 검출기에 하이패스를 적용합니다.
+  - [ ] OK    Fix: 
+
+- **`dynCompThreshold`**
+  - EN: Compressor threshold level (-60 to 0 dB).
+  - KO: 컴프레서 임계 레벨 (-60 ~ 0 dB).
+  - [ ] OK    Fix: 
+
+- **`dynDetector`**
+  - EN: Peak or RMS detection for both stages.
+  - KO: 두 스테이지 모두에 대한 피크 또는 RMS 검출.
+  - [ ] OK    Fix: 
+
+- **`dynExpAttack`**
+  - EN: Expander attack time (0.05 - 200 ms).
+  - KO: 익스팬더 어택 타임 (0.05 - 200 ms).
+  - [ ] OK    Fix: 
+
+- **`dynExpHold`**
+  - EN: Hold time before the expander starts to close.
+  - KO: 익스팬더가 닫히기 시작하기 전의 홀드 시간.
+  - [ ] OK    Fix: 
+
+- **`dynExpOn`**
+  - EN: Enable the expander stage of this dynamics instance.
+  - KO: 이 다이내믹스 인스턴스의 익스팬더 스테이지를 켭니다.
+  - [ ] OK    Fix: 
+
+- **`dynExpRange`**
+  - EN: Maximum attenuation the expander may apply (-80 to 0 dB).
+  - KO: 익스팬더가 적용할 수 있는 최대 감쇠량 (-80 ~ 0 dB).
+  - [ ] OK    Fix: 
+
+- **`dynExpRatio`**
+  - EN: Downward expander ratio (1:1 to 1:100; 100 is a gate).
+  - KO: 다운워드 익스팬더 비율 (1:1 ~ 1:100, 100은 게이트).
+  - [ ] OK    Fix: 
+
+- **`dynExpRelease`**
+  - EN: Expander release time (5 - 2000 ms).
+  - KO: 익스팬더 릴리스 타임 (5 - 2000 ms).
+  - [ ] OK    Fix: 
+
+- **`dynExpScHiCut`**
+  - EN: Low-pass the expander's sidechain detector.
+  - KO: 익스팬더 사이드체인 검출기에 로우패스를 적용합니다.
+  - [ ] OK    Fix: 
+
+- **`dynExpScLoCut`**
+  - EN: High-pass the expander's sidechain detector.
+  - KO: 익스팬더 사이드체인 검출기에 하이패스를 적용합니다.
+  - [ ] OK    Fix: 
+
+- **`dynExpThreshold`**
+  - EN: Expander threshold level (-90 to 0 dB).
+  - KO: 익스팬더 임계 레벨 (-90 ~ 0 dB).
+  - [ ] OK    Fix: 
+
+- **`dynLookahead`**
+  - EN: Delay the audio so the detector sees a transient first (adds reported latency).
+  - KO: 검출기가 트랜지언트를 먼저 감지하도록 오디오를 지연합니다 (보고되는 레이턴시가 늘어납니다).
+  - [ ] OK    Fix: 
+
+- **`dynMakeup`**
+  - EN: Makeup gain applied after both stages.
+  - KO: 두 스테이지 뒤에 적용되는 메이크업 게인.
   - [ ] OK    Fix: 
 
 - **`editOnMap`**
@@ -479,9 +920,64 @@ Walk through each section. For every entry:
   - KO: 이 이펙트는 입력에서 신호를 받으므로 해당 묶음의 진입점입니다.
   - [ ] OK    Fix: 
 
+- **`eqBandReset`**
+  - EN: Long-press: reset this band to its default shape, frequency, gain and Q.
+  - KO: 길게 누르면 이 밴드를 기본 형태, 주파수, 게인, Q로 초기화합니다.
+  - [ ] OK    Fix: 
+
+- **`eqBandToggle`**
+  - EN: Switch this band on or off. Off keeps the band's settings for when it comes back.
+  - KO: 이 밴드를 켜거나 끕니다. 끄면 다시 켤 때를 위해 밴드의 설정이 유지됩니다.
+  - [ ] OK    Fix: 
+
+- **`eqBypass`**
+  - EN: Bypass this EQ instance.
+  - KO: 이 EQ 인스턴스를 바이패스합니다.
+  - [ ] OK    Fix: 
+
+- **`eqDisplay`**
+  - EN: Drag a band handle to set its frequency and gain; the wheel sets its Q.
+  - KO: 밴드 핸들을 드래그하여 주파수와 게인을 설정하고, 휠로 Q를 설정합니다.
+  - [ ] OK    Fix: 
+
+- **`eqFlatten`**
+  - EN: Long-press: reset every band of this EQ to its default shape, frequency, gain and Q.
+  - KO: 길게 누르면 이 EQ의 모든 밴드를 기본 형태, 주파수, 게인, Q로 초기화합니다.
+  - [ ] OK    Fix: 
+
+- **`eqFreq`**
+  - EN: Select the EQ Frequency for Band <Band ID> of this EQ instance.
+  - KO: 이 EQ 인스턴스의 밴드 <Band ID>의 EQ 주파수를 선택합니다.
+  - [ ] OK    Fix: 
+
+- **`eqGain`**
+  - EN: Select the EQ Gain/Attenuation for Band <Band ID> of this EQ instance.
+  - KO: 이 EQ 인스턴스의 밴드 <Band ID>의 EQ 게인/감쇠를 선택합니다.
+  - [ ] OK    Fix: 
+
+- **`eqQ`**
+  - EN: Select the EQ Q for Band <Band ID> of this EQ instance.
+  - KO: 이 EQ 인스턴스의 밴드 <Band ID>의 EQ Q를 선택합니다.
+  - [ ] OK    Fix: 
+
+- **`eqShape`**
+  - EN: Select the EQ Mode for Band <Band ID> of this EQ instance.
+  - KO: 이 EQ 인스턴스의 밴드 <Band ID>의 EQ 모드를 선택합니다.
+  - [ ] OK    Fix: 
+
+- **`eqSlope`**
+  - EN: Select the EQ Slope for Band <Band ID> of this EQ instance.
+  - KO: 이 EQ 인스턴스의 밴드 <Band ID>의 EQ 기울기를 선택합니다.
+  - [ ] OK    Fix: 
+
 - **`export`**
   - EN: Export Effects Configuration to file (with file explorer window).
   - KO: 파일로 이펙트 설정 내보내기 (파일 탐색기 사용).
+  - [ ] OK    Fix: 
+
+- **`grMeter`**
+  - EN: Gain reduction the dynamics module is applying right now.
+  - KO: 다이내믹스 모듈이 현재 적용 중인 게인 리덕션.
   - [ ] OK    Fix: 
 
 - **`groupMute`**
@@ -492,6 +988,86 @@ Walk through each section. For every entry:
 - **`import`**
   - EN: Import Effects Configuration from file (with file explorer window).
   - KO: 파일에서 이펙트 설정 가져오기 (파일 탐색기 사용).
+  - [ ] OK    Fix: 
+
+- **`lfoActive`**
+  - EN: Enable or Disable the Periodic Movement of the Effect Return (LFO).
+  - KO: 이펙트 리턴의 주기적 움직임(LFO)을 켜거나 끕니다.
+  - [ ] OK    Fix: 
+
+- **`lfoAmplitudeX`**
+  - EN: Width of Movement in Relation to Base Position of the Effect Return.
+  - KO: 이펙트 리턴의 기준 위치에 대한 너비 방향 움직임의 폭.
+  - [ ] OK    Fix: 
+
+- **`lfoAmplitudeY`**
+  - EN: Depth of Movement in Relation to Base Position of the Effect Return.
+  - KO: 이펙트 리턴의 기준 위치에 대한 깊이 방향 움직임의 폭.
+  - [ ] OK    Fix: 
+
+- **`lfoAmplitudeZ`**
+  - EN: Height of Movement in Relation to Base Position of the Effect Return.
+  - KO: 이펙트 리턴의 기준 위치에 대한 높이 방향 움직임의 폭.
+  - [ ] OK    Fix: 
+
+- **`lfoPeriod`**
+  - EN: Base Period of the Movement of the Effect Return.
+  - KO: 이펙트 리턴 움직임의 기본 주기.
+  - [ ] OK    Fix: 
+
+- **`lfoPhase`**
+  - EN: Phase Offset of the Movement of the Effect Return.
+  - KO: 이펙트 리턴 움직임의 위상 오프셋.
+  - [ ] OK    Fix: 
+
+- **`lfoPhaseX`**
+  - EN: Phase Offset of the Movement of the Effect Return in Width.
+  - KO: 이펙트 리턴의 너비 방향 움직임의 위상 오프셋.
+  - [ ] OK    Fix: 
+
+- **`lfoPhaseY`**
+  - EN: Phase Offset of the Movement of the Effect Return in Depth.
+  - KO: 이펙트 리턴의 깊이 방향 움직임의 위상 오프셋.
+  - [ ] OK    Fix: 
+
+- **`lfoPhaseZ`**
+  - EN: Phase Offset of the Movement of the Effect Return in Height.
+  - KO: 이펙트 리턴의 높이 방향 움직임의 위상 오프셋.
+  - [ ] OK    Fix: 
+
+- **`lfoRateX`**
+  - EN: Faster or Slower Movement in Relation to Base Period in Width.
+  - KO: 기본 주기 대비 너비 방향 움직임을 더 빠르게 또는 더 느리게 합니다.
+  - [ ] OK    Fix: 
+
+- **`lfoRateY`**
+  - EN: Faster or Slower Movement in Relation to Base Period in Depth.
+  - KO: 기본 주기 대비 깊이 방향 움직임을 더 빠르게 또는 더 느리게 합니다.
+  - [ ] OK    Fix: 
+
+- **`lfoRateZ`**
+  - EN: Faster or Slower Movement in Relation to Base Period in Height.
+  - KO: 기본 주기 대비 높이 방향 움직임을 더 빠르게 또는 더 느리게 합니다.
+  - [ ] OK    Fix: 
+
+- **`lfoShapeX`**
+  - EN: Movement Behaviour of the Effect Return in Width.
+  - KO: 이펙트 리턴의 너비 방향 움직임 형태.
+  - [ ] OK    Fix: 
+
+- **`lfoShapeY`**
+  - EN: Movement Behaviour of the Effect Return in Depth.
+  - KO: 이펙트 리턴의 깊이 방향 움직임 형태.
+  - [ ] OK    Fix: 
+
+- **`lfoShapeZ`**
+  - EN: Movement Behaviour of the Effect Return in Height.
+  - KO: 이펙트 리턴의 높이 방향 움직임 형태.
+  - [ ] OK    Fix: 
+
+- **`linkBadge`**
+  - EN: Whether this chain is shared with a link group. Set the group and the link mode on the Channel Parameters tab.
+  - KO: 이 체인이 링크 그룹과 공유되는지 나타냅니다. 그룹과 링크 모드는 Channel Parameters 탭에서 설정합니다.
   - [ ] OK    Fix: 
 
 - **`linkGroup`**
@@ -514,6 +1090,66 @@ Walk through each section. For every entry:
   - KO: Map 탭에서 이펙트 리턴 마커를 표시하거나 숨깁니다.
   - [ ] OK    Fix: 
 
+- **`modBypass`**
+  - EN: Bypass the chorus / flanger module.
+  - KO: 코러스/플랜저 모듈을 바이패스합니다.
+  - [ ] OK    Fix: 
+
+- **`modDelay`**
+  - EN: Centre delay of the modulated line.
+  - KO: 모듈레이션되는 라인의 중심 딜레이.
+  - [ ] OK    Fix: 
+
+- **`modDepth`**
+  - EN: Modulation depth as a percentage of the centre delay.
+  - KO: 중심 딜레이에 대한 백분율로 나타낸 모듈레이션 깊이.
+  - [ ] OK    Fix: 
+
+- **`modFeedback`**
+  - EN: Signed feedback around the modulated line.
+  - KO: 모듈레이션 라인 주위의 부호 있는 피드백.
+  - [ ] OK    Fix: 
+
+- **`modLoCut`**
+  - EN: High-pass the signal entering the modulated line.
+  - KO: 모듈레이션 라인으로 들어가는 신호에 하이패스를 적용합니다.
+  - [ ] OK    Fix: 
+
+- **`modMix`**
+  - EN: Dry/wet mix of the chorus / flanger (wet %).
+  - KO: 코러스/플랜저의 드라이/웨트 믹스 (웨트 %).
+  - [ ] OK    Fix: 
+
+- **`modMode`**
+  - EN: Chorus or flanger voicing.
+  - KO: 코러스 또는 플랜저 보이싱.
+  - [ ] OK    Fix: 
+
+- **`modPhase`**
+  - EN: LFO phase offset for this channel (0 - 360 deg).
+  - KO: 이 채널의 LFO 위상 오프셋 (0 - 360도).
+  - [ ] OK    Fix: 
+
+- **`modRate`**
+  - EN: LFO rate of the chorus / flanger (0.05 - 10 Hz).
+  - KO: 코러스/플랜저의 LFO 속도 (0.05 - 10 Hz).
+  - [ ] OK    Fix: 
+
+- **`modShape`**
+  - EN: LFO waveform of the chorus / flanger.
+  - KO: 코러스/플랜저의 LFO 파형.
+  - [ ] OK    Fix: 
+
+- **`modThroughZero`**
+  - EN: Delay the dry signal so the modulated line can pass through zero.
+  - KO: 모듈레이션 라인이 제로를 통과할 수 있도록 드라이 신호를 지연합니다.
+  - [ ] OK    Fix: 
+
+- **`modVoices`**
+  - EN: Number of modulated voices (1 - 3).
+  - KO: 모듈레이션 보이스 수 (1 - 3).
+  - [ ] OK    Fix: 
+
 - **`mute`**
   - EN: Mute this effect return.
   - KO: 이 이펙트 리턴을 음소거합니다.
@@ -524,6 +1160,121 @@ Walk through each section. For every entry:
   - KO: 이 이펙트 채널의 표시 이름.
   - [ ] OK    Fix: 
 
+- **`otomoAbsRel`**
+  - EN: Select Relative or Absolute Coordinates of Displacement.
+  - KO: 이동의 상대 또는 절대 좌표를 선택합니다.
+  - [ ] OK    Fix: 
+
+- **`otomoCoordMode`**
+  - EN: Coordinate display mode for AutomOtion destinations: Cartesian (X/Y/Z), Cylindrical (r/θ/Z), or Spherical (r/θ/φ).
+  - KO: AutomOtion 목적지의 좌표 표시 모드: 직교(X/Y/Z), 원통(r/θ/Z), 구면(r/θ/φ).
+  - [ ] OK    Fix: 
+
+- **`otomoCurve`**
+  - EN: Bend the Path to the Left (Negative) or Right (Positive) of the Direction of Travel.
+  - KO: 진행 방향의 왼쪽(음수) 또는 오른쪽(양수)으로 경로를 휘게 합니다.
+  - [ ] OK    Fix: 
+
+- **`otomoDest`**
+  - EN: Relative or Absolute Destination {name} ({unit}).
+  - KO: 상대 또는 절대 목적지 {name} ({unit}).
+  - [ ] OK    Fix: 
+
+- **`otomoDuration`**
+  - EN: Duration of the Movement in Seconds (0.1s to 1 hour).
+  - KO: 움직임의 지속 시간(초, 0.1초~1시간).
+  - [ ] OK    Fix: 
+
+- **`otomoPause`**
+  - EN: Pause and Resume the Movement.
+  - KO: 움직임을 일시 정지하거나 재개합니다.
+  - [ ] OK    Fix: 
+
+- **`otomoPauseResumeAll`**
+  - EN: Pause or Resume All Active Movements on every effect return.
+  - KO: 모든 이펙트 리턴의 활성 움직임을 모두 일시 정지하거나 재개합니다.
+  - [ ] OK    Fix: 
+
+- **`otomoReset`**
+  - EN: Set the Reset Level for the Automatic Trigger.
+  - KO: 자동 트리거의 리셋 레벨을 설정합니다.
+  - [ ] OK    Fix: 
+
+- **`otomoSpeedProfile`**
+  - EN: Constant Speed or Gradual Acceleration and Slow Down at the Start and the End of the Movement.
+  - KO: 일정한 속도, 또는 움직임의 시작과 끝에서 서서히 가속·감속합니다.
+  - [ ] OK    Fix: 
+
+- **`otomoStart`**
+  - EN: Start the Movement Manually. An effect return always comes home: the movement is an offset on the authored position.
+  - KO: 움직임을 수동으로 시작합니다. 이펙트 리턴은 항상 제자리로 돌아옵니다. 움직임은 설정한 위치에 대한 오프셋입니다.
+  - [ ] OK    Fix: 
+
+- **`otomoStop`**
+  - EN: Stop the Movement.
+  - KO: 움직임을 중지합니다.
+  - [ ] OK    Fix: 
+
+- **`otomoStopAll`**
+  - EN: Stop All Active Movements on every effect return.
+  - KO: 모든 이펙트 리턴의 활성 움직임을 모두 중지합니다.
+  - [ ] OK    Fix: 
+
+- **`otomoThreshold`**
+  - EN: Set the Threshold for the Automatic Trigger of the Movement.
+  - KO: 움직임의 자동 트리거 임계값을 설정합니다.
+  - [ ] OK    Fix: 
+
+- **`otomoTrigger`**
+  - EN: Manual Start of Displacement or Automatic Trigger on the Audio Level.
+  - KO: 이동을 수동으로 시작하거나 오디오 레벨에 따라 자동으로 트리거합니다.
+  - [ ] OK    Fix: 
+
+- **`phaserBypass`**
+  - EN: Bypass the phaser module.
+  - KO: 페이저 모듈을 바이패스합니다.
+  - [ ] OK    Fix: 
+
+- **`phaserCentre`**
+  - EN: Centre frequency of the allpass sweep (100 - 5000 Hz).
+  - KO: 올패스 스윕의 중심 주파수 (100 - 5000 Hz).
+  - [ ] OK    Fix: 
+
+- **`phaserDepth`**
+  - EN: Sweep depth of the phaser, in octaves.
+  - KO: 페이저의 스윕 깊이 (옥타브).
+  - [ ] OK    Fix: 
+
+- **`phaserFeedback`**
+  - EN: Signed feedback around the allpass chain.
+  - KO: 올패스 체인 주위의 부호 있는 피드백.
+  - [ ] OK    Fix: 
+
+- **`phaserMix`**
+  - EN: Dry/wet mix of the phaser (wet %).
+  - KO: 페이저의 드라이/웨트 믹스 (웨트 %).
+  - [ ] OK    Fix: 
+
+- **`phaserRate`**
+  - EN: LFO rate of the phaser (0.02 - 10 Hz).
+  - KO: 페이저의 LFO 속도 (0.02 - 10 Hz).
+  - [ ] OK    Fix: 
+
+- **`phaserShape`**
+  - EN: LFO waveform of the phaser.
+  - KO: 페이저의 LFO 파형.
+  - [ ] OK    Fix: 
+
+- **`phaserSpread`**
+  - EN: Spread of the allpass stages around the centre, in octaves.
+  - KO: 중심을 기준으로 한 올패스 스테이지의 분포 (옥타브).
+  - [ ] OK    Fix: 
+
+- **`phaserStages`**
+  - EN: Number of allpass stages (4, 6, 8 or 12).
+  - KO: 올패스 스테이지 수 (4, 6, 8 또는 12).
+  - [ ] OK    Fix: 
+
 - **`reloadBackup`**
   - EN: Reload Effects Configuration from backup file (with confirmation).
   - KO: 백업 파일에서 이펙트 설정 다시 불러오기 (확인 포함).
@@ -532,6 +1283,151 @@ Walk through each section. For every entry:
 - **`reloadConfig`**
   - EN: Reload Effects Configuration from file (with confirmation).
   - KO: 파일에서 이펙트 설정 다시 불러오기 (확인 포함).
+  - [ ] OK    Fix: 
+
+- **`reverbBypass`**
+  - EN: Bypass the in-chain reverb module.
+  - KO: 체인 내 리버브 모듈을 바이패스합니다.
+  - [ ] OK    Fix: 
+
+- **`reverbCrossoverHigh`**
+  - EN: High crossover frequency for 3-band decay (1 - 10 kHz).
+  - KO: 3밴드 감쇠를 위한 고역 크로스오버 주파수 (1 - 10 kHz).
+  - [ ] OK    Fix: 
+
+- **`reverbCrossoverLow`**
+  - EN: Low crossover frequency for 3-band decay (50 - 500 Hz).
+  - KO: 3밴드 감쇠를 위한 저역 크로스오버 주파수 (50 - 500 Hz).
+  - [ ] OK    Fix: 
+
+- **`reverbDiffusion`**
+  - EN: Diffusion amount controlling echo density (0 - 1).
+  - KO: 에코 밀도를 결정하는 디퓨전 양 (0 - 1).
+  - [ ] OK    Fix: 
+
+- **`reverbERLevel`**
+  - EN: Level of the early reflections (-30 to +6 dB against the dry).
+  - KO: 초기 반사음 레벨 (드라이 대비 -30 ~ +6 dB).
+  - [ ] OK    Fix: 
+
+- **`reverbERProfile`**
+  - EN: Early reflections in front of the reverb: Off, Room, Chamber, Hall or Cathedral.
+  - KO: 리버브 앞단의 초기 반사음: Off, Room, Chamber, Hall 또는 Cathedral.
+  - [ ] OK    Fix: 
+
+- **`reverbMix`**
+  - EN: Dry/wet mix of the reverb module (wet %).
+  - KO: 리버브 모듈의 드라이/웨트 믹스 (웨트 %).
+  - [ ] OK    Fix: 
+
+- **`reverbModDepth`**
+  - EN: Depth of the modulation inside the reverb tank (0 - 100 %).
+  - KO: 리버브 탱크 내부 모듈레이션의 깊이 (0 - 100 %).
+  - [ ] OK    Fix: 
+
+- **`reverbModRate`**
+  - EN: Speed of the modulation inside the reverb tank (0.05 - 5 Hz).
+  - KO: 리버브 탱크 내부 모듈레이션의 속도 (0.05 - 5 Hz).
+  - [ ] OK    Fix: 
+
+- **`reverbModel`**
+  - EN: Select the reverb algorithm behind this module: FDN, Plate, Modulated Hall or Shimmer.
+  - KO: 이 모듈의 리버브 알고리즘을 선택합니다: FDN, Plate, Modulated Hall 또는 Shimmer.
+  - [ ] OK    Fix: 
+
+- **`reverbPredelay`**
+  - EN: Predelay before the reverb module's tail (0 - 250 ms).
+  - KO: 리버브 모듈의 테일 앞 프리딜레이 (0 - 250 ms).
+  - [ ] OK    Fix: 
+
+- **`reverbRT60`**
+  - EN: Reverb decay time RT60 (0.2 - 8.0 seconds).
+  - KO: 리버브 감쇠 시간 RT60 (0.2 - 8.0초).
+  - [ ] OK    Fix: 
+
+- **`reverbRT60HighMult`**
+  - EN: High frequency RT60 multiplier (0.1 - 9.0x).
+  - KO: 고주파 RT60 배수 (0.1 - 9.0x).
+  - [ ] OK    Fix: 
+
+- **`reverbRT60LowMult`**
+  - EN: Low frequency RT60 multiplier (0.1 - 9.0x).
+  - KO: 저주파 RT60 배수 (0.1 - 9.0x).
+  - [ ] OK    Fix: 
+
+- **`reverbShimmerAmount`**
+  - EN: How much of the tail is pitch-shifted (0 - 100 %).
+  - KO: 테일 중 피치 시프트되는 비율 (0 - 100 %).
+  - [ ] OK    Fix: 
+
+- **`reverbShimmerPitch`**
+  - EN: The interval the shimmer climbs by on every pass through the tank.
+  - KO: 탱크를 한 번 통과할 때마다 쉬머가 올라가는 음정.
+  - [ ] OK    Fix: 
+
+- **`reverbSize`**
+  - EN: Room size multiplier of the reverb module (0.5 - 2.0x).
+  - KO: 리버브 모듈의 룸 크기 배수 (0.5 - 2.0x).
+  - [ ] OK    Fix: 
+
+- **`reverbTone`**
+  - EN: Low-pass the reverb tail (1 - 20 kHz).
+  - KO: 리버브 테일에 로우패스를 적용합니다 (1 - 20 kHz).
+  - [ ] OK    Fix: 
+
+- **`reverbType`**
+  - EN: Reverb preset: sets the model, the reflections and the room in one go. Editing any of them afterwards makes it Custom.
+  - KO: 리버브 프리셋: 모델, 반사음, 룸을 한 번에 설정합니다. 이후 어느 하나라도 편집하면 Custom이 됩니다.
+  - [ ] OK    Fix: 
+
+- **`settingsFeedDevice`**
+  - EN: Compute device used for the effects feed stage. Applies at the next Processing start.
+  - KO: 이펙트 피드 단계에 사용하는 연산 장치. 다음 Processing 시작 시 적용됩니다.
+  - [ ] OK    Fix: 
+
+- **`settingsFxFeed`**
+  - EN: Feed effects from each other geometrically, or through the matrix alone (no geometric delay or attenuation).
+  - KO: 이펙트끼리 기하학적으로 신호를 공급할지, 매트릭스만으로 공급할지 정합니다 (기하학적 딜레이나 감쇠 없음).
+  - [ ] OK    Fix: 
+
+- **`settingsLinkMode`**
+  - EN: The link mode a NEW effects channel is stamped with (off, absolute or relative). Existing channels keep their own.
+  - KO: 새 이펙트 채널에 부여되는 링크 모드(off, absolute, relative). 기존 채널은 자신의 모드를 유지합니다.
+  - [ ] OK    Fix: 
+
+- **`settingsLinkNames`**
+  - EN: Names of the eight effect link groups. Shown on the Channel Parameters combo, the Chain badge and the sends matrix.
+  - KO: 8개 이펙트 링크 그룹의 이름. Channel Parameters 콤보, Chain 배지, 센드 매트릭스에 표시됩니다.
+  - [ ] OK    Fix: 
+
+- **`settingsLoopGuard`**
+  - EN: Automatically mute an effect-to-effect feed that is running away. The one setting here that applies live.
+  - KO: 폭주하는 이펙트 간 피드를 자동으로 음소거합니다. 이 화면에서 즉시 적용되는 유일한 설정입니다.
+  - [ ] OK    Fix: 
+
+- **`settingsLoopGuardCeiling`**
+  - EN: Peak level at which the loop guard trips (dBFS). Applies at the next Processing start.
+  - KO: 루프 가드가 작동하는 피크 레벨 (dBFS). 다음 Processing 시작 시 적용됩니다.
+  - [ ] OK    Fix: 
+
+- **`settingsMaxDelay`**
+  - EN: Longest delay any effects channel may buffer, in seconds; sizes every delay module. Applies at the next Processing start.
+  - KO: 이펙트 채널이 버퍼링할 수 있는 가장 긴 딜레이(초). 모든 딜레이 모듈의 크기를 정합니다. 다음 Processing 시작 시 적용됩니다.
+  - [ ] OK    Fix: 
+
+- **`settingsRelayout`**
+  - EN: Long-press to lay every effect return out on the default ring again. Clears the effects position ownership latch.
+  - KO: 길게 누르면 모든 이펙트 리턴을 기본 링에 다시 배치합니다. 이펙트 위치 소유권 래치도 해제됩니다.
+  - [ ] OK    Fix: 
+
+- **`settingsReturnCushion`**
+  - EN: Blocks of cushion on the effect return rings (Auto = the ledger decides). Applies at the next Processing start.
+  - KO: 이펙트 리턴 링의 쿠션 블록 수 (Auto = 자동으로 결정). 다음 Processing 시작 시 적용됩니다.
+  - [ ] OK    Fix: 
+
+- **`settingsWorkerThreads`**
+  - EN: Number of effects worker threads (-1 = automatic, the reverb-feed rule). Applies at the next Processing start.
+  - KO: 이펙트 워커 스레드 수 (-1 = 자동, 리버브 피드 규칙). 다음 Processing 시작 시 적용됩니다.
   - [ ] OK    Fix: 
 
 - **`solo`**
@@ -549,7 +1445,54 @@ Walk through each section. For every entry:
   - KO: 이펙트 설정을 파일에 저장 (덮어쓰기 전 확인).
   - [ ] OK    Fix: 
 
+- **`tapLevel`**
+  - EN: This tap's level.
+  - KO: 이 탭의 레벨.
+  - [ ] OK    Fix: 
+
+- **`tapTime`**
+  - EN: This tap's delay time. In Pattern mode the pattern sets it and the slider follows.
+  - KO: 이 탭의 딜레이 시간. Pattern 모드에서는 패턴이 값을 정하고 슬라이더가 따라갑니다.
+  - [ ] OK    Fix: 
+
+- **`tremBypass`**
+  - EN: Bypass the tremolo module.
+  - KO: 트레몰로 모듈을 바이패스합니다.
+  - [ ] OK    Fix: 
+
+- **`tremDepth`**
+  - EN: Tremolo depth in dB (0 - 60 dB).
+  - KO: 트레몰로 깊이 (dB, 0 - 60 dB).
+  - [ ] OK    Fix: 
+
+- **`tremMix`**
+  - EN: Dry/wet mix of the tremolo (wet %).
+  - KO: 트레몰로의 드라이/웨트 믹스 (웨트 %).
+  - [ ] OK    Fix: 
+
+- **`tremRate`**
+  - EN: Tremolo rate (0.05 - 20 Hz).
+  - KO: 트레몰로 속도 (0.05 - 20 Hz).
+  - [ ] OK    Fix: 
+
+- **`tremShape`**
+  - EN: Blend the tremolo LFO from sine (0) to triangle (1).
+  - KO: 트레몰로 LFO를 사인(0)에서 삼각파(1)까지 블렌드합니다.
+  - [ ] OK    Fix: 
+
+## `effects.labels`
+
+- **`returnsHome`**
+  - EN: An effect return always comes home: the movement travels as an offset, and the position you set is never overwritten.
+  - KO: 이펙트 리턴은 항상 제자리로 돌아옵니다. 움직임은 오프셋으로 전달되며 설정한 위치는 절대 덮어쓰이지 않습니다.
+  - [ ] OK    Fix: 
+
 ## `effects.messages`
+
+- **`assignedGroup`**
+  - EN: Effect {channel} assigned to {group}
+  - KO: 이펙트 {channel}이(가) {group}에 할당됨
+  - [ ] OK    Fix: 
 
 - **`cleared`**
   - EN: Effect chain cleared.
@@ -581,9 +1524,63 @@ Walk through each section. For every entry:
   - KO: 이 이펙트는 링크 그룹에 속하지 않으므로 음소거할 그룹이 없습니다.
   - [ ] OK    Fix: 
 
+- **`relayoutDone`**
+  - EN: Every effect return laid out on the default ring again.
+  - KO: 모든 이펙트 리턴을 기본 링에 다시 배치했습니다.
+  - [ ] OK    Fix: 
+
 - **`selectFolderFirst`**
   - EN: Select a project folder first.
   - KO: 먼저 프로젝트 폴더를 선택하세요.
+  - [ ] OK    Fix: 
+
+- **`unlinked`**
+  - EN: Effect {channel} removed from its link group
+  - KO: 이펙트 {channel}이(가) 링크 그룹에서 제외됨
+  - [ ] OK    Fix: 
+
+## `effects.sends`
+
+- **`announce.forbidden`**
+  - EN: an effect cannot feed itself
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`announce.into`**
+  - EN: into effect
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`announce.off`**
+  - EN: off
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`announce.on`**
+  - EN: on
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`gesture.level`**
+  - EN: Effect Send Level
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`gesture.toggle`**
+  - EN: Effect Send Switch
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`hint`**
+  - EN: Click a cell to switch a send; drag up or down to set its level (Shift = fine). Rows: every input, then every effect return. Columns: every effect. The hatched diagonal is an effect feeding itself, which is refused.
+  - KO: 셀을 클릭하면 센드를 켜거나 끄고, 위아래로 드래그하면 레벨을 설정합니다 (Shift = 미세 조정). 행: 모든 입력과 모든 이펙트 리턴. 열: 모든 이펙트. 빗금 친 대각선은 이펙트가 자기 자신에게 신호를 보내는 경우로, 허용되지 않습니다.
+  - [ ] OK    Fix: 
+
+## `effects.settings`
+
+- **`note`**
+  - EN: Everything here except the Loop guard switch applies at the next Processing start: the engine reads these settings when it prepares.
+  - KO: Loop guard 스위치를 제외한 이곳의 모든 설정은 다음 Processing 시작 시 적용됩니다. 엔진은 준비할 때 이 설정을 읽기 때문입니다.
   - [ ] OK    Fix: 
 
 ## `eq.status`
@@ -603,6 +1600,183 @@ Walk through each section. For every entry:
 - **`selectProjectFolder`**
   - EN: Select Project Folder
   - KO: 프로젝트 폴더 선택
+  - [ ] OK    Fix: 
+
+## `fileManager.errors`
+
+- **`backupFailed`**
+  - EN: Could not back up {file} into {folder}, so it was not saved: the file on disk is unchanged.
+  - KO: {file}을(를) {folder}에 백업할 수 없어 저장하지 않았습니다. 디스크의 파일은 변경되지 않았습니다.
+  - [ ] OK    Fix: 
+
+- **`backupNotFound`**
+  - EN: Backup not found
+  - KO: 백업을 찾을 수 없습니다
+  - [ ] OK    Fix: 
+
+- **`channelListMismatchNotConfirmed`**
+  - EN: Load refused: the channel list in {path} differs from this session and the load was not confirmed.
+  - KO: 불러오기 거부됨: {path}의 채널 목록이 이 세션과 다르며 불러오기가 확인되지 않았습니다.
+  - [ ] OK    Fix: 
+
+- **`configStateInvalid`**
+  - EN: Config state is invalid
+  - KO: 구성 상태가 유효하지 않습니다
+  - [ ] OK    Fix: 
+
+- **`failedApply`**
+  - EN: Failed to apply: {sections}
+  - KO: 적용 실패: {sections}
+  - [ ] OK    Fix: 
+
+- **`failedCreateFolder`**
+  - EN: Failed to create project folder: {path}
+  - KO: 프로젝트 폴더 생성 실패: {path}
+  - [ ] OK    Fix: 
+
+- **`failedCreateValueTree`**
+  - EN: Failed to create ValueTree from XML: {path}
+  - KO: XML에서 ValueTree를 생성하지 못했습니다: {path}
+  - [ ] OK    Fix: 
+
+- **`failedCreateXML`**
+  - EN: Failed to create XML from state
+  - KO: 상태에서 XML을 생성하지 못했습니다
+  - [ ] OK    Fix: 
+
+- **`failedParseXML`**
+  - EN: Failed to parse XML file: {path}
+  - KO: XML 파일 분석 실패: {path}
+  - [ ] OK    Fix: 
+
+- **`failedWriteFile`**
+  - EN: Failed to write file: {path}. The file on disk is unchanged.
+  - KO: 파일 쓰기 실패: {path}. 디스크의 파일은 변경되지 않았습니다.
+  - [ ] OK    Fix: 
+
+- **`fileNotFound`**
+  - EN: File not found: {path}
+  - KO: 파일을 찾을 수 없습니다: {path}
+  - [ ] OK    Fix: 
+
+- **`invalidConfigStructure`**
+  - EN: Invalid configuration file structure
+  - KO: 구성 파일 구조가 잘못되었습니다
+  - [ ] OK    Fix: 
+
+- **`noEffectDataInFile`**
+  - EN: No effects data found in file
+  - KO: 파일에서 이펙트 데이터를 찾을 수 없습니다
+  - [ ] OK    Fix: 
+
+- **`noInputDataInFile`**
+  - EN: No input data found in file
+  - KO: 파일에서 입력 데이터를 찾을 수 없습니다
+  - [ ] OK    Fix: 
+
+- **`noInputDataInSnapshot`**
+  - EN: No input data in snapshot
+  - KO: 스냅샷에 입력 데이터가 없습니다
+  - [ ] OK    Fix: 
+
+- **`noLFOPresetDataInFile`**
+  - EN: No LFO preset data found in file
+  - KO: 파일에서 LFO 프리셋 데이터를 찾을 수 없습니다
+  - [ ] OK    Fix: 
+
+- **`noNetworkDataInFile`**
+  - EN: No network data found in file
+  - KO: 파일에서 네트워크 데이터를 찾을 수 없습니다
+  - [ ] OK    Fix: 
+
+- **`noNetworkSections`**
+  - EN: No network sections found in file
+  - KO: 파일에서 네트워크 섹션을 찾을 수 없습니다
+  - [ ] OK    Fix: 
+
+- **`noOutputDataInFile`**
+  - EN: No output data found in file
+  - KO: 파일에서 출력 데이터를 찾을 수 없습니다
+  - [ ] OK    Fix: 
+
+- **`noProjectFolder`**
+  - EN: No project folder specified
+  - KO: 프로젝트 폴더가 지정되지 않았습니다
+  - [ ] OK    Fix: 
+
+- **`noReverbDataInFile`**
+  - EN: No reverb data found in file
+  - KO: 파일에서 리버브 데이터를 찾을 수 없습니다
+  - [ ] OK    Fix: 
+
+- **`noScopeDataInTemplate`**
+  - EN: No scope data found in template file
+  - KO: 템플릿 파일에서 범위 데이터를 찾을 수 없습니다
+  - [ ] OK    Fix: 
+
+- **`noSystemDataInFile`**
+  - EN: No valid system data found in file: {path}
+  - KO: 파일에서 유효한 시스템 데이터를 찾을 수 없습니다: {path}
+  - [ ] OK    Fix: 
+
+- **`noValidProjectFolder`**
+  - EN: No valid project folder
+  - KO: 유효한 프로젝트 폴더가 없습니다
+  - [ ] OK    Fix: 
+
+- **`prefixEffects`**
+  - EN: Effects: 
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`prefixInputs`**
+  - EN: Inputs: 
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`prefixNetwork`**
+  - EN: Network: 
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`prefixOutputs`**
+  - EN: Outputs: 
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`prefixReverbs`**
+  - EN: Reverbs: 
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`prefixSystem`**
+  - EN: System: 
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`reservedSnapshotName`**
+  - EN: Not a usable snapshot name: {name}. Windows reserves it for a device (CON, PRN, AUX, NUL, COM1-9, LPT1-9), or it holds one of < > " | ? * or a control character.
+  - KO: 사용할 수 없는 스냅샷 이름입니다: {name}. Windows가 장치용으로 예약한 이름(CON, PRN, AUX, NUL, COM1-9, LPT1-9)이거나 < > " | ? * 중 하나 또는 제어 문자가 들어 있습니다.
+  - [ ] OK    Fix: 
+
+- **`snapshotDoesNotExist`**
+  - EN: Snapshot does not exist
+  - KO: 스냅샷이 존재하지 않습니다
+  - [ ] OK    Fix: 
+
+- **`snapshotNotFound`**
+  - EN: Snapshot not found
+  - KO: 스냅샷을 찾을 수 없습니다
+  - [ ] OK    Fix: 
+
+- **`snapshotNotFoundNamed`**
+  - EN: Snapshot not found: {name}
+  - KO: 스냅샷을 찾을 수 없습니다: {name}
+  - [ ] OK    Fix: 
+
+- **`unusableSnapshotName`**
+  - EN: Not a usable snapshot name: {name}. A name cannot contain /, \ or :
+  - KO: 사용할 수 없는 스냅샷 이름입니다: {name}. 이름에는 /, \, : 를 사용할 수 없습니다
   - [ ] OK    Fix: 
 
 ## `help.admOsc`
@@ -677,6 +1851,54 @@ Walk through each section. For every entry:
   - KO: 이펙트
   - [ ] OK    Fix: 
 
+## `help.effectsChain`
+
+- **`body`**
+  - EN: The strip shows the eleven modules in their current order: click a tile to edit that module, drag it left or right to move it in the chain. The dot on a tile says whether the module is ON, the bar shows its output level (gain reduction for Dynamics). The badge above says who else hears an edit; beside it the chain bypass (click-free, latency held) and the chain's latency.\nEach module's controls come from the CSV that documents them. The EQs add an interactive display and six band strips with Flatten and per-band Reset long-presses; the Dynamics add a gain-reduction meter; the delay adds its eight tap rows (dormant taps and Pattern-mode times dimmed); the reverb adds models and presets: the Model menu picks the reverb itself (FDN, Plate, Modulated Hall or Shimmer) and only that model's controls are shown, and a preset sets the model, the early reflections and the room at once - editing any of those values turns it back to Custom, while Tone and Mix stay as you set them.
+  - KO: 스트립에는 11개 모듈이 현재 순서대로 표시됩니다. 타일을 클릭하면 해당 모듈을 편집하고, 좌우로 드래그하면 체인 안에서 이동합니다. 타일의 점은 모듈이 켜져 있는지, 막대는 출력 레벨(다이내믹스는 게인 리덕션)을 나타냅니다. 위쪽 배지는 편집 내용을 누가 함께 듣는지 알려 주고, 그 옆에는 체인 바이패스(클릭 노이즈 없음, 레이턴시 유지)와 체인의 레이턴시가 있습니다.\n각 모듈의 컨트롤은 해당 모듈을 문서화한 CSV에서 가져옵니다. EQ에는 인터랙티브 디스플레이와 6개 밴드 스트립(Flatten 및 밴드별 Reset 길게 누르기)이 추가되고, 다이내믹스에는 게인 리덕션 미터가, 딜레이에는 8개 탭 행(사용하지 않는 탭과 Pattern 모드의 시간은 흐리게 표시)이, 리버브에는 모델과 프리셋이 추가됩니다. Model 메뉴에서 리버브 자체(FDN, Plate, Modulated Hall 또는 Shimmer)를 고르면 해당 모델의 컨트롤만 표시되며, 프리셋은 모델, 초기 반사음, 룸을 한 번에 설정합니다. 이 값 중 어느 하나라도 편집하면 Custom으로 돌아가며, Tone과 Mix는 설정한 값 그대로 유지됩니다.
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Effects Chain
+  - KO: 이펙트 체인
+  - [ ] OK    Fix: 
+
+## `help.effectsMovements`
+
+- **`body`**
+  - EN: The LFO and AutomOtion of an effect return, laid out as the Inputs tab lays out the same two blocks. Both travel as OFFSETS the calculation engine adds to the authored position, and the two add to each other: the return always comes home, and the position you set is never overwritten.\nThere is no Stay/Return (a movement that ended somewhere else would move the room itself), no gyrophone (a return has no brightness cone to rotate) and no jitter. The feed geometry follows the base position; only the return follows base + offsets.
+  - KO: 이펙트 리턴의 LFO와 AutomOtion으로, Inputs 탭이 같은 두 블록을 배치하는 방식 그대로 배치되어 있습니다. 둘 다 계산 엔진이 설정한 위치에 더하는 오프셋으로 전달되며 서로 합쳐집니다. 리턴은 항상 제자리로 돌아오고 설정한 위치는 절대 덮어쓰이지 않습니다.\nStay/Return은 없으며(다른 곳에서 끝나는 움직임은 룸 자체를 움직이게 됩니다), 자이로폰(리턴에는 회전시킬 밝기 콘이 없습니다)과 지터도 없습니다. 피드 기하는 기준 위치를 따르고, 기준 위치 + 오프셋을 따르는 것은 리턴뿐입니다.
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Effects Movements
+  - KO: 이펙트 움직임
+  - [ ] OK    Fix: 
+
+## `help.effectsSends`
+
+- **`body`**
+  - EN: The whole sends matrix, not one row: every input and every effect return as a source row, every effect as a destination column. Click a cell to switch a send, drag up or down to set its level (Shift = fine), use the wheel to nudge. The hatched diagonal is an effect feeding itself, which is refused.\nThe selected effect's column is highlighted and the two buttons switch every send into it. A green badge marks a column fed by an input - the entry point of its bunch - and an amber one a column inside a feedback cycle. The loop guard (Settings) mutes a feed that runs away; Clear on the header flushes a chain that already has.
+  - KO: 한 행이 아니라 센드 매트릭스 전체입니다. 모든 입력과 모든 이펙트 리턴이 소스 행이고, 모든 이펙트가 대상 열입니다. 셀을 클릭하면 센드를 켜거나 끄고, 위아래로 드래그하면 레벨을 설정하며(Shift = 미세 조정), 휠로 조금씩 조절합니다. 빗금 친 대각선은 이펙트가 자기 자신에게 신호를 보내는 경우로, 허용되지 않습니다.\n선택한 이펙트의 열이 강조 표시되며, 두 버튼은 그 열로 들어가는 모든 센드를 한 번에 켜거나 끕니다. 녹색 배지는 입력에서 신호를 받는 열(해당 묶음의 진입점)을, 주황색 배지는 피드백 사이클 안에 있는 열을 나타냅니다. 루프 가드(Settings)는 폭주하는 피드를 음소거하고, 헤더의 Clear는 이미 폭주한 체인을 비웁니다.
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Effects Post-Processing
+  - KO: 이펙트 후처리
+  - [ ] OK    Fix: 
+
+## `help.effectsSettings`
+
+- **`body`**
+  - EN: The nine settings every effects channel shares: the eight link-group names and the mode a NEW channel is stamped with; whether effects feed each other geometrically or through the matrix alone; the worker threads, the return cushion, the loop guard and its ceiling, the longest delay any chain may buffer, and the compute device of the feed stage.\nEverything here except the loop-guard switch applies at the next Processing start, because the engine reads these settings when it prepares. Re-layout (long-press) lays every effect return out on the default ring again and hands the positions back to the application.
+  - KO: 모든 이펙트 채널이 공유하는 9개 설정입니다. 8개 링크 그룹 이름과 새 채널에 부여되는 모드, 이펙트끼리 기하학적으로 또는 매트릭스만으로 신호를 주고받을지, 워커 스레드, 리턴 쿠션, 루프 가드와 그 상한, 체인이 버퍼링할 수 있는 가장 긴 딜레이, 그리고 피드 단계의 연산 장치입니다.\n루프 가드 스위치를 제외한 모든 설정은 엔진이 준비할 때 읽기 때문에 다음 Processing 시작 시 적용됩니다. Re-layout(길게 누름)은 모든 이펙트 리턴을 기본 링에 다시 배치하고 위치를 애플리케이션에 되돌려 줍니다.
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Effects Settings
+  - KO: 이펙트 설정
+  - [ ] OK    Fix: 
+
 ## `help.floorReflections`
 
 - **`body`**
@@ -723,6 +1945,18 @@ Walk through each section. For every entry:
 - **`title`**
   - EN: Inputs Basic Parameters
   - KO: 인풋 기본 파라미터
+  - [ ] OK    Fix: 
+
+## `help.inputEffectSends`
+
+- **`body`**
+  - EN: This input's sends into the effect channels, one strip per effect: the same cells as the Post-Processing matrix of the Effects tab, seen from the input.\nThe fader sets the send level (-92 to 0 dB) and the button switches the send on or off without touching the level, so a send can be muted and brought back at the level it had. The two buttons above switch every send of this input at once.\nAn effect this input feeds is an entry point of its bunch. What the effect does next - its chain, its position on stage and its sends into other effects - is set on the Effects tab.
+  - KO: 이 입력에서 이펙트 채널로 가는 센드를 이펙트마다 스트립 하나로 보여 줍니다. Effects 탭의 Post-Processing 매트릭스와 같은 셀을 입력 쪽에서 본 것입니다.\n페이더는 센드 레벨(-92~0 dB)을 정하고, 버튼은 레벨을 건드리지 않고 센드를 켜거나 끄므로, 센드를 뮤트했다가 원래 레벨로 되돌릴 수 있습니다. 위의 두 버튼은 이 입력의 모든 센드를 한 번에 전환합니다.\n이 입력이 보내는 이펙트는 그 그룹의 진입점입니다. 이펙트가 그다음에 하는 일(체인, 무대 위 위치, 다른 이펙트로의 센드)은 Effects 탭에서 설정합니다.
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Effect Sends
+  - KO: 이펙트 센드
   - [ ] OK    Fix: 
 
 ## `help.inputHF`
@@ -1028,8 +2262,8 @@ Walk through each section. For every entry:
 ## `help.shortcuts`
 
 - **`body`**
-  - EN: *H* opens the help card closest to the pointer.\n*I*, *O* and *R* open the Input, Output and Reverb tabs respectively; for a few seconds afterwards you can type a channel number to select it (confirm with *Enter*).\n*N* opens the Network tab.\n*C* opens the Clusters tab.\n*M* opens the Map tab.\n*L* locks or unlocks the stereo image orientation of the pairs selected on the Map tab.\n*Spacebar* scrolls to the next channel and *Shift+Spacebar* to the previous one in the Input, Output and Reverb tabs. On the Clusters tab they cycle through the clusters.\n*Ctrl/Cmd* while adjusting a parameter of an output channel that is part of an array adjusts the parameter for the selected channel only, temporarily disabling the propagation to the rest of the array.\n*F1* to *F10* assign inputs to the corresponding cluster in the Input and Map tabs, assign outputs to the corresponding array in the Output tab, and select the corresponding cluster in the Clusters tab. *F11* sets the channel back to Single.\n*Shift* while adjusting a parameter of an input that is part of a cluster adjusts this parameter for the other inputs of the cluster in relative mode: the variation affects all inputs of the cluster, but relative offsets are kept. *Ctrl/Cmd+Shift* changes the parameter in absolute mode: the value becomes identical across all inputs of the cluster.\n*Ctrl/Cmd+Z* undoes the last change; *Ctrl/Cmd+Y* or *Ctrl/Cmd+Shift+Z* redoes it.
-  - KO: *H*: 포인터에서 가장 가까운 도움말 카드를 엽니다.\n*I*, *O*, *R*: 각각 Inputs(입력), Outputs(출력), Reverb 탭을 엽니다. 이후 몇 초 동안 채널 번호를 입력해 선택할 수 있습니다(*Enter*로 확인).\n*N*: Network(네트워크) 탭을 엽니다.\n*C*: Clusters(클러스터) 탭을 엽니다.\n*M*: Map(맵) 탭을 엽니다.\n*L*: Map 탭에서 선택한 페어의 스테레오 이미지 방향을 잠그거나 풉니다.\n*스페이스바*: Inputs, Outputs, Reverb 탭에서 다음 채널로, *Shift+스페이스바*는 이전 채널로 이동합니다. Clusters 탭에서는 클러스터를 순환합니다.\n*Ctrl/Cmd*: 어레이에 속한 출력의 파라미터를 조정하는 동안 누르면 선택된 채널만 조정되며, 어레이의 나머지 채널로의 전파가 일시적으로 비활성화됩니다.\n*F1*~*F10*: Inputs, Map 탭에서는 입력을 해당 클러스터에 할당하고, Outputs 탭에서는 출력을 해당 어레이에 할당하며, Clusters 탭에서는 해당 클러스터를 선택합니다. *F11*은 채널을 Single로 되돌립니다.\n*Shift*: 클러스터에 속한 입력의 파라미터를 조정하는 동안 누르면 클러스터의 다른 입력도 상대 모드로 조정됩니다. 변화는 클러스터의 모든 입력에 적용되지만 상대적인 차이는 유지됩니다. *Ctrl/Cmd+Shift*는 절대 모드로 변경하여 클러스터의 모든 입력 값이 동일해집니다.\n*Ctrl/Cmd+Z*: 마지막 변경을 실행 취소합니다. *Ctrl/Cmd+Y* 또는 *Ctrl/Cmd+Shift+Z*는 다시 실행합니다.
+  - EN: *H* opens the help card closest to the pointer.\n*I*, *O* and *R* open the Input, Output and Reverb tabs respectively; for a few seconds afterwards you can type a channel number to select it (confirm with *Enter*).\n*N* opens the Network tab.\n*C* opens the Clusters tab.\n*M* opens the Map tab.\n*L* locks or unlocks the stereo image orientation of the pairs selected on the Map tab.\n*Spacebar* scrolls to the next channel and *Shift+Spacebar* to the previous one in the Input, Output, Reverb and Effects tabs. On the Clusters tab they cycle through the clusters.\n*Ctrl/Cmd* while adjusting a parameter of an output channel that is part of an array adjusts the parameter for the selected channel only, temporarily disabling the propagation to the rest of the array.\n*F1* to *F10* assign inputs to the corresponding cluster in the Input and Map tabs, assign outputs to the corresponding array in the Output tab, and select the corresponding cluster in the Clusters tab. *F11* sets the channel back to Single. On the Effects tab, *F1* to *F8* put the effect in the corresponding link group and *F11* unlinks it; these link groups are separate from the input clusters.\n*Shift* while adjusting a parameter of an input that is part of a cluster adjusts this parameter for the other inputs of the cluster in relative mode: the variation affects all inputs of the cluster, but relative offsets are kept. *Ctrl/Cmd+Shift* changes the parameter in absolute mode: the value becomes identical across all inputs of the cluster.\n*Ctrl/Cmd+Z* undoes the last change; *Ctrl/Cmd+Y* or *Ctrl/Cmd+Shift+Z* redoes it.
+  - KO: *H*: 포인터에서 가장 가까운 도움말 카드를 엽니다.\n*I*, *O*, *R*: 각각 Inputs(입력), Outputs(출력), Reverb 탭을 엽니다. 이후 몇 초 동안 채널 번호를 입력해 선택할 수 있습니다(*Enter*로 확인).\n*N*: Network(네트워크) 탭을 엽니다.\n*C*: Clusters(클러스터) 탭을 엽니다.\n*M*: Map(맵) 탭을 엽니다.\n*L*: Map 탭에서 선택한 페어의 스테레오 이미지 방향을 잠그거나 풉니다.\n*스페이스바*: Inputs, Outputs, Reverb, Effects 탭에서 다음 채널로, *Shift+스페이스바*는 이전 채널로 이동합니다. Clusters 탭에서는 클러스터를 순환합니다.\n*Ctrl/Cmd*: 어레이에 속한 출력의 파라미터를 조정하는 동안 누르면 선택된 채널만 조정되며, 어레이의 나머지 채널로의 전파가 일시적으로 비활성화됩니다.\n*F1*~*F10*: Inputs, Map 탭에서는 입력을 해당 클러스터에 할당하고, Outputs 탭에서는 출력을 해당 어레이에 할당하며, Clusters 탭에서는 해당 클러스터를 선택합니다. *F11*은 채널을 Single로 되돌립니다. Effects 탭에서는 *F1*~*F8*이 이펙트를 해당 링크 그룹에 할당하고, *F11*은 링크를 해제합니다. 이 링크 그룹은 입력 클러스터와 별개입니다.\n*Shift*: 클러스터에 속한 입력의 파라미터를 조정하는 동안 누르면 클러스터의 다른 입력도 상대 모드로 조정됩니다. 변화는 클러스터의 모든 입력에 적용되지만 상대적인 차이는 유지됩니다. *Ctrl/Cmd+Shift*는 절대 모드로 변경하여 클러스터의 모든 입력 값이 동일해집니다.\n*Ctrl/Cmd+Z*: 마지막 변경을 실행 취소합니다. *Ctrl/Cmd+Y* 또는 *Ctrl/Cmd+Shift+Z*는 다시 실행합니다.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1088,6 +2322,11 @@ Walk through each section. For every entry:
 - **`selectChannel`**
   - EN: Select Channel
   - KO: 채널 선택
+  - [ ] OK    Fix: 
+
+- **`selectColour`**
+  - EN: Input Colour
+  - KO: 입력 색상
   - [ ] OK    Fix: 
 
 - **`snapshotIdentity.fixNumbers`**
@@ -1158,6 +2397,28 @@ Walk through each section. For every entry:
 - **`trackingConflictYes`**
   - EN: Yes, switch tracking
   - KO: 예, 트래킹 전환
+  - [ ] OK    Fix: 
+
+## `inputs.effectSends`
+
+- **`gesture.allOff`**
+  - EN: Input Effect Sends All Off
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`gesture.allOn`**
+  - EN: Input Effect Sends All On
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`hint`**
+  - EN: One strip per effect: the fader sets this input's send level into the effect, the button switches the send without changing the level.
+  - KO: 이펙트마다 스트립 하나: 페이더는 이 입력에서 해당 이펙트로 가는 센드 레벨을 정하고, 버튼은 레벨을 바꾸지 않고 센드를 켜거나 끕니다.
+  - [ ] OK    Fix: 
+
+- **`none`**
+  - EN: No effect channels. Set an Effects Channels count on System Config.
+  - KO: 이펙트 채널이 없습니다. System Config에서 Effects Channels 수를 설정하세요.
   - [ ] OK    Fix: 
 
 ## `inputs.gradientMap`
@@ -1242,6 +2503,11 @@ Walk through each section. For every entry:
   - KO: 도형 선택 및 이동
   - [ ] OK    Fix: 
 
+- **`help.shapeBackward`**
+  - EN: Move selected shape(s) one step back, under the next shape (Page Down)
+  - KO: 선택한 도형을 한 단계 뒤로 이동 (Page Down)
+  - [ ] OK    Fix: 
+
 - **`help.shapeDelete`**
   - EN: Delete selected shape(s)
   - KO: 선택한 도형 삭제
@@ -1252,14 +2518,69 @@ Walk through each section. For every entry:
   - KO: 도형 활성화/비활성화
   - [ ] OK    Fix: 
 
+- **`help.shapeForward`**
+  - EN: Move selected shape(s) one step forward, over the next shape (Page Up)
+  - KO: 선택한 도형을 한 단계 앞으로 이동 (Page Up)
+  - [ ] OK    Fix: 
+
 - **`help.shapeLock`**
   - EN: Lock shape position
   - KO: 도형 위치 잠금
   - [ ] OK    Fix: 
 
+- **`help.shapeToBack`**
+  - EN: Send selected shape(s) to the back: the top shape covers those below (End; Page Down = one step)
+  - KO: 선택한 도형을 맨 뒤로 이동 (위 도형이 아래 도형을 가립니다) (End, Page Down = 한 단계)
+  - [ ] OK    Fix: 
+
+- **`help.shapeToFront`**
+  - EN: Bring selected shape(s) to the front: the top shape covers those below (Home; Page Up = one step)
+  - KO: 선택한 도형을 맨 앞으로 이동 (위 도형이 아래 도형을 가립니다) (Home, Page Up = 한 단계)
+  - [ ] OK    Fix: 
+
 - **`help.whiteValue`**
   - EN: Parameter value mapped to white (0.00–1.00)
   - KO: 흰색에 매핑되는 파라미터 값 (0.00–1.00)
+  - [ ] OK    Fix: 
+
+- **`hints.darkMaxAtten`**
+  - EN: Dark = max attenuation | Light = none
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`hints.darkMaxHF`**
+  - EN: Dark = max HF shelf | Light = none
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`hints.darkMaxHeight`**
+  - EN: Dark = max height | Light = ground
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`hints.polygonClose`**
+  - EN: Double-click to close polygon
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`hints.whiteMaxAtten`**
+  - EN: White = max attenuation | Black = none
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`hints.whiteMaxHF`**
+  - EN: White = max HF shelf | Black = none
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`hints.whiteMaxHeight`**
+  - EN: White = max height | Black = ground
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`warnings.heightRatioZero`**
+  - EN: Height Ratio is 0% — increase it for height to take effect
+  - KO: Height Ratio가 0%입니다 — 높이가 적용되려면 값을 올려주세요
   - [ ] OK    Fix: 
 
 ## `inputs.help`
@@ -1292,6 +2613,11 @@ Walk through each section. For every entry:
 - **`clusterSelector`**
   - EN: Object is Part of a Cluster.
   - KO: 객체가 클러스터의 일부입니다.
+  - [ ] OK    Fix: 
+
+- **`colourSwatch`**
+  - EN: Input Colour: the colour identifying this input on the map, the channel tiles and the patch matrix. Auto derives it from the channel number.
+  - KO: Input Colour: 맵, 채널 타일, 패치 매트릭스에서 이 입력을 구분하는 색상. Auto는 채널 번호로부터 색상을 정합니다.
   - [ ] OK    Fix: 
 
 - **`commonAttenDial`**
@@ -1367,6 +2693,26 @@ Walk through each section. For every entry:
 - **`editScope`**
   - EN: Open the Snapshot Scope window for the selected snapshot.
   - KO: 선택한 스냅샷의 필터 창을 엽니다.
+  - [ ] OK    Fix: 
+
+- **`effectSendLevel`**
+  - EN: Level of this input's send into the effect (-92 to 0 dB). Drag the fader; the wheel nudges it.
+  - KO: 이 입력에서 이펙트로 가는 센드 레벨(-92~0 dB). 페이더를 드래그하고, 휠로 미세 조정합니다.
+  - [ ] OK    Fix: 
+
+- **`effectSendToggle`**
+  - EN: Switch this input's send into the effect on or off. The level is kept.
+  - KO: 이 입력에서 이펙트로 가는 센드를 켜거나 끕니다. 레벨은 유지됩니다.
+  - [ ] OK    Fix: 
+
+- **`effectSendsAllOff`**
+  - EN: Switch this input's send into every effect off.
+  - KO: 이 입력에서 모든 이펙트로 가는 센드를 끕니다.
+  - [ ] OK    Fix: 
+
+- **`effectSendsAllOn`**
+  - EN: Switch this input's send into every effect on.
+  - KO: 이 입력에서 모든 이펙트로 가는 센드를 켭니다.
   - [ ] OK    Fix: 
 
 - **`exportConfig`**
@@ -2046,6 +3392,67 @@ Walk through each section. For every entry:
   - KO: 트래킹이 입력 {from}에서 입력 {to}(으)로 전환됨
   - [ ] OK    Fix: 
 
+## `inputs.warnings`
+
+- **`floorReflections.base`**
+  - EN: Floor reflections are enabled for this input but cannot be produced:
+  - KO: 이 입력에는 바닥 반사가 켜져 있지만 생성할 수 없습니다:
+  - [ ] OK    Fix: 
+
+- **`floorReflections.noSpeakers`**
+  - EN: no speaker has floor reflections enabled with strictly positive horizontal and vertical parallax (listener head away from and above the speaker).
+  - KO: 수평·수직 시차가 모두 엄격히 양수(청취자 머리가 스피커에서 떨어져 있고 스피커보다 위에 있음)인 상태에서 바닥 반사가 켜진 스피커가 없습니다.
+  - [ ] OK    Fix: 
+
+- **`floorReflections.onFloor`**
+  - EN: the source is on the floor — raise it above the floor (Z > 0) for reflections.
+  - KO: 소스가 바닥에 있습니다 — 반사를 위해 바닥 위로 올리세요 (Z > 0).
+  - [ ] OK    Fix: 
+
+- **`liveSource`**
+  - EN: The live-source tamer is enabled for this input, but no speaker has live-source attenuation enabled. Enable it on at least one output for this to take effect.
+  - KO: 이 입력에는 라이브 소스 테이머가 켜져 있지만 라이브 소스 감쇠가 켜진 스피커가 없습니다. 적용하려면 하나 이상의 출력에서 켜세요.
+  - [ ] OK    Fix: 
+
+- **`minimalLatency`**
+  - EN: Minimal latency is enabled for this input, but no speaker has minimal latency enabled. Enable it on at least one output for this to take effect.
+  - KO: 이 입력에는 최소 레이턴시가 켜져 있지만 최소 레이턴시가 켜진 스피커가 없습니다. 적용하려면 하나 이상의 출력에서 켜세요.
+  - [ ] OK    Fix: 
+
+- **`short`**
+  - EN: no effect
+  - KO: 효과 없음
+  - [ ] OK    Fix: 
+
+## `levelMeter.effects`
+
+- **`tooltip`**
+  - EN: effects engine: last {last} ms | budget {budget} ms | 3s peak {peak} ms | {batches} batch(es) per wake
+  - KO: 이펙트 엔진: 최근 {last} ms | 예산 {budget} ms | 3초 피크 {peak} ms | 웨이크당 {batches}배치
+  - [ ] OK    Fix: 
+
+## `levelMeter.gpuStrip`
+
+- **`inactive`**
+  - EN: inactive
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`status`**
+  - EN: underruns W:{wu} R:{ru} | depth {wd}/{rd} | latency {wl}/{rl} ms
+  - KO: 언더런 W:{wu} R:{ru} | 깊이 {wd}/{rd} | 레이턴시 {wl}/{rl} ms
+  - [ ] OK    Fix: 
+
+- **`tooltip`**
+  - EN: last {last} ms | budget {budget} ms | 3s peak {peak} ms | underruns {under}
+  - KO: 최근 {last} ms | 예산 {budget} ms | 3초 피크 {peak} ms | 언더런 {under}
+  - [ ] OK    Fix: 
+
+- **`tooltipNoUnderruns`**
+  - EN: last {last} ms | budget {budget} ms | 3s peak {peak} ms
+  - KO: 최근 {last} ms | 예산 {budget} ms | 3초 피크 {peak} ms
+  - [ ] OK    Fix: 
+
 ## `levelMeter.tooltips`
 
 - **`clearSolo`**
@@ -2061,6 +3468,13 @@ Walk through each section. For every entry:
 - **`soloMode`**
   - EN: Single: one input at a time. Multi: multiple inputs simultaneously.
   - KO: 단일: 한 번에 하나의 입력. 다중: 여러 입력 동시에.
+  - [ ] OK    Fix: 
+
+## `map`
+
+- **`detachedMessage`**
+  - EN: The map is displayed in a separate window.
+  - KO: 맵이 별도의 창에 표시되고 있습니다.
   - [ ] OK    Fix: 
 
 ## `map.messages`
@@ -2210,57 +3624,57 @@ Walk through each section. For every entry:
 
 - **`admAxisSwap`**
   - EN: Which incoming ADM-OSC axis maps to this internal axis.
-  - KO: (missing — falls back to English)
+  - KO: 들어오는 ADM-OSC 축 중 어느 것이 이 내부 축에 매핑되는지 정합니다.
   - [ ] OK    Fix: 
 
 - **`admAzFlip`**
   - EN: Invert the direction of incoming azimuth.
-  - KO: (missing — falls back to English)
+  - KO: 들어오는 방위각의 방향을 반전합니다.
   - [ ] OK    Fix: 
 
 - **`admAzOffset`**
   - EN: Azimuth offset (deg) applied to incoming ADM-OSC azimuth.
-  - KO: (missing — falls back to English)
+  - KO: 들어오는 ADM-OSC 방위각에 적용되는 방위각 오프셋 (도).
   - [ ] OK    Fix: 
 
 - **`admBreakpoint`**
   - EN: Normalized breakpoint (0-1) for piecewise linear stretch.
-  - KO: (missing — falls back to English)
+  - KO: 구간별 선형 스트레치를 위한 정규화된 분기점 (0-1).
   - [ ] OK    Fix: 
 
 - **`admCenterOffset`**
   - EN: Physical position (m) where normalized 0.0 maps to.
-  - KO: (missing — falls back to English)
+  - KO: 정규화 값 0.0이 대응되는 실제 위치 (m).
   - [ ] OK    Fix: 
 
 - **`admDistMax`**
   - EN: Maximum physical distance (m) at ADM-OSC distance=1.
-  - KO: (missing — falls back to English)
+  - KO: ADM-OSC 거리 = 1일 때의 최대 실제 거리 (m).
   - [ ] OK    Fix: 
 
 - **`admDistMin`**
   - EN: Minimum physical distance (m) at ADM-OSC distance=0.
-  - KO: (missing — falls back to English)
+  - KO: ADM-OSC 거리 = 0일 때의 최소 실제 거리 (m).
   - [ ] OK    Fix: 
 
 - **`admElFlip`**
   - EN: Invert the sign of incoming elevation.
-  - KO: (missing — falls back to English)
+  - KO: 들어오는 고도각의 부호를 반전합니다.
   - [ ] OK    Fix: 
 
 - **`admInnerWidth`**
   - EN: Physical extent (m) from center to breakpoint.
-  - KO: (missing — falls back to English)
+  - KO: 중심에서 분기점까지의 실제 범위 (m).
   - [ ] OK    Fix: 
 
 - **`admInputAssign`**
   - EN: Assign this input to an ADM-OSC mapping for receive/transmit.
-  - KO: (missing — falls back to English)
+  - KO: 이 입력을 수신/송신용 ADM-OSC 매핑에 할당합니다.
   - [ ] OK    Fix: 
 
 - **`admLinkAll`**
   - EN: Select all 6 sides at once for uniform editing.
-  - KO: (missing — falls back to English)
+  - KO: 6개 면을 한 번에 선택하여 균일하게 편집합니다.
   - [ ] OK    Fix: 
 
 - **`admMapping`**
@@ -2275,17 +3689,17 @@ Walk through each section. For every entry:
 
 - **`admOuterWidth`**
   - EN: Physical extent (m) from breakpoint to ±1.
-  - KO: (missing — falls back to English)
+  - KO: 분기점에서 ±1까지의 실제 범위 (m).
   - [ ] OK    Fix: 
 
 - **`admSideSelect`**
   - EN: Select sides to edit. Changes apply to all selected sides at once.
-  - KO: (missing — falls back to English)
+  - KO: 편집할 면을 선택합니다. 변경 사항은 선택한 모든 면에 한 번에 적용됩니다.
   - [ ] OK    Fix: 
 
 - **`admSignFlip`**
   - EN: Invert the sign of the incoming axis value.
-  - KO: (missing — falls back to English)
+  - KO: 들어오는 축 값의 부호를 반전합니다.
   - [ ] OK    Fix: 
 
 - **`currentIP`**
@@ -2549,7 +3963,7 @@ Walk through each section. For every entry:
 
 - **`protocolMismatch`**
   - EN: Remote app uses protocol v{remote}, expected v{local} — update the tablet app
-  - KO: (missing — falls back to English)
+  - KO: 리모트 앱이 프로토콜 v{remote}을(를) 사용 중입니다. v{local}이(가) 필요합니다 — 태블릿 앱을 업데이트하세요
   - [ ] OK    Fix: 
 
 - **`sendFailing`**
@@ -2860,6 +4274,25 @@ Walk through each section. For every entry:
 - **`setToSingle`**
   - EN: Output {num} set to Single
   - KO: 출력 {num}이(가) 단일로 설정됨
+  - [ ] OK    Fix: 
+
+## `reverbs`
+
+- **`noChannels`**
+  - EN: No reverb channels configured.\n\nSet the number of Reverb Channels in System Config.
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+## `reverbs.algorithm`
+
+- **`irGpuActive`**
+  - EN: GPU: {device} (+{ms} ms wet)
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`irGpuFallback`**
+  - EN: GPU unavailable - using CPU: {error}
+  - KO: (missing — falls back to English)
   - [ ] OK    Fix: 
 
 ## `reverbs.dialogs`
@@ -3285,9 +4718,24 @@ Walk through each section. For every entry:
 
 ## `sampler`
 
+- **`exportFailed`**
+  - EN: The sampler config could not be written to {path}.
+  - KO: {path}에 Sampler 설정을 쓸 수 없습니다.
+  - [ ] OK    Fix: 
+
 - **`guide`**
   - EN: Select a cell on the grid to edit its properties.\nDouble-click to load a sample.\nUse Ctrl+Click to assign cells to the active set.
   - KO: 그리드의 셀을 선택하여 속성을 편집합니다.\n샘플을 로드하려면 두 번 클릭합니다.\nCtrl+클릭으로 셀을 활성 세트에 할당합니다.
+  - [ ] OK    Fix: 
+
+- **`placeholder`**
+  - EN: Sampler — coming soon
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`qlabSetCueCreated`**
+  - EN: QLab cue created: Input {channel} set "{name}"
+  - KO: (missing — falls back to English)
   - [ ] OK    Fix: 
 
 ## `sampler.grid`
@@ -3414,11 +4862,57 @@ Walk through each section. For every entry:
   - KO: 기본 위치를 미터 단위로 설정 (X, Y, Z)
   - [ ] OK    Fix: 
 
+## `setAllInputs`
+
+- **`warning`**
+  - EN: Changes will apply to ALL inputs
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+## `snapshot`
+
+- **`qlabExportDone`**
+  - EN: QLab export complete: {count} cues created
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`qlabExportStarted`**
+  - EN: Writing {count} cues to QLab...
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`qlabMemoText`**
+  - EN: Run either of the following cues to recall or update this snapshot
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`qlabNoTarget`**
+  - EN: No QLab target configured
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
 ## `snapshotScope`
 
 - **`noEffectChannels`**
   - EN: This session has no effect channels.
   - KO: 이 세션에는 이펙트 채널이 없습니다.
+  - [ ] OK    Fix: 
+
+- **`writeSnapshotLoadCueTooltip`**
+  - EN: Also create a QLab cue to load this snapshot via OSC
+  - KO: OSC로 이 스냅샷을 로드하는 QLab 큐도 생성
+  - [ ] OK    Fix: 
+
+- **`writeToQLabTooltip`**
+  - EN: Export scope to QLab instead of saving to file
+  - KO: 파일 저장 대신 스코프를 QLab으로 내보내기
+  - [ ] OK    Fix: 
+
+## `snapshotScope.buttons`
+
+- **`updateSnapshotScopeTooltip`**
+  - EN: Write the edited scope into the selected snapshot without re-saving its values. For 'When Saving' snapshots, stored values outside the new scope are removed (backup created first).
+  - KO: 값을 다시 저장하지 않고 편집한 범위를 선택한 스냅샷에 기록합니다. 'When Saving' 스냅샷의 경우 새 범위를 벗어난 저장된 값은 제거됩니다(먼저 백업이 생성됩니다).
   - [ ] OK    Fix: 
 
 ## `snapshotScope.midi`
@@ -3431,6 +4925,55 @@ Walk through each section. For every entry:
 - **`tooltip`**
   - EN: A note-on above velocity 64 on this channel and note recalls this snapshot. Note-offs and softer notes are ignored. Choose the MIDI input in Audio Interface ▸ Device Settings.
   - KO: 이 채널과 노트에서 벨로시티가 64를 넘는 노트 온을 받으면 이 스냅샷을 호출합니다. 노트 오프와 그보다 약한 노트는 무시됩니다. MIDI 입력은 Audio Interface ▸ Device Settings에서 선택하세요.
+  - [ ] OK    Fix: 
+
+## `snapshotScope.templates`
+
+- **`deleteTooltip`**
+  - EN: Delete the selected template
+  - KO: 선택한 템플릿 삭제
+  - [ ] OK    Fix: 
+
+- **`errorTitle`**
+  - EN: Scope Template Error
+  - KO: 범위 템플릿 오류
+  - [ ] OK    Fix: 
+
+- **`overwriteWarning`**
+  - EN: A template with this name already exists — it will be overwritten.
+  - KO: 이 이름의 템플릿이 이미 있습니다 — 덮어씁니다.
+  - [ ] OK    Fix: 
+
+- **`reloadTooltip`**
+  - EN: Replace the grid with the selected template (apply mode is not changed)
+  - KO: 그리드를 선택한 템플릿으로 교체 (적용 모드는 바뀌지 않음)
+  - [ ] OK    Fix: 
+
+- **`storeMessage`**
+  - EN: Enter a name for this scope template:
+  - KO: 이 범위 템플릿의 이름을 입력하세요:
+  - [ ] OK    Fix: 
+
+- **`storeTitle`**
+  - EN: Store Scope Template
+  - KO: 범위 템플릿 저장
+  - [ ] OK    Fix: 
+
+- **`storeTooltip`**
+  - EN: Save the current grid as a new template
+  - KO: 현재 그리드를 새 템플릿으로 저장
+  - [ ] OK    Fix: 
+
+- **`updateTooltip`**
+  - EN: Overwrite the selected template with the current grid
+  - KO: 선택한 템플릿을 현재 그리드로 덮어쓰기
+  - [ ] OK    Fix: 
+
+## `systemConfig.binauralSofa`
+
+- **`noProject`**
+  - EN: Open a project first to import SOFA files
+  - KO: (missing — falls back to English)
   - [ ] OK    Fix: 
 
 ## `systemConfig.channelList`
@@ -3687,6 +5230,16 @@ Walk through each section. For every entry:
   - KO: 줄이기
   - [ ] OK    Fix: 
 
+- **`reduceEffectChannels.message`**
+  - EN: Reducing from {current} to {new} effects channels will remove settings for channels {start} to {end}.\n\nThis cannot be undone.
+  - KO: Effects Channels를 {current}개에서 {new}개로 줄이면 채널 {start}~{end}의 설정이 제거됩니다.\n\n이 작업은 되돌릴 수 없습니다.
+  - [ ] OK    Fix: 
+
+- **`reduceEffectChannels.title`**
+  - EN: Reduce Effects Channels?
+  - KO: Effects Channels를 줄이시겠습니까?
+  - [ ] OK    Fix: 
+
 - **`reduceInputChannels.messageList`**
   - EN: The last channel(s) of that type in the display order will be removed, with their settings:\n\n{rows}\n\nOnce the session is in use their numbers are retired and the remaining channels keep theirs, so the patch, snapshots and cues stay valid.\n\nThis cannot be undone, and it clears the undo history of every tab.
   - KO: 표시 순서에서 해당 유형의 마지막 채널이 설정과 함께 제거됩니다:\n\n{rows}\n\n세션 사용 후에는 해당 번호가 폐기되고 나머지 채널은 번호를 유지하므로 패치·스냅샷·큐는 유효합니다.\n\n이 작업은 되돌릴 수 없으며 모든 탭의 실행 취소 기록을 지웁니다.
@@ -3739,6 +5292,16 @@ Walk through each section. For every entry:
   - KO: 오디오 인터페이스 및 패치 창을 엽니다.
   - [ ] OK    Fix: 
 
+- **`binauralAdvanced`**
+  - EN: Open the listener geometry panel: lateral offset, ear height, head radius, listener angle, and manual head orientation (used when no tracker is active).
+  - KO: Listener Geometry 패널 열기: 좌우 오프셋, 귀 높이, 머리 반지름, 청취자 각도, 수동 머리 방향(활성 트래커가 없을 때 사용).
+  - [ ] OK    Fix: 
+
+- **`binauralAdvancedClose`**
+  - EN: Close the listener geometry panel.
+  - KO: Listener Geometry 패널을 닫습니다.
+  - [ ] OK    Fix: 
+
 - **`binauralAngle`**
   - EN: Where the listener SITS on a circle around the stage origin (degrees, 0 = the audience side, straight in front of the stage). They always face the origin, so this does not turn the head — it walks the listener around the room, changing the distance to every source. To turn the head, use Head Yaw (or Orientation Y/P/R in the Listener Geometry panel). Yaw is measured from this seat, so changing Orbit also re-aims a head tracker’s zero.
   - KO: 바이노럴 청취자 시점의 수평 회전 (도, 0 = 무대 정면).
@@ -3747,6 +5310,11 @@ Walk through each section. For every entry:
 - **`binauralAtten`**
   - EN: Overall level offset for binaural output (dB).
   - KO: 바이노럴 출력의 전체 레벨 오프셋 (dB).
+  - [ ] OK    Fix: 
+
+- **`binauralAttitude`**
+  - EN: Live head attitude from the active tracker (yaw, pitch, roll in degrees). Shows 'no face tracked' while the webcam does not see you.
+  - KO: 활성 트래커의 실시간 머리 자세 (yaw, pitch, roll, 단위: 도). 웹캠이 얼굴을 인식하지 못하면 'no face tracked'가 표시됩니다.
   - [ ] OK    Fix: 
 
 - **`binauralDelay`**
@@ -3764,14 +5332,59 @@ Walk through each section. For every entry:
   - KO: 바이노럴 렌더러 처리를 활성화 또는 비활성화.
   - [ ] OK    Fix: 
 
+- **`binauralHeadRadius`**
+  - EN: Head radius for the structural HRTF model (centimeters). Larger heads produce larger interaural time differences.
+  - KO: 구조적 HRTF 모델의 머리 반지름 (센티미터). 머리가 클수록 양이 시간차가 커집니다.
+  - [ ] OK    Fix: 
+
+- **`binauralHeight`**
+  - EN: Ear height of the binaural listener (meters). HRTF modes only.
+  - KO: 바이노럴 청취자의 귀 높이 (미터). HRTF 모드 전용.
+  - [ ] OK    Fix: 
+
+- **`binauralListenerX`**
+  - EN: Sideways offset of the binaural listener from the seat Orbit and Distance place them at (meters, positive = to the listener’s right). HRTF modes only.
+  - KO: Orbit과 Listener Distance로 정해지는 좌석 위치에서 바이노럴 청취자의 좌우 오프셋 (미터, 양수 = 청취자의 오른쪽). HRTF 모드 전용.
+  - [ ] OK    Fix: 
+
+- **`binauralMode`**
+  - EN: Binaural rendering algorithm: ORTF (legacy) virtual microphone pair, Structural HRTF (parametric head model), or SOFA file (measured HRTFs).
+  - KO: 바이노럴 렌더링 알고리즘: ORTF(레거시) 가상 마이크 쌍, 구조적 HRTF(파라메트릭 머리 모델), 또는 SOFA 파일(실측 HRTF).
+  - [ ] OK    Fix: 
+
+- **`binauralOrientation`**
+  - EN: Manual head orientation offsets from facing the origin: yaw, pitch, roll (degrees). These turn the head on the spot — unlike Orbit, which moves the seat. Ignored while a head tracker is active.
+  - KO: 원점을 바라보는 방향에서 벗어난 수동 머리 방향 오프셋: yaw, pitch, roll (도). 좌석을 옮기는 Orbit과 달리 머리를 제자리에서 돌립니다. 헤드 트래커가 활성이면 무시됩니다.
+  - [ ] OK    Fix: 
+
 - **`binauralOutput`**
   - EN: Select output channel pair for binaural monitoring. Off disables binaural output.
   - KO: 바이노럴 모니터링용 출력 채널 쌍 선택. Off는 바이노럴 출력을 비활성화.
   - [ ] OK    Fix: 
 
+- **`binauralSetZero`**
+  - EN: Look at the stage center, then click to calibrate the head tracker's zero orientation. Webcam tracking takes a moment to start after selecting it.
+  - KO: 무대 중앙을 바라본 상태에서 클릭하면 헤드 트래커의 영점 방향이 보정됩니다. 웹캠 트래킹은 선택 후 시작하는 데 잠시 걸립니다.
+  - [ ] OK    Fix: 
+
+- **`binauralSofa`**
+  - EN: HRTF set for the SOFA render mode: the built-in SADIE II KU100 or a custom SOFA file stored in the project's sofa folder.
+  - KO: SOFA 렌더 모드에서 사용할 HRTF 세트: 내장 SADIE II KU100 또는 프로젝트의 sofa 폴더에 저장된 사용자 SOFA 파일.
+  - [ ] OK    Fix: 
+
+- **`binauralTracker`**
+  - EN: Head orientation source: manual (yaw/pitch/roll controls) or a connected head tracker. Tracker attitude bypasses parameter damping for immediate response.
+  - KO: 머리 방향 소스: 수동(yaw/pitch/roll 컨트롤) 또는 연결된 헤드 트래커. 트래커의 자세는 파라미터 댐핑을 거치지 않아 즉시 반응합니다.
+  - [ ] OK    Fix: 
+
+- **`binauralYaw`**
+  - EN: Turns the listener’s head on the spot, without moving the seat (degrees, 0 = facing the stage origin, positive = turning right). Mirrors the live tracked yaw and is locked while a head tracker is active. HRTF modes only.
+  - KO: 좌석을 옮기지 않고 청취자의 머리를 제자리에서 돌립니다 (도, 0 = 무대 원점을 바라봄, 양수 = 오른쪽으로 돌림). 실시간 트래킹 yaw를 반영하며 헤드 트래커가 활성이면 잠깁니다. HRTF 모드 전용.
+  - [ ] OK    Fix: 
+
 - **`clearSolo`**
   - EN: Clear all input solo states.
-  - KO: Clear all input solo states.
+  - KO: 모든 입력의 솔로 상태를 해제합니다.
   - [ ] OK    Fix: 
 
 - **`colorScheme`**
@@ -3841,7 +5454,7 @@ Walk through each section. For every entry:
 
 - **`levelMeter`**
   - EN: Opens the Level Meter Window.
-  - KO: Opens the Level Meter Window.
+  - KO: 레벨 미터 창을 엽니다.
   - [ ] OK    Fix: 
 
 - **`lightpadSetup`**
@@ -3984,6 +5597,11 @@ Walk through each section. For every entry:
   - KO: 화면 판독기 알림을 활성화하거나 비활성화합니다. 활성화하면 마우스를 올릴 때 매개변수 이름과 값이 알려지고, 몇 초 후 도움말 텍스트가 읽힙니다.
   - [ ] OK    Fix: 
 
+- **`screenRendering`**
+  - EN: Accelerated draws the windows on the graphics card. Compatible draws them on the CPU, so a video call that shares a single window (such as Zoom) shows them live, and opens menus inside the window. Compatible uses more CPU: go back to Accelerated for shows. Always Accelerated at launch.
+  - KO: Accelerated는 그래픽 카드로 창을 그립니다. Compatible은 CPU로 그려서 창 하나만 공유하는 화상 통화(예: Zoom)에서도 실시간으로 보이게 하고, 메뉴를 창 안에서 엽니다. Compatible은 CPU를 더 사용하므로 공연에서는 Accelerated로 되돌리세요. 실행할 때마다 Accelerated로 시작합니다.
+  - [ ] OK    Fix: 
+
 - **`selectProjectFolder`**
   - EN: Select the Location of the Current Project Folder where to store files.
   - KO: 파일을 저장할 현재 프로젝트 폴더의 위치를 선택하세요.
@@ -4072,6 +5690,11 @@ Walk through each section. For every entry:
 - **`temperature`**
   - EN: Temperature (gives the Speed of Sound).
   - KO: 온도 (Speed of Sound을 결정).
+  - [ ] OK    Fix: 
+
+- **`translationTier`**
+  - EN: Choose how much of the interface is translated. 'Help & messages' keeps the controls in English and translates only the help text, messages and dialogs; 'Everything' translates the full interface including labels. Takes full effect after restarting.
+  - KO: 인터페이스를 어느 정도까지 번역할지 선택합니다. 'Help & messages'는 컨트롤을 영어로 유지하고 도움말, 메시지, 대화 상자만 번역합니다. 'Everything'은 레이블을 포함한 전체 인터페이스를 번역합니다. 다시 시작하면 완전히 적용됩니다.
   - [ ] OK    Fix: 
 
 ## `systemConfig.messages`
@@ -4184,4 +5807,145 @@ Walk through each section. For every entry:
 - **`systemInfoCopied`**
   - EN: System info copied to clipboard
   - KO: 시스템 정보가 클립보드에 복사되었습니다
+  - [ ] OK    Fix: 
+
+- **`translationTierChanged`**
+  - EN: Translation set to: {tier} (requires restart for full effect)
+  - KO: 번역을 {tier}(으)로 설정했습니다 (완전히 적용하려면 다시 시작해야 합니다)
+  - [ ] OK    Fix: 
+
+## `updateBanner`
+
+- **`available`**
+  - EN: WFS-DIY v{version} is available!
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+## `wizard.buttons`
+
+- **`gettingStartedHelp`**
+  - EN: Help cards guiding you through the first parameters to adjust when starting a new project
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+## `wizard.steps`
+
+- **`audioDevice.description`**
+  - EN: Select your audio driver and device, set the sample rate and buffer size. Check the patch routing and test your outputs. Close this window when done.
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`audioDevice.title`**
+  - EN: Configure the Audio Interface
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`audioInterface.description`**
+  - EN: Click the button above or press Next to open the Audio Interface window.
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`audioInterface.title`**
+  - EN: Open the Audio Interface
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`configureOutputs.description`**
+  - EN: Use the array presets and geometry tools to calculate speaker positions for your arrays. Close this window when done.
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`configureOutputs.title`**
+  - EN: Configure Output Positions
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`exploreInputs.description`**
+  - EN: Click an input on the map to select it, or lasso several to move them together. Drag to position your sources. Zoom with the mouse wheel or pinch gesture, pan with right-drag or two-finger drag. Add inputs, group them into clusters, and shape your sound field. You can also control positions with a keyboard, SpaceMouse, or other external controllers. Have fun!
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`exploreInputs.title`**
+  - EN: Start Creating!
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`inputChannels.description`**
+  - EN: How many audio sources will you be spatializing? Set Mono Inputs for single sources such as voices and instruments, and Stereo Inputs for stereo feeds such as playback, keyboards or submixes. A stereo input keeps one channel number and takes two hardware inputs, L and R.\nBenefits: the pair moves, joins clusters and is recalled as one source, and it plays as two sources spread by its Width, so the stereo image stays wide across the array.\nLimits: the image between the two sides holds best near the middle of the audience; listeners off to one side mostly hear the nearer side. The whole mix moves together, Floor Reflections, Live Source Tamer, Gradient Maps and Sampler do not apply, and 8 pairs is the maximum. When a source must be placed precisely, use mono stems.\nCPU load: each stereo input is rendered as 6 sources (the total appears next to the stereo count), so estimate about the load of 6 mono inputs for each one.
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`inputChannels.title`**
+  - EN: Set Mono and Stereo Inputs
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`originPoint.description`**
+  - EN: The origin is the reference point for all coordinates. Use the preset buttons or enter custom values. 'Front' places it at the audience edge.
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`originPoint.title`**
+  - EN: Set the Origin Point
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`outputChannels.description`**
+  - EN: Set the number of output channels to match your speaker array.\nEach output corresponds to one physical speaker.
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`outputChannels.title`**
+  - EN: Set Output Channels
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`projectFolder.description`**
+  - EN: Choose a folder to store your WFS project files. This will hold configurations, snapshots, IR files, and samples. Click the button to open the folder selector.
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`projectFolder.title`**
+  - EN: Select a Project Folder
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`reverbChannels.description`**
+  - EN: Reverb channels add room simulation. Set to 0 if you don't need reverb.
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`reverbChannels.title`**
+  - EN: Set Reverb Channels
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`stageConfig.description`**
+  - EN: Set the shape and dimensions of your performance space. Choose box, cylinder, or dome, then enter the size in meters.
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`stageConfig.title`**
+  - EN: Define the Stage
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`startProcessing.description`**
+  - EN: You're all set! Long-press the Processing button to start the WFS engine. You can also start the Binaural Renderer for headphone monitoring.
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`startProcessing.title`**
+  - EN: Start the WFS Engine
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`wizardOfOutZ.description`**
+  - EN: Click the Wizard of OutZ button or press Next to open the output array helper.
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`wizardOfOutZ.title`**
+  - EN: Position Your Outputs
+  - KO: (missing — falls back to English)
   - [ ] OK    Fix:

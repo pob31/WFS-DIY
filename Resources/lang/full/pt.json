@@ -8,6 +8,8 @@
   "common": {
     "ok": "OK",
     "cancel": "Cancelar",
+    "channelDescription": "#{number} \"{name}\" ({type})",
+    "channelDescriptionUnnamed": "#{number} ({type})",
     "apply": "Aplicar",
     "reset": "Reiniciar",
     "save": "Guardar",
@@ -60,7 +62,20 @@
   },
   "systemConfig": {
     "channelList": {
-      "edit": "Organizar..."
+      "edit": "Organizar...",
+      "title": "Organizar Canais de Entrada",
+      "status": "{mono} mono + {stereo} estéreo",
+      "dragHint": "Arraste um canal para mudar a ordem.",
+      "dragHintFresh": "Sessão nova: esta ordem passa a ser a numeração dos canais e o patch é organizado de acordo com ela. Organize agora os canais estéreo e mono, antes de guardar ou de fazer patch.",
+      "dragHintInUse": "Sessão em uso: os números são permanentes. Reordenar altera apenas o que vê — cada canal mantém as suas entradas de hardware, e os snapshots, cues e controlos remotos continuam a apontar para o mesmo canal. A matriz de patch deixará de aparecer como uma diagonal reta.",
+      "fromFile": "De ficheiro...",
+      "fromFileTitle": "Obter a lista de canais de uma configuração guardada",
+      "fromFileHelp": "Adota os números ou a ordem dos canais de uma configuração de sistema ou de entradas guardada, sem carregar mais nada.",
+      "mono": "Mono",
+      "stereo": "Estéreo",
+      "deleteTitle": "Remover Canal de Entrada",
+      "deleteMessage": "Remover o canal de entrada {number}? As suas definições são descartadas. Numa sessão nova, os restantes canais são renumerados segundo a ordem de apresentação; quando a sessão já está em uso, o seu número fica retirado como lacuna e os outros mantêm os seus, pelo que o patch, os snapshots, os cues do QLab e os mapeamentos dos plug-ins DAW continuam válidos.",
+      "deleteConfirm": "Remover"
     },
     "sections": {
       "show": "Espetáculo",
@@ -68,9 +83,9 @@
       "stage": "Palco",
       "master": "Secção Principal",
       "ui": "Interface",
-      "controllers": "Controllers",
+      "controllers": "Controladores",
       "wfsProcessor": "Processador WFS",
-      "binaural": "Binaural Solo",
+      "binaural": "Solo Binaural",
       "binauralRenderer": "Renderizador Binaural",
       "files": "Ficheiros"
     },
@@ -86,6 +101,7 @@
       "renderSourceTotal": "({count} fontes de renderização)",
       "outputChannels": "Canais de Saída:",
       "reverbChannels": "Canais de Reverb:",
+      "effectChannels": "Canais de Efeitos:",
       "algorithm": "Algoritmo:",
       "processing": "Processamento:",
       "stageShape": "Forma do Palco:",
@@ -108,8 +124,18 @@
       "screenReader": "Leitor de Ecrã:",
       "language": "Idioma:",
       "binauralOutput": "Saída binaural:",
+      "binauralMode": "Modo de renderização:",
+      "binauralAdvancedTitle": "Geometria do ouvinte",
+      "binauralNoTracking": "sem tracking",
+      "binauralSofa": "Ficheiro HRTF:",
+      "binauralTracker": "Tracking da cabeça:",
+      "binauralListenerX": "Ouvinte X:",
+      "binauralHeight": "Altura do ouvinte:",
+      "binauralHeadRadius": "Raio da cabeça:",
+      "binauralOrientation": "Orientação G/I/R:",
       "binauralDistance": "Distância ouvinte:",
       "binauralAngle": "Ângulo ouvinte:",
+      "binauralYaw": "Guinada da cabeça:",
       "binauralAtten": "Nível binaural:",
       "binauralDelay": "Atraso binaural:",
       "lightpadSensitivity": "Sensibilidade:",
@@ -125,12 +151,13 @@
     },
     "buttons": {
       "audioPatch": "Interface de Áudio e Patch",
-      "levelMeter": "Level Meters",
-      "clearSolo": "Clear Solo",
+      "levelMeter": "Medidores de Nível",
+      "clearSolo": "Limpar Solo",
       "processingOff": "Processamento: DESLIGADO",
       "processingOn": "Processamento: LIGADO",
       "binauralOff": "Binaural: DESLIGADO",
       "binauralOn": "Binaural: LIGADO",
+      "binauralSetZero": "Definir zero",
       "soloModeSingle": "Solo: Único",
       "soloModeMulti": "Solo: Múltiplo",
       "selectProjectFolder": "Selecionar Pasta do Projeto",
@@ -175,19 +202,34 @@
       "light": "Claro"
     },
     "binauralOutput": {
-      "off": "Off",
+      "off": "Desligado",
       "select": "Selecionar..."
+    },
+    "binauralMode": {
+      "ortf": "ORTF (legado)",
+      "structural": "HRTF estrutural",
+      "sofa": "Ficheiro SOFA"
+    },
+    "binauralSofa": {
+      "builtin": "SADIE II KU100 (integrado)",
+      "import": "Importar SOFA...",
+      "noProject": "Abra primeiro um projeto para importar ficheiros SOFA"
+    },
+    "binauralTracker": {
+      "manual": "Orientação manual"
     },
     "help": {
       "gpuPipelineDepth": "Profundidade do pipeline GPU em blocos de áudio. Adiciona depth x buffer/taxa de amostragem de latência constante (pré-subtraída dos atrasos WFS) e absorve interrupções da GPU da mesma duração: mais profundo = imune a engasgos do ambiente de trabalho/IU, menos profundo = menor latência. Aplicado em tempo real. Predefinição 4.",
       "showName": "Nome do espetáculo atual.",
       "showLocation": "Local do espetáculo atual.",
       "inputChannels": "Número de canais de entrada mono. Aumentar acrescenta canais depois do último; reduzir remove os canais mono com os números mais altos. Bloqueado enquanto o DSP está em execução.",
+      "editChannels": "Organizar os canais de entrada: arraste para intercalar canais mono e estéreo em qualquer ordem, ou remova um canal específico. Numa sessão nova, os números seguem a ordem de apresentação; tornam-se permanentes quando a sessão entra em uso — projeto carregado, separador Entradas ou Mapa aberto, janela de patch aberta, snapshot guardado ou controlo externo ligado. A partir daí, um canal mantém o seu número onde quer que o arraste e um número removido fica retirado como lacuna, pelo que o patch, os snapshots, os cues do QLab e os mapeamentos dos plug-ins DAW nunca se quebram. Bloqueado com o DSP em execução.",
+      "stereoInputChannels": "Número de entradas em par estéreo. Cada uma mantém um número de canal e ocupa duas entradas de hardware (L e R) no patch. Aumentar o número acrescenta depois do último canal; reduzi-lo remove os canais estéreo de número mais alto. Bloqueado com o DSP em execução.",
       "outputChannels": "Número de canais de saída.",
       "reverbChannels": "Número de canais de reverberação.",
       "audioPatch": "Abre a janela de Interface de Áudio e Patch.",
-      "levelMeter": "Opens the Level Meter Window.",
-      "clearSolo": "Clear all input solo states.",
+      "levelMeter": "Abre a janela dos Medidores de Nível.",
+      "clearSolo": "Limpar todos os estados de solo das entradas.",
       "algorithm": "Selecione o algoritmo de renderização no menu.",
       "processing": "Bloquear todos os parâmetros de E/S e iniciar o DSP. Prima longamente para parar o DSP.",
       "soloMode": "Único: uma entrada de cada vez. Múltiplo: várias entradas simultaneamente.",
@@ -238,7 +280,19 @@
       "remoteSetup": "Selecionar o número de pads na aba XY Pads do Remote.",
       "binauralEnable": "Ativar ou desativar o processamento do renderizador binaural.",
       "binauralOutput": "Selecionar o par de canais de saída para a monitorização binaural. Off desativa a saída binaural.",
+      "binauralMode": "Algoritmo de renderização binaural: ORTF (legado), par de microfones virtual; HRTF estrutural (modelo paramétrico da cabeça); ou ficheiro SOFA (HRTF medidas).",
+      "binauralListenerX": "Deslocamento lateral do ouvinte binaural em relação ao lugar onde o Ângulo ouvinte e a Distância ouvinte o colocam (metros, positivo = para a direita do ouvinte). Apenas nos modos HRTF.",
+      "binauralSofa": "Conjunto de HRTF para o modo de renderização SOFA: o SADIE II KU100 integrado ou um ficheiro SOFA personalizado guardado na pasta sofa do projeto.",
+      "binauralTracker": "Fonte da orientação da cabeça: manual (controlos de guinada/inclinação/rolamento) ou um rastreador de cabeça ligado. A atitude do rastreador ignora a suavização de parâmetros para uma resposta imediata.",
+      "binauralSetZero": "Olhe para o centro do palco e clique para calibrar a orientação zero do rastreador de cabeça. O tracking por webcam demora um instante a arrancar depois de selecionado.",
+      "binauralAttitude": "Atitude da cabeça em tempo real a partir do rastreador ativo (guinada, inclinação, rolamento em graus). Mostra 'no face tracked' enquanto a webcam não o vê.",
+      "binauralAdvanced": "Abrir o painel de geometria do ouvinte: deslocamento lateral, altura das orelhas, raio da cabeça, ângulo do ouvinte e orientação manual da cabeça (usada quando não há rastreador ativo).",
+      "binauralAdvancedClose": "Fechar o painel de geometria do ouvinte.",
+      "binauralHeight": "Altura das orelhas do ouvinte binaural (metros). Apenas nos modos HRTF.",
+      "binauralHeadRadius": "Raio da cabeça para o modelo HRTF estrutural (centímetros). Cabeças maiores produzem maiores diferenças de tempo interaural.",
+      "binauralOrientation": "Desvios manuais da orientação da cabeça em relação a olhar para a origem: guinada, inclinação, rolamento (graus). Rodam a cabeça no lugar — ao contrário do Ângulo ouvinte, que move o lugar. Ignorados enquanto um rastreador de cabeça estiver ativo.",
       "binauralDistance": "Distância do ouvinte binaural à origem do palco (metros).",
+      "binauralYaw": "Roda a cabeça do ouvinte no lugar, sem mover o assento (graus, 0 = virado para a origem do palco, positivo = a virar para a direita). Reflete a guinada rastreada em tempo real e fica bloqueado enquanto um rastreador de cabeça estiver ativo. Apenas nos modos HRTF.",
       "binauralAngle": "Rotação horizontal da perspetiva do ouvinte binaural (graus, 0 = virado para o palco).",
       "binauralAtten": "Deslocamento de nível global para a saída binaural (dB).",
       "binauralDelay": "Atraso adicional para a saída binaural (milissegundos).",
@@ -277,7 +331,45 @@
     "dialogs": {
       "reduceInputChannels": {
         "title": "Reduzir Canais de Entrada?",
+        "messageList": "O(s) último(s) canal(is) desse tipo, na ordem de apresentação, serão removidos com as suas definições:\n\n{rows}\n\nQuando a sessão já está em uso, os seus números ficam retirados e os restantes canais mantêm os seus, pelo que o patch, os snapshots e os cues continuam válidos.\n\nIsto não pode ser anulado e limpa o histórico de anulação de todos os separadores.",
+        "row": "  {channel}",
         "message": "Reduzir de {current} para {new} canais de entrada irá remover as configurações dos canais {start} a {end}.\n\nEsta ação não pode ser desfeita."
+      },
+      "channelIdentity": {
+        "title": "A lista de canais difere do ficheiro",
+        "intro": "{file} descreve uma lista de canais diferente da desta sessão.",
+        "relabelOffer": "A disposição coincide posição a posição — os mesmos canais mono e estéreo nos mesmos lugares — mas os números dos canais diferem.\n\nAdotar os números do ficheiro: cada canal mantém o seu lugar, as suas definições e as suas entradas de hardware, e é renumerado para o número que o ficheiro atribui a essa posição:",
+        "relabelOfferHw": "Comparados pela entrada de hardware, estes canais parecem ser os mesmos com números diferentes.\n\nAdotar os números do ficheiro: cada canal mantém o seu lugar, as suas definições e as suas entradas de hardware; só o número muda, para que os snapshots, cues e OSC que usam os números do ficheiro cheguem aos canais certos:",
+        "pairLine": "  {channel} passa a #{newNumber}",
+        "reorderOffer": "Os mesmos canais estão numa ordem diferente.\n\nReorganizar primeiro: os canais são movidos para a ordem do ficheiro e mantêm os seus números, definições e entradas de hardware.",
+        "loadAnyway": "Carregar mesmo assim aplica a lista do ficheiro por NÚMERO de canal:",
+        "patchOnly": "A mesma lista de canais, mas guardada com um patch diferente:",
+        "lineRetyped": "  {channel} passa a {newType} e mantém as suas definições atuais",
+        "lineRemoved": "  {channel} é removido com as suas definições",
+        "lineAdded": "  #{number} ({type}) é criado com as definições predefinidas",
+        "lineRowsCross": "  as entradas de hardware ficam com a posição da sua linha, pelo que cada canal movido recebe as entradas de outro canal",
+        "linePatch": "  {channel}: guardado na(s) entrada(s) de hardware {file}, agora em {live}",
+        "lineMore": "  ... e mais {n}",
+        "noIdentity": "{file} foi guardado por uma versão mais antiga e contém apenas o número de canais ({count}); esta sessão tem {liveCount}. A lista de canais atual é mantida e o patch de hardware do ficheiro é aplicado por posição de linha; {delta}.",
+        "noIdentityRemove": "os {n} canais de número mais alto são removidos: {channels}",
+        "noIdentityAppend": "{n} canal(is) mono acrescentado(s)",
+        "noIdentityKeep": "nenhum canal é acrescentado ou removido",
+        "noIdentityShort": "{file} não contém lista de canais para adotar (guardado por uma versão mais antiga).",
+        "pairMismatch": "O system.xml e o inputs.xml deste projeto não concordam quanto à lista de canais. O system.xml decide os números, tipos e o patch de hardware; o inputs.xml decide depois as definições, tipos e ordem:",
+        "pairAdvice": "Isto acontece quando um dos dois foi guardado isoladamente. Cancele e guarde a configuração completa uma vez para os pôr de novo em sintonia.",
+        "notUndoable": "Nada disto pode ser anulado e limpa o histórico de anulação de todos os separadores.",
+        "takeNumbers": "Adotar os números do ficheiro",
+        "takeNumbersHw": "Adotar os números do ficheiro (por entrada de hardware)",
+        "rearrangeFirst": "Reorganizar primeiro",
+        "loadAnywayButton": "Carregar mesmo assim",
+        "proceed": "Continuar",
+        "cancelled": "Carregamento cancelado: lista de canais não reconciliada.",
+        "alreadyMatches": "A lista de canais já coincide com {file}.",
+        "notAConfig": "{file} não é um ficheiro de configuração de sistema ou de entradas.",
+        "conflictOnly": "As listas estão em conflito, por isso nada pode ser adotado com segurança. Carregar este ficheiro faria o seguinte:",
+        "fixed": "A lista de canais coincide agora com {file}.",
+        "fixFailed": "Não foi possível reconciliar a lista de canais: {error}",
+        "stillDiffers": "A lista de canais continua a diferir de {file} após a reconciliação; carregamento cancelado."
       },
       "reduceOutputChannels": {
         "title": "Reduzir Canais de Saída?",
@@ -286,6 +378,10 @@
       "reduceReverbChannels": {
         "title": "Reduzir Canais de Reverb?",
         "message": "Reduzir de {current} para {new} canais de reverb irá remover as configurações dos canais {start} a {end}.\n\nEsta ação não pode ser desfeita."
+      },
+      "reduceEffectChannels": {
+        "title": "Reduzir Canais de Efeitos?",
+        "message": "Reduzir de {current} para {new} canais de efeitos removerá as definições dos canais {start} a {end}.\n\nIsto não pode ser anulado."
       },
       "reduce": "Reduzir",
       "selectProjectFolder": "Selecionar Pasta do Projeto",
@@ -314,6 +410,7 @@
       "tracking": "Rastreamento"
     },
     "remote": {
+      "protocolMismatch": "A app remota usa o protocolo v{remote}, esperado v{local} — atualize a app do tablet",
       "notResponding": "Remote não responde — verifique o IP/porta do tablet e se o WFS Control está em execução e atualizado",
       "sendFailing": "O envio para o tablet falha — no macOS, permita o WFS-DIY em Definições do Sistema › Privacidade e segurança › Rede local, e verifique se este computador está na rede do tablet"
     },
@@ -483,6 +580,8 @@
       "findMyRemoteTitle": "Encontrar o meu comando",
       "findMyRemoteMessage": "Introduza a palavra-passe do seu comando:",
       "findMyRemotePassword": "Palavra-passe:",
+      "trackingConflictsHeader": "Os seguintes clusters têm várias entradas com tracking ativado:",
+      "trackingConflictsCluster": "Cluster {cluster}: Entradas",
       "trackingConflictsTitle": "Conflitos de tracking detetados",
       "trackingConflictsMessage": "\nApenas é permitida uma entrada com tracking por cluster. Se continuar, o tracking será mantido apenas para a primeira entrada de cada cluster.",
       "trackingConflictsContinue": "Continuar"
@@ -640,6 +739,7 @@
     "reattach": "Reanexar mapa",
     "detachedMessage": "O mapa está exibido em uma janela separada.",
     "labels": {
+      "effectPrefix": "F",
       "reverbPrefix": "R"
     },
     "messages": {
@@ -658,18 +758,35 @@
     "soloNone": "Nenhum",
     "buttons": {
       "clearSolo": "Limpar solo",
-      "soloModeSingle": "Single",
-      "soloModeMulti": "Multi"
+      "soloModeSingle": "Único",
+      "soloModeMulti": "Múltiplo"
     },
     "tooltips": {
       "solo": "Mostrar a contribuição da entrada para todas as saídas no medidor de nível (em modo Solo único) e reproduzir renderização binaural das entradas em solo",
       "clearSolo": "Desativar todos os solos",
       "soloMode": "Único: uma entrada de cada vez. Múltiplo: várias entradas simultaneamente."
+    },
+    "gpuStrip": {
+      "wfsPump": "Bomba WFS",
+      "reverbPump": "Bomba Rev",
+      "feed": "Envio",
+      "engine": "Motor",
+      "status": "underruns W:{wu} R:{ru} | profundidade {wd}/{rd} | latência {wl}/{rl} ms",
+      "inactive": "inativo",
+      "tooltip": "último {last} ms | orçamento {budget} ms | pico 3 s {peak} ms | underruns {under}",
+      "tooltipNoUnderruns": "último {last} ms | orçamento {budget} ms | pico 3 s {peak} ms"
+    },
+    "effects": {
+      "feed": "F{n} ent.",
+      "return": "F{n} saída",
+      "engine": "Efeitos",
+      "tooltip": "motor de efeitos: último {last} ms | orçamento {budget} ms | pico 3 s {peak} ms | {batches} lote(s) por ativação"
     }
   },
   "clusters": {
     "labels": {
       "assignedInputs": "Entradas Atribuídas",
+      "clearInputs": "Limpar Entradas",
       "reference": "Referência:",
       "position": "Posição",
       "posPrefix": "Pos:",
@@ -699,8 +816,8 @@
       "trackedMarker": "[T]"
     },
     "toggles": {
-      "lfoOn": "L.F.O: ON",
-      "lfoOff": "L.F.O: OFF",
+      "lfoOn": "L.F.O: LIGADO",
+      "lfoOff": "L.F.O: DESLIGADO",
       "inputsVisible": "Entradas: Visíveis",
       "inputsHidden": "Entradas: Ocultas"
     },
@@ -709,6 +826,31 @@
         "section": "LFO",
         "period": "Período:",
         "phase": "Fase:",
+        "shapeX": "Forma X:",
+        "shapeY": "Forma Y:",
+        "shapeZ": "Forma Z:",
+        "shapeRot": "Forma Rot:",
+        "shapeScale": "Forma Escala:",
+        "amplitudeX": "Amplitude X:",
+        "amplitudeY": "Amplitude Y:",
+        "amplitudeZ": "Amplitude Z:",
+        "amplitudeRot": "Amplitude Rot:",
+        "amplitudeScale": "Amplitude Escala:",
+        "rateX": "Taxa X:",
+        "rateY": "Taxa Y:",
+        "rateZ": "Taxa Z:",
+        "rateRot": "Taxa Rot:",
+        "rateScale": "Taxa Escala:",
+        "phaseX": "Fase X:",
+        "phaseY": "Fase Y:",
+        "phaseZ": "Fase Z:",
+        "phaseRot": "Fase Rot:",
+        "phaseScale": "Fase Escala:",
+        "outX": "Saída X:",
+        "outY": "Saída Y:",
+        "outZ": "Saída Z:",
+        "outRot": "Saída Rot:",
+        "outScale": "Saída Escala:",
         "x": "X",
         "y": "Y",
         "z": "Z",
@@ -1079,9 +1221,9 @@
       "hiddenOnMap": "Reverbs Ocultos no Mapa",
       "soloReverbs": "Solo Reverbs",
       "soloReverbsOn": "Solo Reverberações ON",
-      "mutePre": "Mute Pre",
+      "mutePre": "Silenciar Pré",
       "mutePreOn": "Mute Pré ON",
-      "mutePost": "Mute Post",
+      "mutePost": "Silenciar Pós",
       "mutePostOn": "Mute Pós ON",
       "editOnMap": "Editar no mapa",
       "editOnMapOn": "Editar no mapa ON",
@@ -1093,7 +1235,9 @@
     },
     "toggles": {
       "minLatencyOn": "Latência Mínima Permitido",
-      "minLatencyOff": "Latência Mínima Excluído"
+      "minLatencyOff": "Latência Mínima Excluído",
+      "applyToAllOn": "Aplicar a todos os nós: LIGADO",
+      "applyToAllOff": "Aplicar a todos os nós: DESLIGADO"
     },
     "coordModes": {
       "xyz": "XYZ"
@@ -1255,7 +1399,9 @@
   "effects": {
     "sections": {
       "effectFeed": "Envio de Efeito",
-      "effectReturn": "Retorno de Efeito"
+      "effectReturn": "Retorno de Efeito",
+      "automOtion": "AutomOção",
+      "lfo": "LFO"
     },
     "buttons": {
       "visibleOnMap": "Efeitos Visíveis no Mapa",
@@ -1266,12 +1412,15 @@
       "reloadBackup": "Recarregar Backup",
       "import": "Importar",
       "export": "Exportar",
+      "stopAll": "Parar Tudo",
+      "pauseAll": "Pausar Tudo",
+      "resumeAll": "Retomar Tudo",
       "editOnMap": "Editar no mapa",
       "editOnMapOn": "Editar no mapa ON",
       "soloEffects": "Solo Efeitos",
       "soloEffectsOn": "Solo Efeitos ON",
-      "mute": "Mute",
-      "muteOn": "Mute ON",
+      "mute": "Silenciar",
+      "muteOn": "Silenciar ON",
       "solo": "Solo",
       "soloOn": "Solo ON",
       "hiddenOnMap": "Efeitos Ocultos no Mapa"
@@ -1287,6 +1436,7 @@
       "groupMuteNeedsGroup": "Este efeito não está num grupo de ligação, por isso não há grupo para silenciar.",
       "assignedGroup": "Efeito {channel} atribuído a {group}",
       "unlinked": "Efeito {channel} retirado do seu grupo de ligação",
+      "relayoutDone": "Todos os retornos de efeito foram de novo dispostos no anel predefinido.",
       "configLoaded": "Configuração de efeitos carregada.",
       "selectFolderFirst": "Selecione primeiro uma pasta de projeto.",
       "error": "Erro: {error}"
@@ -1310,10 +1460,269 @@
       "reloadConfig": "Recarregar a configuração de efeitos a partir de ficheiro (com confirmação).",
       "reloadBackup": "Recarregar a configuração de efeitos a partir do ficheiro de backup (com confirmação).",
       "import": "Importar a configuração de efeitos a partir de ficheiro (com explorador de ficheiros).",
-      "export": "Exportar a configuração de efeitos para ficheiro (com explorador de ficheiros)."
+      "export": "Exportar a configuração de efeitos para ficheiro (com explorador de ficheiros).",
+      "lfoActive": "Ativar ou desativar o movimento periódico do retorno de efeito (LFO).",
+      "lfoPeriod": "Período base do movimento do retorno de efeito.",
+      "lfoPhase": "Desfasamento do movimento do retorno de efeito.",
+      "lfoShapeX": "Comportamento do movimento do retorno de efeito em largura.",
+      "lfoRateX": "Movimento mais rápido ou mais lento em relação ao período base, em largura.",
+      "lfoAmplitudeX": "Largura do movimento em relação à posição base do retorno de efeito.",
+      "lfoPhaseX": "Desfasamento do movimento do retorno de efeito em largura.",
+      "lfoShapeY": "Comportamento do movimento do retorno de efeito em profundidade.",
+      "lfoRateY": "Movimento mais rápido ou mais lento em relação ao período base, em profundidade.",
+      "lfoAmplitudeY": "Profundidade do movimento em relação à posição base do retorno de efeito.",
+      "lfoPhaseY": "Desfasamento do movimento do retorno de efeito em profundidade.",
+      "lfoShapeZ": "Comportamento do movimento do retorno de efeito em altura.",
+      "lfoRateZ": "Movimento mais rápido ou mais lento em relação ao período base, em altura.",
+      "lfoAmplitudeZ": "Altura do movimento em relação à posição base do retorno de efeito.",
+      "lfoPhaseZ": "Desfasamento do movimento do retorno de efeito em altura.",
+      "otomoCoordMode": "Modo de coordenadas para os destinos AutomOtion: Cartesiano (X/Y/Z), Cilíndrico (r/θ/Z) ou Esférico (r/θ/φ).",
+      "otomoDest": "Destino relativo ou absoluto {name} ({unit}).",
+      "otomoAbsRel": "Escolher coordenadas de deslocamento relativas ou absolutas.",
+      "otomoDuration": "Duração do movimento em segundos (0,1 s a 1 hora).",
+      "otomoCurve": "Curvar a trajetória para a esquerda (negativo) ou para a direita (positivo) do sentido de deslocamento.",
+      "otomoSpeedProfile": "Velocidade constante ou aceleração e desaceleração graduais no início e no fim do movimento.",
+      "otomoTrigger": "Início manual do deslocamento ou disparo automático com base no nível de áudio.",
+      "otomoThreshold": "Definir o limiar para o disparo automático do movimento.",
+      "otomoReset": "Definir o nível de reposição para o disparo automático.",
+      "otomoStart": "Iniciar o movimento manualmente. Um retorno de efeito volta sempre a casa: o movimento é um deslocamento aplicado à posição definida.",
+      "otomoStop": "Parar o movimento.",
+      "otomoPause": "Pausar e retomar o movimento.",
+      "otomoStopAll": "Parar todos os movimentos ativos em todos os retornos de efeito.",
+      "otomoPauseResumeAll": "Pausar ou retomar todos os movimentos ativos em todos os retornos de efeito.",
+      "distBypass": "Contornar o módulo de distorção.",
+      "distDrive": "Ganho de entrada para os moldadores (0 - 40 dB).",
+      "distShape": "Mistura de clipping duro (0) a saturação tanh (1).",
+      "distBias": "Assimetria do moldador, para uma coloração de harmónicos pares (tipo válvula).",
+      "distPreLoShelfFreq": "Frequência de corte do shelf de graves antes do moldador de distorção.",
+      "distPreLoShelfGain": "Ganho do shelf de graves antes do moldador de distorção.",
+      "distPreHiShelfFreq": "Frequência de corte do shelf de agudos antes do moldador de distorção.",
+      "distPreHiShelfGain": "Ganho do shelf de agudos antes do moldador de distorção.",
+      "distPostLoShelfFreq": "Frequência de corte do shelf de graves depois do moldador de distorção.",
+      "distPostLoShelfGain": "Ganho do shelf de graves depois do moldador de distorção.",
+      "distPostHiShelfFreq": "Frequência de corte do shelf de agudos depois do moldador de distorção.",
+      "distPostHiShelfGain": "Ganho do shelf de agudos depois do moldador de distorção.",
+      "distOutput": "Nível de saída da distorção (-24 a +12 dB).",
+      "distMix": "Mistura seco/molhado do módulo de distorção (% molhado).",
+      "distOversample": "Fator de sobreamostragem do moldador de distorção.",
+      "dynBypass": "Contornar esta instância de dinâmica.",
+      "dynDetector": "Deteção de pico ou RMS para ambos os andares.",
+      "dynLookahead": "Atrasa o áudio para que o detetor veja primeiro um transiente (acrescenta latência declarada).",
+      "dynMakeup": "Ganho de compensação aplicado depois de ambos os andares.",
+      "dynAutoMakeup": "Deriva o ganho de compensação do limiar e da razão do compressor.",
+      "dynCompOn": "Ativar o andar de compressor desta instância de dinâmica.",
+      "dynCompThreshold": "Nível de limiar do compressor (-60 a 0 dB).",
+      "dynCompRatio": "Razão do compressor (1:1 a 100:1; 100 é um limitador).",
+      "dynCompKnee": "Largura do joelho suave do compressor (0 = joelho duro).",
+      "dynCompAttack": "Tempo de ataque do compressor (0,05 - 200 ms).",
+      "dynCompRelease": "Tempo de libertação do compressor (5 - 2000 ms).",
+      "dynCompDetectorDelay": "Deixa passar um transiente antes de o compressor atuar (passagem de transientes, sem latência).",
+      "dynCompScLoCut": "Filtro passa-alto no detetor de sidechain do compressor.",
+      "dynCompScHiCut": "Filtro passa-baixo no detetor de sidechain do compressor.",
+      "dynExpOn": "Ativar o andar de expansor desta instância de dinâmica.",
+      "dynExpThreshold": "Nível de limiar do expansor (-90 a 0 dB).",
+      "dynExpRatio": "Razão do expansor descendente (1:1 a 1:100; 100 é um gate).",
+      "dynExpAttack": "Tempo de ataque do expansor (0,05 - 200 ms).",
+      "dynExpRelease": "Tempo de libertação do expansor (5 - 2000 ms).",
+      "dynExpRange": "Atenuação máxima que o expansor pode aplicar (-80 a 0 dB).",
+      "dynExpHold": "Tempo de retenção antes de o expansor começar a fechar.",
+      "dynExpScLoCut": "Filtro passa-alto no detetor de sidechain do expansor.",
+      "dynExpScHiCut": "Filtro passa-baixo no detetor de sidechain do expansor.",
+      "modBypass": "Contornar o módulo de chorus / flanger.",
+      "modMode": "Caráter de chorus ou de flanger.",
+      "modRate": "Velocidade do LFO do chorus / flanger (0,05 - 10 Hz).",
+      "modDepth": "Profundidade da modulação, em percentagem do atraso central.",
+      "modDelay": "Atraso central da linha modulada.",
+      "modFeedback": "Realimentação com sinal em torno da linha modulada.",
+      "modVoices": "Número de vozes moduladas (1 - 3).",
+      "modShape": "Forma de onda do LFO do chorus / flanger.",
+      "modPhase": "Desfasamento do LFO para este canal (0 - 360 graus).",
+      "modLoCut": "Filtro passa-alto no sinal que entra na linha modulada.",
+      "modThroughZero": "Atrasa o sinal seco para que a linha modulada possa passar por zero.",
+      "modMix": "Mistura seco/molhado do chorus / flanger (% molhado).",
+      "phaserBypass": "Contornar o módulo de phaser.",
+      "phaserStages": "Número de andares passa-tudo (4, 6, 8 ou 12).",
+      "phaserCentre": "Frequência central da varredura passa-tudo (100 - 5000 Hz).",
+      "phaserSpread": "Dispersão dos andares passa-tudo em torno do centro, em oitavas.",
+      "phaserRate": "Velocidade do LFO do phaser (0,02 - 10 Hz).",
+      "phaserDepth": "Profundidade da varredura do phaser, em oitavas.",
+      "phaserShape": "Forma de onda do LFO do phaser.",
+      "phaserFeedback": "Realimentação com sinal em torno da cadeia passa-tudo.",
+      "phaserMix": "Mistura seco/molhado do phaser (% molhado).",
+      "tremBypass": "Contornar o módulo de tremolo.",
+      "tremRate": "Velocidade do tremolo (0,05 - 20 Hz).",
+      "tremDepth": "Profundidade do tremolo em dB (0 - 60 dB).",
+      "tremShape": "Mistura o LFO do tremolo de seno (0) a triângulo (1).",
+      "tremMix": "Mistura seco/molhado do tremolo (% molhado).",
+      "reverbBypass": "Contornar o módulo de reverberação da cadeia.",
+      "reverbModel": "Escolher o algoritmo de reverberação deste módulo: FDN, Plate, Modulated Hall ou Shimmer.",
+      "reverbType": "Preset de reverberação: define de uma só vez o modelo, as reflexões e a sala. Editar qualquer um deles depois torna-o Custom.",
+      "reverbPredelay": "Pré-atraso antes da cauda do módulo de reverberação (0 - 250 ms).",
+      "reverbRT60": "Tempo de decaimento RT60 da reverberação (0,2 - 8,0 segundos).",
+      "reverbRT60LowMult": "Multiplicador do RT60 nas baixas frequências (0,1 - 9,0x).",
+      "reverbRT60HighMult": "Multiplicador do RT60 nas altas frequências (0,1 - 9,0x).",
+      "reverbCrossoverLow": "Frequência de crossover grave para o decaimento em 3 bandas (50 - 500 Hz).",
+      "reverbCrossoverHigh": "Frequência de crossover agudo para o decaimento em 3 bandas (1 - 10 kHz).",
+      "reverbDiffusion": "Quantidade de difusão que controla a densidade dos ecos (0 - 1).",
+      "reverbSize": "Multiplicador do tamanho da sala do módulo de reverberação (0,5 - 2,0x).",
+      "reverbTone": "Filtro passa-baixo na cauda da reverberação (1 - 20 kHz).",
+      "reverbMix": "Mistura seco/molhado do módulo de reverberação (% molhado).",
+      "delayBypass": "Contornar o módulo de delay multitap.",
+      "delayTime": "Tempo de atraso base do delay multitap.",
+      "delayTaps": "Número de taps ativos (1 - 8).",
+      "delayTapMode": "Obter os tempos dos taps do padrão ou dos próprios taps.",
+      "delayPattern": "Padrão de espaçamento dos taps (apenas no modo Pattern).",
+      "delayFeedback": "Quantidade de realimentação da linha de atraso (0 - 95 %).",
+      "delayFeedbackTap": "Tap que alimenta o laço de realimentação.",
+      "delayInLoCut": "Filtro passa-alto no sinal que entra na linha de atraso.",
+      "delayFbLoShelfFreq": "Frequência de corte do shelf de graves dentro do laço de realimentação.",
+      "delayFbLoShelfGain": "Ganho do shelf de graves dentro do laço de realimentação.",
+      "delayFbHiShelfFreq": "Frequência de corte do shelf de agudos dentro do laço de realimentação.",
+      "delayFbHiShelfGain": "Ganho do shelf de agudos dentro do laço de realimentação.",
+      "delayModRate": "Velocidade do LFO de modulação do tempo de atraso.",
+      "delayModDepth": "Profundidade da modulação do tempo de atraso, em percentagem do tempo.",
+      "delayDiffusion": "Difunde a soma dos taps com dois passa-tudo (0 - 1).",
+      "delayGlide": "Tempo de deslize quando o tempo de atraso muda.",
+      "delayMix": "Mistura seco/molhado do delay multitap (% molhado).",
+      "delayTapTime": "Tempo de atraso do Tap <Tap ID> (modo Manual).",
+      "delayTapLevel": "Nível do Tap <Tap ID>.",
+      "crushBypass": "Contornar o módulo de bitcrusher / redução de amostragem.",
+      "crushBits": "Comprimento de palavra do quantizador (1 - 24 bits).",
+      "crushRate": "Taxa de sample-and-hold do redutor de amostragem.",
+      "crushFilter": "Deixar o aliasing livre, ou aplicar passa-baixo antes da retenção.",
+      "crushDither": "Nível de dither antes do quantizador (-96 = desligado).",
+      "crushMix": "Mistura seco/molhado do bitcrusher (% molhado).",
+      "chainTile": "Clique para editar este módulo; arraste para a esquerda ou para a direita para o mover na cadeia. O ponto indica se o módulo está ON, a barra o seu nível de saída (redução de ganho nas Dynamics).",
+      "chainBypass": "Contornar toda a cadeia: o envio passa diretamente para o retorno mantendo a latência da cadeia, de modo que voltar a ativá-la não produz estalidos.",
+      "chainLatency": "A latência atual da cadeia, resultante dos módulos ativos (sobreamostragem, lookahead, linhas de atraso). Aplicada no bloco seguinte.",
+      "linkBadge": "Indica se esta cadeia é partilhada com um grupo de ligação. Defina o grupo e o modo de ligação no separador Parâmetros do Canal.",
+      "eqFlatten": "Premir longamente: repõe todas as bandas deste EQ na forma, frequência, ganho e Q predefinidos.",
+      "eqBandReset": "Premir longamente: repõe esta banda na forma, frequência, ganho e Q predefinidos.",
+      "eqBandToggle": "Ligar ou desligar esta banda. Desligada, a banda conserva as suas definições para quando voltar.",
+      "eqDisplay": "Arraste o manípulo de uma banda para definir a sua frequência e ganho; a roda define o seu Q.",
+      "grMeter": "Redução de ganho que o módulo de dinâmica está a aplicar neste momento.",
+      "tapTime": "Tempo de atraso deste tap. No modo Pattern é o padrão que o define e o slider acompanha-o.",
+      "tapLevel": "Nível deste tap.",
+      "eqShape": "Escolher o modo de EQ da banda <Band ID> desta instância de EQ.",
+      "eqFreq": "Escolher a frequência de EQ da banda <Band ID> desta instância de EQ.",
+      "eqGain": "Escolher o ganho/atenuação de EQ da banda <Band ID> desta instância de EQ.",
+      "eqQ": "Escolher o Q de EQ da banda <Band ID> desta instância de EQ.",
+      "eqSlope": "Escolher a inclinação de EQ da banda <Band ID> desta instância de EQ.",
+      "eqBypass": "Contornar esta instância de EQ.",
+      "settingsLinkNames": "Nomes dos oito grupos de ligação de efeitos. Mostrados na caixa de seleção dos Parâmetros do Canal, no emblema da Cadeia e na matriz de envios.",
+      "settingsLinkMode": "O modo de ligação com que um NOVO canal de efeitos é criado (desligado, absoluto ou relativo). Os canais existentes mantêm o seu.",
+      "settingsRelayout": "Premir longamente para dispor de novo todos os retornos de efeito no anel predefinido. Limpa o bloqueio de propriedade das posições de efeitos.",
+      "settingsFxFeed": "Alimentar os efeitos uns aos outros geometricamente, ou apenas através da matriz (sem atraso nem atenuação geométricos).",
+      "settingsWorkerThreads": "Número de threads de trabalho dos efeitos (-1 = automático, a regra do envio de reverb). Aplica-se no próximo arranque do Processamento.",
+      "settingsReturnCushion": "Blocos de margem nos anéis de retorno dos efeitos (Auto = o registo decide). Aplica-se no próximo arranque do Processamento.",
+      "settingsLoopGuard": "Silencia automaticamente uma alimentação de efeito para efeito que esteja a disparar. A única definição aqui que se aplica em tempo real.",
+      "settingsLoopGuardCeiling": "Nível de pico a que a proteção de ciclo dispara (dBFS). Aplica-se no próximo arranque do Processamento.",
+      "settingsMaxDelay": "O atraso mais longo que qualquer canal de efeitos pode guardar em buffer, em segundos; dimensiona todos os módulos de atraso. Aplica-se no próximo arranque do Processamento.",
+      "settingsFeedDevice": "Dispositivo de cálculo usado para o andar de envio dos efeitos. Aplica-se no próximo arranque do Processamento.",
+      "reverbERProfile": "Reflexões iniciais antes da reverberação: Off, Room, Chamber, Hall ou Cathedral.",
+      "reverbERLevel": "Nível das reflexões iniciais (-30 a +6 dB em relação ao seco).",
+      "reverbModRate": "Velocidade da modulação dentro do tanque da reverberação (0,05 - 5 Hz).",
+      "reverbModDepth": "Profundidade da modulação dentro do tanque da reverberação (0 - 100 %).",
+      "reverbShimmerPitch": "O intervalo em que o shimmer sobe a cada passagem pelo tanque.",
+      "reverbShimmerAmount": "Que parte da cauda é transposta em altura (0 - 100 %)."
+    },
+    "sends": {
+      "corner": "Fontes → Efeitos",
+      "group": "Grupo",
+      "inputPrefix": "Ent",
+      "effectPrefix": "Fx",
+      "allOn": "Todos os envios ON (este efeito)",
+      "allOff": "Todos os envios OFF (este efeito)",
+      "hint": "Clique numa célula para ligar/cortar um envio; arraste para cima ou para baixo para definir o seu nível (Shift = fino). Linhas: todas as entradas e depois todos os retornos de efeito. Colunas: todos os efeitos. A diagonal tracejada é um efeito a alimentar-se a si próprio, o que é recusado.",
+      "gesture": {
+        "toggle": "Interruptor de Envio de Efeito",
+        "level": "Nível de Envio de Efeito"
+      },
+      "announce": {
+        "into": "para o efeito",
+        "on": "ligado",
+        "off": "desligado",
+        "forbidden": "um efeito não pode alimentar-se a si próprio"
+      }
+    },
+    "lfo": {
+      "shapes": {
+        "off": "DESLIGADO",
+        "sine": "seno",
+        "square": "quadrada",
+        "sawtooth": "dente de serra",
+        "triangle": "triângulo",
+        "keystone": "trapézio",
+        "log": "log",
+        "exp": "exp",
+        "random": "aleatório"
+      }
+    },
+    "enums": {
+      "onOff": {
+        "off": "OFF",
+        "on": "ON"
+      },
+      "distOversample": {
+        "off": "Desligado"
+      },
+      "eqShape": {
+        "off": "OFF"
+      },
+      "reverbERProfile": {
+        "off": "Desligado"
+      }
+    },
+    "chain": {
+      "unlinked": "Sem ligação: esta cadeia pertence apenas a este canal.",
+      "linked": "Ligada, {group} ({mode}): a ordem da cadeia, os bypasses e todos os parâmetros dos módulos são partilhados com {count} outro(s) canal(is). Ctrl-arraste para editar apenas este canal.",
+      "linkedAlone": "Ligada, {group} ({mode}): ainda não há outro canal neste grupo.",
+      "linkedOff": "{group}, modo de ligação DESLIGADO: este canal nem envia nem recebe edições da cadeia.",
+      "bypassOn": "Cadeia: ON",
+      "bypassOff": "Cadeia: CONTORNADA",
+      "latency": "Latência: {samples} amostras ({ms} ms)",
+      "latencyIdle": "Latência: - (processamento parado)",
+      "reorderHint": "Arraste um módulo para reordenar a cadeia. Clique num módulo para o editar.",
+      "moduleOn": "ON",
+      "moduleOff": "OFF",
+      "tap": "Tap {n}",
+      "taps": "Taps",
+      "tapTime": "Tempo",
+      "tapLevel": "Nível",
+      "grMeter": "GR",
+      "band": "Banda {n}",
+      "presetApplied": "Preset de reverberação “{name}” aplicado a esta cadeia."
+    },
+    "settings": {
+      "linkGroups": "Grupos de Ligação",
+      "engine": "Motor",
+      "group": "Grupo {n}:",
+      "defaultLinkMode": "Modo de ligação de novos canais:",
+      "relayout": "Reorganizar Efeitos",
+      "fxFeed": "Alimentação efeito-a-efeito:",
+      "fxFeedGeometric": "Geométrica",
+      "fxFeedMatrix": "Só matriz",
+      "workerThreads": "Threads de trabalho (-1 = auto):",
+      "returnCushion": "Margem de retorno:",
+      "cushion": {
+        "auto": "Auto",
+        "n1": "1 bloco",
+        "n2": "2 blocos",
+        "n3": "3 blocos"
+      },
+      "loopGuard": "Proteção de ciclo:",
+      "loopGuardOn": "ON",
+      "loopGuardOff": "OFF",
+      "loopGuardCeiling": "Limite da proteção de ciclo:",
+      "maxDelay": "Tempo de atraso máximo:",
+      "feedDevice": "Dispositivo de cálculo do envio:",
+      "note": "Tudo aqui, exceto o interruptor da Proteção de ciclo, é aplicado no próximo arranque do Processamento: o motor lê estas definições quando se prepara."
     },
     "coordModes": {
-      "xyz": "XYZ"
+      "xyz": "XYZ",
+      "cartesian": "Cartesiano (X Y Z)",
+      "cylindrical": "Cilíndrico (r θ Z)",
+      "spherical": "Esférico (r θ φ)"
     },
     "muteMacros": {
       "select": "Selecionar Macro de Silenciamento",
@@ -1366,7 +1775,33 @@
       "outputMutes": "Silenciamentos de Saída:",
       "arrayAttenuation": "Atenuação de Array:",
       "arrayPrefix": "Array",
+      "duration": "Duração:",
+      "speedProfile": "Perfil de Velocidade:",
+      "curve": "Curva:",
+      "threshold": "Limiar:",
+      "reset": "Reiniciar:",
+      "returnsHome": "Um retorno de efeito volta sempre a casa: o movimento viaja como um deslocamento e a posição que definiu nunca é sobrescrita.",
       "name": "Nome:",
+      "period": "Período:",
+      "phase": "Fase:",
+      "shapeX": "Forma X:",
+      "shapeY": "Forma Y:",
+      "shapeZ": "Forma Z:",
+      "rateX": "Taxa X:",
+      "rateY": "Taxa Y:",
+      "rateZ": "Taxa Z:",
+      "amplitudeX": "Amplitude X:",
+      "amplitudeY": "Amplitude Y:",
+      "amplitudeZ": "Amplitude Z:",
+      "phaseX": "Fase X:",
+      "phaseY": "Fase Y:",
+      "phaseZ": "Fase Z:",
+      "outX": "Saída X:",
+      "outY": "Saída Y:",
+      "outZ": "Saída Z:",
+      "destX": "Dest. X:",
+      "destY": "Dest. Y:",
+      "destZ": "Dest. Z:",
       "angleOn": "Ângulo Ligado:"
     },
     "toggles": {
@@ -1374,6 +1809,14 @@
       "lawInverse": "Lei de Atenuação: 1/d",
       "reverbSendsUnmuted": "Envios para Reverbs: Ativos",
       "reverbSendsMuted": "Envios para Reverbs: Silenciados",
+      "absolute": "Absoluto",
+      "relative": "Relativo",
+      "manual": "Manual",
+      "paused": "Em pausa",
+      "resume": "Em curso",
+      "triggered": "Acionado",
+      "lfoOn": "L.F.O: LIGADO",
+      "lfoOff": "L.F.O: DESLIGADO",
       "lawLog": "Lei de Atenuação: Log",
       "minLatencyOff": "Latência Mínima Excluído"
     }
@@ -1385,7 +1828,11 @@
       "on": "ON",
       "off": "OFF",
       "hint": "Uma faixa por efeito: o fader define o nível de envio desta entrada para o efeito; o botão liga ou corta o envio sem alterar o nível.",
-      "none": "Sem canais de efeito. Defina um número de Effects Channels em Config. Sistema."
+      "none": "Sem canais de efeito. Defina um número de Effects Channels em Config. Sistema.",
+      "gesture": {
+        "allOn": "Todos os Envios de Efeitos da Entrada ON",
+        "allOff": "Todos os Envios de Efeitos da Entrada OFF"
+      }
     },
     "sections": {
       "channel": "Canal",
@@ -1396,7 +1843,7 @@
       "hackoustics": "Hackústica",
       "lfo": "LFO",
       "automotion": "AutomOção",
-      "mutes": "Mutes"
+      "mutes": "Silenciamentos"
     },
     "tabs": {
       "inputParams": "Parâmetros de Entrada",
@@ -1423,7 +1870,9 @@
         "start": "Início:",
         "end": "Fim:",
         "center": "Centro:",
-        "edge": "Borda:"
+        "edge": "Borda:",
+        "visible": "Visível",
+        "shape": "Forma"
       },
       "tools": {
         "select": "Seleção",
@@ -1436,7 +1885,7 @@
         "editPoints": "Editar pontos"
       },
       "buttons": {
-        "enable": "On",
+        "enable": "Ligado",
         "lock": "Bloquear",
         "delete": "Excluir",
         "toBack": "Para trás",
@@ -1568,6 +2017,7 @@
     },
     "buttons": {
       "solo": "Solo",
+      "colourAuto": "Auto",
       "setAllInputs": "Definir todas as Entradas...",
       "storeConfig": "Guardar Config. Entrada",
       "reloadConfig": "Recarregar Config. Entrada",
@@ -1586,8 +2036,8 @@
       "stopAll": "Parar Tudo",
       "pauseAll": "Pausar Tudo",
       "resumeAll": "Retomar Tudo",
-      "soloModeSingle": "Single",
-      "soloModeMulti": "Multi",
+      "soloModeSingle": "Único",
+      "soloModeMulti": "Múltiplo",
       "samplerOff": "Sampler: OFF",
       "samplerOn": "Sampler: ON"
     },
@@ -1688,6 +2138,13 @@
     },
     "arrayPrefix": "Array",
     "dialogs": {
+      "snapshotIdentity": {
+        "title": "Snapshot guardado com um patch diferente",
+        "intro": "O snapshot '{name}' foi guardado quando estes canais estavam noutras entradas de hardware:",
+        "noFix": "Não foi encontrada nenhuma correspondência de hardware um-para-um, pelo que não é proposta nenhuma renumeração automática. Se o sistema foi recablado de propósito, continue; caso contrário, cancele e verifique a lista de canais.",
+        "proceedNote": "Continuar aplica o snapshot por número de canal, tal como está. Cancelar deixa tudo inalterado.",
+        "fixNumbers": "Corrigir números primeiro"
+      },
       "importConfig": "Importar Configuração de Entrada",
       "exportConfig": "Exportar Configuração de Entrada",
       "storeSnapshotTitle": "Guardar novo snapshot",
@@ -1695,6 +2152,7 @@
       "snapshotNameLabel": "Nome:",
       "snapshotOverwriteWarning": "Já existe um snapshot com este nome — será substituído.",
       "selectChannel": "Selecionar canal",
+      "selectColour": "Cor da Entrada",
       "trackingConflictTitle": "Conflito de tracking",
       "trackingConflictCluster": "A entrada {current} tem o tracking ativado, mas a entrada {existing} do cluster {cluster} já está a ser rastreada.\n\nApenas é permitida uma entrada com tracking por cluster.",
       "trackingConflictContinue": "Continuar (desativar tracking)",
@@ -1714,6 +2172,7 @@
       "noSnapshotSelected": "Nenhum snapshot selecionado.",
       "snapshotStored": "Snapshot '{name}' guardado.",
       "snapshotLoaded": "Snapshot '{name}' carregado.",
+      "snapshotEntriesSkipped": "Snapshot '{name}' carregado; {n} entradas ignoradas, sem canal {numbers}",
       "snapshotLoadedWithoutScope": "Snapshot '{name}' carregado (sem âmbito).",
       "snapshotUpdated": "Snapshot '{name}' atualizado.",
       "snapshotDeleted": "Snapshot '{name}' eliminado.",
@@ -1733,7 +2192,8 @@
       "trackingSwitched": "Rastreamento mudou de Entrada {from} para Entrada {to}",
       "clusterEditRelative": "Edição com Shift: alteração relativa aplicada a {count} outra(s) entrada(s) do Cluster {cluster}",
       "clusterEditAbsolute": "Edição com Ctrl+Shift: valor copiado para {count} outra(s) entrada(s) do Cluster {cluster}",
-      "snapshotEffectsSkipped": "Snapshot “{name}”: {n} entradas de efeito ignoradas, sem canal de efeito {ids}"
+      "snapshotEffectsSkipped": "Snapshot “{name}”: {n} entradas de efeito ignoradas, sem canal de efeito {ids}",
+      "snapshotPatchMismatchApplied": "Snapshot '{name}' aplicado, mas foi guardado com um patch diferente ({n} canal(is) diferem) — verifique a lista de canais"
     },
     "help": {
       "effectSendLevel": "Nível do envio desta entrada para o efeito (-92 a 0 dB). Arraste o fader; a roda ajusta com precisão.",
@@ -1757,6 +2217,7 @@
       "channelSelector": "Número e seleção do canal de entrada.",
       "nameEditor": "Nome apresentado do canal de entrada (editável).",
       "clusterSelector": "O objeto faz parte de um cluster.",
+      "colourSwatch": "Cor da Entrada: a cor que identifica esta entrada no mapa, nos mosaicos de canais e na matriz de patch. Auto deriva-a do número do canal.",
       "mapLockButton": "Impedir a interação no separador Mapa.",
       "mapVisibilityButton": "Mostrar ou ocultar a entrada selecionada no mapa.",
       "attenuationSlider": "Atenuação do canal de entrada.",
@@ -1872,6 +2333,16 @@
       "delay": "Atraso:",
       "latency": "Latência:",
       "ratioPrefix": "1:"
+    },
+    "warnings": {
+      "short": "sem efeito",
+      "minimalLatency": "A latência mínima está ativada para esta entrada, mas nenhum altifalante tem a latência mínima ativada. Ative-a em pelo menos uma saída para que produza efeito.",
+      "liveSource": "O domador de fonte ao vivo está ativado para esta entrada, mas nenhum altifalante tem a atenuação de fonte ao vivo ativada. Ative-a em pelo menos uma saída para que produza efeito.",
+      "floorReflections": {
+        "base": "As reflexões do chão estão ativadas para esta entrada mas não podem ser produzidas:",
+        "noSpeakers": "nenhum altifalante tem as reflexões do chão ativadas com paralaxe horizontal e vertical estritamente positivas (cabeça do ouvinte afastada e acima do altifalante).",
+        "onFloor": "a fonte está no chão — eleve-a acima do chão (Z > 0) para haver reflexões."
+      }
     }
   },
   "snapshotScope": {
@@ -1914,6 +2385,23 @@
     "writeToQLabTooltip": "Exportar scope para QLab em vez de guardar em ficheiro",
     "writeSnapshotLoadCue": "Escrever cue de carregamento no QLab",
     "writeSnapshotLoadCueTooltip": "Também criar um cue QLab para carregar este snapshot via OSC",
+    "templates": {
+      "label": "Modelo:",
+      "selectTemplate": "Selecionar modelo...",
+      "store": "Guardar",
+      "reload": "Recarregar",
+      "update": "Atualizar",
+      "deleteTemplate": "Eliminar",
+      "storeTooltip": "Guardar a grelha atual como um novo modelo",
+      "reloadTooltip": "Substituir a grelha pelo modelo selecionado (o modo de aplicação não é alterado)",
+      "updateTooltip": "Substituir o modelo selecionado pela grelha atual",
+      "deleteTooltip": "Eliminar o modelo selecionado",
+      "storeTitle": "Guardar Modelo de Âmbito",
+      "storeMessage": "Introduza um nome para este modelo de âmbito:",
+      "nameLabel": "Nome do modelo",
+      "errorTitle": "Erro do Modelo de Âmbito",
+      "overwriteWarning": "Já existe um modelo com este nome — será substituído."
+    },
     "midi": {
       "label": "MIDI:",
       "enable": "Recuperar por nota MIDI",
@@ -1981,15 +2469,18 @@
       "noNetworkDataInFile": "Não foram encontrados dados de rede no ficheiro",
       "noNetworkSections": "Não foram encontradas secções de rede no ficheiro",
       "noInputDataInFile": "Não foram encontrados dados de entrada no ficheiro",
+      "channelListMismatchNotConfirmed": "Carregamento recusado: a lista de canais em {path} difere da desta sessão e o carregamento não foi confirmado.",
       "noOutputDataInFile": "Não foram encontrados dados de saída no ficheiro",
       "noReverbDataInFile": "Não foram encontrados dados de reverberação no ficheiro",
       "noEffectDataInFile": "Não foram encontrados dados de efeitos no ficheiro",
       "noLFOPresetDataInFile": "Nenhum dado de preset LFO encontrado no ficheiro",
       "noInputDataInSnapshot": "Sem dados de entrada no snapshot",
+      "noScopeDataInTemplate": "Não foram encontrados dados de âmbito no ficheiro de modelo",
       "snapshotDoesNotExist": "O snapshot não existe",
       "snapshotNotFound": "Snapshot não encontrado",
       "snapshotNotFoundNamed": "Snapshot não encontrado: {name}",
       "unusableSnapshotName": "Nome de snapshot inválido: {name}. Um nome não pode conter /, \\ nem :",
+      "reservedSnapshotName": "Nome de snapshot inutilizável: {name}. O Windows reserva-o para um dispositivo (CON, PRN, AUX, NUL, COM1-9, LPT1-9), ou contém um dos caracteres < > \" | ? * ou um caractere de controlo.",
       "failedCreateXML": "Falha ao criar o XML a partir do estado",
       "failedWriteFile": "Falha ao escrever o ficheiro: {path}. O ficheiro no disco não foi alterado.",
       "backupFailed": "Não foi possível fazer uma cópia de segurança de {file} em {folder}, por isso não foi guardado: o ficheiro no disco não foi alterado.",
@@ -2030,14 +2521,14 @@
       "outTime": "Saída (ms)",
       "inOut": "Ent/Saí (ms)",
       "offset": "Desloc. (m)",
-      "offsetX": "Offset X",
-      "offsetY": "Offset Y",
-      "offsetZ": "Offset Z",
+      "offsetX": "Deslocamento X",
+      "offsetY": "Deslocamento Y",
+      "offsetZ": "Deslocamento Z",
       "attenuation": "Atenuação (dB)",
       "previewStop": "Parar"
     },
     "set": {
-      "default": "Set",
+      "default": "Conjunto",
       "rename": "Renomear",
       "sequential": "Sequencial",
       "roundRobin": "Round-Robin",
@@ -2051,8 +2542,8 @@
     "press": {
       "level": "Nível",
       "height": "Altura",
-      "hf": "HF Shelf",
-      "xy": "Position XY",
+      "hf": "Prateleira HF",
+      "xy": "Posição XY",
       "xyScale": "Escala"
     },
     "buttons": {
@@ -2067,6 +2558,7 @@
     },
     "importTitle": "Importar configuração do sampler",
     "exportTitle": "Exportar configuração do sampler",
+    "exportFailed": "Não foi possível escrever a configuração do sampler em {path}.",
     "grid": {
       "help": "Clique=selecionar | Shift=multi | Ctrl=alternar set | DblClique=carregar"
     },
@@ -2116,7 +2608,8 @@
         "processingOn": "Processamento:\nON",
         "processingOff": "Processamento:\nOFF",
         "binauralOn": "Binaural:\nON",
-        "binauralOff": "Binaural:\nOFF"
+        "binauralOff": "Binaural:\nOFF",
+        "brightness": "Brilho"
       },
       "dials": {
         "listenerDistance": "Distância\nOuvinte",
@@ -2143,17 +2636,21 @@
         "positionX": "Posição\nX",
         "positionY": "Posição\nY",
         "positionZ": "Posição\nZ",
-        "offsetX": "Offset\nX",
-        "offsetY": "Offset\nY",
-        "offsetZ": "Offset\nZ",
+        "offsetX": "Desloc.\nX",
+        "offsetY": "Desloc.\nY",
+        "offsetZ": "Desloc.\nZ",
         "orientation": "Orientação",
+        "radius": "Raio",
+        "azimuth": "Azimute",
+        "height": "Altura",
+        "elevation": "Elevação",
         "clusterRefX": "Cluster\nRef X",
         "clusterRefY": "Cluster\nRef Y",
         "clusterScale": "Cluster\nEscala",
         "clusterRotation": "Cluster\nRotação",
-        "moveX": "Move\nX",
-        "moveY": "Move\nY",
-        "moveZ": "Move\nZ"
+        "moveX": "Mover\nX",
+        "moveY": "Mover\nY",
+        "moveZ": "Mover\nZ"
       },
       "labels": {
         "inputN": "Input %d",
@@ -2164,169 +2661,173 @@
     },
     "inputs": {
       "sections": {
-        "attenuationAndDelay": "Attenuation\n& Delay",
-        "positionAndDirectivity": "Position &\nDirectivity",
-        "positionAdvanced": "Position\nAdvanced",
-        "liveSourceBasics": "Live Source\nBasics",
-        "liveSourceCompression": "Live Source\nCompress.",
-        "hackoustics": "Hackoustics",
-        "hackousticsContinued": "Hackoustics\n(continued)",
+        "attenuationAndDelay": "Atenuação\ne Atraso",
+        "positionAndDirectivity": "Posição e\nDiretividade",
+        "positionAdvanced": "Posição\nAvançada",
+        "liveSourceBasics": "Fonte ao Vivo\nBásico",
+        "liveSourceCompression": "Fonte ao Vivo\nCompress.",
+        "hackoustics": "Hackústica",
+        "hackousticsContinued": "Hackústica\n(cont.)",
         "lfo": "LFO",
-        "automOtionPosition": "AutomOtion\nPosition",
-        "automOtionContinued": "AutomOtion\n(cont.)",
-        "automOtionManual": "AutomOtion\nManual",
+        "automOtionPosition": "AutomOção\nPosição",
+        "automOtionContinued": "AutomOção\n(cont.)",
+        "automOtionManual": "AutomOção\nManual",
         "effectSends": "Envios\n{first}-{last}"
       },
       "buttons": {
-        "minimalDelay": "Minimal\nDelay",
-        "attenuationLaw": "Attenuation\nLaw",
-        "constraint": "Constraint",
-        "flip": "Flip",
-        "constraintX": "Constraint X",
-        "constraintY": "Constraint Y",
-        "constraintZ": "Constraint Z",
-        "flipX": "Flip X",
-        "flipY": "Flip Y",
-        "flipZ": "Flip Z",
-        "sideline": "Sideline",
+        "minimalDelay": "Atraso\nMínimo",
+        "attenuationLaw": "Lei de\nAtenuação",
+        "stereoParameters": "Parâmetros\nEstéreo",
+        "constraint": "Restrição",
+        "flip": "Inverter",
+        "constraintX": "Restrição X",
+        "constraintY": "Restrição Y",
+        "constraintZ": "Restrição Z",
+        "flipX": "Inverter X",
+        "flipY": "Inverter Y",
+        "flipZ": "Inverter Z",
+        "sideline": "Linha lateral",
         "tracking": "Tracking",
-        "maxSpeed": "Max Speed",
-        "liveSourceTamer": "Live Source\nTamer",
-        "floorReflections": "Floor\nReflections",
-        "lowCutFilter": "Low Cut\nFilter",
-        "highShelfFilter": "High Shelf\nFilter",
-        "sendToReverb": "Send to\nReverb",
-        "lfoAndJitter": "LFO &\nJitter",
+        "maxSpeed": "Vel. Máx",
+        "liveSourceTamer": "Domador de\nFonte",
+        "floorReflections": "Reflexões\ndo Chão",
+        "lowCutFilter": "Filtro\nCorte Grave",
+        "highShelfFilter": "Filtro Prat.\nAgudo",
+        "sendToReverb": "Envio para\nReverb",
+        "lfoAndJitter": "LFO e\nTremulação",
+        "lfo": "LFO",
         "lfoX": "LFO X",
         "lfoY": "LFO Y",
         "lfoZ": "LFO Z",
         "absRel": "Abs / Rel",
-        "stayReturn": "Stay /\nReturn",
-        "manualTriggered": "Manual /\nTriggered",
+        "stayReturn": "Ficar /\nRegressar",
+        "manualTriggered": "Manual /\nAcionado",
         "play": "▶",
         "pauseResume": "❚❚",
         "stop": "■",
-        "stopAll": "Stop All"
+        "stopAll": "Parar Tudo"
       },
       "dials": {
-        "attenuation": "Attenuation",
-        "delay": "Delay",
-        "latency": "Latency",
-        "distanceAttenuation": "Distance\nAttenuation",
-        "ratio": "Ratio",
-        "commonAttenuation": "Common\nAttenuation",
-        "directivity": "Directivity",
-        "rotation": "Rotation",
-        "tilt": "Tilt",
-        "hfShelf": "HF Shelf",
-        "fringe": "Fringe",
-        "trackingSmooth": "Tracking\nSmooth",
-        "maxSpeed": "Max Speed",
-        "heightFactor": "Height Factor",
-        "shape": "Shape",
-        "radius": "Radius",
-        "fixedAttenuation": "Fixed\nAttenuation",
-        "peakThreshold": "Peak\nThreshold",
-        "peakRatio": "Peak Ratio",
-        "slowThreshold": "Slow\nThreshold",
-        "slowRatio": "Slow Ratio",
-        "frAttenuation": "FR\nAttenuation",
-        "frDiffusion": "FR Diffusion",
-        "lowCutFrequency": "Low Cut\nFrequency",
-        "highShelfFrequency": "High Shelf\nFrequency",
-        "highShelfGain": "High Shelf\nGain",
-        "highShelfSlope": "High Shelf\nSlope",
-        "lfoPeriod": "Period",
-        "lfoPhase": "Phase",
-        "gyrophone": "Gyrophone",
-        "jitter": "Jitter",
+        "attenuation": "Atenuação",
+        "delay": "Atraso",
+        "latency": "Latência",
+        "distanceAttenuation": "Atenuação\nDistância",
+        "ratio": "Rácio",
+        "commonAttenuation": "Atenuação\nComum",
+        "stereoWidth": "Largura\nEstéreo",
+        "stereoAxis": "Eixo\nEstéreo",
+        "directivity": "Diretividade",
+        "rotation": "Rotação",
+        "tilt": "Inclinação",
+        "hfShelf": "Prateleira HF",
+        "fringe": "Margem",
+        "trackingSmooth": "Suavização\nTracking",
+        "maxSpeed": "Vel. Máx",
+        "heightFactor": "Fator de Altura",
+        "shape": "Forma",
+        "radius": "Raio",
+        "fixedAttenuation": "Atenuação\nFixa",
+        "peakThreshold": "Limiar\nde Pico",
+        "peakRatio": "Rácio de Pico",
+        "slowThreshold": "Limiar\nLento",
+        "slowRatio": "Rácio Lento",
+        "frAttenuation": "Atenuação\nFR",
+        "frDiffusion": "Difusão FR",
+        "lowCutFrequency": "Frequência\nCorte Grave",
+        "highShelfFrequency": "Frequência\nPrat. Agudo",
+        "highShelfGain": "Ganho\nPrat. Agudo",
+        "highShelfSlope": "Inclinação\nPrat. Agudo",
+        "lfoPeriod": "Período",
+        "lfoPhase": "Fase",
+        "gyrophone": "Girófone",
+        "jitter": "Tremulação",
         "lfoToggle": "LFO",
         "lfoOn": "LFO\nON",
         "lfoOff": "LFO\nOFF",
-        "lfoShape": "Shape",
+        "lfoShape": "Forma",
         "lfoAmplitude": "Amplitude",
-        "lfoRate": "Rate",
-        "lfoAxisPhase": "Phase",
-        "duration": "Duration",
-        "curve": "Curve",
-        "speedProfile": "Speed\nProfile",
-        "triggerThreshold": "Threshold",
-        "triggerReset": "Reset"
+        "lfoRate": "Taxa",
+        "lfoAxisPhase": "Fase",
+        "duration": "Duração",
+        "curve": "Curva",
+        "speedProfile": "Perfil de\nVelocidade",
+        "triggerThreshold": "Limiar",
+        "triggerReset": "Reiniciar"
       },
       "comboOptions": {
-        "square": "square"
+        "square": "quadrada"
       }
     },
     "outputs": {
       "sections": {
-        "outputParameters": "Output\nParameters",
-        "outputOrientation": "Output\nOrientation"
+        "outputParameters": "Parâmetros\nde Saída",
+        "outputOrientation": "Orientação\nde Saída"
       },
       "buttons": {
-        "minimalLatency": "Minimal\nLatency",
-        "liveSourceAtten": "Live Source\nAtten.",
-        "floorReflections": "Floor\nReflections"
+        "minimalLatency": "Latência\nMínima",
+        "liveSourceAtten": "Aten. Fonte\nao Vivo",
+        "floorReflections": "Reflexões\ndo Chão"
       },
       "dials": {
-        "attenuation": "Attenuation",
-        "delay": "Delay",
-        "latency": "Latency",
-        "distanceAttenuation": "Distance\nAtten.",
-        "hfDamping": "HF Damping",
-        "onAngle": "On Angle",
-        "offAngle": "Off Angle",
-        "orientation": "Orientation",
-        "pitch": "Pitch"
+        "attenuation": "Atenuação",
+        "delay": "Atraso",
+        "latency": "Latência",
+        "distanceAttenuation": "Aten.\nDistância",
+        "hfDamping": "Amortec. HF",
+        "onAngle": "Ângulo Ligado",
+        "offAngle": "Ângulo Desligado",
+        "orientation": "Orientação",
+        "pitch": "Inclinação"
       },
       "eq": {
         "buttons": {
           "eqOnOff": "EQ",
-          "bandOnOff": "Band\nOn/Off"
+          "bandOnOff": "Banda\nOn/Off"
         },
         "dials": {
-          "shape": "Shape",
-          "frequency": "Frequency",
-          "gain": "Gain",
+          "shape": "Forma",
+          "frequency": "Frequência",
+          "gain": "Ganho",
           "q": "Q"
         }
       }
     },
     "reverb": {
       "sections": {
-        "feedParameters": "Reverb Feed\nParameters",
-        "feedOrientation": "Reverb Feed\nOrientation",
-        "reverbReturn": "Reverb\nReturn",
-        "soloMute": "Solo\nMute"
+        "feedParameters": "Parâmetros do\nEnvio Reverb",
+        "feedOrientation": "Orientação do\nEnvio Reverb",
+        "reverbReturn": "Retorno\nReverb",
+        "soloMute": "Solo\nSilenciar"
       },
       "buttons": {
         "editOnMap": "Editar\nno mapa",
         "soloReverb": "Solo\nReverb",
-        "mutePre": "Mute\nPre",
-        "mutePost": "Mute\nPost"
+        "mutePre": "Silenciar\nPré",
+        "mutePost": "Silenciar\nPós"
       },
       "dials": {
-        "commonAttenuation": "Common\nAtten."
+        "commonAttenuation": "Atenuação\nComum"
       },
       "noChannels": "Sem canais Reverb",
       "algorithm": {
         "sdn": "SDN",
         "fdn": "FDN",
         "ir": "IR",
-        "soloMute": "Solo\nMute",
+        "soloMute": "Solo\nSilenciar",
         "rt60Group": "RT60",
-        "crossDiffScale": "Cross\nDiff\nScale",
-        "crossDiffSize": "Cross\nDiff\nSize",
+        "crossDiffScale": "Dif.\nCruzada\nEscala",
+        "crossDiffSize": "Dif.\nCruzada\nTamanho",
         "rt60": "RT60",
-        "rt60High": "RT60\nHigh",
-        "rt60Low": "RT60\nLow",
-        "crossoverHigh": "Crossover\nHigh",
-        "crossoverLow": "Crossover\nLow",
-        "diffusion": "Diffusion",
-        "scale": "Scale",
-        "size": "Size",
-        "wetLevel": "Wet\nLevel",
-        "irTrim": "IR Trim",
-        "irLength": "IR\nLength"
+        "rt60High": "RT60\nAgudos",
+        "rt60Low": "RT60\nGraves",
+        "crossoverHigh": "Crossover\nAgudos",
+        "crossoverLow": "Crossover\nGraves",
+        "diffusion": "Difusão",
+        "scale": "Escala",
+        "size": "Tamanho",
+        "wetLevel": "Nível\nWet",
+        "irTrim": "Corte IR",
+        "irLength": "Duração\nIR"
       }
     },
     "network": {
@@ -2340,25 +2841,71 @@
     },
     "patch": {
       "tabs": {
-        "audioInterface": "Audio\nInterface",
-        "inputPatch": "Input\nPatch",
-        "outputPatch": "Output\nPatch"
+        "audioInterface": "Interface\nÁudio",
+        "inputPatch": "Patch de\nEntrada",
+        "outputPatch": "Patch de\nSaída"
       },
       "buttons": {
-        "scroll": "Scroll",
+        "scroll": "Deslocar",
         "patch": "Patch",
-        "test": "Test",
-        "holdOn": "Hold:\nON",
-        "holdOff": "Hold:\nOFF",
-        "patchUnpatch": "Patch /\nUnpatch",
-        "testChannel": "Test\nChannel"
+        "test": "Teste",
+        "holdOn": "Reter:\nON",
+        "holdOff": "Reter:\nOFF",
+        "patchUnpatch": "Patch /\nRemover",
+        "testChannel": "Testar\nCanal"
       },
       "dials": {
-        "columns": "Column",
-        "rows": "Row",
-        "signalType": "Signal\nType",
-        "level": "Level",
-        "frequency": "Frequency"
+        "columns": "Coluna",
+        "rows": "Linha",
+        "signalType": "Tipo de\nSinal",
+        "level": "Nível",
+        "frequency": "Frequência"
+      }
+    },
+    "effects": {
+      "noChannels": "Sem Canais de Efeitos",
+      "sections": {
+        "feedParameters": "Parâmetros do\nEnvio de Efeito",
+        "feedOrientation": "Orientação do\nEnvio de Efeito",
+        "effectReturn": "Retorno\nde Efeito",
+        "soloMute": "Solo\nSilenciar",
+        "chain": "Cadeia",
+        "module": "Módulo",
+        "moduleCont": "(cont.)",
+        "moduleCont2": "(cont. 2)",
+        "sends": "Envios",
+        "sendsSwitch": "Envio\nOn/Off",
+        "settings": "Configurações",
+        "engine": "Motor"
+      },
+      "buttons": {
+        "feedMiniLatency": "Envio Lat.\nMín.",
+        "attenuationLaw": "Lei de\nAtenuação",
+        "mute": "Silenciar",
+        "solo": "Solo",
+        "soloEffects": "Solo\nEfeitos",
+        "editOnMap": "Editar\nno mapa",
+        "prevModule": "◀ Módulo",
+        "nextModule": "Módulo ▶",
+        "bank": "Página\n{n}/{count}",
+        "chainBypass": "Contornar\nCadeia",
+        "clear": "Limpar",
+        "sendToggle": "Envio\nOn/Off",
+        "sendsAllOn": "Todos\nOn",
+        "sendsAllOff": "Todos\nOff",
+        "loopGuard": "Proteção\nde Ciclo",
+        "fxFeed": "Envio\nGeométrico",
+        "relayout": "Reorganizar"
+      },
+      "dials": {
+        "distanceRatio": "Rácio\nDist.",
+        "hfShelf": "Prateleira HF",
+        "sendLevel": "Nível de\nEnvio",
+        "linkMode": "Modo de\nLigação",
+        "loopCeiling": "Limite da\nProteção",
+        "maxDelay": "Atraso\nMáx.",
+        "workerThreads": "Threads",
+        "returnCushion": "Margem"
       }
     },
     "clusters": {
@@ -2544,6 +3091,22 @@
     "effects": {
       "title": "Efeitos",
       "body": "Um canal de efeitos é uma cadeia de onze módulos (distorção, dois EQ, duas dinâmicas, chorus/flanger, phaser, tremolo, reverberação, delay multitap, bitcrusher) alimentada pelas entradas e por outros efeitos através da matriz de envios. A sua saída é um RETORNO colocado no palco como uma entrada: é reproduzido pelos arrays WFS a partir da sua própria posição, com a mesma orientação, lei de atenuação e silenciamentos de uma entrada.\nO cabeçalho reproduz o do separador Reverberação: seletor de canal, nome, visibilidade no mapa, Editar no mapa, Solo Efeitos, Mute, Solo e Limpar de emergência (premir longamente; mantenha Ctrl para esvaziar todas as cadeias). Os três indicadores dão o estado do motor para este canal: proteção de ciclo ativada, parte de um ciclo de realimentação, alimentado por uma entrada (ponto de entrada do seu conjunto).\nOs grupos de ligação não são como as reverberações, que formam um único sistema: um canal num grupo partilha a sua cadeia (ordem, bypass, parâmetros dos módulos) com os outros membros segundo o modo de ligação de cada um — Absoluto copia, Relativo mantém a diferença, Desligado não recebe nada —, enquanto os seus movimentos, envios, silenciamentos e posição nunca se propagam. Arraste qualquer controlo com Ctrl para editar só este canal. Silenciar grupo silencia cada membro uma vez e deixa cada um editável separadamente."
+    },
+    "effectsChain": {
+      "title": "Cadeia de Efeitos",
+      "body": "A faixa mostra os onze módulos pela sua ordem atual: clique num mosaico para editar esse módulo, arraste-o para a esquerda ou para a direita para o mover na cadeia. O ponto de um mosaico indica se o módulo está ON, a barra mostra o seu nível de saída (redução de ganho nas Dynamics). O emblema acima indica quem mais ouve uma edição; a seu lado ficam o bypass da cadeia (sem estalidos, latência mantida) e a latência da cadeia.\nOs controlos de cada módulo provêm do CSV que os documenta. Os EQ acrescentam um visor interativo e seis faixas de banda com Flatten e Reset por banda em pressão longa; as Dynamics acrescentam um medidor de redução de ganho; o delay acrescenta as suas oito linhas de taps (taps inativos e tempos do modo Pattern esbatidos); a reverberação acrescenta modelos e presets: o menu Model escolhe a própria reverberação (FDN, Plate, Modulated Hall ou Shimmer) e só são mostrados os controlos desse modelo, e um preset define de uma só vez o modelo, as reflexões iniciais e a sala - editar qualquer desses valores volta a pô-lo em Custom, enquanto Tone e Mix ficam como os definiu."
+    },
+    "effectsSends": {
+      "title": "Pós-processamento de Efeitos",
+      "body": "A matriz de envios completa, não uma só linha: cada entrada e cada retorno de efeito como linha de origem, cada efeito como coluna de destino. Clique numa célula para ligar/cortar um envio, arraste para cima ou para baixo para definir o seu nível (Shift = fino), use a roda para ajustar. A diagonal tracejada é um efeito a alimentar-se a si próprio, o que é recusado.\nA coluna do efeito selecionado fica realçada e os dois botões ligam ou cortam todos os envios para ela. Um emblema verde marca uma coluna alimentada por uma entrada - o ponto de entrada do seu conjunto - e um âmbar uma coluna dentro de um ciclo de realimentação. A proteção de ciclo (Configurações) silencia uma alimentação que dispara; Limpar no cabeçalho esvazia uma cadeia que já disparou."
+    },
+    "effectsMovements": {
+      "title": "Movimentos de Efeitos",
+      "body": "O LFO e a AutomOção de um retorno de efeito, dispostos como o separador Entradas dispõe os mesmos dois blocos. Ambos viajam como DESLOCAMENTOS que o motor de cálculo soma à posição definida, e os dois somam-se entre si: o retorno volta sempre a casa e a posição que definiu nunca é sobrescrita.\nNão há Ficar/Regressar (um movimento que terminasse noutro sítio moveria a própria sala), nem girófone (um retorno não tem cone de brilho para rodar) nem tremulação. A geometria do envio segue a posição base; só o retorno segue base + deslocamentos."
+    },
+    "effectsSettings": {
+      "title": "Configurações de Efeitos",
+      "body": "As nove definições partilhadas por todos os canais de efeitos: os oito nomes dos grupos de ligação e o modo com que um NOVO canal é criado; se os efeitos se alimentam uns aos outros geometricamente ou só através da matriz; as threads de trabalho, a margem de retorno, a proteção de ciclo e o seu limite, o atraso mais longo que qualquer cadeia pode guardar em buffer e o dispositivo de cálculo do andar de envio.\nTudo aqui, exceto o interruptor da proteção de ciclo, é aplicado no próximo arranque do Processamento, porque o motor lê estas definições quando se prepara. Reorganizar (pressão longa) dispõe de novo todos os retornos de efeito no anel predefinido e devolve as posições à aplicação."
     }
   },
   "wizard": {
@@ -2664,7 +3227,7 @@
     "soundtracks": "Bandas sonoras",
     "oscCommands": "Comandos OSC",
     "console": "Mesa",
-    "directOuts": "Direct outs",
+    "directOuts": "Saídas diretas",
     "postFader": "post-fader",
     "wfsProcessor": "Processador WFS",
     "inputs": "Entradas",

@@ -1,6 +1,6 @@
 # Proofreading checklist — Spanish (Español)
 
-Locale: `es`  |  Total keys: 803  |  Source: `Resources/lang/en.json` vs `Resources/lang/es.json`
+Locale: `es`  |  Total keys: 1143  |  Source: `Resources/lang/en.json` vs `Resources/lang/es.json`
 
 ## How to use this file
 
@@ -16,6 +16,27 @@ Walk through each section. For every entry:
 - `\n` in the value is a literal newline in the rendered UI; preserve it.
 
 ---
+
+## `ai.history`
+
+- **`noChanges`**
+  - EN: No AI changes yet.
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+## `ai.server`
+
+- **`copyUrlConfirm`**
+  - EN: MCP URL copied to clipboard: {url}
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+## `ai.toast`
+
+- **`moreOlder`**
+  - EN: …and {count} older
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
 
 ## `ai.tooltips`
 
@@ -37,6 +58,35 @@ Walk through each section. For every entry:
 - **`urlButton`**
   - EN: Click to copy the MCP server URL. Useful for Claude Code (claude mcp add wfs-diy <URL> -t http) or any MCP client that takes a URL. Claude Desktop instead uses the JSON config snippet — open the (?) help card.
   - ES: Hacer clic para copiar la URL del servidor MCP. Útil para Claude Code (claude mcp add wfs-diy <URL> -t http) o cualquier cliente MCP que acepte una URL. Claude Desktop usa en su lugar el fragmento de configuración JSON — abrir la tarjeta de ayuda (?).
+  - [ ] OK    Fix: 
+
+## `ai.undo`
+
+- **`errorPrefix`**
+  - EN: AI {verb}: {message}
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+## `arrayHelper.errors`
+
+- **`noPositions`**
+  - EN: No positions to apply. Check geometry parameters.
+  - ES: No hay posiciones para aplicar. Verifique los parámetros de geometría.
+  - [ ] OK    Fix: 
+
+- **`notEnoughOutputs`**
+  - EN: Not enough output channels! Need {count} starting from {start}
+  - ES: ¡No hay suficientes canales de salida! Se necesitan {count} desde {start}
+  - [ ] OK    Fix: 
+
+- **`prefix`**
+  - EN: Error: 
+  - ES: Error: 
+  - [ ] OK    Fix: 
+
+- **`speakerCountZero`**
+  - EN: Number of speakers must be greater than 0
+  - ES: El número de altavoces debe ser mayor que 0
   - [ ] OK    Fix: 
 
 ## `arrayHelper.status`
@@ -100,6 +150,13 @@ Walk through each section. For every entry:
 - **`stopProcessingFirst`**
   - EN: Stop WFS processing to open the Audio Interface window
   - ES: Detenga el procesamiento WFS para abrir la ventana de interfaz de audio
+  - [ ] OK    Fix: 
+
+## `clusters`
+
+- **`qlabPresetCueCreated`**
+  - EN: QLab cue created: Cluster {cluster} preset "{name}"
+  - ES: (missing — falls back to English)
   - [ ] OK    Fix: 
 
 ## `clusters.help`
@@ -284,6 +341,28 @@ Walk through each section. For every entry:
   - ES: Mover todas las entradas del cluster a lo largo del eje Z (altura).
   - [ ] OK    Fix: 
 
+## `clusters.presets`
+
+- **`exported`**
+  - EN: LFO presets exported.
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`imported`**
+  - EN: LFO presets imported.
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`recalled`**
+  - EN: LFO preset recalled from tile {n}.
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`stored`**
+  - EN: LFO preset stored in tile {n}.
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
 ## `clusters.status`
 
 - **`noInputs`**
@@ -440,6 +519,38 @@ Walk through each section. For every entry:
   - ES: No hay canales de efectos. Defina el número en System Config o importe una configuración de efectos.
   - [ ] OK    Fix: 
 
+## `effects.chain`
+
+- **`linked`**
+  - EN: Linked, {group} ({mode}): the chain order, the bypasses and every module parameter are shared with {count} other channel(s). Ctrl-drag to edit this channel alone.
+  - ES: Enlazado, {group} ({mode}): el orden de la cadena, los bypass y todos los parámetros de los módulos se comparten con {count} canal(es) más. Ctrl-arrastre para editar solo este canal.
+  - [ ] OK    Fix: 
+
+- **`linkedAlone`**
+  - EN: Linked, {group} ({mode}): no other channel is in this group yet.
+  - ES: Enlazado, {group} ({mode}): todavía no hay otro canal en este grupo.
+  - [ ] OK    Fix: 
+
+- **`linkedOff`**
+  - EN: {group}, link mode OFF: this channel neither sends nor receives chain edits.
+  - ES: {group}, modo de enlace OFF: este canal ni envía ni recibe ediciones de la cadena.
+  - [ ] OK    Fix: 
+
+- **`presetApplied`**
+  - EN: Reverb preset "{name}" applied to this chain.
+  - ES: Preset de reverb «{name}» aplicado a esta cadena.
+  - [ ] OK    Fix: 
+
+- **`reorderHint`**
+  - EN: Drag a module to reorder the chain. Click a module to edit it.
+  - ES: Arrastre un módulo para reordenar la cadena. Clic en un módulo para editarlo.
+  - [ ] OK    Fix: 
+
+- **`unlinked`**
+  - EN: Unlinked: this chain is this channel's alone.
+  - ES: Sin enlace: esta cadena es solo de este canal.
+  - [ ] OK    Fix: 
+
 ## `effects.dialogs`
 
 - **`exportTitle`**
@@ -454,6 +565,21 @@ Walk through each section. For every entry:
 
 ## `effects.help`
 
+- **`chainBypass`**
+  - EN: Bypass the whole chain: the feed passes straight to the return with the chain's latency held, so switching back is click-free.
+  - ES: Poner en bypass toda la cadena: la entrada pasa directamente al retorno manteniendo la latencia de la cadena, de modo que volver a activarla no produce clics.
+  - [ ] OK    Fix: 
+
+- **`chainLatency`**
+  - EN: The chain's current latency, from the modules that are on (oversampling, lookahead, delay lines). Applied at the next block.
+  - ES: Latencia actual de la cadena, según los módulos activos (sobremuestreo, lookahead, líneas de retardo). Se aplica en el siguiente bloque.
+  - [ ] OK    Fix: 
+
+- **`chainTile`**
+  - EN: Click to edit this module; drag left or right to move it in the chain. The dot shows whether the module is ON, the bar its output level (gain reduction for Dynamics).
+  - ES: Clic para editar este módulo; arrastre a izquierda o derecha para moverlo en la cadena. El punto indica si el módulo está ON, la barra su nivel de salida (reducción de ganancia en Dynamics).
+  - [ ] OK    Fix: 
+
 - **`channelSelector`**
   - EN: Select the effects channel to edit.
   - ES: Seleccionar el canal de efectos a editar.
@@ -464,9 +590,324 @@ Walk through each section. For every entry:
   - ES: Pulsación larga para vaciar esta cadena de efectos; mantenga Ctrl para vaciar todos los efectos.
   - [ ] OK    Fix: 
 
+- **`crushBits`**
+  - EN: Word length of the quantiser (1 - 24 bits).
+  - ES: Longitud de palabra del cuantizador (1 - 24 bits).
+  - [ ] OK    Fix: 
+
+- **`crushBypass`**
+  - EN: Bypass the bitcrusher / downsampler module.
+  - ES: Poner en bypass el módulo de bitcrusher / reductor de frecuencia de muestreo.
+  - [ ] OK    Fix: 
+
+- **`crushDither`**
+  - EN: Dither level before the quantiser (-96 = off).
+  - ES: Nivel de dither antes del cuantizador (-96 = desactivado).
+  - [ ] OK    Fix: 
+
+- **`crushFilter`**
+  - EN: Alias freely, or low-pass before the hold.
+  - ES: Dejar el aliasing libre, o filtrar en paso bajo antes de la retención.
+  - [ ] OK    Fix: 
+
+- **`crushMix`**
+  - EN: Dry/wet mix of the bitcrusher (wet %).
+  - ES: Mezcla seco/húmedo del bitcrusher (% húmedo).
+  - [ ] OK    Fix: 
+
+- **`crushRate`**
+  - EN: Sample-and-hold rate of the downsampler.
+  - ES: Frecuencia de muestreo y retención (sample-and-hold) del reductor.
+  - [ ] OK    Fix: 
+
 - **`cycle`**
   - EN: This effect is part of a feedback loop in the sends grid.
   - ES: Este efecto forma parte de un bucle de realimentación en la cuadrícula de envíos.
+  - [ ] OK    Fix: 
+
+- **`delayBypass`**
+  - EN: Bypass the multitap delay module.
+  - ES: Poner en bypass el módulo de delay multitap.
+  - [ ] OK    Fix: 
+
+- **`delayDiffusion`**
+  - EN: Smear the tap sum with two allpasses (0 - 1).
+  - ES: Difuminar la suma de taps con dos filtros de paso total (0 - 1).
+  - [ ] OK    Fix: 
+
+- **`delayFbHiShelfFreq`**
+  - EN: Corner frequency of the high shelf inside the feedback loop.
+  - ES: Frecuencia de corte del shelf de agudos dentro del bucle de realimentación.
+  - [ ] OK    Fix: 
+
+- **`delayFbHiShelfGain`**
+  - EN: Gain of the high shelf inside the feedback loop.
+  - ES: Ganancia del shelf de agudos dentro del bucle de realimentación.
+  - [ ] OK    Fix: 
+
+- **`delayFbLoShelfFreq`**
+  - EN: Corner frequency of the low shelf inside the feedback loop.
+  - ES: Frecuencia de corte del shelf de graves dentro del bucle de realimentación.
+  - [ ] OK    Fix: 
+
+- **`delayFbLoShelfGain`**
+  - EN: Gain of the low shelf inside the feedback loop.
+  - ES: Ganancia del shelf de graves dentro del bucle de realimentación.
+  - [ ] OK    Fix: 
+
+- **`delayFeedback`**
+  - EN: Feedback amount of the delay line (0 - 95 %).
+  - ES: Cantidad de realimentación de la línea de retardo (0 - 95 %).
+  - [ ] OK    Fix: 
+
+- **`delayFeedbackTap`**
+  - EN: Tap that feeds the feedback loop.
+  - ES: Tap que alimenta el bucle de realimentación.
+  - [ ] OK    Fix: 
+
+- **`delayGlide`**
+  - EN: Glide time when a delay time changes.
+  - ES: Tiempo de deslizamiento cuando cambia un tiempo de retardo.
+  - [ ] OK    Fix: 
+
+- **`delayInLoCut`**
+  - EN: High-pass the signal entering the delay line.
+  - ES: Filtro paso alto en la señal que entra en la línea de retardo.
+  - [ ] OK    Fix: 
+
+- **`delayMix`**
+  - EN: Dry/wet mix of the multitap delay (wet %).
+  - ES: Mezcla seco/húmedo del delay multitap (% húmedo).
+  - [ ] OK    Fix: 
+
+- **`delayModDepth`**
+  - EN: Depth of the delay-time modulation, as a percentage of the time.
+  - ES: Profundidad de la modulación del tiempo de retardo, como porcentaje del tiempo.
+  - [ ] OK    Fix: 
+
+- **`delayModRate`**
+  - EN: Rate of the delay-time modulation LFO.
+  - ES: Velocidad del LFO de modulación del tiempo de retardo.
+  - [ ] OK    Fix: 
+
+- **`delayPattern`**
+  - EN: Tap spacing pattern (Pattern mode only).
+  - ES: Patrón de espaciado de los taps (solo en modo Pattern).
+  - [ ] OK    Fix: 
+
+- **`delayTapLevel`**
+  - EN: Level of Tap <Tap ID>.
+  - ES: Nivel del Tap <Tap ID>.
+  - [ ] OK    Fix: 
+
+- **`delayTapMode`**
+  - EN: Take tap times from the pattern or from the taps.
+  - ES: Tomar los tiempos de los taps del patrón o de los propios taps.
+  - [ ] OK    Fix: 
+
+- **`delayTapTime`**
+  - EN: Delay time of Tap <Tap ID> (Manual mode).
+  - ES: Tiempo de retardo del Tap <Tap ID> (modo Manual).
+  - [ ] OK    Fix: 
+
+- **`delayTaps`**
+  - EN: Number of live taps (1 - 8).
+  - ES: Número de taps activos (1 - 8).
+  - [ ] OK    Fix: 
+
+- **`delayTime`**
+  - EN: Base delay time of the multitap delay.
+  - ES: Tiempo de retardo base del delay multitap.
+  - [ ] OK    Fix: 
+
+- **`distBias`**
+  - EN: Asymmetry of the shaper, for even-harmonic (tube-like) colour.
+  - ES: Asimetría del saturador, para un color de armónicos pares (tipo válvula).
+  - [ ] OK    Fix: 
+
+- **`distBypass`**
+  - EN: Bypass the distortion module.
+  - ES: Poner en bypass el módulo de distorsión.
+  - [ ] OK    Fix: 
+
+- **`distDrive`**
+  - EN: Input gain into the shapers (0 - 40 dB).
+  - ES: Ganancia de entrada a los saturadores (0 - 40 dB).
+  - [ ] OK    Fix: 
+
+- **`distMix`**
+  - EN: Dry/wet mix of the distortion module (wet %).
+  - ES: Mezcla seco/húmedo del módulo de distorsión (% húmedo).
+  - [ ] OK    Fix: 
+
+- **`distOutput`**
+  - EN: Distortion output level (-24 to +12 dB).
+  - ES: Nivel de salida de la distorsión (-24 a +12 dB).
+  - [ ] OK    Fix: 
+
+- **`distOversample`**
+  - EN: Oversampling factor for the distortion shaper.
+  - ES: Factor de sobremuestreo del saturador de distorsión.
+  - [ ] OK    Fix: 
+
+- **`distPostHiShelfFreq`**
+  - EN: Corner frequency of the high shelf after the distortion shaper.
+  - ES: Frecuencia de corte del shelf de agudos después del saturador de distorsión.
+  - [ ] OK    Fix: 
+
+- **`distPostHiShelfGain`**
+  - EN: Gain of the high shelf after the distortion shaper.
+  - ES: Ganancia del shelf de agudos después del saturador de distorsión.
+  - [ ] OK    Fix: 
+
+- **`distPostLoShelfFreq`**
+  - EN: Corner frequency of the low shelf after the distortion shaper.
+  - ES: Frecuencia de corte del shelf de graves después del saturador de distorsión.
+  - [ ] OK    Fix: 
+
+- **`distPostLoShelfGain`**
+  - EN: Gain of the low shelf after the distortion shaper.
+  - ES: Ganancia del shelf de graves después del saturador de distorsión.
+  - [ ] OK    Fix: 
+
+- **`distPreHiShelfFreq`**
+  - EN: Corner frequency of the high shelf before the distortion shaper.
+  - ES: Frecuencia de corte del shelf de agudos antes del saturador de distorsión.
+  - [ ] OK    Fix: 
+
+- **`distPreHiShelfGain`**
+  - EN: Gain of the high shelf before the distortion shaper.
+  - ES: Ganancia del shelf de agudos antes del saturador de distorsión.
+  - [ ] OK    Fix: 
+
+- **`distPreLoShelfFreq`**
+  - EN: Corner frequency of the low shelf before the distortion shaper.
+  - ES: Frecuencia de corte del shelf de graves antes del saturador de distorsión.
+  - [ ] OK    Fix: 
+
+- **`distPreLoShelfGain`**
+  - EN: Gain of the low shelf before the distortion shaper.
+  - ES: Ganancia del shelf de graves antes del saturador de distorsión.
+  - [ ] OK    Fix: 
+
+- **`distShape`**
+  - EN: Blend from hard clipping (0) to tanh saturation (1).
+  - ES: Mezcla de recorte duro (0) a saturación tanh (1).
+  - [ ] OK    Fix: 
+
+- **`dynAutoMakeup`**
+  - EN: Derive the makeup gain from the compressor threshold and ratio.
+  - ES: Derivar la ganancia de compensación del umbral y el ratio del compresor.
+  - [ ] OK    Fix: 
+
+- **`dynBypass`**
+  - EN: Bypass this dynamics instance.
+  - ES: Poner en bypass esta instancia de dinámica.
+  - [ ] OK    Fix: 
+
+- **`dynCompAttack`**
+  - EN: Compressor attack time (0.05 - 200 ms).
+  - ES: Tiempo de ataque del compresor (0,05 - 200 ms).
+  - [ ] OK    Fix: 
+
+- **`dynCompDetectorDelay`**
+  - EN: Let a transient through before the compressor grabs (transient pass, no latency).
+  - ES: Dejar pasar un transitorio antes de que el compresor actúe (paso de transitorio, sin latencia).
+  - [ ] OK    Fix: 
+
+- **`dynCompKnee`**
+  - EN: Soft-knee width of the compressor (0 = hard knee).
+  - ES: Anchura del codo suave del compresor (0 = codo duro).
+  - [ ] OK    Fix: 
+
+- **`dynCompOn`**
+  - EN: Enable the compressor stage of this dynamics instance.
+  - ES: Activar la etapa de compresor de esta instancia de dinámica.
+  - [ ] OK    Fix: 
+
+- **`dynCompRatio`**
+  - EN: Compressor ratio (1:1 to 100:1; 100 is a limiter).
+  - ES: Ratio del compresor (1:1 a 100:1; 100 es un limitador).
+  - [ ] OK    Fix: 
+
+- **`dynCompRelease`**
+  - EN: Compressor release time (5 - 2000 ms).
+  - ES: Tiempo de liberación del compresor (5 - 2000 ms).
+  - [ ] OK    Fix: 
+
+- **`dynCompScHiCut`**
+  - EN: Low-pass the compressor's sidechain detector.
+  - ES: Filtro paso bajo en el detector de sidechain del compresor.
+  - [ ] OK    Fix: 
+
+- **`dynCompScLoCut`**
+  - EN: High-pass the compressor's sidechain detector.
+  - ES: Filtro paso alto en el detector de sidechain del compresor.
+  - [ ] OK    Fix: 
+
+- **`dynCompThreshold`**
+  - EN: Compressor threshold level (-60 to 0 dB).
+  - ES: Nivel de umbral del compresor (-60 a 0 dB).
+  - [ ] OK    Fix: 
+
+- **`dynDetector`**
+  - EN: Peak or RMS detection for both stages.
+  - ES: Detección de pico o RMS para ambas etapas.
+  - [ ] OK    Fix: 
+
+- **`dynExpAttack`**
+  - EN: Expander attack time (0.05 - 200 ms).
+  - ES: Tiempo de ataque del expansor (0,05 - 200 ms).
+  - [ ] OK    Fix: 
+
+- **`dynExpHold`**
+  - EN: Hold time before the expander starts to close.
+  - ES: Tiempo de mantenimiento antes de que el expansor empiece a cerrar.
+  - [ ] OK    Fix: 
+
+- **`dynExpOn`**
+  - EN: Enable the expander stage of this dynamics instance.
+  - ES: Activar la etapa de expansor de esta instancia de dinámica.
+  - [ ] OK    Fix: 
+
+- **`dynExpRange`**
+  - EN: Maximum attenuation the expander may apply (-80 to 0 dB).
+  - ES: Atenuación máxima que puede aplicar el expansor (-80 a 0 dB).
+  - [ ] OK    Fix: 
+
+- **`dynExpRatio`**
+  - EN: Downward expander ratio (1:1 to 1:100; 100 is a gate).
+  - ES: Ratio del expansor descendente (1:1 a 1:100; 100 es una puerta).
+  - [ ] OK    Fix: 
+
+- **`dynExpRelease`**
+  - EN: Expander release time (5 - 2000 ms).
+  - ES: Tiempo de liberación del expansor (5 - 2000 ms).
+  - [ ] OK    Fix: 
+
+- **`dynExpScHiCut`**
+  - EN: Low-pass the expander's sidechain detector.
+  - ES: Filtro paso bajo en el detector de sidechain del expansor.
+  - [ ] OK    Fix: 
+
+- **`dynExpScLoCut`**
+  - EN: High-pass the expander's sidechain detector.
+  - ES: Filtro paso alto en el detector de sidechain del expansor.
+  - [ ] OK    Fix: 
+
+- **`dynExpThreshold`**
+  - EN: Expander threshold level (-90 to 0 dB).
+  - ES: Nivel de umbral del expansor (-90 a 0 dB).
+  - [ ] OK    Fix: 
+
+- **`dynLookahead`**
+  - EN: Delay the audio so the detector sees a transient first (adds reported latency).
+  - ES: Retrasar el audio para que el detector vea antes el transitorio (añade latencia notificada).
+  - [ ] OK    Fix: 
+
+- **`dynMakeup`**
+  - EN: Makeup gain applied after both stages.
+  - ES: Ganancia de compensación aplicada tras ambas etapas.
   - [ ] OK    Fix: 
 
 - **`editOnMap`**
@@ -479,9 +920,64 @@ Walk through each section. For every entry:
   - ES: Este efecto recibe señal de una entrada, por lo que es un punto de entrada de su conjunto.
   - [ ] OK    Fix: 
 
+- **`eqBandReset`**
+  - EN: Long-press: reset this band to its default shape, frequency, gain and Q.
+  - ES: Pulsación larga: restablecer esta banda a su forma, frecuencia, ganancia y Q por defecto.
+  - [ ] OK    Fix: 
+
+- **`eqBandToggle`**
+  - EN: Switch this band on or off. Off keeps the band's settings for when it comes back.
+  - ES: Activar o desactivar esta banda. Desactivada conserva los ajustes de la banda para cuando vuelva.
+  - [ ] OK    Fix: 
+
+- **`eqBypass`**
+  - EN: Bypass this EQ instance.
+  - ES: Poner en bypass esta instancia de EQ.
+  - [ ] OK    Fix: 
+
+- **`eqDisplay`**
+  - EN: Drag a band handle to set its frequency and gain; the wheel sets its Q.
+  - ES: Arrastre el tirador de una banda para fijar su frecuencia y ganancia; la rueda ajusta su Q.
+  - [ ] OK    Fix: 
+
+- **`eqFlatten`**
+  - EN: Long-press: reset every band of this EQ to its default shape, frequency, gain and Q.
+  - ES: Pulsación larga: restablecer todas las bandas de este EQ a su forma, frecuencia, ganancia y Q por defecto.
+  - [ ] OK    Fix: 
+
+- **`eqFreq`**
+  - EN: Select the EQ Frequency for Band <Band ID> of this EQ instance.
+  - ES: Elegir la frecuencia de EQ de la banda <Band ID> de esta instancia de EQ.
+  - [ ] OK    Fix: 
+
+- **`eqGain`**
+  - EN: Select the EQ Gain/Attenuation for Band <Band ID> of this EQ instance.
+  - ES: Elegir la ganancia/atenuación de EQ de la banda <Band ID> de esta instancia de EQ.
+  - [ ] OK    Fix: 
+
+- **`eqQ`**
+  - EN: Select the EQ Q for Band <Band ID> of this EQ instance.
+  - ES: Elegir la Q de EQ de la banda <Band ID> de esta instancia de EQ.
+  - [ ] OK    Fix: 
+
+- **`eqShape`**
+  - EN: Select the EQ Mode for Band <Band ID> of this EQ instance.
+  - ES: Elegir el modo de EQ de la banda <Band ID> de esta instancia de EQ.
+  - [ ] OK    Fix: 
+
+- **`eqSlope`**
+  - EN: Select the EQ Slope for Band <Band ID> of this EQ instance.
+  - ES: Elegir la pendiente de EQ de la banda <Band ID> de esta instancia de EQ.
+  - [ ] OK    Fix: 
+
 - **`export`**
   - EN: Export Effects Configuration to file (with file explorer window).
   - ES: Exportar la configuración de efectos a archivo (con explorador de archivos).
+  - [ ] OK    Fix: 
+
+- **`grMeter`**
+  - EN: Gain reduction the dynamics module is applying right now.
+  - ES: Reducción de ganancia que el módulo de dinámica está aplicando ahora mismo.
   - [ ] OK    Fix: 
 
 - **`groupMute`**
@@ -492,6 +988,86 @@ Walk through each section. For every entry:
 - **`import`**
   - EN: Import Effects Configuration from file (with file explorer window).
   - ES: Importar la configuración de efectos desde archivo (con explorador de archivos).
+  - [ ] OK    Fix: 
+
+- **`lfoActive`**
+  - EN: Enable or Disable the Periodic Movement of the Effect Return (LFO).
+  - ES: Activar o desactivar el movimiento periódico del retorno de efecto (LFO).
+  - [ ] OK    Fix: 
+
+- **`lfoAmplitudeX`**
+  - EN: Width of Movement in Relation to Base Position of the Effect Return.
+  - ES: Anchura del movimiento respecto a la posición base del retorno de efecto.
+  - [ ] OK    Fix: 
+
+- **`lfoAmplitudeY`**
+  - EN: Depth of Movement in Relation to Base Position of the Effect Return.
+  - ES: Profundidad del movimiento respecto a la posición base del retorno de efecto.
+  - [ ] OK    Fix: 
+
+- **`lfoAmplitudeZ`**
+  - EN: Height of Movement in Relation to Base Position of the Effect Return.
+  - ES: Altura del movimiento respecto a la posición base del retorno de efecto.
+  - [ ] OK    Fix: 
+
+- **`lfoPeriod`**
+  - EN: Base Period of the Movement of the Effect Return.
+  - ES: Período base del movimiento del retorno de efecto.
+  - [ ] OK    Fix: 
+
+- **`lfoPhase`**
+  - EN: Phase Offset of the Movement of the Effect Return.
+  - ES: Desplazamiento de fase del movimiento del retorno de efecto.
+  - [ ] OK    Fix: 
+
+- **`lfoPhaseX`**
+  - EN: Phase Offset of the Movement of the Effect Return in Width.
+  - ES: Desplazamiento de fase del movimiento del retorno de efecto en anchura.
+  - [ ] OK    Fix: 
+
+- **`lfoPhaseY`**
+  - EN: Phase Offset of the Movement of the Effect Return in Depth.
+  - ES: Desplazamiento de fase del movimiento del retorno de efecto en profundidad.
+  - [ ] OK    Fix: 
+
+- **`lfoPhaseZ`**
+  - EN: Phase Offset of the Movement of the Effect Return in Height.
+  - ES: Desplazamiento de fase del movimiento del retorno de efecto en altura.
+  - [ ] OK    Fix: 
+
+- **`lfoRateX`**
+  - EN: Faster or Slower Movement in Relation to Base Period in Width.
+  - ES: Movimiento más rápido o lento respecto al período base, en anchura.
+  - [ ] OK    Fix: 
+
+- **`lfoRateY`**
+  - EN: Faster or Slower Movement in Relation to Base Period in Depth.
+  - ES: Movimiento más rápido o lento respecto al período base, en profundidad.
+  - [ ] OK    Fix: 
+
+- **`lfoRateZ`**
+  - EN: Faster or Slower Movement in Relation to Base Period in Height.
+  - ES: Movimiento más rápido o lento respecto al período base, en altura.
+  - [ ] OK    Fix: 
+
+- **`lfoShapeX`**
+  - EN: Movement Behaviour of the Effect Return in Width.
+  - ES: Comportamiento del movimiento del retorno de efecto en anchura.
+  - [ ] OK    Fix: 
+
+- **`lfoShapeY`**
+  - EN: Movement Behaviour of the Effect Return in Depth.
+  - ES: Comportamiento del movimiento del retorno de efecto en profundidad.
+  - [ ] OK    Fix: 
+
+- **`lfoShapeZ`**
+  - EN: Movement Behaviour of the Effect Return in Height.
+  - ES: Comportamiento del movimiento del retorno de efecto en altura.
+  - [ ] OK    Fix: 
+
+- **`linkBadge`**
+  - EN: Whether this chain is shared with a link group. Set the group and the link mode on the Channel Parameters tab.
+  - ES: Indica si esta cadena se comparte con un grupo de enlace. El grupo y el modo de enlace se definen en la pestaña Channel Parameters.
   - [ ] OK    Fix: 
 
 - **`linkGroup`**
@@ -514,6 +1090,66 @@ Walk through each section. For every entry:
   - ES: Mostrar u ocultar los marcadores de retorno de efectos en la pestaña Map.
   - [ ] OK    Fix: 
 
+- **`modBypass`**
+  - EN: Bypass the chorus / flanger module.
+  - ES: Poner en bypass el módulo de chorus / flanger.
+  - [ ] OK    Fix: 
+
+- **`modDelay`**
+  - EN: Centre delay of the modulated line.
+  - ES: Retardo central de la línea modulada.
+  - [ ] OK    Fix: 
+
+- **`modDepth`**
+  - EN: Modulation depth as a percentage of the centre delay.
+  - ES: Profundidad de modulación como porcentaje del retardo central.
+  - [ ] OK    Fix: 
+
+- **`modFeedback`**
+  - EN: Signed feedback around the modulated line.
+  - ES: Realimentación con signo alrededor de la línea modulada.
+  - [ ] OK    Fix: 
+
+- **`modLoCut`**
+  - EN: High-pass the signal entering the modulated line.
+  - ES: Filtro paso alto en la señal que entra en la línea modulada.
+  - [ ] OK    Fix: 
+
+- **`modMix`**
+  - EN: Dry/wet mix of the chorus / flanger (wet %).
+  - ES: Mezcla seco/húmedo del chorus / flanger (% húmedo).
+  - [ ] OK    Fix: 
+
+- **`modMode`**
+  - EN: Chorus or flanger voicing.
+  - ES: Sonoridad de chorus o de flanger.
+  - [ ] OK    Fix: 
+
+- **`modPhase`**
+  - EN: LFO phase offset for this channel (0 - 360 deg).
+  - ES: Desfase del LFO para este canal (0 - 360 grados).
+  - [ ] OK    Fix: 
+
+- **`modRate`**
+  - EN: LFO rate of the chorus / flanger (0.05 - 10 Hz).
+  - ES: Velocidad del LFO del chorus / flanger (0,05 - 10 Hz).
+  - [ ] OK    Fix: 
+
+- **`modShape`**
+  - EN: LFO waveform of the chorus / flanger.
+  - ES: Forma de onda del LFO del chorus / flanger.
+  - [ ] OK    Fix: 
+
+- **`modThroughZero`**
+  - EN: Delay the dry signal so the modulated line can pass through zero.
+  - ES: Retrasar la señal seca para que la línea modulada pueda pasar por cero.
+  - [ ] OK    Fix: 
+
+- **`modVoices`**
+  - EN: Number of modulated voices (1 - 3).
+  - ES: Número de voces moduladas (1 - 3).
+  - [ ] OK    Fix: 
+
 - **`mute`**
   - EN: Mute this effect return.
   - ES: Silenciar este retorno de efecto.
@@ -524,6 +1160,121 @@ Walk through each section. For every entry:
   - ES: Nombre mostrado de este canal de efectos.
   - [ ] OK    Fix: 
 
+- **`otomoAbsRel`**
+  - EN: Select Relative or Absolute Coordinates of Displacement.
+  - ES: Elegir coordenadas de desplazamiento relativas o absolutas.
+  - [ ] OK    Fix: 
+
+- **`otomoCoordMode`**
+  - EN: Coordinate display mode for AutomOtion destinations: Cartesian (X/Y/Z), Cylindrical (r/θ/Z), or Spherical (r/θ/φ).
+  - ES: Modo de coordenadas para destinos AutomOtion: Cartesiano (X/Y/Z), Cilíndrico (r/θ/Z) o Esférico (r/θ/φ).
+  - [ ] OK    Fix: 
+
+- **`otomoCurve`**
+  - EN: Bend the Path to the Left (Negative) or Right (Positive) of the Direction of Travel.
+  - ES: Curvar la trayectoria a la izquierda (negativo) o a la derecha (positivo) del sentido de movimiento.
+  - [ ] OK    Fix: 
+
+- **`otomoDest`**
+  - EN: Relative or Absolute Destination {name} ({unit}).
+  - ES: Destino relativo o absoluto {name} ({unit}).
+  - [ ] OK    Fix: 
+
+- **`otomoDuration`**
+  - EN: Duration of the Movement in Seconds (0.1s to 1 hour).
+  - ES: Duración del movimiento en segundos (0,1 s a 1 hora).
+  - [ ] OK    Fix: 
+
+- **`otomoPause`**
+  - EN: Pause and Resume the Movement.
+  - ES: Pausar y reanudar el movimiento.
+  - [ ] OK    Fix: 
+
+- **`otomoPauseResumeAll`**
+  - EN: Pause or Resume All Active Movements on every effect return.
+  - ES: Pausar o reanudar todos los movimientos activos de todos los retornos de efecto.
+  - [ ] OK    Fix: 
+
+- **`otomoReset`**
+  - EN: Set the Reset Level for the Automatic Trigger.
+  - ES: Establecer el nivel de reinicio para el disparo automático.
+  - [ ] OK    Fix: 
+
+- **`otomoSpeedProfile`**
+  - EN: Constant Speed or Gradual Acceleration and Slow Down at the Start and the End of the Movement.
+  - ES: Velocidad constante o aceleración y desaceleración graduales al inicio y al final del movimiento.
+  - [ ] OK    Fix: 
+
+- **`otomoStart`**
+  - EN: Start the Movement Manually. An effect return always comes home: the movement is an offset on the authored position.
+  - ES: Iniciar el movimiento manualmente. Un retorno de efecto siempre vuelve a casa: el movimiento es un desplazamiento sobre la posición fijada.
+  - [ ] OK    Fix: 
+
+- **`otomoStop`**
+  - EN: Stop the Movement.
+  - ES: Detener el movimiento.
+  - [ ] OK    Fix: 
+
+- **`otomoStopAll`**
+  - EN: Stop All Active Movements on every effect return.
+  - ES: Detener todos los movimientos activos de todos los retornos de efecto.
+  - [ ] OK    Fix: 
+
+- **`otomoThreshold`**
+  - EN: Set the Threshold for the Automatic Trigger of the Movement.
+  - ES: Establecer el umbral para el disparo automático del movimiento.
+  - [ ] OK    Fix: 
+
+- **`otomoTrigger`**
+  - EN: Manual Start of Displacement or Automatic Trigger on the Audio Level.
+  - ES: Inicio manual del desplazamiento o disparo automático según el nivel de audio.
+  - [ ] OK    Fix: 
+
+- **`phaserBypass`**
+  - EN: Bypass the phaser module.
+  - ES: Poner en bypass el módulo de phaser.
+  - [ ] OK    Fix: 
+
+- **`phaserCentre`**
+  - EN: Centre frequency of the allpass sweep (100 - 5000 Hz).
+  - ES: Frecuencia central del barrido de paso total (100 - 5000 Hz).
+  - [ ] OK    Fix: 
+
+- **`phaserDepth`**
+  - EN: Sweep depth of the phaser, in octaves.
+  - ES: Profundidad de barrido del phaser, en octavas.
+  - [ ] OK    Fix: 
+
+- **`phaserFeedback`**
+  - EN: Signed feedback around the allpass chain.
+  - ES: Realimentación con signo alrededor de la cadena de paso total.
+  - [ ] OK    Fix: 
+
+- **`phaserMix`**
+  - EN: Dry/wet mix of the phaser (wet %).
+  - ES: Mezcla seco/húmedo del phaser (% húmedo).
+  - [ ] OK    Fix: 
+
+- **`phaserRate`**
+  - EN: LFO rate of the phaser (0.02 - 10 Hz).
+  - ES: Velocidad del LFO del phaser (0,02 - 10 Hz).
+  - [ ] OK    Fix: 
+
+- **`phaserShape`**
+  - EN: LFO waveform of the phaser.
+  - ES: Forma de onda del LFO del phaser.
+  - [ ] OK    Fix: 
+
+- **`phaserSpread`**
+  - EN: Spread of the allpass stages around the centre, in octaves.
+  - ES: Dispersión de las etapas de paso total alrededor del centro, en octavas.
+  - [ ] OK    Fix: 
+
+- **`phaserStages`**
+  - EN: Number of allpass stages (4, 6, 8 or 12).
+  - ES: Número de etapas de paso total (4, 6, 8 o 12).
+  - [ ] OK    Fix: 
+
 - **`reloadBackup`**
   - EN: Reload Effects Configuration from backup file (with confirmation).
   - ES: Recargar la configuración de efectos desde archivo de respaldo (con confirmación).
@@ -532,6 +1283,151 @@ Walk through each section. For every entry:
 - **`reloadConfig`**
   - EN: Reload Effects Configuration from file (with confirmation).
   - ES: Recargar la configuración de efectos desde archivo (con confirmación).
+  - [ ] OK    Fix: 
+
+- **`reverbBypass`**
+  - EN: Bypass the in-chain reverb module.
+  - ES: Poner en bypass el módulo de reverb de la cadena.
+  - [ ] OK    Fix: 
+
+- **`reverbCrossoverHigh`**
+  - EN: High crossover frequency for 3-band decay (1 - 10 kHz).
+  - ES: Frecuencia de cruce superior para el decaimiento en 3 bandas (1 - 10 kHz).
+  - [ ] OK    Fix: 
+
+- **`reverbCrossoverLow`**
+  - EN: Low crossover frequency for 3-band decay (50 - 500 Hz).
+  - ES: Frecuencia de cruce inferior para el decaimiento en 3 bandas (50 - 500 Hz).
+  - [ ] OK    Fix: 
+
+- **`reverbDiffusion`**
+  - EN: Diffusion amount controlling echo density (0 - 1).
+  - ES: Cantidad de difusión que controla la densidad de ecos (0 - 1).
+  - [ ] OK    Fix: 
+
+- **`reverbERLevel`**
+  - EN: Level of the early reflections (-30 to +6 dB against the dry).
+  - ES: Nivel de las reflexiones tempranas (-30 a +6 dB respecto al seco).
+  - [ ] OK    Fix: 
+
+- **`reverbERProfile`**
+  - EN: Early reflections in front of the reverb: Off, Room, Chamber, Hall or Cathedral.
+  - ES: Reflexiones tempranas delante de la reverb: Off, Room, Chamber, Hall o Cathedral.
+  - [ ] OK    Fix: 
+
+- **`reverbMix`**
+  - EN: Dry/wet mix of the reverb module (wet %).
+  - ES: Mezcla seco/húmedo del módulo de reverb (% húmedo).
+  - [ ] OK    Fix: 
+
+- **`reverbModDepth`**
+  - EN: Depth of the modulation inside the reverb tank (0 - 100 %).
+  - ES: Profundidad de la modulación dentro del tanque de la reverb (0 - 100 %).
+  - [ ] OK    Fix: 
+
+- **`reverbModRate`**
+  - EN: Speed of the modulation inside the reverb tank (0.05 - 5 Hz).
+  - ES: Velocidad de la modulación dentro del tanque de la reverb (0,05 - 5 Hz).
+  - [ ] OK    Fix: 
+
+- **`reverbModel`**
+  - EN: Select the reverb algorithm behind this module: FDN, Plate, Modulated Hall or Shimmer.
+  - ES: Elegir el algoritmo de reverb de este módulo: FDN, Plate, Modulated Hall o Shimmer.
+  - [ ] OK    Fix: 
+
+- **`reverbPredelay`**
+  - EN: Predelay before the reverb module's tail (0 - 250 ms).
+  - ES: Predelay antes de la cola del módulo de reverb (0 - 250 ms).
+  - [ ] OK    Fix: 
+
+- **`reverbRT60`**
+  - EN: Reverb decay time RT60 (0.2 - 8.0 seconds).
+  - ES: Tiempo de decaimiento de la reverb RT60 (0,2 - 8,0 segundos).
+  - [ ] OK    Fix: 
+
+- **`reverbRT60HighMult`**
+  - EN: High frequency RT60 multiplier (0.1 - 9.0x).
+  - ES: Multiplicador de RT60 en altas frecuencias (0,1 - 9,0x).
+  - [ ] OK    Fix: 
+
+- **`reverbRT60LowMult`**
+  - EN: Low frequency RT60 multiplier (0.1 - 9.0x).
+  - ES: Multiplicador de RT60 en bajas frecuencias (0,1 - 9,0x).
+  - [ ] OK    Fix: 
+
+- **`reverbShimmerAmount`**
+  - EN: How much of the tail is pitch-shifted (0 - 100 %).
+  - ES: Cuánta parte de la cola se transpone (0 - 100 %).
+  - [ ] OK    Fix: 
+
+- **`reverbShimmerPitch`**
+  - EN: The interval the shimmer climbs by on every pass through the tank.
+  - ES: Intervalo en el que el shimmer asciende en cada paso por el tanque.
+  - [ ] OK    Fix: 
+
+- **`reverbSize`**
+  - EN: Room size multiplier of the reverb module (0.5 - 2.0x).
+  - ES: Multiplicador del tamaño de sala del módulo de reverb (0,5 - 2,0x).
+  - [ ] OK    Fix: 
+
+- **`reverbTone`**
+  - EN: Low-pass the reverb tail (1 - 20 kHz).
+  - ES: Filtro paso bajo de la cola de la reverb (1 - 20 kHz).
+  - [ ] OK    Fix: 
+
+- **`reverbType`**
+  - EN: Reverb preset: sets the model, the reflections and the room in one go. Editing any of them afterwards makes it Custom.
+  - ES: Preset de reverb: fija de una vez el modelo, las reflexiones y la sala. Al editar cualquiera de ellos después pasa a Custom.
+  - [ ] OK    Fix: 
+
+- **`settingsFeedDevice`**
+  - EN: Compute device used for the effects feed stage. Applies at the next Processing start.
+  - ES: Dispositivo de cálculo usado para la etapa de alimentación de efectos. Se aplica en el siguiente arranque del Processing.
+  - [ ] OK    Fix: 
+
+- **`settingsFxFeed`**
+  - EN: Feed effects from each other geometrically, or through the matrix alone (no geometric delay or attenuation).
+  - ES: Alimentar los efectos entre sí geométricamente, o solo a través de la matriz (sin retardo ni atenuación geométricos).
+  - [ ] OK    Fix: 
+
+- **`settingsLinkMode`**
+  - EN: The link mode a NEW effects channel is stamped with (off, absolute or relative). Existing channels keep their own.
+  - ES: Modo de enlace con el que se crea un canal de efectos NUEVO (desactivado, absoluto o relativo). Los canales existentes conservan el suyo.
+  - [ ] OK    Fix: 
+
+- **`settingsLinkNames`**
+  - EN: Names of the eight effect link groups. Shown on the Channel Parameters combo, the Chain badge and the sends matrix.
+  - ES: Nombres de los ocho grupos de enlace de efectos. Se muestran en el combo de Channel Parameters, en la insignia de la cadena y en la matriz de envíos.
+  - [ ] OK    Fix: 
+
+- **`settingsLoopGuard`**
+  - EN: Automatically mute an effect-to-effect feed that is running away. The one setting here that applies live.
+  - ES: Silenciar automáticamente una alimentación de efecto a efecto que se dispara. El único ajuste de aquí que se aplica en directo.
+  - [ ] OK    Fix: 
+
+- **`settingsLoopGuardCeiling`**
+  - EN: Peak level at which the loop guard trips (dBFS). Applies at the next Processing start.
+  - ES: Nivel de pico al que salta la protección de bucle (dBFS). Se aplica en el siguiente arranque del Processing.
+  - [ ] OK    Fix: 
+
+- **`settingsMaxDelay`**
+  - EN: Longest delay any effects channel may buffer, in seconds; sizes every delay module. Applies at the next Processing start.
+  - ES: Retardo más largo que puede almacenar cualquier canal de efectos, en segundos; dimensiona todos los módulos de retardo. Se aplica en el siguiente arranque del Processing.
+  - [ ] OK    Fix: 
+
+- **`settingsRelayout`**
+  - EN: Long-press to lay every effect return out on the default ring again. Clears the effects position ownership latch.
+  - ES: Pulsación larga para volver a disponer todos los retornos de efectos en el anillo por defecto. Borra el bloqueo de propiedad de las posiciones de efectos.
+  - [ ] OK    Fix: 
+
+- **`settingsReturnCushion`**
+  - EN: Blocks of cushion on the effect return rings (Auto = the ledger decides). Applies at the next Processing start.
+  - ES: Bloques de colchón en los anillos de retorno de efectos (Auto = decide el registro). Se aplica en el siguiente arranque del Processing.
+  - [ ] OK    Fix: 
+
+- **`settingsWorkerThreads`**
+  - EN: Number of effects worker threads (-1 = automatic, the reverb-feed rule). Applies at the next Processing start.
+  - ES: Número de hilos de trabajo de efectos (-1 = automático, la regla de la alimentación de reverb). Se aplica en el siguiente arranque del Processing.
   - [ ] OK    Fix: 
 
 - **`solo`**
@@ -549,7 +1445,54 @@ Walk through each section. For every entry:
   - ES: Guardar la configuración de efectos en archivo (sobrescribir con confirmación).
   - [ ] OK    Fix: 
 
+- **`tapLevel`**
+  - EN: This tap's level.
+  - ES: Nivel de este tap.
+  - [ ] OK    Fix: 
+
+- **`tapTime`**
+  - EN: This tap's delay time. In Pattern mode the pattern sets it and the slider follows.
+  - ES: Tiempo de retardo de este tap. En modo Pattern lo fija el patrón y el deslizador lo sigue.
+  - [ ] OK    Fix: 
+
+- **`tremBypass`**
+  - EN: Bypass the tremolo module.
+  - ES: Poner en bypass el módulo de trémolo.
+  - [ ] OK    Fix: 
+
+- **`tremDepth`**
+  - EN: Tremolo depth in dB (0 - 60 dB).
+  - ES: Profundidad del trémolo en dB (0 - 60 dB).
+  - [ ] OK    Fix: 
+
+- **`tremMix`**
+  - EN: Dry/wet mix of the tremolo (wet %).
+  - ES: Mezcla seco/húmedo del trémolo (% húmedo).
+  - [ ] OK    Fix: 
+
+- **`tremRate`**
+  - EN: Tremolo rate (0.05 - 20 Hz).
+  - ES: Velocidad del trémolo (0,05 - 20 Hz).
+  - [ ] OK    Fix: 
+
+- **`tremShape`**
+  - EN: Blend the tremolo LFO from sine (0) to triangle (1).
+  - ES: Mezcla del LFO del trémolo de seno (0) a triángulo (1).
+  - [ ] OK    Fix: 
+
+## `effects.labels`
+
+- **`returnsHome`**
+  - EN: An effect return always comes home: the movement travels as an offset, and the position you set is never overwritten.
+  - ES: Un retorno de efecto siempre vuelve a casa: el movimiento viaja como un desplazamiento y la posición que fije nunca se sobrescribe.
+  - [ ] OK    Fix: 
+
 ## `effects.messages`
+
+- **`assignedGroup`**
+  - EN: Effect {channel} assigned to {group}
+  - ES: Efecto {channel} asignado a {group}
+  - [ ] OK    Fix: 
 
 - **`cleared`**
   - EN: Effect chain cleared.
@@ -581,9 +1524,63 @@ Walk through each section. For every entry:
   - ES: Este efecto no está en un grupo de enlace, así que no hay grupo que silenciar.
   - [ ] OK    Fix: 
 
+- **`relayoutDone`**
+  - EN: Every effect return laid out on the default ring again.
+  - ES: Todos los retornos de efectos se han vuelto a disponer en el anillo por defecto.
+  - [ ] OK    Fix: 
+
 - **`selectFolderFirst`**
   - EN: Select a project folder first.
   - ES: Seleccione primero una carpeta de proyecto.
+  - [ ] OK    Fix: 
+
+- **`unlinked`**
+  - EN: Effect {channel} removed from its link group
+  - ES: Efecto {channel} retirado de su grupo de enlace
+  - [ ] OK    Fix: 
+
+## `effects.sends`
+
+- **`announce.forbidden`**
+  - EN: an effect cannot feed itself
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`announce.into`**
+  - EN: into effect
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`announce.off`**
+  - EN: off
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`announce.on`**
+  - EN: on
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`gesture.level`**
+  - EN: Effect Send Level
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`gesture.toggle`**
+  - EN: Effect Send Switch
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`hint`**
+  - EN: Click a cell to switch a send; drag up or down to set its level (Shift = fine). Rows: every input, then every effect return. Columns: every effect. The hatched diagonal is an effect feeding itself, which is refused.
+  - ES: Clic en una celda para activar un envío; arrastre arriba o abajo para fijar su nivel (Shift = fino). Filas: cada entrada y luego cada retorno de efecto. Columnas: cada efecto. La diagonal rayada es un efecto alimentándose a sí mismo, lo cual se rechaza.
+  - [ ] OK    Fix: 
+
+## `effects.settings`
+
+- **`note`**
+  - EN: Everything here except the Loop guard switch applies at the next Processing start: the engine reads these settings when it prepares.
+  - ES: Todo lo de aquí, salvo el interruptor de Loop guard, se aplica en el siguiente arranque del Processing: el motor lee estos ajustes al prepararse.
   - [ ] OK    Fix: 
 
 ## `eq.status`
@@ -603,6 +1600,183 @@ Walk through each section. For every entry:
 - **`selectProjectFolder`**
   - EN: Select Project Folder
   - ES: Seleccionar carpeta de proyecto
+  - [ ] OK    Fix: 
+
+## `fileManager.errors`
+
+- **`backupFailed`**
+  - EN: Could not back up {file} into {folder}, so it was not saved: the file on disk is unchanged.
+  - ES: No se pudo hacer una copia de seguridad de {file} en {folder}, así que no se guardó: el archivo en disco no ha cambiado.
+  - [ ] OK    Fix: 
+
+- **`backupNotFound`**
+  - EN: Backup not found
+  - ES: Copia de seguridad no encontrada
+  - [ ] OK    Fix: 
+
+- **`channelListMismatchNotConfirmed`**
+  - EN: Load refused: the channel list in {path} differs from this session and the load was not confirmed.
+  - ES: Carga rechazada: la lista de canales de {path} difiere de esta sesión y la carga no fue confirmada.
+  - [ ] OK    Fix: 
+
+- **`configStateInvalid`**
+  - EN: Config state is invalid
+  - ES: Estado de configuración no válido
+  - [ ] OK    Fix: 
+
+- **`failedApply`**
+  - EN: Failed to apply: {sections}
+  - ES: No se pudo aplicar: {sections}
+  - [ ] OK    Fix: 
+
+- **`failedCreateFolder`**
+  - EN: Failed to create project folder: {path}
+  - ES: No se pudo crear la carpeta de proyecto: {path}
+  - [ ] OK    Fix: 
+
+- **`failedCreateValueTree`**
+  - EN: Failed to create ValueTree from XML: {path}
+  - ES: No se pudo crear el ValueTree desde XML: {path}
+  - [ ] OK    Fix: 
+
+- **`failedCreateXML`**
+  - EN: Failed to create XML from state
+  - ES: No se pudo crear el XML a partir del estado
+  - [ ] OK    Fix: 
+
+- **`failedParseXML`**
+  - EN: Failed to parse XML file: {path}
+  - ES: No se pudo analizar el archivo XML: {path}
+  - [ ] OK    Fix: 
+
+- **`failedWriteFile`**
+  - EN: Failed to write file: {path}. The file on disk is unchanged.
+  - ES: No se pudo escribir el archivo: {path}. El archivo en disco no ha cambiado.
+  - [ ] OK    Fix: 
+
+- **`fileNotFound`**
+  - EN: File not found: {path}
+  - ES: Archivo no encontrado: {path}
+  - [ ] OK    Fix: 
+
+- **`invalidConfigStructure`**
+  - EN: Invalid configuration file structure
+  - ES: Estructura de archivo de configuración no válida
+  - [ ] OK    Fix: 
+
+- **`noEffectDataInFile`**
+  - EN: No effects data found in file
+  - ES: No se encontraron datos de efectos en el archivo
+  - [ ] OK    Fix: 
+
+- **`noInputDataInFile`**
+  - EN: No input data found in file
+  - ES: No se encontraron datos de entrada en el archivo
+  - [ ] OK    Fix: 
+
+- **`noInputDataInSnapshot`**
+  - EN: No input data in snapshot
+  - ES: No hay datos de entrada en el snapshot
+  - [ ] OK    Fix: 
+
+- **`noLFOPresetDataInFile`**
+  - EN: No LFO preset data found in file
+  - ES: No se encontraron datos de preset LFO en el archivo
+  - [ ] OK    Fix: 
+
+- **`noNetworkDataInFile`**
+  - EN: No network data found in file
+  - ES: No se encontraron datos de red en el archivo
+  - [ ] OK    Fix: 
+
+- **`noNetworkSections`**
+  - EN: No network sections found in file
+  - ES: No se encontraron secciones de red en el archivo
+  - [ ] OK    Fix: 
+
+- **`noOutputDataInFile`**
+  - EN: No output data found in file
+  - ES: No se encontraron datos de salida en el archivo
+  - [ ] OK    Fix: 
+
+- **`noProjectFolder`**
+  - EN: No project folder specified
+  - ES: No se ha especificado ninguna carpeta de proyecto
+  - [ ] OK    Fix: 
+
+- **`noReverbDataInFile`**
+  - EN: No reverb data found in file
+  - ES: No se encontraron datos de reverberación en el archivo
+  - [ ] OK    Fix: 
+
+- **`noScopeDataInTemplate`**
+  - EN: No scope data found in template file
+  - ES: No se encontraron datos de alcance en el archivo de plantilla
+  - [ ] OK    Fix: 
+
+- **`noSystemDataInFile`**
+  - EN: No valid system data found in file: {path}
+  - ES: No se encontraron datos de sistema válidos en el archivo: {path}
+  - [ ] OK    Fix: 
+
+- **`noValidProjectFolder`**
+  - EN: No valid project folder
+  - ES: No hay una carpeta de proyecto válida
+  - [ ] OK    Fix: 
+
+- **`prefixEffects`**
+  - EN: Effects: 
+  - ES: Efectos: 
+  - [ ] OK    Fix: 
+
+- **`prefixInputs`**
+  - EN: Inputs: 
+  - ES: Entradas: 
+  - [ ] OK    Fix: 
+
+- **`prefixNetwork`**
+  - EN: Network: 
+  - ES: Red: 
+  - [ ] OK    Fix: 
+
+- **`prefixOutputs`**
+  - EN: Outputs: 
+  - ES: Salidas: 
+  - [ ] OK    Fix: 
+
+- **`prefixReverbs`**
+  - EN: Reverbs: 
+  - ES: Reverberaciones: 
+  - [ ] OK    Fix: 
+
+- **`prefixSystem`**
+  - EN: System: 
+  - ES: Sistema: 
+  - [ ] OK    Fix: 
+
+- **`reservedSnapshotName`**
+  - EN: Not a usable snapshot name: {name}. Windows reserves it for a device (CON, PRN, AUX, NUL, COM1-9, LPT1-9), or it holds one of < > " | ? * or a control character.
+  - ES: Nombre de snapshot no utilizable: {name}. Windows lo reserva para un dispositivo (CON, PRN, AUX, NUL, COM1-9, LPT1-9), o contiene alguno de < > " | ? * o un carácter de control.
+  - [ ] OK    Fix: 
+
+- **`snapshotDoesNotExist`**
+  - EN: Snapshot does not exist
+  - ES: El snapshot no existe
+  - [ ] OK    Fix: 
+
+- **`snapshotNotFound`**
+  - EN: Snapshot not found
+  - ES: Snapshot no encontrado
+  - [ ] OK    Fix: 
+
+- **`snapshotNotFoundNamed`**
+  - EN: Snapshot not found: {name}
+  - ES: Snapshot no encontrado: {name}
+  - [ ] OK    Fix: 
+
+- **`unusableSnapshotName`**
+  - EN: Not a usable snapshot name: {name}. A name cannot contain /, \ or :
+  - ES: Nombre de snapshot no válido: {name}. Un nombre no puede contener /, \ ni :
   - [ ] OK    Fix: 
 
 ## `help.admOsc`
@@ -677,6 +1851,54 @@ Walk through each section. For every entry:
   - ES: Efectos
   - [ ] OK    Fix: 
 
+## `help.effectsChain`
+
+- **`body`**
+  - EN: The strip shows the eleven modules in their current order: click a tile to edit that module, drag it left or right to move it in the chain. The dot on a tile says whether the module is ON, the bar shows its output level (gain reduction for Dynamics). The badge above says who else hears an edit; beside it the chain bypass (click-free, latency held) and the chain's latency.\nEach module's controls come from the CSV that documents them. The EQs add an interactive display and six band strips with Flatten and per-band Reset long-presses; the Dynamics add a gain-reduction meter; the delay adds its eight tap rows (dormant taps and Pattern-mode times dimmed); the reverb adds models and presets: the Model menu picks the reverb itself (FDN, Plate, Modulated Hall or Shimmer) and only that model's controls are shown, and a preset sets the model, the early reflections and the room at once - editing any of those values turns it back to Custom, while Tone and Mix stay as you set them.
+  - ES: La tira muestra los once módulos en su orden actual: clic en una casilla para editar ese módulo, arrástrela a izquierda o derecha para moverla en la cadena. El punto de una casilla indica si el módulo está ON, la barra muestra su nivel de salida (reducción de ganancia en Dynamics). La insignia de arriba dice quién más oye una edición; a su lado, el bypass de la cadena (sin clics, con la latencia mantenida) y la latencia de la cadena.\nLos controles de cada módulo salen del CSV que los documenta. Los EQ añaden una pantalla interactiva y seis tiras de banda con pulsaciones largas de Flatten y de Reset por banda; Dynamics añade un medidor de reducción de ganancia; el delay añade sus ocho filas de taps (los taps inactivos y los tiempos en modo Pattern se atenúan); la reverb añade modelos y presets: el menú Model elige la propia reverb (FDN, Plate, Modulated Hall o Shimmer) y solo se muestran los controles de ese modelo, y un preset fija de una vez el modelo, las reflexiones tempranas y la sala - editar cualquiera de esos valores lo devuelve a Custom, mientras que Tone y Mix quedan como los haya fijado.
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Effects Chain
+  - ES: Cadena de efectos
+  - [ ] OK    Fix: 
+
+## `help.effectsMovements`
+
+- **`body`**
+  - EN: The LFO and AutomOtion of an effect return, laid out as the Inputs tab lays out the same two blocks. Both travel as OFFSETS the calculation engine adds to the authored position, and the two add to each other: the return always comes home, and the position you set is never overwritten.\nThere is no Stay/Return (a movement that ended somewhere else would move the room itself), no gyrophone (a return has no brightness cone to rotate) and no jitter. The feed geometry follows the base position; only the return follows base + offsets.
+  - ES: El LFO y la AutomOción de un retorno de efecto, dispuestos como los dispone la pestaña Inputs para los mismos dos bloques. Ambos viajan como DESPLAZAMIENTOS que el motor de cálculo suma a la posición fijada, y los dos se suman entre sí: el retorno siempre vuelve a casa y la posición que fije nunca se sobrescribe.\nNo hay Stay/Return (un movimiento que acabara en otro sitio movería la propia sala), ni girófono (un retorno no tiene cono de brillo que girar), ni jitter. La geometría de alimentación sigue la posición base; solo el retorno sigue base + desplazamientos.
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Effects Movements
+  - ES: Movimientos de efectos
+  - [ ] OK    Fix: 
+
+## `help.effectsSends`
+
+- **`body`**
+  - EN: The whole sends matrix, not one row: every input and every effect return as a source row, every effect as a destination column. Click a cell to switch a send, drag up or down to set its level (Shift = fine), use the wheel to nudge. The hatched diagonal is an effect feeding itself, which is refused.\nThe selected effect's column is highlighted and the two buttons switch every send into it. A green badge marks a column fed by an input - the entry point of its bunch - and an amber one a column inside a feedback cycle. The loop guard (Settings) mutes a feed that runs away; Clear on the header flushes a chain that already has.
+  - ES: La matriz de envíos completa, no una sola fila: cada entrada y cada retorno de efecto como fila de origen, cada efecto como columna de destino. Clic en una celda para activar un envío, arrastre arriba o abajo para fijar su nivel (Shift = fino), use la rueda para ajustar. La diagonal rayada es un efecto alimentándose a sí mismo, lo cual se rechaza.\nLa columna del efecto seleccionado aparece resaltada y los dos botones activan todos los envíos hacia ella. Una insignia verde marca una columna alimentada por una entrada - el punto de entrada de su conjunto - y una ámbar una columna dentro de un ciclo de realimentación. La protección de bucle (Settings) silencia una alimentación que se dispara; Clear en la cabecera vacía una cadena que ya se ha disparado.
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Effects Post-Processing
+  - ES: Post-procesamiento de efectos
+  - [ ] OK    Fix: 
+
+## `help.effectsSettings`
+
+- **`body`**
+  - EN: The nine settings every effects channel shares: the eight link-group names and the mode a NEW channel is stamped with; whether effects feed each other geometrically or through the matrix alone; the worker threads, the return cushion, the loop guard and its ceiling, the longest delay any chain may buffer, and the compute device of the feed stage.\nEverything here except the loop-guard switch applies at the next Processing start, because the engine reads these settings when it prepares. Re-layout (long-press) lays every effect return out on the default ring again and hands the positions back to the application.
+  - ES: Los nueve ajustes que comparten todos los canales de efectos: los ocho nombres de grupos de enlace y el modo con el que se crea un canal NUEVO; si los efectos se alimentan entre sí geométricamente o solo a través de la matriz; los hilos de trabajo, el colchón de retorno, la protección de bucle y su techo, el retardo más largo que puede almacenar una cadena y el dispositivo de cálculo de la etapa de alimentación.\nTodo lo de aquí, salvo el interruptor Loop guard, se aplica en el siguiente arranque del Processing, porque el motor lee estos ajustes al prepararse. Re-layout (pulsación larga) vuelve a disponer todos los retornos de efectos en el anillo por defecto y devuelve las posiciones a la aplicación.
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Effects Settings
+  - ES: Ajustes de efectos
+  - [ ] OK    Fix: 
+
 ## `help.floorReflections`
 
 - **`body`**
@@ -723,6 +1945,18 @@ Walk through each section. For every entry:
 - **`title`**
   - EN: Inputs Basic Parameters
   - ES: Parámetros básicos de entradas
+  - [ ] OK    Fix: 
+
+## `help.inputEffectSends`
+
+- **`body`**
+  - EN: This input's sends into the effect channels, one strip per effect: the same cells as the Post-Processing matrix of the Effects tab, seen from the input.\nThe fader sets the send level (-92 to 0 dB) and the button switches the send on or off without touching the level, so a send can be muted and brought back at the level it had. The two buttons above switch every send of this input at once.\nAn effect this input feeds is an entry point of its bunch. What the effect does next - its chain, its position on stage and its sends into other effects - is set on the Effects tab.
+  - ES: Los envíos de esta entrada a los canales de efecto, una tira por efecto: las mismas celdas que la matriz Post-Processing de la pestaña Effects, vistas desde la entrada.\nEl fader fija el nivel de envío (-92 a 0 dB) y el botón activa o corta el envío sin tocar el nivel, de modo que un envío puede silenciarse y recuperarse al nivel que tenía. Los dos botones de arriba actúan sobre todos los envíos de esta entrada a la vez.\nUn efecto alimentado por esta entrada es un punto de entrada de su grupo. Lo que el efecto hace después - su cadena, su posición en el escenario y sus envíos a otros efectos - se ajusta en la pestaña Effects.
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Effect Sends
+  - ES: Envíos a efectos
   - [ ] OK    Fix: 
 
 ## `help.inputHF`
@@ -1028,8 +2262,8 @@ Walk through each section. For every entry:
 ## `help.shortcuts`
 
 - **`body`**
-  - EN: *H* opens the help card closest to the pointer.\n*I*, *O* and *R* open the Input, Output and Reverb tabs respectively; for a few seconds afterwards you can type a channel number to select it (confirm with *Enter*).\n*N* opens the Network tab.\n*C* opens the Clusters tab.\n*M* opens the Map tab.\n*L* locks or unlocks the stereo image orientation of the pairs selected on the Map tab.\n*Spacebar* scrolls to the next channel and *Shift+Spacebar* to the previous one in the Input, Output and Reverb tabs. On the Clusters tab they cycle through the clusters.\n*Ctrl/Cmd* while adjusting a parameter of an output channel that is part of an array adjusts the parameter for the selected channel only, temporarily disabling the propagation to the rest of the array.\n*F1* to *F10* assign inputs to the corresponding cluster in the Input and Map tabs, assign outputs to the corresponding array in the Output tab, and select the corresponding cluster in the Clusters tab. *F11* sets the channel back to Single.\n*Shift* while adjusting a parameter of an input that is part of a cluster adjusts this parameter for the other inputs of the cluster in relative mode: the variation affects all inputs of the cluster, but relative offsets are kept. *Ctrl/Cmd+Shift* changes the parameter in absolute mode: the value becomes identical across all inputs of the cluster.\n*Ctrl/Cmd+Z* undoes the last change; *Ctrl/Cmd+Y* or *Ctrl/Cmd+Shift+Z* redoes it.
-  - ES: *H* abre la tarjeta de ayuda más cercana al puntero.\n*I*, *O* y *R* abren respectivamente las pestañas Inputs (entradas), Outputs (salidas) y Reverb; durante unos segundos después puede escribir un número de canal para seleccionarlo (confirme con *Enter*).\n*N* abre la pestaña Network (red).\n*C* abre la pestaña Clusters (grupos).\n*M* abre la pestaña Map (mapa).\n*L* bloquea o desbloquea la orientación de la imagen estéreo de los pares seleccionados en la pestaña Map.\nLa *barra espaciadora* pasa al canal siguiente y *Mayús+Espacio* al anterior en las pestañas Inputs, Outputs y Reverb. En la pestaña Clusters recorren los grupos.\n*Ctrl/Cmd* mientras se ajusta un parámetro de una salida que forma parte de un array ajusta el parámetro solo para el canal seleccionado, desactivando temporalmente la propagación al resto del array.\n*F1* a *F10* asignan las entradas al grupo correspondiente en las pestañas Inputs y Map, asignan las salidas al array correspondiente en la pestaña Outputs y seleccionan el grupo correspondiente en la pestaña Clusters. *F11* devuelve el canal a Single.\n*Mayús* mientras se ajusta un parámetro de una entrada que forma parte de un grupo ajusta ese parámetro para las demás entradas del grupo en modo relativo: la variación afecta a todas las entradas del grupo, pero se conservan las diferencias relativas. *Ctrl/Cmd+Mayús* cambia el parámetro en modo absoluto: el valor pasa a ser idéntico en todas las entradas del grupo.\n*Ctrl/Cmd+Z* deshace el último cambio; *Ctrl/Cmd+Y* o *Ctrl/Cmd+Mayús+Z* lo rehace.
+  - EN: *H* opens the help card closest to the pointer.\n*I*, *O* and *R* open the Input, Output and Reverb tabs respectively; for a few seconds afterwards you can type a channel number to select it (confirm with *Enter*).\n*N* opens the Network tab.\n*C* opens the Clusters tab.\n*M* opens the Map tab.\n*L* locks or unlocks the stereo image orientation of the pairs selected on the Map tab.\n*Spacebar* scrolls to the next channel and *Shift+Spacebar* to the previous one in the Input, Output, Reverb and Effects tabs. On the Clusters tab they cycle through the clusters.\n*Ctrl/Cmd* while adjusting a parameter of an output channel that is part of an array adjusts the parameter for the selected channel only, temporarily disabling the propagation to the rest of the array.\n*F1* to *F10* assign inputs to the corresponding cluster in the Input and Map tabs, assign outputs to the corresponding array in the Output tab, and select the corresponding cluster in the Clusters tab. *F11* sets the channel back to Single. On the Effects tab, *F1* to *F8* put the effect in the corresponding link group and *F11* unlinks it; these link groups are separate from the input clusters.\n*Shift* while adjusting a parameter of an input that is part of a cluster adjusts this parameter for the other inputs of the cluster in relative mode: the variation affects all inputs of the cluster, but relative offsets are kept. *Ctrl/Cmd+Shift* changes the parameter in absolute mode: the value becomes identical across all inputs of the cluster.\n*Ctrl/Cmd+Z* undoes the last change; *Ctrl/Cmd+Y* or *Ctrl/Cmd+Shift+Z* redoes it.
+  - ES: *H* abre la tarjeta de ayuda más cercana al puntero.\n*I*, *O* y *R* abren respectivamente las pestañas Inputs (entradas), Outputs (salidas) y Reverb; durante unos segundos después puede escribir un número de canal para seleccionarlo (confirme con *Enter*).\n*N* abre la pestaña Network (red).\n*C* abre la pestaña Clusters (grupos).\n*M* abre la pestaña Map (mapa).\n*L* bloquea o desbloquea la orientación de la imagen estéreo de los pares seleccionados en la pestaña Map.\nLa *barra espaciadora* pasa al canal siguiente y *Mayús+Espacio* al anterior en las pestañas Inputs, Outputs, Reverb y Effects. En la pestaña Clusters recorren los grupos.\n*Ctrl/Cmd* mientras se ajusta un parámetro de una salida que forma parte de un array ajusta el parámetro solo para el canal seleccionado, desactivando temporalmente la propagación al resto del array.\n*F1* a *F10* asignan las entradas al grupo correspondiente en las pestañas Inputs y Map, asignan las salidas al array correspondiente en la pestaña Outputs y seleccionan el grupo correspondiente en la pestaña Clusters. *F11* devuelve el canal a Single. En la pestaña Effects, *F1* a *F8* colocan el efecto en el grupo de enlace correspondiente y *F11* lo desenlaza; estos grupos de enlace son independientes de los grupos de entradas (Clusters).\n*Mayús* mientras se ajusta un parámetro de una entrada que forma parte de un grupo ajusta ese parámetro para las demás entradas del grupo en modo relativo: la variación afecta a todas las entradas del grupo, pero se conservan las diferencias relativas. *Ctrl/Cmd+Mayús* cambia el parámetro en modo absoluto: el valor pasa a ser idéntico en todas las entradas del grupo.\n*Ctrl/Cmd+Z* deshace el último cambio; *Ctrl/Cmd+Y* o *Ctrl/Cmd+Mayús+Z* lo rehace.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1088,6 +2322,11 @@ Walk through each section. For every entry:
 - **`selectChannel`**
   - EN: Select Channel
   - ES: Seleccionar canal
+  - [ ] OK    Fix: 
+
+- **`selectColour`**
+  - EN: Input Colour
+  - ES: Color de la entrada
   - [ ] OK    Fix: 
 
 - **`snapshotIdentity.fixNumbers`**
@@ -1158,6 +2397,28 @@ Walk through each section. For every entry:
 - **`trackingConflictYes`**
   - EN: Yes, switch tracking
   - ES: Sí, transferir tracking
+  - [ ] OK    Fix: 
+
+## `inputs.effectSends`
+
+- **`gesture.allOff`**
+  - EN: Input Effect Sends All Off
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`gesture.allOn`**
+  - EN: Input Effect Sends All On
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`hint`**
+  - EN: One strip per effect: the fader sets this input's send level into the effect, the button switches the send without changing the level.
+  - ES: Una tira por efecto: el fader fija el nivel de envío de esta entrada al efecto; el botón activa o corta el envío sin cambiar el nivel.
+  - [ ] OK    Fix: 
+
+- **`none`**
+  - EN: No effect channels. Set an Effects Channels count on System Config.
+  - ES: No hay canales de efecto. Defina un número de Effects Channels en System Config.
   - [ ] OK    Fix: 
 
 ## `inputs.gradientMap`
@@ -1242,6 +2503,11 @@ Walk through each section. For every entry:
   - ES: Seleccionar y mover formas
   - [ ] OK    Fix: 
 
+- **`help.shapeBackward`**
+  - EN: Move selected shape(s) one step back, under the next shape (Page Down)
+  - ES: Enviar la(s) forma(s) seleccionada(s) un paso atrás, bajo la forma siguiente (Av Pág)
+  - [ ] OK    Fix: 
+
 - **`help.shapeDelete`**
   - EN: Delete selected shape(s)
   - ES: Eliminar forma(s) seleccionada(s)
@@ -1252,14 +2518,69 @@ Walk through each section. For every entry:
   - ES: Activar/desactivar forma
   - [ ] OK    Fix: 
 
+- **`help.shapeForward`**
+  - EN: Move selected shape(s) one step forward, over the next shape (Page Up)
+  - ES: Traer la(s) forma(s) seleccionada(s) un paso adelante, sobre la forma siguiente (Re Pág)
+  - [ ] OK    Fix: 
+
 - **`help.shapeLock`**
   - EN: Lock shape position
   - ES: Bloquear posición de la forma
   - [ ] OK    Fix: 
 
+- **`help.shapeToBack`**
+  - EN: Send selected shape(s) to the back: the top shape covers those below (End; Page Down = one step)
+  - ES: Enviar la(s) forma(s) seleccionada(s) al fondo: la forma superior cubre las de abajo (Fin; Av Pág = un paso)
+  - [ ] OK    Fix: 
+
+- **`help.shapeToFront`**
+  - EN: Bring selected shape(s) to the front: the top shape covers those below (Home; Page Up = one step)
+  - ES: Traer la(s) forma(s) seleccionada(s) al frente: la forma superior cubre las de abajo (Inicio; Re Pág = un paso)
+  - [ ] OK    Fix: 
+
 - **`help.whiteValue`**
   - EN: Parameter value mapped to white (0.00–1.00)
   - ES: Valor del parámetro mapeado al blanco (0.00–1.00)
+  - [ ] OK    Fix: 
+
+- **`hints.darkMaxAtten`**
+  - EN: Dark = max attenuation | Light = none
+  - ES: Oscuro = atenuación máx. | Claro = ninguna
+  - [ ] OK    Fix: 
+
+- **`hints.darkMaxHF`**
+  - EN: Dark = max HF shelf | Light = none
+  - ES: Oscuro = estante HF máx. | Claro = ninguno
+  - [ ] OK    Fix: 
+
+- **`hints.darkMaxHeight`**
+  - EN: Dark = max height | Light = ground
+  - ES: Oscuro = altura máx. | Claro = suelo
+  - [ ] OK    Fix: 
+
+- **`hints.polygonClose`**
+  - EN: Double-click to close polygon
+  - ES: Doble clic para cerrar el polígono
+  - [ ] OK    Fix: 
+
+- **`hints.whiteMaxAtten`**
+  - EN: White = max attenuation | Black = none
+  - ES: Blanco = atenuación máx. | Negro = ninguna
+  - [ ] OK    Fix: 
+
+- **`hints.whiteMaxHF`**
+  - EN: White = max HF shelf | Black = none
+  - ES: Blanco = estante HF máx. | Negro = ninguno
+  - [ ] OK    Fix: 
+
+- **`hints.whiteMaxHeight`**
+  - EN: White = max height | Black = ground
+  - ES: Blanco = altura máx. | Negro = suelo
+  - [ ] OK    Fix: 
+
+- **`warnings.heightRatioZero`**
+  - EN: Height Ratio is 0% — increase it for height to take effect
+  - ES: La proporción de altura es 0% — auméntela para que la altura tenga efecto
   - [ ] OK    Fix: 
 
 ## `inputs.help`
@@ -1292,6 +2613,11 @@ Walk through each section. For every entry:
 - **`clusterSelector`**
   - EN: Object is Part of a Cluster.
   - ES: El objeto forma parte de un cluster.
+  - [ ] OK    Fix: 
+
+- **`colourSwatch`**
+  - EN: Input Colour: the colour identifying this input on the map, the channel tiles and the patch matrix. Auto derives it from the channel number.
+  - ES: Color de la entrada: el color que identifica esta entrada en el mapa, las casillas de canal y la matriz de patch. Auto lo deriva del número de canal.
   - [ ] OK    Fix: 
 
 - **`commonAttenDial`**
@@ -1367,6 +2693,26 @@ Walk through each section. For every entry:
 - **`editScope`**
   - EN: Open the Snapshot Scope window for the selected snapshot.
   - ES: Abrir la ventana de filtro del snapshot seleccionado.
+  - [ ] OK    Fix: 
+
+- **`effectSendLevel`**
+  - EN: Level of this input's send into the effect (-92 to 0 dB). Drag the fader; the wheel nudges it.
+  - ES: Nivel del envío de esta entrada al efecto (-92 a 0 dB). Arrastre el fader; la rueda lo ajusta con precisión.
+  - [ ] OK    Fix: 
+
+- **`effectSendToggle`**
+  - EN: Switch this input's send into the effect on or off. The level is kept.
+  - ES: Activa o corta el envío de esta entrada al efecto. El nivel se conserva.
+  - [ ] OK    Fix: 
+
+- **`effectSendsAllOff`**
+  - EN: Switch this input's send into every effect off.
+  - ES: Corta el envío de esta entrada a todos los efectos.
+  - [ ] OK    Fix: 
+
+- **`effectSendsAllOn`**
+  - EN: Switch this input's send into every effect on.
+  - ES: Activa el envío de esta entrada a todos los efectos.
   - [ ] OK    Fix: 
 
 - **`exportConfig`**
@@ -2046,6 +3392,67 @@ Walk through each section. For every entry:
   - ES: Tracking cambiado de Entrada {from} a Entrada {to}
   - [ ] OK    Fix: 
 
+## `inputs.warnings`
+
+- **`floorReflections.base`**
+  - EN: Floor reflections are enabled for this input but cannot be produced:
+  - ES: Las reflexiones de piso están activadas para esta entrada pero no se pueden producir:
+  - [ ] OK    Fix: 
+
+- **`floorReflections.noSpeakers`**
+  - EN: no speaker has floor reflections enabled with strictly positive horizontal and vertical parallax (listener head away from and above the speaker).
+  - ES: ningún altavoz tiene activadas las reflexiones de piso con paralaje horizontal y vertical estrictamente positivo (cabeza del oyente alejada de y por encima del altavoz).
+  - [ ] OK    Fix: 
+
+- **`floorReflections.onFloor`**
+  - EN: the source is on the floor — raise it above the floor (Z > 0) for reflections.
+  - ES: la fuente está en el piso — elévela por encima del piso (Z > 0) para obtener reflexiones.
+  - [ ] OK    Fix: 
+
+- **`liveSource`**
+  - EN: The live-source tamer is enabled for this input, but no speaker has live-source attenuation enabled. Enable it on at least one output for this to take effect.
+  - ES: El domador de fuente en vivo está activado para esta entrada, pero ningún altavoz tiene activada la atenuación de fuente en vivo. Actívela en al menos una salida para que surta efecto.
+  - [ ] OK    Fix: 
+
+- **`minimalLatency`**
+  - EN: Minimal latency is enabled for this input, but no speaker has minimal latency enabled. Enable it on at least one output for this to take effect.
+  - ES: La latencia mínima está activada para esta entrada, pero ningún altavoz tiene la latencia mínima activada. Actívela en al menos una salida para que surta efecto.
+  - [ ] OK    Fix: 
+
+- **`short`**
+  - EN: no effect
+  - ES: sin efecto
+  - [ ] OK    Fix: 
+
+## `levelMeter.effects`
+
+- **`tooltip`**
+  - EN: effects engine: last {last} ms | budget {budget} ms | 3s peak {peak} ms | {batches} batch(es) per wake
+  - ES: motor de efectos: último {last} ms | presupuesto {budget} ms | pico 3 s {peak} ms | {batches} lote(s) por activación
+  - [ ] OK    Fix: 
+
+## `levelMeter.gpuStrip`
+
+- **`inactive`**
+  - EN: inactive
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`status`**
+  - EN: underruns W:{wu} R:{ru} | depth {wd}/{rd} | latency {wl}/{rl} ms
+  - ES: underruns W:{wu} R:{ru} | prof. {wd}/{rd} | latencia {wl}/{rl} ms
+  - [ ] OK    Fix: 
+
+- **`tooltip`**
+  - EN: last {last} ms | budget {budget} ms | 3s peak {peak} ms | underruns {under}
+  - ES: último {last} ms | presupuesto {budget} ms | pico 3 s {peak} ms | underruns {under}
+  - [ ] OK    Fix: 
+
+- **`tooltipNoUnderruns`**
+  - EN: last {last} ms | budget {budget} ms | 3s peak {peak} ms
+  - ES: último {last} ms | presupuesto {budget} ms | pico 3 s {peak} ms
+  - [ ] OK    Fix: 
+
 ## `levelMeter.tooltips`
 
 - **`clearSolo`**
@@ -2061,6 +3468,13 @@ Walk through each section. For every entry:
 - **`soloMode`**
   - EN: Single: one input at a time. Multi: multiple inputs simultaneously.
   - ES: Único: una entrada a la vez. Múltiple: varias entradas simultáneamente.
+  - [ ] OK    Fix: 
+
+## `map`
+
+- **`detachedMessage`**
+  - EN: The map is displayed in a separate window.
+  - ES: (missing — falls back to English)
   - [ ] OK    Fix: 
 
 ## `map.messages`
@@ -2549,7 +3963,7 @@ Walk through each section. For every entry:
 
 - **`protocolMismatch`**
   - EN: Remote app uses protocol v{remote}, expected v{local} — update the tablet app
-  - ES: (missing — falls back to English)
+  - ES: La app remota usa el protocolo v{remote}, se esperaba v{local} — actualice la app de la tablet
   - [ ] OK    Fix: 
 
 - **`sendFailing`**
@@ -2860,6 +4274,25 @@ Walk through each section. For every entry:
 - **`setToSingle`**
   - EN: Output {num} set to Single
   - ES: Salida {num} configurada como Individual
+  - [ ] OK    Fix: 
+
+## `reverbs`
+
+- **`noChannels`**
+  - EN: No reverb channels configured.\n\nSet the number of Reverb Channels in System Config.
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+## `reverbs.algorithm`
+
+- **`irGpuActive`**
+  - EN: GPU: {device} (+{ms} ms wet)
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`irGpuFallback`**
+  - EN: GPU unavailable - using CPU: {error}
+  - ES: (missing — falls back to English)
   - [ ] OK    Fix: 
 
 ## `reverbs.dialogs`
@@ -3285,9 +4718,24 @@ Walk through each section. For every entry:
 
 ## `sampler`
 
+- **`exportFailed`**
+  - EN: The sampler config could not be written to {path}.
+  - ES: No se pudo escribir la configuración del sampler en {path}.
+  - [ ] OK    Fix: 
+
 - **`guide`**
   - EN: Select a cell on the grid to edit its properties.\nDouble-click to load a sample.\nUse Ctrl+Click to assign cells to the active set.
   - ES: Seleccione una celda en la cuadrícula para editar sus propiedades.\nDoble clic para cargar una muestra.\nUse Ctrl+Clic para asignar celdas al set activo.
+  - [ ] OK    Fix: 
+
+- **`placeholder`**
+  - EN: Sampler — coming soon
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`qlabSetCueCreated`**
+  - EN: QLab cue created: Input {channel} set "{name}"
+  - ES: (missing — falls back to English)
   - [ ] OK    Fix: 
 
 ## `sampler.grid`
@@ -3414,11 +4862,57 @@ Walk through each section. For every entry:
   - ES: Establecer la posición base en metros (X, Y, Z)
   - [ ] OK    Fix: 
 
+## `setAllInputs`
+
+- **`warning`**
+  - EN: Changes will apply to ALL inputs
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+## `snapshot`
+
+- **`qlabExportDone`**
+  - EN: QLab export complete: {count} cues created
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`qlabExportStarted`**
+  - EN: Writing {count} cues to QLab...
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`qlabMemoText`**
+  - EN: Run either of the following cues to recall or update this snapshot
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`qlabNoTarget`**
+  - EN: No QLab target configured
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
 ## `snapshotScope`
 
 - **`noEffectChannels`**
   - EN: This session has no effect channels.
   - ES: Esta sesión no tiene canales de efectos.
+  - [ ] OK    Fix: 
+
+- **`writeSnapshotLoadCueTooltip`**
+  - EN: Also create a QLab cue to load this snapshot via OSC
+  - ES: También crear un cue de QLab para cargar este snapshot vía OSC
+  - [ ] OK    Fix: 
+
+- **`writeToQLabTooltip`**
+  - EN: Export scope to QLab instead of saving to file
+  - ES: Exportar scope a QLab en lugar de guardar en archivo
+  - [ ] OK    Fix: 
+
+## `snapshotScope.buttons`
+
+- **`updateSnapshotScopeTooltip`**
+  - EN: Write the edited scope into the selected snapshot without re-saving its values. For 'When Saving' snapshots, stored values outside the new scope are removed (backup created first).
+  - ES: Escribe el alcance editado en el snapshot seleccionado sin volver a guardar sus valores. Para snapshots 'When Saving', los valores almacenados fuera del nuevo alcance se eliminan (se crea una copia de seguridad primero).
   - [ ] OK    Fix: 
 
 ## `snapshotScope.midi`
@@ -3431,6 +4925,55 @@ Walk through each section. For every entry:
 - **`tooltip`**
   - EN: A note-on above velocity 64 on this channel and note recalls this snapshot. Note-offs and softer notes are ignored. Choose the MIDI input in Audio Interface ▸ Device Settings.
   - ES: Un note-on con velocidad superior a 64 en este canal y esta nota recupera este snapshot. Los note-off y las notas más suaves se ignoran. Elija la entrada MIDI en Audio Interface ▸ Device Settings.
+  - [ ] OK    Fix: 
+
+## `snapshotScope.templates`
+
+- **`deleteTooltip`**
+  - EN: Delete the selected template
+  - ES: Eliminar la plantilla seleccionada
+  - [ ] OK    Fix: 
+
+- **`errorTitle`**
+  - EN: Scope Template Error
+  - ES: Error de plantilla de alcance
+  - [ ] OK    Fix: 
+
+- **`overwriteWarning`**
+  - EN: A template with this name already exists — it will be overwritten.
+  - ES: Ya existe una plantilla con este nombre — se sobrescribirá.
+  - [ ] OK    Fix: 
+
+- **`reloadTooltip`**
+  - EN: Replace the grid with the selected template (apply mode is not changed)
+  - ES: Sustituir la cuadrícula por la plantilla seleccionada (el modo de aplicación no cambia)
+  - [ ] OK    Fix: 
+
+- **`storeMessage`**
+  - EN: Enter a name for this scope template:
+  - ES: Introduzca un nombre para esta plantilla de alcance:
+  - [ ] OK    Fix: 
+
+- **`storeTitle`**
+  - EN: Store Scope Template
+  - ES: Guardar plantilla de alcance
+  - [ ] OK    Fix: 
+
+- **`storeTooltip`**
+  - EN: Save the current grid as a new template
+  - ES: Guardar la cuadrícula actual como plantilla nueva
+  - [ ] OK    Fix: 
+
+- **`updateTooltip`**
+  - EN: Overwrite the selected template with the current grid
+  - ES: Sobrescribir la plantilla seleccionada con la cuadrícula actual
+  - [ ] OK    Fix: 
+
+## `systemConfig.binauralSofa`
+
+- **`noProject`**
+  - EN: Open a project first to import SOFA files
+  - ES: (missing — falls back to English)
   - [ ] OK    Fix: 
 
 ## `systemConfig.channelList`
@@ -3687,6 +5230,16 @@ Walk through each section. For every entry:
   - ES: Reducir
   - [ ] OK    Fix: 
 
+- **`reduceEffectChannels.message`**
+  - EN: Reducing from {current} to {new} effects channels will remove settings for channels {start} to {end}.\n\nThis cannot be undone.
+  - ES: Reducir de {current} a {new} canales de efectos eliminará la configuración de los canales {start} a {end}.\n\nEsta acción no se puede deshacer.
+  - [ ] OK    Fix: 
+
+- **`reduceEffectChannels.title`**
+  - EN: Reduce Effects Channels?
+  - ES: ¿Reducir canales de efectos?
+  - [ ] OK    Fix: 
+
 - **`reduceInputChannels.messageList`**
   - EN: The last channel(s) of that type in the display order will be removed, with their settings:\n\n{rows}\n\nOnce the session is in use their numbers are retired and the remaining channels keep theirs, so the patch, snapshots and cues stay valid.\n\nThis cannot be undone, and it clears the undo history of every tab.
   - ES: Se eliminarán los últimos canales de ese tipo en el orden de visualización, con sus ajustes:\n\n{rows}\n\nUna vez la sesión está en uso, sus números se retiran y los demás canales conservan los suyos, para que el patch, los snapshots y los cues sigan siendo válidos.\n\nEsto no se puede deshacer y borra el historial de deshacer de todas las pestañas.
@@ -3739,6 +5292,16 @@ Walk through each section. For every entry:
   - ES: Abre la ventana de interfaz de audio y enrutamiento.
   - [ ] OK    Fix: 
 
+- **`binauralAdvanced`**
+  - EN: Open the listener geometry panel: lateral offset, ear height, head radius, listener angle, and manual head orientation (used when no tracker is active).
+  - ES: Abrir el panel de geometría del oyente: desplazamiento lateral, altura de oídos, radio de cabeza, ángulo del oyente y orientación manual de la cabeza (se usa cuando no hay tracker activo).
+  - [ ] OK    Fix: 
+
+- **`binauralAdvancedClose`**
+  - EN: Close the listener geometry panel.
+  - ES: Cerrar el panel de geometría del oyente.
+  - [ ] OK    Fix: 
+
 - **`binauralAngle`**
   - EN: Where the listener SITS on a circle around the stage origin (degrees, 0 = the audience side, straight in front of the stage). They always face the origin, so this does not turn the head — it walks the listener around the room, changing the distance to every source. To turn the head, use Head Yaw (or Orientation Y/P/R in the Listener Geometry panel). Yaw is measured from this seat, so changing Orbit also re-aims a head tracker’s zero.
   - ES: Rotación horizontal de la vista del oyente binaural (grados, 0 = mirando al escenario).
@@ -3747,6 +5310,11 @@ Walk through each section. For every entry:
 - **`binauralAtten`**
   - EN: Overall level offset for binaural output (dB).
   - ES: Desplazamiento de nivel global para la salida binaural (dB).
+  - [ ] OK    Fix: 
+
+- **`binauralAttitude`**
+  - EN: Live head attitude from the active tracker (yaw, pitch, roll in degrees). Shows 'no face tracked' while the webcam does not see you.
+  - ES: Actitud de cabeza en directo del tracker activo (giro, inclinación, balanceo en grados). Muestra 'no face tracked' mientras la webcam no le ve.
   - [ ] OK    Fix: 
 
 - **`binauralDelay`**
@@ -3764,14 +5332,59 @@ Walk through each section. For every entry:
   - ES: Activar o desactivar el procesamiento del renderizador binaural.
   - [ ] OK    Fix: 
 
+- **`binauralHeadRadius`**
+  - EN: Head radius for the structural HRTF model (centimeters). Larger heads produce larger interaural time differences.
+  - ES: Radio de la cabeza para el modelo HRTF estructural (centímetros). Cabezas más grandes producen mayores diferencias interaurales de tiempo.
+  - [ ] OK    Fix: 
+
+- **`binauralHeight`**
+  - EN: Ear height of the binaural listener (meters). HRTF modes only.
+  - ES: Altura de oídos del oyente binaural (metros). Solo en los modos HRTF.
+  - [ ] OK    Fix: 
+
+- **`binauralListenerX`**
+  - EN: Sideways offset of the binaural listener from the seat Orbit and Distance place them at (meters, positive = to the listener’s right). HRTF modes only.
+  - ES: Desplazamiento lateral del oyente binaural respecto al asiento que fijan Orbit y Listener Distance (metros, positivo = a la derecha del oyente). Solo en los modos HRTF.
+  - [ ] OK    Fix: 
+
+- **`binauralMode`**
+  - EN: Binaural rendering algorithm: ORTF (legacy) virtual microphone pair, Structural HRTF (parametric head model), or SOFA file (measured HRTFs).
+  - ES: Algoritmo de render binaural: ORTF (heredado), par de micrófonos virtuales; HRTF estructural (modelo paramétrico de cabeza); o archivo SOFA (HRTF medidas).
+  - [ ] OK    Fix: 
+
+- **`binauralOrientation`**
+  - EN: Manual head orientation offsets from facing the origin: yaw, pitch, roll (degrees). These turn the head on the spot — unlike Orbit, which moves the seat. Ignored while a head tracker is active.
+  - ES: Desfases manuales de orientación de la cabeza respecto a mirar al origen: giro, inclinación, balanceo (grados). Giran la cabeza sobre sí misma — a diferencia de Orbit, que mueve el asiento. Se ignoran mientras hay un head tracker activo.
+  - [ ] OK    Fix: 
+
 - **`binauralOutput`**
   - EN: Select output channel pair for binaural monitoring. Off disables binaural output.
   - ES: Seleccionar el par de canales de salida para el monitoreo binaural. Off desactiva la salida binaural.
   - [ ] OK    Fix: 
 
+- **`binauralSetZero`**
+  - EN: Look at the stage center, then click to calibrate the head tracker's zero orientation. Webcam tracking takes a moment to start after selecting it.
+  - ES: Mire al centro del escenario y pulse para calibrar la orientación cero del head tracker. El seguimiento por webcam tarda un momento en arrancar tras seleccionarlo.
+  - [ ] OK    Fix: 
+
+- **`binauralSofa`**
+  - EN: HRTF set for the SOFA render mode: the built-in SADIE II KU100 or a custom SOFA file stored in the project's sofa folder.
+  - ES: Conjunto de HRTF para el modo de render SOFA: el SADIE II KU100 integrado o un archivo SOFA propio guardado en la carpeta sofa del proyecto.
+  - [ ] OK    Fix: 
+
+- **`binauralTracker`**
+  - EN: Head orientation source: manual (yaw/pitch/roll controls) or a connected head tracker. Tracker attitude bypasses parameter damping for immediate response.
+  - ES: Fuente de orientación de la cabeza: manual (controles de giro/inclinación/balanceo) o un head tracker conectado. La actitud del tracker se salta el suavizado de parámetros para una respuesta inmediata.
+  - [ ] OK    Fix: 
+
+- **`binauralYaw`**
+  - EN: Turns the listener’s head on the spot, without moving the seat (degrees, 0 = facing the stage origin, positive = turning right). Mirrors the live tracked yaw and is locked while a head tracker is active. HRTF modes only.
+  - ES: Gira la cabeza del oyente sobre sí misma, sin mover el asiento (grados, 0 = mirando al origen del escenario, positivo = girando a la derecha). Refleja el giro seguido en directo y queda bloqueado mientras hay un head tracker activo. Solo en los modos HRTF.
+  - [ ] OK    Fix: 
+
 - **`clearSolo`**
   - EN: Clear all input solo states.
-  - ES: Clear all input solo states.
+  - ES: Borrar todos los estados de solo de las entradas.
   - [ ] OK    Fix: 
 
 - **`colorScheme`**
@@ -3841,7 +5454,7 @@ Walk through each section. For every entry:
 
 - **`levelMeter`**
   - EN: Opens the Level Meter Window.
-  - ES: Opens the Level Meter Window.
+  - ES: Abre la ventana de medidores de nivel.
   - [ ] OK    Fix: 
 
 - **`lightpadSetup`**
@@ -3984,6 +5597,11 @@ Walk through each section. For every entry:
   - ES: Activa o desactiva los anuncios del lector de pantalla. Cuando está activado, los nombres y valores de los parámetros se anuncian al pasar el cursor, y el texto de ayuda se lee después de unos segundos.
   - [ ] OK    Fix: 
 
+- **`screenRendering`**
+  - EN: Accelerated draws the windows on the graphics card. Compatible draws them on the CPU, so a video call that shares a single window (such as Zoom) shows them live, and opens menus inside the window. Compatible uses more CPU: go back to Accelerated for shows. Always Accelerated at launch.
+  - ES: Accelerated dibuja las ventanas con la tarjeta gráfica. Compatible las dibuja con la CPU, para que una videollamada que comparte una sola ventana (como Zoom) las muestre en directo, y abre los menús dentro de la ventana. Compatible usa más CPU: vuelva a Accelerated para los espectáculos. Siempre Accelerated al iniciar.
+  - [ ] OK    Fix: 
+
 - **`selectProjectFolder`**
   - EN: Select the Location of the Current Project Folder where to store files.
   - ES: Seleccione la ubicación de la carpeta del proyecto actual para almacenar archivos.
@@ -4072,6 +5690,11 @@ Walk through each section. For every entry:
 - **`temperature`**
   - EN: Temperature (gives the Speed of Sound).
   - ES: Temperatura (determina la Speed of Sound).
+  - [ ] OK    Fix: 
+
+- **`translationTier`**
+  - EN: Choose how much of the interface is translated. 'Help & messages' keeps the controls in English and translates only the help text, messages and dialogs; 'Everything' translates the full interface including labels. Takes full effect after restarting.
+  - ES: Elija cuánta parte de la interfaz se traduce. 'Ayuda y mensajes' mantiene los controles en inglés y solo traduce la ayuda, los mensajes y los diálogos; 'Todo' traduce toda la interfaz, incluidas las etiquetas. Surte pleno efecto tras reiniciar.
   - [ ] OK    Fix: 
 
 ## `systemConfig.messages`
@@ -4184,4 +5807,145 @@ Walk through each section. For every entry:
 - **`systemInfoCopied`**
   - EN: System info copied to clipboard
   - ES: Información del sistema copiada al portapapeles
+  - [ ] OK    Fix: 
+
+- **`translationTierChanged`**
+  - EN: Translation set to: {tier} (requires restart for full effect)
+  - ES: Traducción establecida en: {tier} (requiere reinicio para surtir pleno efecto)
+  - [ ] OK    Fix: 
+
+## `updateBanner`
+
+- **`available`**
+  - EN: WFS-DIY v{version} is available!
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+## `wizard.buttons`
+
+- **`gettingStartedHelp`**
+  - EN: Help cards guiding you through the first parameters to adjust when starting a new project
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+## `wizard.steps`
+
+- **`audioDevice.description`**
+  - EN: Select your audio driver and device, set the sample rate and buffer size. Check the patch routing and test your outputs. Close this window when done.
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`audioDevice.title`**
+  - EN: Configure the Audio Interface
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`audioInterface.description`**
+  - EN: Click the button above or press Next to open the Audio Interface window.
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`audioInterface.title`**
+  - EN: Open the Audio Interface
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`configureOutputs.description`**
+  - EN: Use the array presets and geometry tools to calculate speaker positions for your arrays. Close this window when done.
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`configureOutputs.title`**
+  - EN: Configure Output Positions
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`exploreInputs.description`**
+  - EN: Click an input on the map to select it, or lasso several to move them together. Drag to position your sources. Zoom with the mouse wheel or pinch gesture, pan with right-drag or two-finger drag. Add inputs, group them into clusters, and shape your sound field. You can also control positions with a keyboard, SpaceMouse, or other external controllers. Have fun!
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`exploreInputs.title`**
+  - EN: Start Creating!
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`inputChannels.description`**
+  - EN: How many audio sources will you be spatializing? Set Mono Inputs for single sources such as voices and instruments, and Stereo Inputs for stereo feeds such as playback, keyboards or submixes. A stereo input keeps one channel number and takes two hardware inputs, L and R.\nBenefits: the pair moves, joins clusters and is recalled as one source, and it plays as two sources spread by its Width, so the stereo image stays wide across the array.\nLimits: the image between the two sides holds best near the middle of the audience; listeners off to one side mostly hear the nearer side. The whole mix moves together, Floor Reflections, Live Source Tamer, Gradient Maps and Sampler do not apply, and 8 pairs is the maximum. When a source must be placed precisely, use mono stems.\nCPU load: each stereo input is rendered as 6 sources (the total appears next to the stereo count), so estimate about the load of 6 mono inputs for each one.
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`inputChannels.title`**
+  - EN: Set Mono and Stereo Inputs
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`originPoint.description`**
+  - EN: The origin is the reference point for all coordinates. Use the preset buttons or enter custom values. 'Front' places it at the audience edge.
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`originPoint.title`**
+  - EN: Set the Origin Point
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`outputChannels.description`**
+  - EN: Set the number of output channels to match your speaker array.\nEach output corresponds to one physical speaker.
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`outputChannels.title`**
+  - EN: Set Output Channels
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`projectFolder.description`**
+  - EN: Choose a folder to store your WFS project files. This will hold configurations, snapshots, IR files, and samples. Click the button to open the folder selector.
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`projectFolder.title`**
+  - EN: Select a Project Folder
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`reverbChannels.description`**
+  - EN: Reverb channels add room simulation. Set to 0 if you don't need reverb.
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`reverbChannels.title`**
+  - EN: Set Reverb Channels
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`stageConfig.description`**
+  - EN: Set the shape and dimensions of your performance space. Choose box, cylinder, or dome, then enter the size in meters.
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`stageConfig.title`**
+  - EN: Define the Stage
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`startProcessing.description`**
+  - EN: You're all set! Long-press the Processing button to start the WFS engine. You can also start the Binaural Renderer for headphone monitoring.
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`startProcessing.title`**
+  - EN: Start the WFS Engine
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`wizardOfOutZ.description`**
+  - EN: Click the Wizard of OutZ button or press Next to open the output array helper.
+  - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`wizardOfOutZ.title`**
+  - EN: Position Your Outputs
+  - ES: (missing — falls back to English)
   - [ ] OK    Fix:

@@ -1,6 +1,6 @@
 # Proofreading checklist — Japanese (日本語)
 
-Locale: `ja`  |  Total keys: 803  |  Source: `Resources/lang/en.json` vs `Resources/lang/ja.json`
+Locale: `ja`  |  Total keys: 1143  |  Source: `Resources/lang/en.json` vs `Resources/lang/ja.json`
 
 ## How to use this file
 
@@ -16,6 +16,27 @@ Walk through each section. For every entry:
 - `\n` in the value is a literal newline in the rendered UI; preserve it.
 
 ---
+
+## `ai.history`
+
+- **`noChanges`**
+  - EN: No AI changes yet.
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+## `ai.server`
+
+- **`copyUrlConfirm`**
+  - EN: MCP URL copied to clipboard: {url}
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+## `ai.toast`
+
+- **`moreOlder`**
+  - EN: …and {count} older
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
 
 ## `ai.tooltips`
 
@@ -37,6 +58,35 @@ Walk through each section. For every entry:
 - **`urlButton`**
   - EN: Click to copy the MCP server URL. Useful for Claude Code (claude mcp add wfs-diy <URL> -t http) or any MCP client that takes a URL. Claude Desktop instead uses the JSON config snippet — open the (?) help card.
   - JA: クリックしてMCPサーバーURLをコピー。Claude Code（claude mcp add wfs-diy <URL> -t http）またはURLを受け付けるあらゆるMCPクライアントで便利。Claude Desktopは代わりにJSON設定スニペットを使用 — (?)ヘルプカードを開いてください。
+  - [ ] OK    Fix: 
+
+## `ai.undo`
+
+- **`errorPrefix`**
+  - EN: AI {verb}: {message}
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+## `arrayHelper.errors`
+
+- **`noPositions`**
+  - EN: No positions to apply. Check geometry parameters.
+  - JA: 適用する位置がありません。ジオメトリパラメータを確認してください。
+  - [ ] OK    Fix: 
+
+- **`notEnoughOutputs`**
+  - EN: Not enough output channels! Need {count} starting from {start}
+  - JA: 出力チャンネルが足りません！{start}から{count}個必要です
+  - [ ] OK    Fix: 
+
+- **`prefix`**
+  - EN: Error: 
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`speakerCountZero`**
+  - EN: Number of speakers must be greater than 0
+  - JA: スピーカー数は0より大きくする必要があります
   - [ ] OK    Fix: 
 
 ## `arrayHelper.status`
@@ -100,6 +150,13 @@ Walk through each section. For every entry:
 - **`stopProcessingFirst`**
   - EN: Stop WFS processing to open the Audio Interface window
   - JA: オーディオインターフェースウィンドウを開くには WFS 処理を停止してください
+  - [ ] OK    Fix: 
+
+## `clusters`
+
+- **`qlabPresetCueCreated`**
+  - EN: QLab cue created: Cluster {cluster} preset "{name}"
+  - JA: (missing — falls back to English)
   - [ ] OK    Fix: 
 
 ## `clusters.help`
@@ -284,6 +341,28 @@ Walk through each section. For every entry:
   - JA: クラスター内のすべての入力をZ軸（高さ）に沿って移動。
   - [ ] OK    Fix: 
 
+## `clusters.presets`
+
+- **`exported`**
+  - EN: LFO presets exported.
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`imported`**
+  - EN: LFO presets imported.
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`recalled`**
+  - EN: LFO preset recalled from tile {n}.
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`stored`**
+  - EN: LFO preset stored in tile {n}.
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
 ## `clusters.status`
 
 - **`noInputs`**
@@ -440,6 +519,38 @@ Walk through each section. For every entry:
   - JA: エフェクトチャンネルがありません。System Config で数を設定するか、エフェクト設定をインポートしてください。
   - [ ] OK    Fix: 
 
+## `effects.chain`
+
+- **`linked`**
+  - EN: Linked, {group} ({mode}): the chain order, the bypasses and every module parameter are shared with {count} other channel(s). Ctrl-drag to edit this channel alone.
+  - JA: リンク中、{group}（{mode}）：チェーンの順序、バイパス、すべてのモジュールパラメーターが他の {count} チャンネルと共有されています。Ctrlを押しながらドラッグすると、このチャンネルだけを編集できます。
+  - [ ] OK    Fix: 
+
+- **`linkedAlone`**
+  - EN: Linked, {group} ({mode}): no other channel is in this group yet.
+  - JA: リンク中、{group}（{mode}）：このグループには、まだ他のチャンネルがありません。
+  - [ ] OK    Fix: 
+
+- **`linkedOff`**
+  - EN: {group}, link mode OFF: this channel neither sends nor receives chain edits.
+  - JA: {group}、リンクモード OFF：このチャンネルはチェーンの編集を送信も受信もしません。
+  - [ ] OK    Fix: 
+
+- **`presetApplied`**
+  - EN: Reverb preset "{name}" applied to this chain.
+  - JA: リバーブプリセット「{name}」をこのチェーンに適用しました。
+  - [ ] OK    Fix: 
+
+- **`reorderHint`**
+  - EN: Drag a module to reorder the chain. Click a module to edit it.
+  - JA: モジュールをドラッグしてチェーンの順序を変更します。モジュールをクリックして編集します。
+  - [ ] OK    Fix: 
+
+- **`unlinked`**
+  - EN: Unlinked: this chain is this channel's alone.
+  - JA: リンクなし：このチェーンはこのチャンネル専用です。
+  - [ ] OK    Fix: 
+
 ## `effects.dialogs`
 
 - **`exportTitle`**
@@ -454,6 +565,21 @@ Walk through each section. For every entry:
 
 ## `effects.help`
 
+- **`chainBypass`**
+  - EN: Bypass the whole chain: the feed passes straight to the return with the chain's latency held, so switching back is click-free.
+  - JA: チェーン全体をバイパスします：フィードはチェーンのレイテンシーを保ったままリターンへ直接通るため、戻すときにクリックノイズが出ません。
+  - [ ] OK    Fix: 
+
+- **`chainLatency`**
+  - EN: The chain's current latency, from the modules that are on (oversampling, lookahead, delay lines). Applied at the next block.
+  - JA: オンのモジュール（オーバーサンプリング、ルックアヘッド、ディレイライン）によるチェーンの現在のレイテンシー。次のブロックから適用されます。
+  - [ ] OK    Fix: 
+
+- **`chainTile`**
+  - EN: Click to edit this module; drag left or right to move it in the chain. The dot shows whether the module is ON, the bar its output level (gain reduction for Dynamics).
+  - JA: クリックでこのモジュールを編集、左右にドラッグでチェーン内を移動します。ドットはモジュールがONかどうか、バーは出力レベル（ダイナミクスではゲインリダクション）を示します。
+  - [ ] OK    Fix: 
+
 - **`channelSelector`**
   - EN: Select the effects channel to edit.
   - JA: 編集するエフェクトチャンネルを選択します。
@@ -464,9 +590,324 @@ Walk through each section. For every entry:
   - JA: 長押しでこのエフェクトチェーンをクリアします。Ctrlを押しながらですべてのエフェクトをクリアします。
   - [ ] OK    Fix: 
 
+- **`crushBits`**
+  - EN: Word length of the quantiser (1 - 24 bits).
+  - JA: クオンタイザーのワード長（1 - 24ビット）。
+  - [ ] OK    Fix: 
+
+- **`crushBypass`**
+  - EN: Bypass the bitcrusher / downsampler module.
+  - JA: ビットクラッシャー/ダウンサンプラーモジュールをバイパスします。
+  - [ ] OK    Fix: 
+
+- **`crushDither`**
+  - EN: Dither level before the quantiser (-96 = off).
+  - JA: クオンタイザーの前のディザーレベル（-96 = オフ）。
+  - [ ] OK    Fix: 
+
+- **`crushFilter`**
+  - EN: Alias freely, or low-pass before the hold.
+  - JA: エイリアスをそのまま出すか、ホールドの前にローパスを掛けます。
+  - [ ] OK    Fix: 
+
+- **`crushMix`**
+  - EN: Dry/wet mix of the bitcrusher (wet %).
+  - JA: ビットクラッシャーのドライ/ウェットミックス（ウェット %）。
+  - [ ] OK    Fix: 
+
+- **`crushRate`**
+  - EN: Sample-and-hold rate of the downsampler.
+  - JA: ダウンサンプラーのサンプル&ホールドレート。
+  - [ ] OK    Fix: 
+
 - **`cycle`**
   - EN: This effect is part of a feedback loop in the sends grid.
   - JA: このエフェクトはセンドグリッド内のフィードバックループの一部です。
+  - [ ] OK    Fix: 
+
+- **`delayBypass`**
+  - EN: Bypass the multitap delay module.
+  - JA: マルチタップディレイモジュールをバイパスします。
+  - [ ] OK    Fix: 
+
+- **`delayDiffusion`**
+  - EN: Smear the tap sum with two allpasses (0 - 1).
+  - JA: 2つのオールパスでタップの合計をぼかします（0 - 1）。
+  - [ ] OK    Fix: 
+
+- **`delayFbHiShelfFreq`**
+  - EN: Corner frequency of the high shelf inside the feedback loop.
+  - JA: フィードバックループ内のハイシェルフのコーナー周波数。
+  - [ ] OK    Fix: 
+
+- **`delayFbHiShelfGain`**
+  - EN: Gain of the high shelf inside the feedback loop.
+  - JA: フィードバックループ内のハイシェルフのゲイン。
+  - [ ] OK    Fix: 
+
+- **`delayFbLoShelfFreq`**
+  - EN: Corner frequency of the low shelf inside the feedback loop.
+  - JA: フィードバックループ内のローシェルフのコーナー周波数。
+  - [ ] OK    Fix: 
+
+- **`delayFbLoShelfGain`**
+  - EN: Gain of the low shelf inside the feedback loop.
+  - JA: フィードバックループ内のローシェルフのゲイン。
+  - [ ] OK    Fix: 
+
+- **`delayFeedback`**
+  - EN: Feedback amount of the delay line (0 - 95 %).
+  - JA: ディレイラインのフィードバック量（0 - 95 %）。
+  - [ ] OK    Fix: 
+
+- **`delayFeedbackTap`**
+  - EN: Tap that feeds the feedback loop.
+  - JA: フィードバックループに送り込むタップ。
+  - [ ] OK    Fix: 
+
+- **`delayGlide`**
+  - EN: Glide time when a delay time changes.
+  - JA: ディレイ時間が変わるときのグライド時間。
+  - [ ] OK    Fix: 
+
+- **`delayInLoCut`**
+  - EN: High-pass the signal entering the delay line.
+  - JA: ディレイラインに入る信号にハイパスを掛けます。
+  - [ ] OK    Fix: 
+
+- **`delayMix`**
+  - EN: Dry/wet mix of the multitap delay (wet %).
+  - JA: マルチタップディレイのドライ/ウェットミックス（ウェット %）。
+  - [ ] OK    Fix: 
+
+- **`delayModDepth`**
+  - EN: Depth of the delay-time modulation, as a percentage of the time.
+  - JA: ディレイ時間変調の深さ（時間に対する割合）。
+  - [ ] OK    Fix: 
+
+- **`delayModRate`**
+  - EN: Rate of the delay-time modulation LFO.
+  - JA: ディレイ時間変調LFOのレート。
+  - [ ] OK    Fix: 
+
+- **`delayPattern`**
+  - EN: Tap spacing pattern (Pattern mode only).
+  - JA: タップ間隔のパターン（Patternモードのみ）。
+  - [ ] OK    Fix: 
+
+- **`delayTapLevel`**
+  - EN: Level of Tap <Tap ID>.
+  - JA: タップ <Tap ID> のレベル。
+  - [ ] OK    Fix: 
+
+- **`delayTapMode`**
+  - EN: Take tap times from the pattern or from the taps.
+  - JA: タップ時間をパターンから取るか、各タップから取るかを選択。
+  - [ ] OK    Fix: 
+
+- **`delayTapTime`**
+  - EN: Delay time of Tap <Tap ID> (Manual mode).
+  - JA: タップ <Tap ID> のディレイ時間（Manualモード）。
+  - [ ] OK    Fix: 
+
+- **`delayTaps`**
+  - EN: Number of live taps (1 - 8).
+  - JA: 有効なタップの数（1 - 8）。
+  - [ ] OK    Fix: 
+
+- **`delayTime`**
+  - EN: Base delay time of the multitap delay.
+  - JA: マルチタップディレイのベースディレイ時間。
+  - [ ] OK    Fix: 
+
+- **`distBias`**
+  - EN: Asymmetry of the shaper, for even-harmonic (tube-like) colour.
+  - JA: シェイパーの非対称性。偶数次倍音（真空管のような）の色付けに使います。
+  - [ ] OK    Fix: 
+
+- **`distBypass`**
+  - EN: Bypass the distortion module.
+  - JA: ディストーションモジュールをバイパスします。
+  - [ ] OK    Fix: 
+
+- **`distDrive`**
+  - EN: Input gain into the shapers (0 - 40 dB).
+  - JA: シェイパーへの入力ゲイン（0 - 40 dB）。
+  - [ ] OK    Fix: 
+
+- **`distMix`**
+  - EN: Dry/wet mix of the distortion module (wet %).
+  - JA: ディストーションモジュールのドライ/ウェットミックス（ウェット %）。
+  - [ ] OK    Fix: 
+
+- **`distOutput`**
+  - EN: Distortion output level (-24 to +12 dB).
+  - JA: ディストーションの出力レベル（-24 ～ +12 dB）。
+  - [ ] OK    Fix: 
+
+- **`distOversample`**
+  - EN: Oversampling factor for the distortion shaper.
+  - JA: ディストーションシェイパーのオーバーサンプリング係数。
+  - [ ] OK    Fix: 
+
+- **`distPostHiShelfFreq`**
+  - EN: Corner frequency of the high shelf after the distortion shaper.
+  - JA: ディストーションシェイパーの後段にあるハイシェルフのコーナー周波数。
+  - [ ] OK    Fix: 
+
+- **`distPostHiShelfGain`**
+  - EN: Gain of the high shelf after the distortion shaper.
+  - JA: ディストーションシェイパーの後段にあるハイシェルフのゲイン。
+  - [ ] OK    Fix: 
+
+- **`distPostLoShelfFreq`**
+  - EN: Corner frequency of the low shelf after the distortion shaper.
+  - JA: ディストーションシェイパーの後段にあるローシェルフのコーナー周波数。
+  - [ ] OK    Fix: 
+
+- **`distPostLoShelfGain`**
+  - EN: Gain of the low shelf after the distortion shaper.
+  - JA: ディストーションシェイパーの後段にあるローシェルフのゲイン。
+  - [ ] OK    Fix: 
+
+- **`distPreHiShelfFreq`**
+  - EN: Corner frequency of the high shelf before the distortion shaper.
+  - JA: ディストーションシェイパーの前段にあるハイシェルフのコーナー周波数。
+  - [ ] OK    Fix: 
+
+- **`distPreHiShelfGain`**
+  - EN: Gain of the high shelf before the distortion shaper.
+  - JA: ディストーションシェイパーの前段にあるハイシェルフのゲイン。
+  - [ ] OK    Fix: 
+
+- **`distPreLoShelfFreq`**
+  - EN: Corner frequency of the low shelf before the distortion shaper.
+  - JA: ディストーションシェイパーの前段にあるローシェルフのコーナー周波数。
+  - [ ] OK    Fix: 
+
+- **`distPreLoShelfGain`**
+  - EN: Gain of the low shelf before the distortion shaper.
+  - JA: ディストーションシェイパーの前段にあるローシェルフのゲイン。
+  - [ ] OK    Fix: 
+
+- **`distShape`**
+  - EN: Blend from hard clipping (0) to tanh saturation (1).
+  - JA: ハードクリッピング（0）からtanhサチュレーション（1）へのブレンド。
+  - [ ] OK    Fix: 
+
+- **`dynAutoMakeup`**
+  - EN: Derive the makeup gain from the compressor threshold and ratio.
+  - JA: コンプレッサーのスレッショルドとレシオからメイクアップゲインを求めます。
+  - [ ] OK    Fix: 
+
+- **`dynBypass`**
+  - EN: Bypass this dynamics instance.
+  - JA: このダイナミクスインスタンスをバイパスします。
+  - [ ] OK    Fix: 
+
+- **`dynCompAttack`**
+  - EN: Compressor attack time (0.05 - 200 ms).
+  - JA: コンプレッサーのアタック時間（0.05 - 200 ms）。
+  - [ ] OK    Fix: 
+
+- **`dynCompDetectorDelay`**
+  - EN: Let a transient through before the compressor grabs (transient pass, no latency).
+  - JA: コンプレッサーが掛かる前にトランジェントを通します（トランジェントパス、レイテンシーなし）。
+  - [ ] OK    Fix: 
+
+- **`dynCompKnee`**
+  - EN: Soft-knee width of the compressor (0 = hard knee).
+  - JA: コンプレッサーのソフトニー幅（0 = ハードニー）。
+  - [ ] OK    Fix: 
+
+- **`dynCompOn`**
+  - EN: Enable the compressor stage of this dynamics instance.
+  - JA: このダイナミクスインスタンスのコンプレッサーステージを有効にします。
+  - [ ] OK    Fix: 
+
+- **`dynCompRatio`**
+  - EN: Compressor ratio (1:1 to 100:1; 100 is a limiter).
+  - JA: コンプレッサーのレシオ（1:1 ～ 100:1、100はリミッター）。
+  - [ ] OK    Fix: 
+
+- **`dynCompRelease`**
+  - EN: Compressor release time (5 - 2000 ms).
+  - JA: コンプレッサーのリリース時間（5 - 2000 ms）。
+  - [ ] OK    Fix: 
+
+- **`dynCompScHiCut`**
+  - EN: Low-pass the compressor's sidechain detector.
+  - JA: コンプレッサーのサイドチェーンディテクターにローパスを掛けます。
+  - [ ] OK    Fix: 
+
+- **`dynCompScLoCut`**
+  - EN: High-pass the compressor's sidechain detector.
+  - JA: コンプレッサーのサイドチェーンディテクターにハイパスを掛けます。
+  - [ ] OK    Fix: 
+
+- **`dynCompThreshold`**
+  - EN: Compressor threshold level (-60 to 0 dB).
+  - JA: コンプレッサーのスレッショルドレベル（-60 ～ 0 dB）。
+  - [ ] OK    Fix: 
+
+- **`dynDetector`**
+  - EN: Peak or RMS detection for both stages.
+  - JA: 両ステージのピークまたはRMS検出。
+  - [ ] OK    Fix: 
+
+- **`dynExpAttack`**
+  - EN: Expander attack time (0.05 - 200 ms).
+  - JA: エキスパンダーのアタック時間（0.05 - 200 ms）。
+  - [ ] OK    Fix: 
+
+- **`dynExpHold`**
+  - EN: Hold time before the expander starts to close.
+  - JA: エキスパンダーが閉じ始めるまでのホールド時間。
+  - [ ] OK    Fix: 
+
+- **`dynExpOn`**
+  - EN: Enable the expander stage of this dynamics instance.
+  - JA: このダイナミクスインスタンスのエキスパンダーステージを有効にします。
+  - [ ] OK    Fix: 
+
+- **`dynExpRange`**
+  - EN: Maximum attenuation the expander may apply (-80 to 0 dB).
+  - JA: エキスパンダーが掛けられる最大減衰量（-80 ～ 0 dB）。
+  - [ ] OK    Fix: 
+
+- **`dynExpRatio`**
+  - EN: Downward expander ratio (1:1 to 1:100; 100 is a gate).
+  - JA: ダウンワードエキスパンダーのレシオ（1:1 ～ 1:100、100はゲート）。
+  - [ ] OK    Fix: 
+
+- **`dynExpRelease`**
+  - EN: Expander release time (5 - 2000 ms).
+  - JA: エキスパンダーのリリース時間（5 - 2000 ms）。
+  - [ ] OK    Fix: 
+
+- **`dynExpScHiCut`**
+  - EN: Low-pass the expander's sidechain detector.
+  - JA: エキスパンダーのサイドチェーンディテクターにローパスを掛けます。
+  - [ ] OK    Fix: 
+
+- **`dynExpScLoCut`**
+  - EN: High-pass the expander's sidechain detector.
+  - JA: エキスパンダーのサイドチェーンディテクターにハイパスを掛けます。
+  - [ ] OK    Fix: 
+
+- **`dynExpThreshold`**
+  - EN: Expander threshold level (-90 to 0 dB).
+  - JA: エキスパンダーのスレッショルドレベル（-90 ～ 0 dB）。
+  - [ ] OK    Fix: 
+
+- **`dynLookahead`**
+  - EN: Delay the audio so the detector sees a transient first (adds reported latency).
+  - JA: オーディオを遅延させ、ディテクターが先にトランジェントを捉えられるようにします（報告されるレイテンシーが増えます）。
+  - [ ] OK    Fix: 
+
+- **`dynMakeup`**
+  - EN: Makeup gain applied after both stages.
+  - JA: 両ステージの後に適用されるメイクアップゲイン。
   - [ ] OK    Fix: 
 
 - **`editOnMap`**
@@ -479,9 +920,64 @@ Walk through each section. For every entry:
   - JA: このエフェクトは入力から供給されているため、そのまとまりの入口です。
   - [ ] OK    Fix: 
 
+- **`eqBandReset`**
+  - EN: Long-press: reset this band to its default shape, frequency, gain and Q.
+  - JA: 長押し：このバンドを既定の形状、周波数、ゲイン、Qにリセットします。
+  - [ ] OK    Fix: 
+
+- **`eqBandToggle`**
+  - EN: Switch this band on or off. Off keeps the band's settings for when it comes back.
+  - JA: このバンドをオン/オフします。オフでも、戻したときのためにバンドの設定は保持されます。
+  - [ ] OK    Fix: 
+
+- **`eqBypass`**
+  - EN: Bypass this EQ instance.
+  - JA: このEQインスタンスをバイパスします。
+  - [ ] OK    Fix: 
+
+- **`eqDisplay`**
+  - EN: Drag a band handle to set its frequency and gain; the wheel sets its Q.
+  - JA: バンドのハンドルをドラッグして周波数とゲインを設定、ホイールでQを設定します。
+  - [ ] OK    Fix: 
+
+- **`eqFlatten`**
+  - EN: Long-press: reset every band of this EQ to its default shape, frequency, gain and Q.
+  - JA: 長押し：このEQの全バンドを既定の形状、周波数、ゲイン、Qにリセットします。
+  - [ ] OK    Fix: 
+
+- **`eqFreq`**
+  - EN: Select the EQ Frequency for Band <Band ID> of this EQ instance.
+  - JA: このEQインスタンスのバンド <Band ID> のEQ周波数を選択。
+  - [ ] OK    Fix: 
+
+- **`eqGain`**
+  - EN: Select the EQ Gain/Attenuation for Band <Band ID> of this EQ instance.
+  - JA: このEQインスタンスのバンド <Band ID> のEQゲイン/減衰量を選択。
+  - [ ] OK    Fix: 
+
+- **`eqQ`**
+  - EN: Select the EQ Q for Band <Band ID> of this EQ instance.
+  - JA: このEQインスタンスのバンド <Band ID> のEQ Qを選択。
+  - [ ] OK    Fix: 
+
+- **`eqShape`**
+  - EN: Select the EQ Mode for Band <Band ID> of this EQ instance.
+  - JA: このEQインスタンスのバンド <Band ID> のEQモードを選択。
+  - [ ] OK    Fix: 
+
+- **`eqSlope`**
+  - EN: Select the EQ Slope for Band <Band ID> of this EQ instance.
+  - JA: このEQインスタンスのバンド <Band ID> のEQスロープを選択。
+  - [ ] OK    Fix: 
+
 - **`export`**
   - EN: Export Effects Configuration to file (with file explorer window).
   - JA: ファイルにエフェクト設定をエクスポート（ファイルエクスプローラー使用）。
+  - [ ] OK    Fix: 
+
+- **`grMeter`**
+  - EN: Gain reduction the dynamics module is applying right now.
+  - JA: ダイナミクスモジュールが現在掛けているゲインリダクション。
   - [ ] OK    Fix: 
 
 - **`groupMute`**
@@ -492,6 +988,86 @@ Walk through each section. For every entry:
 - **`import`**
   - EN: Import Effects Configuration from file (with file explorer window).
   - JA: ファイルからエフェクト設定をインポート（ファイルエクスプローラー使用）。
+  - [ ] OK    Fix: 
+
+- **`lfoActive`**
+  - EN: Enable or Disable the Periodic Movement of the Effect Return (LFO).
+  - JA: エフェクトリターンの周期的な動き（LFO）を有効または無効にします。
+  - [ ] OK    Fix: 
+
+- **`lfoAmplitudeX`**
+  - EN: Width of Movement in Relation to Base Position of the Effect Return.
+  - JA: エフェクトリターンのベース位置に対する幅方向の動きの大きさ。
+  - [ ] OK    Fix: 
+
+- **`lfoAmplitudeY`**
+  - EN: Depth of Movement in Relation to Base Position of the Effect Return.
+  - JA: エフェクトリターンのベース位置に対する奥行き方向の動きの大きさ。
+  - [ ] OK    Fix: 
+
+- **`lfoAmplitudeZ`**
+  - EN: Height of Movement in Relation to Base Position of the Effect Return.
+  - JA: エフェクトリターンのベース位置に対する高さ方向の動きの大きさ。
+  - [ ] OK    Fix: 
+
+- **`lfoPeriod`**
+  - EN: Base Period of the Movement of the Effect Return.
+  - JA: エフェクトリターンの動きのベース周期。
+  - [ ] OK    Fix: 
+
+- **`lfoPhase`**
+  - EN: Phase Offset of the Movement of the Effect Return.
+  - JA: エフェクトリターンの動きの位相オフセット。
+  - [ ] OK    Fix: 
+
+- **`lfoPhaseX`**
+  - EN: Phase Offset of the Movement of the Effect Return in Width.
+  - JA: 幅方向のエフェクトリターンの動きの位相オフセット。
+  - [ ] OK    Fix: 
+
+- **`lfoPhaseY`**
+  - EN: Phase Offset of the Movement of the Effect Return in Depth.
+  - JA: 奥行き方向のエフェクトリターンの動きの位相オフセット。
+  - [ ] OK    Fix: 
+
+- **`lfoPhaseZ`**
+  - EN: Phase Offset of the Movement of the Effect Return in Height.
+  - JA: 高さ方向のエフェクトリターンの動きの位相オフセット。
+  - [ ] OK    Fix: 
+
+- **`lfoRateX`**
+  - EN: Faster or Slower Movement in Relation to Base Period in Width.
+  - JA: 幅方向のベース周期に対する速い/遅い動き。
+  - [ ] OK    Fix: 
+
+- **`lfoRateY`**
+  - EN: Faster or Slower Movement in Relation to Base Period in Depth.
+  - JA: 奥行き方向のベース周期に対する速い/遅い動き。
+  - [ ] OK    Fix: 
+
+- **`lfoRateZ`**
+  - EN: Faster or Slower Movement in Relation to Base Period in Height.
+  - JA: 高さ方向のベース周期に対する速い/遅い動き。
+  - [ ] OK    Fix: 
+
+- **`lfoShapeX`**
+  - EN: Movement Behaviour of the Effect Return in Width.
+  - JA: 幅方向のエフェクトリターンの動きの挙動。
+  - [ ] OK    Fix: 
+
+- **`lfoShapeY`**
+  - EN: Movement Behaviour of the Effect Return in Depth.
+  - JA: 奥行き方向のエフェクトリターンの動きの挙動。
+  - [ ] OK    Fix: 
+
+- **`lfoShapeZ`**
+  - EN: Movement Behaviour of the Effect Return in Height.
+  - JA: 高さ方向のエフェクトリターンの動きの挙動。
+  - [ ] OK    Fix: 
+
+- **`linkBadge`**
+  - EN: Whether this chain is shared with a link group. Set the group and the link mode on the Channel Parameters tab.
+  - JA: このチェーンがリンクグループと共有されているかどうか。グループとリンクモードは Channel Parameters タブで設定します。
   - [ ] OK    Fix: 
 
 - **`linkGroup`**
@@ -514,6 +1090,66 @@ Walk through each section. For every entry:
   - JA: Map タブのエフェクトリターンのマーカーを表示または非表示にします。
   - [ ] OK    Fix: 
 
+- **`modBypass`**
+  - EN: Bypass the chorus / flanger module.
+  - JA: コーラス/フランジャーモジュールをバイパスします。
+  - [ ] OK    Fix: 
+
+- **`modDelay`**
+  - EN: Centre delay of the modulated line.
+  - JA: 変調ラインのセンターディレイ。
+  - [ ] OK    Fix: 
+
+- **`modDepth`**
+  - EN: Modulation depth as a percentage of the centre delay.
+  - JA: センターディレイに対する割合で表した変調の深さ。
+  - [ ] OK    Fix: 
+
+- **`modFeedback`**
+  - EN: Signed feedback around the modulated line.
+  - JA: 変調ラインのフィードバック（符号付き）。
+  - [ ] OK    Fix: 
+
+- **`modLoCut`**
+  - EN: High-pass the signal entering the modulated line.
+  - JA: 変調ラインに入る信号にハイパスを掛けます。
+  - [ ] OK    Fix: 
+
+- **`modMix`**
+  - EN: Dry/wet mix of the chorus / flanger (wet %).
+  - JA: コーラス/フランジャーのドライ/ウェットミックス（ウェット %）。
+  - [ ] OK    Fix: 
+
+- **`modMode`**
+  - EN: Chorus or flanger voicing.
+  - JA: コーラスまたはフランジャーのボイシング。
+  - [ ] OK    Fix: 
+
+- **`modPhase`**
+  - EN: LFO phase offset for this channel (0 - 360 deg).
+  - JA: このチャンネルのLFO位相オフセット（0 - 360度）。
+  - [ ] OK    Fix: 
+
+- **`modRate`**
+  - EN: LFO rate of the chorus / flanger (0.05 - 10 Hz).
+  - JA: コーラス/フランジャーのLFOレート（0.05 - 10 Hz）。
+  - [ ] OK    Fix: 
+
+- **`modShape`**
+  - EN: LFO waveform of the chorus / flanger.
+  - JA: コーラス/フランジャーのLFO波形。
+  - [ ] OK    Fix: 
+
+- **`modThroughZero`**
+  - EN: Delay the dry signal so the modulated line can pass through zero.
+  - JA: ドライ信号を遅延させ、変調ラインがゼロを通過できるようにします。
+  - [ ] OK    Fix: 
+
+- **`modVoices`**
+  - EN: Number of modulated voices (1 - 3).
+  - JA: 変調ボイスの数（1 - 3）。
+  - [ ] OK    Fix: 
+
 - **`mute`**
   - EN: Mute this effect return.
   - JA: このエフェクトリターンをミュートします。
@@ -524,6 +1160,121 @@ Walk through each section. For every entry:
   - JA: このエフェクトチャンネルの表示名。
   - [ ] OK    Fix: 
 
+- **`otomoAbsRel`**
+  - EN: Select Relative or Absolute Coordinates of Displacement.
+  - JA: 変位の座標を相対または絶対から選択。
+  - [ ] OK    Fix: 
+
+- **`otomoCoordMode`**
+  - EN: Coordinate display mode for AutomOtion destinations: Cartesian (X/Y/Z), Cylindrical (r/θ/Z), or Spherical (r/θ/φ).
+  - JA: AutomOtion目的地の座標表示モード：デカルト（X/Y/Z）、円筒（r/θ/Z）、球面（r/θ/φ）。
+  - [ ] OK    Fix: 
+
+- **`otomoCurve`**
+  - EN: Bend the Path to the Left (Negative) or Right (Positive) of the Direction of Travel.
+  - JA: 進行方向の左（負）または右（正）にパスを曲げます。
+  - [ ] OK    Fix: 
+
+- **`otomoDest`**
+  - EN: Relative or Absolute Destination {name} ({unit}).
+  - JA: 相対または絶対の目的地 {name}（{unit}）。
+  - [ ] OK    Fix: 
+
+- **`otomoDuration`**
+  - EN: Duration of the Movement in Seconds (0.1s to 1 hour).
+  - JA: 動きの継続時間（秒、0.1秒〜1時間）。
+  - [ ] OK    Fix: 
+
+- **`otomoPause`**
+  - EN: Pause and Resume the Movement.
+  - JA: 動きを一時停止して再開。
+  - [ ] OK    Fix: 
+
+- **`otomoPauseResumeAll`**
+  - EN: Pause or Resume All Active Movements on every effect return.
+  - JA: すべてのエフェクトリターンのアクティブな動きをすべて一時停止または再開。
+  - [ ] OK    Fix: 
+
+- **`otomoReset`**
+  - EN: Set the Reset Level for the Automatic Trigger.
+  - JA: 自動トリガーのリセットレベルを設定。
+  - [ ] OK    Fix: 
+
+- **`otomoSpeedProfile`**
+  - EN: Constant Speed or Gradual Acceleration and Slow Down at the Start and the End of the Movement.
+  - JA: 動きの開始と終了で一定速度または段階的な加速と減速。
+  - [ ] OK    Fix: 
+
+- **`otomoStart`**
+  - EN: Start the Movement Manually. An effect return always comes home: the movement is an offset on the authored position.
+  - JA: 動きを手動で開始。エフェクトリターンは常に元の位置に戻ります：動きは設定した位置に対するオフセットです。
+  - [ ] OK    Fix: 
+
+- **`otomoStop`**
+  - EN: Stop the Movement.
+  - JA: 動きを停止。
+  - [ ] OK    Fix: 
+
+- **`otomoStopAll`**
+  - EN: Stop All Active Movements on every effect return.
+  - JA: すべてのエフェクトリターンのアクティブな動きをすべて停止。
+  - [ ] OK    Fix: 
+
+- **`otomoThreshold`**
+  - EN: Set the Threshold for the Automatic Trigger of the Movement.
+  - JA: 動きの自動トリガーのスレッショルドを設定。
+  - [ ] OK    Fix: 
+
+- **`otomoTrigger`**
+  - EN: Manual Start of Displacement or Automatic Trigger on the Audio Level.
+  - JA: 変位の手動開始またはオーディオレベルでの自動トリガー。
+  - [ ] OK    Fix: 
+
+- **`phaserBypass`**
+  - EN: Bypass the phaser module.
+  - JA: フェイザーモジュールをバイパスします。
+  - [ ] OK    Fix: 
+
+- **`phaserCentre`**
+  - EN: Centre frequency of the allpass sweep (100 - 5000 Hz).
+  - JA: オールパススイープの中心周波数（100 - 5000 Hz）。
+  - [ ] OK    Fix: 
+
+- **`phaserDepth`**
+  - EN: Sweep depth of the phaser, in octaves.
+  - JA: フェイザーのスイープの深さ（オクターブ）。
+  - [ ] OK    Fix: 
+
+- **`phaserFeedback`**
+  - EN: Signed feedback around the allpass chain.
+  - JA: オールパスチェーンのフィードバック（符号付き）。
+  - [ ] OK    Fix: 
+
+- **`phaserMix`**
+  - EN: Dry/wet mix of the phaser (wet %).
+  - JA: フェイザーのドライ/ウェットミックス（ウェット %）。
+  - [ ] OK    Fix: 
+
+- **`phaserRate`**
+  - EN: LFO rate of the phaser (0.02 - 10 Hz).
+  - JA: フェイザーのLFOレート（0.02 - 10 Hz）。
+  - [ ] OK    Fix: 
+
+- **`phaserShape`**
+  - EN: LFO waveform of the phaser.
+  - JA: フェイザーのLFO波形。
+  - [ ] OK    Fix: 
+
+- **`phaserSpread`**
+  - EN: Spread of the allpass stages around the centre, in octaves.
+  - JA: 中心の周囲に広がるオールパスステージの幅（オクターブ）。
+  - [ ] OK    Fix: 
+
+- **`phaserStages`**
+  - EN: Number of allpass stages (4, 6, 8 or 12).
+  - JA: オールパスステージの数（4、6、8、12）。
+  - [ ] OK    Fix: 
+
 - **`reloadBackup`**
   - EN: Reload Effects Configuration from backup file (with confirmation).
   - JA: バックアップファイルからエフェクト設定を再読み込み（確認付き）。
@@ -532,6 +1283,151 @@ Walk through each section. For every entry:
 - **`reloadConfig`**
   - EN: Reload Effects Configuration from file (with confirmation).
   - JA: ファイルからエフェクト設定を再読み込み（確認付き）。
+  - [ ] OK    Fix: 
+
+- **`reverbBypass`**
+  - EN: Bypass the in-chain reverb module.
+  - JA: チェーン内のリバーブモジュールをバイパスします。
+  - [ ] OK    Fix: 
+
+- **`reverbCrossoverHigh`**
+  - EN: High crossover frequency for 3-band decay (1 - 10 kHz).
+  - JA: 3バンド減衰用の高域クロスオーバー周波数（1 - 10 kHz）。
+  - [ ] OK    Fix: 
+
+- **`reverbCrossoverLow`**
+  - EN: Low crossover frequency for 3-band decay (50 - 500 Hz).
+  - JA: 3バンド減衰用の低域クロスオーバー周波数（50 - 500 Hz）。
+  - [ ] OK    Fix: 
+
+- **`reverbDiffusion`**
+  - EN: Diffusion amount controlling echo density (0 - 1).
+  - JA: エコー密度を制御する拡散量（0 - 1）。
+  - [ ] OK    Fix: 
+
+- **`reverbERLevel`**
+  - EN: Level of the early reflections (-30 to +6 dB against the dry).
+  - JA: アーリーリフレクションのレベル（ドライに対して -30 ～ +6 dB）。
+  - [ ] OK    Fix: 
+
+- **`reverbERProfile`**
+  - EN: Early reflections in front of the reverb: Off, Room, Chamber, Hall or Cathedral.
+  - JA: リバーブ手前のアーリーリフレクション：Off、Room、Chamber、Hall、Cathedral。
+  - [ ] OK    Fix: 
+
+- **`reverbMix`**
+  - EN: Dry/wet mix of the reverb module (wet %).
+  - JA: リバーブモジュールのドライ/ウェットミックス（ウェット %）。
+  - [ ] OK    Fix: 
+
+- **`reverbModDepth`**
+  - EN: Depth of the modulation inside the reverb tank (0 - 100 %).
+  - JA: リバーブタンク内の変調の深さ（0 - 100 %）。
+  - [ ] OK    Fix: 
+
+- **`reverbModRate`**
+  - EN: Speed of the modulation inside the reverb tank (0.05 - 5 Hz).
+  - JA: リバーブタンク内の変調の速さ（0.05 - 5 Hz）。
+  - [ ] OK    Fix: 
+
+- **`reverbModel`**
+  - EN: Select the reverb algorithm behind this module: FDN, Plate, Modulated Hall or Shimmer.
+  - JA: このモジュールのリバーブアルゴリズムを選択：FDN、Plate、Modulated Hall、Shimmer。
+  - [ ] OK    Fix: 
+
+- **`reverbPredelay`**
+  - EN: Predelay before the reverb module's tail (0 - 250 ms).
+  - JA: リバーブモジュールのテールの前のプリディレイ（0 - 250 ms）。
+  - [ ] OK    Fix: 
+
+- **`reverbRT60`**
+  - EN: Reverb decay time RT60 (0.2 - 8.0 seconds).
+  - JA: リバーブ減衰時間 RT60（0.2 - 8.0秒）。
+  - [ ] OK    Fix: 
+
+- **`reverbRT60HighMult`**
+  - EN: High frequency RT60 multiplier (0.1 - 9.0x).
+  - JA: 高域 RT60 乗数（0.1 - 9.0x）。
+  - [ ] OK    Fix: 
+
+- **`reverbRT60LowMult`**
+  - EN: Low frequency RT60 multiplier (0.1 - 9.0x).
+  - JA: 低域 RT60 乗数（0.1 - 9.0x）。
+  - [ ] OK    Fix: 
+
+- **`reverbShimmerAmount`**
+  - EN: How much of the tail is pitch-shifted (0 - 100 %).
+  - JA: テールのうちピッチシフトされる量（0 - 100 %）。
+  - [ ] OK    Fix: 
+
+- **`reverbShimmerPitch`**
+  - EN: The interval the shimmer climbs by on every pass through the tank.
+  - JA: タンクを通るたびにシマーが上昇する音程。
+  - [ ] OK    Fix: 
+
+- **`reverbSize`**
+  - EN: Room size multiplier of the reverb module (0.5 - 2.0x).
+  - JA: リバーブモジュールのルームサイズ乗数（0.5 - 2.0x）。
+  - [ ] OK    Fix: 
+
+- **`reverbTone`**
+  - EN: Low-pass the reverb tail (1 - 20 kHz).
+  - JA: リバーブテールにローパスを掛けます（1 - 20 kHz）。
+  - [ ] OK    Fix: 
+
+- **`reverbType`**
+  - EN: Reverb preset: sets the model, the reflections and the room in one go. Editing any of them afterwards makes it Custom.
+  - JA: リバーブプリセット：モデル、反射、ルームを一度に設定します。その後いずれかを編集すると Custom になります。
+  - [ ] OK    Fix: 
+
+- **`settingsFeedDevice`**
+  - EN: Compute device used for the effects feed stage. Applies at the next Processing start.
+  - JA: エフェクトフィードステージに使う演算デバイス。次の Processing 開始時に適用されます。
+  - [ ] OK    Fix: 
+
+- **`settingsFxFeed`**
+  - EN: Feed effects from each other geometrically, or through the matrix alone (no geometric delay or attenuation).
+  - JA: エフェクト同士を幾何学的にフィードするか、マトリクスだけで（幾何学的なディレイや減衰なしで）フィードするかを選択。
+  - [ ] OK    Fix: 
+
+- **`settingsLinkMode`**
+  - EN: The link mode a NEW effects channel is stamped with (off, absolute or relative). Existing channels keep their own.
+  - JA: 新しいエフェクトチャンネルに付与されるリンクモード（オフ、絶対、相対）。既存のチャンネルは各自の設定を保持します。
+  - [ ] OK    Fix: 
+
+- **`settingsLinkNames`**
+  - EN: Names of the eight effect link groups. Shown on the Channel Parameters combo, the Chain badge and the sends matrix.
+  - JA: 8つのエフェクトリンクグループの名前。Channel Parameters のコンボ、Chain のバッジ、センドマトリクスに表示されます。
+  - [ ] OK    Fix: 
+
+- **`settingsLoopGuard`**
+  - EN: Automatically mute an effect-to-effect feed that is running away. The one setting here that applies live.
+  - JA: 暴走しているエフェクト間フィードを自動的にミュートします。ここで唯一、即座に反映される設定です。
+  - [ ] OK    Fix: 
+
+- **`settingsLoopGuardCeiling`**
+  - EN: Peak level at which the loop guard trips (dBFS). Applies at the next Processing start.
+  - JA: ループガードが作動するピークレベル（dBFS）。次の Processing 開始時に適用されます。
+  - [ ] OK    Fix: 
+
+- **`settingsMaxDelay`**
+  - EN: Longest delay any effects channel may buffer, in seconds; sizes every delay module. Applies at the next Processing start.
+  - JA: 各エフェクトチャンネルがバッファできる最長ディレイ（秒）。すべてのディレイモジュールのサイズを決めます。次の Processing 開始時に適用されます。
+  - [ ] OK    Fix: 
+
+- **`settingsRelayout`**
+  - EN: Long-press to lay every effect return out on the default ring again. Clears the effects position ownership latch.
+  - JA: 長押しで、すべてのエフェクトリターンを既定のリング上に再配置します。エフェクト位置の所有ラッチを解除します。
+  - [ ] OK    Fix: 
+
+- **`settingsReturnCushion`**
+  - EN: Blocks of cushion on the effect return rings (Auto = the ledger decides). Applies at the next Processing start.
+  - JA: エフェクトリターンのリングのクッションブロック数（自動 = 台帳が決定）。次の Processing 開始時に適用されます。
+  - [ ] OK    Fix: 
+
+- **`settingsWorkerThreads`**
+  - EN: Number of effects worker threads (-1 = automatic, the reverb-feed rule). Applies at the next Processing start.
+  - JA: エフェクトのワーカースレッド数（-1 = 自動、リバーブフィードのルール）。次の Processing 開始時に適用されます。
   - [ ] OK    Fix: 
 
 - **`solo`**
@@ -549,7 +1445,54 @@ Walk through each section. For every entry:
   - JA: エフェクト設定をファイルに保存（上書きは確認付き）。
   - [ ] OK    Fix: 
 
+- **`tapLevel`**
+  - EN: This tap's level.
+  - JA: このタップのレベル。
+  - [ ] OK    Fix: 
+
+- **`tapTime`**
+  - EN: This tap's delay time. In Pattern mode the pattern sets it and the slider follows.
+  - JA: このタップのディレイ時間。Patternモードではパターンが決め、スライダーが追従します。
+  - [ ] OK    Fix: 
+
+- **`tremBypass`**
+  - EN: Bypass the tremolo module.
+  - JA: トレモロモジュールをバイパスします。
+  - [ ] OK    Fix: 
+
+- **`tremDepth`**
+  - EN: Tremolo depth in dB (0 - 60 dB).
+  - JA: トレモロの深さ（dB、0 - 60 dB）。
+  - [ ] OK    Fix: 
+
+- **`tremMix`**
+  - EN: Dry/wet mix of the tremolo (wet %).
+  - JA: トレモロのドライ/ウェットミックス（ウェット %）。
+  - [ ] OK    Fix: 
+
+- **`tremRate`**
+  - EN: Tremolo rate (0.05 - 20 Hz).
+  - JA: トレモロのレート（0.05 - 20 Hz）。
+  - [ ] OK    Fix: 
+
+- **`tremShape`**
+  - EN: Blend the tremolo LFO from sine (0) to triangle (1).
+  - JA: トレモロLFOを正弦波（0）から三角波（1）へブレンドします。
+  - [ ] OK    Fix: 
+
+## `effects.labels`
+
+- **`returnsHome`**
+  - EN: An effect return always comes home: the movement travels as an offset, and the position you set is never overwritten.
+  - JA: エフェクトリターンは常に元の位置に戻ります。動きはオフセットとして加算され、設定した位置が上書きされることはありません。
+  - [ ] OK    Fix: 
+
 ## `effects.messages`
+
+- **`assignedGroup`**
+  - EN: Effect {channel} assigned to {group}
+  - JA: エフェクト {channel} を {group} に割り当てました
+  - [ ] OK    Fix: 
 
 - **`cleared`**
   - EN: Effect chain cleared.
@@ -581,9 +1524,63 @@ Walk through each section. For every entry:
   - JA: このエフェクトはリンクグループに属していないため、ミュートするグループがありません。
   - [ ] OK    Fix: 
 
+- **`relayoutDone`**
+  - EN: Every effect return laid out on the default ring again.
+  - JA: すべてのエフェクトリターンを既定のリング上に再配置しました。
+  - [ ] OK    Fix: 
+
 - **`selectFolderFirst`**
   - EN: Select a project folder first.
   - JA: まずプロジェクトフォルダを選択してください。
+  - [ ] OK    Fix: 
+
+- **`unlinked`**
+  - EN: Effect {channel} removed from its link group
+  - JA: エフェクト {channel} をリンクグループから外しました
+  - [ ] OK    Fix: 
+
+## `effects.sends`
+
+- **`announce.forbidden`**
+  - EN: an effect cannot feed itself
+  - JA: エフェクトは自分自身にフィードできません
+  - [ ] OK    Fix: 
+
+- **`announce.into`**
+  - EN: into effect
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`announce.off`**
+  - EN: off
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`announce.on`**
+  - EN: on
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`gesture.level`**
+  - EN: Effect Send Level
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`gesture.toggle`**
+  - EN: Effect Send Switch
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`hint`**
+  - EN: Click a cell to switch a send; drag up or down to set its level (Shift = fine). Rows: every input, then every effect return. Columns: every effect. The hatched diagonal is an effect feeding itself, which is refused.
+  - JA: セルをクリックでセンドを切り替え、上下にドラッグでレベルを設定します（Shift = 微調整）。行：すべての入力、続いてすべてのエフェクトリターン。列：すべてのエフェクト。斜線の対角セルはエフェクト自身へのフィードで、拒否されます。
+  - [ ] OK    Fix: 
+
+## `effects.settings`
+
+- **`note`**
+  - EN: Everything here except the Loop guard switch applies at the next Processing start: the engine reads these settings when it prepares.
+  - JA: Loop guard スイッチを除き、ここにあるすべての設定は次の Processing 開始時に適用されます。エンジンは準備時にこれらの設定を読み込むためです。
   - [ ] OK    Fix: 
 
 ## `eq.status`
@@ -603,6 +1600,183 @@ Walk through each section. For every entry:
 - **`selectProjectFolder`**
   - EN: Select Project Folder
   - JA: プロジェクトフォルダーを選択
+  - [ ] OK    Fix: 
+
+## `fileManager.errors`
+
+- **`backupFailed`**
+  - EN: Could not back up {file} into {folder}, so it was not saved: the file on disk is unchanged.
+  - JA: {file} を {folder} にバックアップできなかったため、保存しませんでした。ディスク上のファイルは変更されていません。
+  - [ ] OK    Fix: 
+
+- **`backupNotFound`**
+  - EN: Backup not found
+  - JA: バックアップが見つかりません
+  - [ ] OK    Fix: 
+
+- **`channelListMismatchNotConfirmed`**
+  - EN: Load refused: the channel list in {path} differs from this session and the load was not confirmed.
+  - JA: 読み込みを拒否しました：{path} のチャンネルリストがこのセッションと異なり、読み込みが確認されませんでした。
+  - [ ] OK    Fix: 
+
+- **`configStateInvalid`**
+  - EN: Config state is invalid
+  - JA: 設定状態が無効です
+  - [ ] OK    Fix: 
+
+- **`failedApply`**
+  - EN: Failed to apply: {sections}
+  - JA: 適用に失敗しました: {sections}
+  - [ ] OK    Fix: 
+
+- **`failedCreateFolder`**
+  - EN: Failed to create project folder: {path}
+  - JA: プロジェクトフォルダーの作成に失敗しました: {path}
+  - [ ] OK    Fix: 
+
+- **`failedCreateValueTree`**
+  - EN: Failed to create ValueTree from XML: {path}
+  - JA: XMLからValueTreeを作成できませんでした: {path}
+  - [ ] OK    Fix: 
+
+- **`failedCreateXML`**
+  - EN: Failed to create XML from state
+  - JA: 状態からXMLを作成できませんでした
+  - [ ] OK    Fix: 
+
+- **`failedParseXML`**
+  - EN: Failed to parse XML file: {path}
+  - JA: XMLファイルの解析に失敗しました: {path}
+  - [ ] OK    Fix: 
+
+- **`failedWriteFile`**
+  - EN: Failed to write file: {path}. The file on disk is unchanged.
+  - JA: ファイルの書き込みに失敗しました: {path}。ディスク上のファイルは変更されていません。
+  - [ ] OK    Fix: 
+
+- **`fileNotFound`**
+  - EN: File not found: {path}
+  - JA: ファイルが見つかりません: {path}
+  - [ ] OK    Fix: 
+
+- **`invalidConfigStructure`**
+  - EN: Invalid configuration file structure
+  - JA: 設定ファイルの構造が無効です
+  - [ ] OK    Fix: 
+
+- **`noEffectDataInFile`**
+  - EN: No effects data found in file
+  - JA: ファイルにエフェクトデータが見つかりません
+  - [ ] OK    Fix: 
+
+- **`noInputDataInFile`**
+  - EN: No input data found in file
+  - JA: ファイルに入力データが見つかりません
+  - [ ] OK    Fix: 
+
+- **`noInputDataInSnapshot`**
+  - EN: No input data in snapshot
+  - JA: スナップショットに入力データがありません
+  - [ ] OK    Fix: 
+
+- **`noLFOPresetDataInFile`**
+  - EN: No LFO preset data found in file
+  - JA: ファイルにLFOプリセットデータが見つかりません
+  - [ ] OK    Fix: 
+
+- **`noNetworkDataInFile`**
+  - EN: No network data found in file
+  - JA: ファイルにネットワークデータが見つかりません
+  - [ ] OK    Fix: 
+
+- **`noNetworkSections`**
+  - EN: No network sections found in file
+  - JA: ファイルにネットワークセクションが見つかりません
+  - [ ] OK    Fix: 
+
+- **`noOutputDataInFile`**
+  - EN: No output data found in file
+  - JA: ファイルに出力データが見つかりません
+  - [ ] OK    Fix: 
+
+- **`noProjectFolder`**
+  - EN: No project folder specified
+  - JA: プロジェクトフォルダーが指定されていません
+  - [ ] OK    Fix: 
+
+- **`noReverbDataInFile`**
+  - EN: No reverb data found in file
+  - JA: ファイルにリバーブデータが見つかりません
+  - [ ] OK    Fix: 
+
+- **`noScopeDataInTemplate`**
+  - EN: No scope data found in template file
+  - JA: テンプレートファイルにスコープデータが見つかりません
+  - [ ] OK    Fix: 
+
+- **`noSystemDataInFile`**
+  - EN: No valid system data found in file: {path}
+  - JA: ファイルに有効なシステムデータが見つかりません: {path}
+  - [ ] OK    Fix: 
+
+- **`noValidProjectFolder`**
+  - EN: No valid project folder
+  - JA: 有効なプロジェクトフォルダーがありません
+  - [ ] OK    Fix: 
+
+- **`prefixEffects`**
+  - EN: Effects: 
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`prefixInputs`**
+  - EN: Inputs: 
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`prefixNetwork`**
+  - EN: Network: 
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`prefixOutputs`**
+  - EN: Outputs: 
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`prefixReverbs`**
+  - EN: Reverbs: 
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`prefixSystem`**
+  - EN: System: 
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`reservedSnapshotName`**
+  - EN: Not a usable snapshot name: {name}. Windows reserves it for a device (CON, PRN, AUX, NUL, COM1-9, LPT1-9), or it holds one of < > " | ? * or a control character.
+  - JA: 使用できないスナップショット名です：{name}。Windowsがデバイス用に予約している名前（CON、PRN、AUX、NUL、COM1-9、LPT1-9）か、< > " | ? * のいずれかまたは制御文字が含まれています。
+  - [ ] OK    Fix: 
+
+- **`snapshotDoesNotExist`**
+  - EN: Snapshot does not exist
+  - JA: スナップショットが存在しません
+  - [ ] OK    Fix: 
+
+- **`snapshotNotFound`**
+  - EN: Snapshot not found
+  - JA: スナップショットが見つかりません
+  - [ ] OK    Fix: 
+
+- **`snapshotNotFoundNamed`**
+  - EN: Snapshot not found: {name}
+  - JA: スナップショットが見つかりません: {name}
+  - [ ] OK    Fix: 
+
+- **`unusableSnapshotName`**
+  - EN: Not a usable snapshot name: {name}. A name cannot contain /, \ or :
+  - JA: 使用できないスナップショット名です: {name}。名前に /、\、: は使用できません
   - [ ] OK    Fix: 
 
 ## `help.admOsc`
@@ -633,7 +1807,7 @@ Walk through each section. For every entry:
 
 - **`body`**
   - EN: The Binaural renderer is used for:\n- listening to a rough spatial mix on headphones,\n- creating a mix for stereo output,\n- listening to a single soloed track through the spatial processing.\nThis may take the place of your master mix if it's only feeding headphones and media mix.\n\nRender Mode selects the algorithm: ORTF (legacy) emulates a virtual microphone pair; Structural HRTF is a parametric head model (adjust Head Radius to your head); SOFA file renders measured HRTFs — the built-in SADIE II KU100 set or your own SOFA files imported into the project.\n\nOrbit and Head Yaw are two different things, and it matters. Orbit is WHERE YOU SIT: it moves the listener around a circle of Listener Distance about the stage origin, always facing the origin. It does not turn your head — it walks you around the room, so every source changes distance and gets louder or quieter. Head Yaw turns you on the spot from that seat. The Map shows the listener as a head glyph so you can see which one you moved.\n\nHead Tracking rotates the scene with your head so it stays anchored to the stage. Select Webcam (camera-based, no extra hardware) or, when a USB receiver is connected, a head tracker itself — every tracker in range appears as its own entry. Look at the stage center and press Set Zero to calibrate; the Head Yaw dial and the live readout below the selector both follow the tracker. Yaw is measured from your seat, so zero always means facing the origin and changing Orbit re-aims the tracker's zero with you. Manual orientation uses the yaw/pitch/roll values from the Listener Geometry panel (head glyph button) instead.\n\nIn the HRTF modes the spatialised reverb is also rendered at the node positions (studio preview only, balanced by the reverb level); the listener placement (orbit, sideways offset, ear height) lives in the Listener Geometry panel. Note ORTF (legacy) ignores the sideways offset and ear height and always uses 1.5 m, so switching between it and an HRTF mode can move the listener. Delay and level settings allow you to eventually match the sound at the FOH position.
-  - JA: バイノーラルレンダラー\n\nBinaural Rendererの用途：\n- ヘッドフォンで大まかな空間ミックスを聴く\n- ステレオ出力用のミックスを作成する\n- ソロトラックを空間処理で聴く\nヘッドフォンとメディアミックスのみに使用する場合、マスターミックスの代わりになります。\nリスニング位置は原点からの奥行きと向きで調整できます。ディレイとレベルの設定でFOH位置の音に合わせることができます。
+  - JA: バイノーラルレンダラー\n\nBinaural Rendererの用途：\n- ヘッドフォンで大まかな空間ミックスを聴く\n- ステレオ出力用のミックスを作成する\n- ソロにした1トラックを空間処理を通して聴く\nヘッドフォンとメディアミックスにしか送らない場合、マスターミックスの代わりになります。\n\nRender Mode でアルゴリズムを選びます：ORTF（レガシー）は仮想マイクペアをエミュレートします。ストラクチュラルHRTFはパラメトリックな頭部モデルです（Head Radius を自分の頭に合わせて調整）。SOFAファイルは実測HRTFでレンダリングします — 内蔵のSADIE II KU100セット、またはプロジェクトにインポートした独自のSOFAファイルを使えます。\n\nOrbit と Head Yaw は別のもので、その違いは重要です。Orbit は「どこに座るか」です：Listener Distance を半径とする円上でステージ原点の周りを移動し、常に原点を向きます。頭は回らず、部屋の中を歩き回るため、すべてのソースの距離が変わり、音が大きくなったり小さくなったりします。Head Yaw は、その座席でその場で向きを変えます。Map ではリスナーが頭のグリフで表示されるので、どちらを動かしたか確認できます。\n\nHead Tracking は、頭の動きに合わせてシーンを回転させ、ステージに固定されたままにします。Webcam（カメラベース、追加ハードウェア不要）を選ぶか、USBレシーバー接続時はヘッドトラッカー本体を選びます — 範囲内のトラッカーはそれぞれ個別の項目として表示されます。ステージ中央を見て Set Zero を押すと校正されます。Head Yaw のダイヤルと、セレクター下のライブ表示は、どちらもトラッカーに追従します。ヨーは座席から測定されるため、ゼロは常に原点を向いた状態を意味し、Orbit を変えるとトラッカーのゼロも一緒に向き直ります。Manual orientation では、代わりに Listener Geometry パネル（頭のグリフのボタン）のヨー/ピッチ/ロールの値を使います。\n\nHRTFモードでは、空間化されたリバーブもノード位置でレンダリングされます（スタジオでのプレビュー専用、リバーブレベルでバランス調整）。リスナーの配置（Orbit、横方向オフセット、耳の高さ）は Listener Geometry パネルにあります。ORTF（レガシー）は横方向オフセットと耳の高さを無視して常に1.5 mを使うため、ORTFとHRTFモードを切り替えるとリスナーが移動することがあります。ディレイとレベルの設定で、FOH位置の音に合わせることができます。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -675,6 +1849,54 @@ Walk through each section. For every entry:
 - **`title`**
   - EN: Effects
   - JA: エフェクト
+  - [ ] OK    Fix: 
+
+## `help.effectsChain`
+
+- **`body`**
+  - EN: The strip shows the eleven modules in their current order: click a tile to edit that module, drag it left or right to move it in the chain. The dot on a tile says whether the module is ON, the bar shows its output level (gain reduction for Dynamics). The badge above says who else hears an edit; beside it the chain bypass (click-free, latency held) and the chain's latency.\nEach module's controls come from the CSV that documents them. The EQs add an interactive display and six band strips with Flatten and per-band Reset long-presses; the Dynamics add a gain-reduction meter; the delay adds its eight tap rows (dormant taps and Pattern-mode times dimmed); the reverb adds models and presets: the Model menu picks the reverb itself (FDN, Plate, Modulated Hall or Shimmer) and only that model's controls are shown, and a preset sets the model, the early reflections and the room at once - editing any of those values turns it back to Custom, while Tone and Mix stay as you set them.
+  - JA: ストリップには11個のモジュールが現在の順序で表示されます：タイルをクリックでそのモジュールを編集、左右にドラッグでチェーン内を移動します。タイルのドットはモジュールがONかどうか、バーは出力レベル（ダイナミクスではゲインリダクション）を示します。上のバッジはこのチャンネルの編集が他のチャンネルにも反映されるかどうかを示し、その横にチェーンバイパス（クリックノイズなし、レイテンシー保持）とチェーンのレイテンシーがあります。\n各モジュールのコントロールは、それを記述したCSVから生成されます。EQにはインタラクティブなディスプレイと6つのバンドストリップ（Flattenとバンドごとの Reset は長押し）、ダイナミクスにはゲインリダクションメーター、ディレイには8つのタップ行（未使用のタップとPatternモードの時間は暗く表示）、リバーブにはモデルとプリセットが加わります：Model メニューでリバーブそのもの（FDN、Plate、Modulated Hall、Shimmer）を選ぶと、そのモデルのコントロールだけが表示されます。プリセットはモデル、アーリーリフレクション、ルームを一度に設定し、それらの値をどれか編集すると Custom に戻ります。Tone と Mix は設定したままです。
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Effects Chain
+  - JA: エフェクトチェーン
+  - [ ] OK    Fix: 
+
+## `help.effectsMovements`
+
+- **`body`**
+  - EN: The LFO and AutomOtion of an effect return, laid out as the Inputs tab lays out the same two blocks. Both travel as OFFSETS the calculation engine adds to the authored position, and the two add to each other: the return always comes home, and the position you set is never overwritten.\nThere is no Stay/Return (a movement that ended somewhere else would move the room itself), no gyrophone (a return has no brightness cone to rotate) and no jitter. The feed geometry follows the base position; only the return follows base + offsets.
+  - JA: エフェクトリターンのLFOとAutomOtion。Inputs タブと同じ2つのブロックを、同じ配置で備えています。どちらも計算エンジンが設定位置に加えるオフセットとして動き、2つは互いに加算されます：リターンは常に元の位置に戻り、設定した位置が上書きされることはありません。\nStay/Return（別の場所で終わる動きはルームそのものを動かしてしまう）、ジャイロフォン（リターンには回転させる輝度コーンがない）、ジッターはありません。フィードのジオメトリはベース位置に従い、リターンだけがベース + オフセットに従います。
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Effects Movements
+  - JA: エフェクトの動き
+  - [ ] OK    Fix: 
+
+## `help.effectsSends`
+
+- **`body`**
+  - EN: The whole sends matrix, not one row: every input and every effect return as a source row, every effect as a destination column. Click a cell to switch a send, drag up or down to set its level (Shift = fine), use the wheel to nudge. The hatched diagonal is an effect feeding itself, which is refused.\nThe selected effect's column is highlighted and the two buttons switch every send into it. A green badge marks a column fed by an input - the entry point of its bunch - and an amber one a column inside a feedback cycle. The loop guard (Settings) mutes a feed that runs away; Clear on the header flushes a chain that already has.
+  - JA: 1行ではなくセンドマトリクス全体：すべての入力とすべてのエフェクトリターンがソース行、すべてのエフェクトが宛先の列です。セルをクリックでセンドを切り替え、上下にドラッグでレベルを設定（Shift = 微調整）、ホイールで微調整します。斜線の対角セルはエフェクト自身へのフィードで、拒否されます。\n選択中のエフェクトの列がハイライトされ、2つのボタンでその列へのすべてのセンドを切り替えます。緑のバッジは入力から供給される列（そのまとまりの入口）、琥珀色のバッジはフィードバックサイクル内の列を示します。ループガード（Settings）は暴走したフィードをミュートし、ヘッダーの Clear は暴走済みのチェーンを消去します。
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Effects Post-Processing
+  - JA: エフェクトのポストプロセッシング
+  - [ ] OK    Fix: 
+
+## `help.effectsSettings`
+
+- **`body`**
+  - EN: The nine settings every effects channel shares: the eight link-group names and the mode a NEW channel is stamped with; whether effects feed each other geometrically or through the matrix alone; the worker threads, the return cushion, the loop guard and its ceiling, the longest delay any chain may buffer, and the compute device of the feed stage.\nEverything here except the loop-guard switch applies at the next Processing start, because the engine reads these settings when it prepares. Re-layout (long-press) lays every effect return out on the default ring again and hands the positions back to the application.
+  - JA: すべてのエフェクトチャンネルが共有する9つの設定：8つのリンクグループ名と、新規チャンネルに付与されるモード、エフェクト同士を幾何学的にフィードするかマトリクスのみでフィードするか、ワーカースレッド、リターンクッション、ループガードとその上限、チェーンがバッファできる最長ディレイ、フィードステージの演算デバイス。\nループガードのスイッチを除き、ここにあるすべての設定は次の Processing 開始時に適用されます。エンジンは準備時にこれらの設定を読み込むためです。Re-layout Effects （長押し）はすべてのエフェクトリターンを既定のリング上に再配置し、位置をアプリケーションに戻します。
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Effects Settings
+  - JA: エフェクト設定
   - [ ] OK    Fix: 
 
 ## `help.floorReflections`
@@ -723,6 +1945,18 @@ Walk through each section. For every entry:
 - **`title`**
   - EN: Inputs Basic Parameters
   - JA: インプット基本パラメータ
+  - [ ] OK    Fix: 
+
+## `help.inputEffectSends`
+
+- **`body`**
+  - EN: This input's sends into the effect channels, one strip per effect: the same cells as the Post-Processing matrix of the Effects tab, seen from the input.\nThe fader sets the send level (-92 to 0 dB) and the button switches the send on or off without touching the level, so a send can be muted and brought back at the level it had. The two buttons above switch every send of this input at once.\nAn effect this input feeds is an entry point of its bunch. What the effect does next - its chain, its position on stage and its sends into other effects - is set on the Effects tab.
+  - JA: この入力からエフェクトチャンネルへのセンドを、エフェクトごとに1本のストリップで表示します。 Effects タブの Post-Processing マトリクスと同じセルを、入力側から見たものです。\nフェーダーはセンドレベル（-92～0 dB）を設定し、ボタンはレベルに触れずにセンドをオン／オフします。センドをミュートし、元のレベルのまま戻せます。上の2つのボタンはこの入力の全センドを一度に切り替えます。\nこの入力が送るエフェクトは、そのグループの入口です。エフェクトがその先で行うこと（チェーン、ステージ上の位置、他のエフェクトへのセンド）は Effects タブで設定します。
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Effect Sends
+  - JA: エフェクトセンド
   - [ ] OK    Fix: 
 
 ## `help.inputHF`
@@ -1028,8 +2262,8 @@ Walk through each section. For every entry:
 ## `help.shortcuts`
 
 - **`body`**
-  - EN: *H* opens the help card closest to the pointer.\n*I*, *O* and *R* open the Input, Output and Reverb tabs respectively; for a few seconds afterwards you can type a channel number to select it (confirm with *Enter*).\n*N* opens the Network tab.\n*C* opens the Clusters tab.\n*M* opens the Map tab.\n*L* locks or unlocks the stereo image orientation of the pairs selected on the Map tab.\n*Spacebar* scrolls to the next channel and *Shift+Spacebar* to the previous one in the Input, Output and Reverb tabs. On the Clusters tab they cycle through the clusters.\n*Ctrl/Cmd* while adjusting a parameter of an output channel that is part of an array adjusts the parameter for the selected channel only, temporarily disabling the propagation to the rest of the array.\n*F1* to *F10* assign inputs to the corresponding cluster in the Input and Map tabs, assign outputs to the corresponding array in the Output tab, and select the corresponding cluster in the Clusters tab. *F11* sets the channel back to Single.\n*Shift* while adjusting a parameter of an input that is part of a cluster adjusts this parameter for the other inputs of the cluster in relative mode: the variation affects all inputs of the cluster, but relative offsets are kept. *Ctrl/Cmd+Shift* changes the parameter in absolute mode: the value becomes identical across all inputs of the cluster.\n*Ctrl/Cmd+Z* undoes the last change; *Ctrl/Cmd+Y* or *Ctrl/Cmd+Shift+Z* redoes it.
-  - JA: *H*：ポインターに最も近いヘルプカードを開きます。\n*I*、*O*、*R*：それぞれ Inputs（入力）、Outputs（出力）、Reverb タブを開きます。その後数秒間はチャンネル番号を入力して選択できます（*Enter* で確定）。\n*N*：Network（ネットワーク）タブを開きます。\n*C*：Clusters（クラスター）タブを開きます。\n*M*：Map（マップ）タブを開きます。\n*L*：Mapタブで選択しているペアのステレオイメージの向きをロック/解除します。\n*スペースキー*：Inputs・Outputs・Reverb タブで次のチャンネルへ、*Shift+スペース*で前のチャンネルへ移動します。Clusters タブではクラスターを順に切り替えます。\n*Ctrl/Cmd*：アレイに属する出力のパラメーターを調整中に押すと、選択中のチャンネルのみが変更され、アレイの他のチャンネルへの伝播が一時的に無効になります。\n*F1*〜*F10*：Inputs・Map タブでは入力を対応するクラスターに割り当て、Outputs タブでは出力を対応するアレイに割り当て、Clusters タブでは対応するクラスターを選択します。*F11* はチャンネルを Single に戻します。\n*Shift*：クラスターに属する入力のパラメーターを調整中に押すと、クラスターの他の入力も相対モードで変更されます。変化はクラスターの全入力に適用され、相対的な差は維持されます。*Ctrl/Cmd+Shift* は絶対モードで変更し、クラスターの全入力で値が同一になります。\n*Ctrl/Cmd+Z*：直前の変更を取り消します。*Ctrl/Cmd+Y* または *Ctrl/Cmd+Shift+Z* はやり直します。
+  - EN: *H* opens the help card closest to the pointer.\n*I*, *O* and *R* open the Input, Output and Reverb tabs respectively; for a few seconds afterwards you can type a channel number to select it (confirm with *Enter*).\n*N* opens the Network tab.\n*C* opens the Clusters tab.\n*M* opens the Map tab.\n*L* locks or unlocks the stereo image orientation of the pairs selected on the Map tab.\n*Spacebar* scrolls to the next channel and *Shift+Spacebar* to the previous one in the Input, Output, Reverb and Effects tabs. On the Clusters tab they cycle through the clusters.\n*Ctrl/Cmd* while adjusting a parameter of an output channel that is part of an array adjusts the parameter for the selected channel only, temporarily disabling the propagation to the rest of the array.\n*F1* to *F10* assign inputs to the corresponding cluster in the Input and Map tabs, assign outputs to the corresponding array in the Output tab, and select the corresponding cluster in the Clusters tab. *F11* sets the channel back to Single. On the Effects tab, *F1* to *F8* put the effect in the corresponding link group and *F11* unlinks it; these link groups are separate from the input clusters.\n*Shift* while adjusting a parameter of an input that is part of a cluster adjusts this parameter for the other inputs of the cluster in relative mode: the variation affects all inputs of the cluster, but relative offsets are kept. *Ctrl/Cmd+Shift* changes the parameter in absolute mode: the value becomes identical across all inputs of the cluster.\n*Ctrl/Cmd+Z* undoes the last change; *Ctrl/Cmd+Y* or *Ctrl/Cmd+Shift+Z* redoes it.
+  - JA: *H*：ポインターに最も近いヘルプカードを開きます。\n*I*、*O*、*R*：それぞれ Inputs（入力）、Outputs（出力）、Reverb タブを開きます。その後数秒間はチャンネル番号を入力して選択できます（*Enter* で確定）。\n*N*：Network（ネットワーク）タブを開きます。\n*C*：Clusters（クラスター）タブを開きます。\n*M*：Map（マップ）タブを開きます。\n*L*：Mapタブで選択しているペアのステレオイメージの向きをロック/解除します。\n*スペースキー*：Inputs・Outputs・Reverb・Effects タブで次のチャンネルへ、*Shift+スペース*で前のチャンネルへ移動します。Clusters タブではクラスターを順に切り替えます。\n*Ctrl/Cmd*：アレイに属する出力のパラメーターを調整中に押すと、選択中のチャンネルのみが変更され、アレイの他のチャンネルへの伝播が一時的に無効になります。\n*F1*〜*F10*：Inputs・Map タブでは入力を対応するクラスターに割り当て、Outputs タブでは出力を対応するアレイに割り当て、Clusters タブでは対応するクラスターを選択します。*F11* はチャンネルを Single に戻します。Effects タブでは *F1*〜*F8* でエフェクトを対応するリンクグループに割り当て、*F11* でリンクを解除します。これらのリンクグループは入力のクラスターとは別のものです。\n*Shift*：クラスターに属する入力のパラメーターを調整中に押すと、クラスターの他の入力も相対モードで変更されます。変化はクラスターの全入力に適用され、相対的な差は維持されます。*Ctrl/Cmd+Shift* は絶対モードで変更し、クラスターの全入力で値が同一になります。\n*Ctrl/Cmd+Z*：直前の変更を取り消します。*Ctrl/Cmd+Y* または *Ctrl/Cmd+Shift+Z* はやり直します。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1088,6 +2322,11 @@ Walk through each section. For every entry:
 - **`selectChannel`**
   - EN: Select Channel
   - JA: チャンネルを選択
+  - [ ] OK    Fix: 
+
+- **`selectColour`**
+  - EN: Input Colour
+  - JA: 入力カラー
   - [ ] OK    Fix: 
 
 - **`snapshotIdentity.fixNumbers`**
@@ -1158,6 +2397,28 @@ Walk through each section. For every entry:
 - **`trackingConflictYes`**
   - EN: Yes, switch tracking
   - JA: はい、トラッキングを切り替え
+  - [ ] OK    Fix: 
+
+## `inputs.effectSends`
+
+- **`gesture.allOff`**
+  - EN: Input Effect Sends All Off
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`gesture.allOn`**
+  - EN: Input Effect Sends All On
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`hint`**
+  - EN: One strip per effect: the fader sets this input's send level into the effect, the button switches the send without changing the level.
+  - JA: エフェクトごとに1本のストリップ。フェーダーはこの入力からそのエフェクトへのセンドレベルを設定し、ボタンはレベルを変えずにセンドを切り替えます。
+  - [ ] OK    Fix: 
+
+- **`none`**
+  - EN: No effect channels. Set an Effects Channels count on System Config.
+  - JA: エフェクトチャンネルがありません。 System Config で Effects Channels の数を設定してください。
   - [ ] OK    Fix: 
 
 ## `inputs.gradientMap`
@@ -1242,6 +2503,11 @@ Walk through each section. For every entry:
   - JA: シェイプの選択と移動
   - [ ] OK    Fix: 
 
+- **`help.shapeBackward`**
+  - EN: Move selected shape(s) one step back, under the next shape (Page Down)
+  - JA: 選択したシェイプを1つ背面へ移動（Page Down）
+  - [ ] OK    Fix: 
+
 - **`help.shapeDelete`**
   - EN: Delete selected shape(s)
   - JA: 選択したシェイプを削除
@@ -1252,14 +2518,69 @@ Walk through each section. For every entry:
   - JA: シェイプの有効/無効
   - [ ] OK    Fix: 
 
+- **`help.shapeForward`**
+  - EN: Move selected shape(s) one step forward, over the next shape (Page Up)
+  - JA: 選択したシェイプを1つ前面へ移動（Page Up）
+  - [ ] OK    Fix: 
+
 - **`help.shapeLock`**
   - EN: Lock shape position
   - JA: シェイプの位置をロック
   - [ ] OK    Fix: 
 
+- **`help.shapeToBack`**
+  - EN: Send selected shape(s) to the back: the top shape covers those below (End; Page Down = one step)
+  - JA: 選択したシェイプを最背面へ移動（上のシェイプが下を覆います）（End、Page Down で1つ後ろへ）
+  - [ ] OK    Fix: 
+
+- **`help.shapeToFront`**
+  - EN: Bring selected shape(s) to the front: the top shape covers those below (Home; Page Up = one step)
+  - JA: 選択したシェイプを最前面へ移動（上のシェイプが下を覆います）（Home、Page Up で1つ前へ）
+  - [ ] OK    Fix: 
+
 - **`help.whiteValue`**
   - EN: Parameter value mapped to white (0.00–1.00)
   - JA: 白にマッピングされるパラメータ値（0.00–1.00）
+  - [ ] OK    Fix: 
+
+- **`hints.darkMaxAtten`**
+  - EN: Dark = max attenuation | Light = none
+  - JA: 暗 = 最大減衰 | 明 = なし
+  - [ ] OK    Fix: 
+
+- **`hints.darkMaxHF`**
+  - EN: Dark = max HF shelf | Light = none
+  - JA: 暗 = 最大HFシェルフ | 明 = なし
+  - [ ] OK    Fix: 
+
+- **`hints.darkMaxHeight`**
+  - EN: Dark = max height | Light = ground
+  - JA: 暗 = 最大高さ | 明 = 地面
+  - [ ] OK    Fix: 
+
+- **`hints.polygonClose`**
+  - EN: Double-click to close polygon
+  - JA: ダブルクリックでポリゴンを閉じる
+  - [ ] OK    Fix: 
+
+- **`hints.whiteMaxAtten`**
+  - EN: White = max attenuation | Black = none
+  - JA: 白 = 最大減衰 | 黒 = なし
+  - [ ] OK    Fix: 
+
+- **`hints.whiteMaxHF`**
+  - EN: White = max HF shelf | Black = none
+  - JA: 白 = 最大HFシェルフ | 黒 = なし
+  - [ ] OK    Fix: 
+
+- **`hints.whiteMaxHeight`**
+  - EN: White = max height | Black = ground
+  - JA: 白 = 最大高さ | 黒 = 地面
+  - [ ] OK    Fix: 
+
+- **`warnings.heightRatioZero`**
+  - EN: Height Ratio is 0% — increase it for height to take effect
+  - JA: 高さ比率が0%です — 高さを有効にするには値を上げてください
   - [ ] OK    Fix: 
 
 ## `inputs.help`
@@ -1292,6 +2613,11 @@ Walk through each section. For every entry:
 - **`clusterSelector`**
   - EN: Object is Part of a Cluster.
   - JA: オブジェクトはクラスターの一部です。
+  - [ ] OK    Fix: 
+
+- **`colourSwatch`**
+  - EN: Input Colour: the colour identifying this input on the map, the channel tiles and the patch matrix. Auto derives it from the channel number.
+  - JA: 入力カラー：マップ、チャンネルタイル、パッチマトリクス上でこの入力を識別する色です。「自動」ではチャンネル番号から決まります。
   - [ ] OK    Fix: 
 
 - **`commonAttenDial`**
@@ -1367,6 +2693,26 @@ Walk through each section. For every entry:
 - **`editScope`**
   - EN: Open the Snapshot Scope window for the selected snapshot.
   - JA: 選択したスナップショットのフィルターウィンドウを開きます。
+  - [ ] OK    Fix: 
+
+- **`effectSendLevel`**
+  - EN: Level of this input's send into the effect (-92 to 0 dB). Drag the fader; the wheel nudges it.
+  - JA: この入力からエフェクトへのセンドレベル（-92～0 dB）。フェーダーをドラッグ、ホイールで微調整。
+  - [ ] OK    Fix: 
+
+- **`effectSendToggle`**
+  - EN: Switch this input's send into the effect on or off. The level is kept.
+  - JA: この入力からエフェクトへのセンドのオン／オフ。レベルは保持されます。
+  - [ ] OK    Fix: 
+
+- **`effectSendsAllOff`**
+  - EN: Switch this input's send into every effect off.
+  - JA: この入力から全エフェクトへのセンドをオフにします。
+  - [ ] OK    Fix: 
+
+- **`effectSendsAllOn`**
+  - EN: Switch this input's send into every effect on.
+  - JA: この入力から全エフェクトへのセンドをオンにします。
   - [ ] OK    Fix: 
 
 - **`exportConfig`**
@@ -2046,6 +3392,67 @@ Walk through each section. For every entry:
   - JA: トラッキングを入力 {from} から入力 {to} に切り替えました
   - [ ] OK    Fix: 
 
+## `inputs.warnings`
+
+- **`floorReflections.base`**
+  - EN: Floor reflections are enabled for this input but cannot be produced:
+  - JA: この入力ではフロアリフレクションが有効ですが、生成できません：
+  - [ ] OK    Fix: 
+
+- **`floorReflections.noSpeakers`**
+  - EN: no speaker has floor reflections enabled with strictly positive horizontal and vertical parallax (listener head away from and above the speaker).
+  - JA: 水平・垂直のパララックスが厳密に正（リスナーの頭がスピーカーから離れ、かつ上にある）でフロアリフレクションが有効なスピーカーがありません。
+  - [ ] OK    Fix: 
+
+- **`floorReflections.onFloor`**
+  - EN: the source is on the floor — raise it above the floor (Z > 0) for reflections.
+  - JA: 音源が床の上にあります — 反射を得るには、床より上（Z > 0）に上げてください。
+  - [ ] OK    Fix: 
+
+- **`liveSource`**
+  - EN: The live-source tamer is enabled for this input, but no speaker has live-source attenuation enabled. Enable it on at least one output for this to take effect.
+  - JA: この入力ではライブソーステイマーが有効ですが、ライブソース減衰が有効なスピーカーがありません。効果を得るには、少なくとも1つの出力で有効にしてください。
+  - [ ] OK    Fix: 
+
+- **`minimalLatency`**
+  - EN: Minimal latency is enabled for this input, but no speaker has minimal latency enabled. Enable it on at least one output for this to take effect.
+  - JA: この入力では最小レイテンシーが有効ですが、最小レイテンシーが有効なスピーカーがありません。効果を得るには、少なくとも1つの出力で有効にしてください。
+  - [ ] OK    Fix: 
+
+- **`short`**
+  - EN: no effect
+  - JA: 効果なし
+  - [ ] OK    Fix: 
+
+## `levelMeter.effects`
+
+- **`tooltip`**
+  - EN: effects engine: last {last} ms | budget {budget} ms | 3s peak {peak} ms | {batches} batch(es) per wake
+  - JA: エフェクトエンジン: 直近 {last} ms | 予算 {budget} ms | 3秒ピーク {peak} ms | ウェイクあたり {batches} バッチ
+  - [ ] OK    Fix: 
+
+## `levelMeter.gpuStrip`
+
+- **`inactive`**
+  - EN: inactive
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`status`**
+  - EN: underruns W:{wu} R:{ru} | depth {wd}/{rd} | latency {wl}/{rl} ms
+  - JA: アンダーラン W:{wu} R:{ru} | 深さ {wd}/{rd} | レイテンシー {wl}/{rl} ms
+  - [ ] OK    Fix: 
+
+- **`tooltip`**
+  - EN: last {last} ms | budget {budget} ms | 3s peak {peak} ms | underruns {under}
+  - JA: 直近 {last} ms | 予算 {budget} ms | 3秒ピーク {peak} ms | アンダーラン {under}
+  - [ ] OK    Fix: 
+
+- **`tooltipNoUnderruns`**
+  - EN: last {last} ms | budget {budget} ms | 3s peak {peak} ms
+  - JA: 直近 {last} ms | 予算 {budget} ms | 3秒ピーク {peak} ms
+  - [ ] OK    Fix: 
+
 ## `levelMeter.tooltips`
 
 - **`clearSolo`**
@@ -2061,6 +3468,13 @@ Walk through each section. For every entry:
 - **`soloMode`**
   - EN: Single: one input at a time. Multi: multiple inputs simultaneously.
   - JA: 単一: 一度に1つの入力。複数: 複数の入力を同時に。
+  - [ ] OK    Fix: 
+
+## `map`
+
+- **`detachedMessage`**
+  - EN: The map is displayed in a separate window.
+  - JA: (missing — falls back to English)
   - [ ] OK    Fix: 
 
 ## `map.messages`
@@ -2210,57 +3624,57 @@ Walk through each section. For every entry:
 
 - **`admAxisSwap`**
   - EN: Which incoming ADM-OSC axis maps to this internal axis.
-  - JA: (missing — falls back to English)
+  - JA: 入力されるADM-OSCのどの軸を、この内部軸にマッピングするか。
   - [ ] OK    Fix: 
 
 - **`admAzFlip`**
   - EN: Invert the direction of incoming azimuth.
-  - JA: (missing — falls back to English)
+  - JA: 入力される方位角の向きを反転します。
   - [ ] OK    Fix: 
 
 - **`admAzOffset`**
   - EN: Azimuth offset (deg) applied to incoming ADM-OSC azimuth.
-  - JA: (missing — falls back to English)
+  - JA: 入力されるADM-OSCの方位角に加える方位角オフセット（度）。
   - [ ] OK    Fix: 
 
 - **`admBreakpoint`**
   - EN: Normalized breakpoint (0-1) for piecewise linear stretch.
-  - JA: (missing — falls back to English)
+  - JA: 区分線形ストレッチの正規化ブレークポイント（0-1）。
   - [ ] OK    Fix: 
 
 - **`admCenterOffset`**
   - EN: Physical position (m) where normalized 0.0 maps to.
-  - JA: (missing — falls back to English)
+  - JA: 正規化値0.0が対応する物理位置（m）。
   - [ ] OK    Fix: 
 
 - **`admDistMax`**
   - EN: Maximum physical distance (m) at ADM-OSC distance=1.
-  - JA: (missing — falls back to English)
+  - JA: ADM-OSCの距離=1に対応する最大の物理距離（m）。
   - [ ] OK    Fix: 
 
 - **`admDistMin`**
   - EN: Minimum physical distance (m) at ADM-OSC distance=0.
-  - JA: (missing — falls back to English)
+  - JA: ADM-OSCの距離=0に対応する最小の物理距離（m）。
   - [ ] OK    Fix: 
 
 - **`admElFlip`**
   - EN: Invert the sign of incoming elevation.
-  - JA: (missing — falls back to English)
+  - JA: 入力される仰角の符号を反転します。
   - [ ] OK    Fix: 
 
 - **`admInnerWidth`**
   - EN: Physical extent (m) from center to breakpoint.
-  - JA: (missing — falls back to English)
+  - JA: 中心からブレークポイントまでの物理的な範囲（m）。
   - [ ] OK    Fix: 
 
 - **`admInputAssign`**
   - EN: Assign this input to an ADM-OSC mapping for receive/transmit.
-  - JA: (missing — falls back to English)
+  - JA: この入力を、送受信用のADM-OSCマッピングに割り当てます。
   - [ ] OK    Fix: 
 
 - **`admLinkAll`**
   - EN: Select all 6 sides at once for uniform editing.
-  - JA: (missing — falls back to English)
+  - JA: 6面すべてを一度に選択し、均一に編集します。
   - [ ] OK    Fix: 
 
 - **`admMapping`**
@@ -2275,17 +3689,17 @@ Walk through each section. For every entry:
 
 - **`admOuterWidth`**
   - EN: Physical extent (m) from breakpoint to ±1.
-  - JA: (missing — falls back to English)
+  - JA: ブレークポイントから ±1 までの物理的な範囲（m）。
   - [ ] OK    Fix: 
 
 - **`admSideSelect`**
   - EN: Select sides to edit. Changes apply to all selected sides at once.
-  - JA: (missing — falls back to English)
+  - JA: 編集する面を選択します。変更は選択したすべての面に同時に適用されます。
   - [ ] OK    Fix: 
 
 - **`admSignFlip`**
   - EN: Invert the sign of the incoming axis value.
-  - JA: (missing — falls back to English)
+  - JA: 入力される軸の値の符号を反転します。
   - [ ] OK    Fix: 
 
 - **`currentIP`**
@@ -2549,7 +3963,7 @@ Walk through each section. For every entry:
 
 - **`protocolMismatch`**
   - EN: Remote app uses protocol v{remote}, expected v{local} — update the tablet app
-  - JA: (missing — falls back to English)
+  - JA: リモートアプリはプロトコル v{remote} を使用していますが、v{local} が必要です — タブレットアプリを更新してください
   - [ ] OK    Fix: 
 
 - **`sendFailing`**
@@ -2860,6 +4274,25 @@ Walk through each section. For every entry:
 - **`setToSingle`**
   - EN: Output {num} set to Single
   - JA: 出力 {num} をシングルに設定
+  - [ ] OK    Fix: 
+
+## `reverbs`
+
+- **`noChannels`**
+  - EN: No reverb channels configured.\n\nSet the number of Reverb Channels in System Config.
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+## `reverbs.algorithm`
+
+- **`irGpuActive`**
+  - EN: GPU: {device} (+{ms} ms wet)
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`irGpuFallback`**
+  - EN: GPU unavailable - using CPU: {error}
+  - JA: (missing — falls back to English)
   - [ ] OK    Fix: 
 
 ## `reverbs.dialogs`
@@ -3285,9 +4718,24 @@ Walk through each section. For every entry:
 
 ## `sampler`
 
+- **`exportFailed`**
+  - EN: The sampler config could not be written to {path}.
+  - JA: サンプラー設定を {path} に書き込めませんでした。
+  - [ ] OK    Fix: 
+
 - **`guide`**
   - EN: Select a cell on the grid to edit its properties.\nDouble-click to load a sample.\nUse Ctrl+Click to assign cells to the active set.
   - JA: グリッド上のセルを選択してプロパティを編集します。\nダブルクリックでサンプルをロード。\nCtrl+クリックでセルをアクティブセットに割り当て。
+  - [ ] OK    Fix: 
+
+- **`placeholder`**
+  - EN: Sampler — coming soon
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`qlabSetCueCreated`**
+  - EN: QLab cue created: Input {channel} set "{name}"
+  - JA: (missing — falls back to English)
   - [ ] OK    Fix: 
 
 ## `sampler.grid`
@@ -3414,11 +4862,57 @@ Walk through each section. For every entry:
   - JA: ベース位置をメートル単位で設定（X、Y、Z）
   - [ ] OK    Fix: 
 
+## `setAllInputs`
+
+- **`warning`**
+  - EN: Changes will apply to ALL inputs
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+## `snapshot`
+
+- **`qlabExportDone`**
+  - EN: QLab export complete: {count} cues created
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`qlabExportStarted`**
+  - EN: Writing {count} cues to QLab...
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`qlabMemoText`**
+  - EN: Run either of the following cues to recall or update this snapshot
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`qlabNoTarget`**
+  - EN: No QLab target configured
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
 ## `snapshotScope`
 
 - **`noEffectChannels`**
   - EN: This session has no effect channels.
   - JA: このセッションにはエフェクトチャンネルがありません。
+  - [ ] OK    Fix: 
+
+- **`writeSnapshotLoadCueTooltip`**
+  - EN: Also create a QLab cue to load this snapshot via OSC
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`writeToQLabTooltip`**
+  - EN: Export scope to QLab instead of saving to file
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+## `snapshotScope.buttons`
+
+- **`updateSnapshotScopeTooltip`**
+  - EN: Write the edited scope into the selected snapshot without re-saving its values. For 'When Saving' snapshots, stored values outside the new scope are removed (backup created first).
+  - JA: (missing — falls back to English)
   - [ ] OK    Fix: 
 
 ## `snapshotScope.midi`
@@ -3431,6 +4925,55 @@ Walk through each section. For every entry:
 - **`tooltip`**
   - EN: A note-on above velocity 64 on this channel and note recalls this snapshot. Note-offs and softer notes are ignored. Choose the MIDI input in Audio Interface ▸ Device Settings.
   - JA: このチャンネルとノートでベロシティが 64 を超えるノートオンを受けると、このスナップショットを呼び出します。ノートオフとそれより弱いノートは無視されます。MIDI 入力は Audio Interface ▸ Device Settings で選択してください。
+  - [ ] OK    Fix: 
+
+## `snapshotScope.templates`
+
+- **`deleteTooltip`**
+  - EN: Delete the selected template
+  - JA: 選択したテンプレートを削除
+  - [ ] OK    Fix: 
+
+- **`errorTitle`**
+  - EN: Scope Template Error
+  - JA: スコープテンプレートのエラー
+  - [ ] OK    Fix: 
+
+- **`overwriteWarning`**
+  - EN: A template with this name already exists — it will be overwritten.
+  - JA: この名前のテンプレートは既に存在します — 上書きされます。
+  - [ ] OK    Fix: 
+
+- **`reloadTooltip`**
+  - EN: Replace the grid with the selected template (apply mode is not changed)
+  - JA: 選択したテンプレートでグリッドを置き換えます（適用モードは変わりません）
+  - [ ] OK    Fix: 
+
+- **`storeMessage`**
+  - EN: Enter a name for this scope template:
+  - JA: このスコープテンプレートの名前を入力してください：
+  - [ ] OK    Fix: 
+
+- **`storeTitle`**
+  - EN: Store Scope Template
+  - JA: スコープテンプレートを保存
+  - [ ] OK    Fix: 
+
+- **`storeTooltip`**
+  - EN: Save the current grid as a new template
+  - JA: 現在のグリッドを新しいテンプレートとして保存
+  - [ ] OK    Fix: 
+
+- **`updateTooltip`**
+  - EN: Overwrite the selected template with the current grid
+  - JA: 選択したテンプレートを現在のグリッドで上書き
+  - [ ] OK    Fix: 
+
+## `systemConfig.binauralSofa`
+
+- **`noProject`**
+  - EN: Open a project first to import SOFA files
+  - JA: SOFAファイルをインポートするには、先にプロジェクトを開いてください
   - [ ] OK    Fix: 
 
 ## `systemConfig.channelList`
@@ -3687,6 +5230,16 @@ Walk through each section. For every entry:
   - JA: 減らす
   - [ ] OK    Fix: 
 
+- **`reduceEffectChannels.message`**
+  - EN: Reducing from {current} to {new} effects channels will remove settings for channels {start} to {end}.\n\nThis cannot be undone.
+  - JA: エフェクトチャンネルを {current} から {new} に減らすと、チャンネル {start} ～ {end} の設定が削除されます。\n\nこの操作は元に戻せません。
+  - [ ] OK    Fix: 
+
+- **`reduceEffectChannels.title`**
+  - EN: Reduce Effects Channels?
+  - JA: エフェクトチャンネルを減らしますか？
+  - [ ] OK    Fix: 
+
 - **`reduceInputChannels.messageList`**
   - EN: The last channel(s) of that type in the display order will be removed, with their settings:\n\n{rows}\n\nOnce the session is in use their numbers are retired and the remaining channels keep theirs, so the patch, snapshots and cues stay valid.\n\nThis cannot be undone, and it clears the undo history of every tab.
   - JA: 表示順でその種類の最後のチャンネルが、設定ごと削除されます:\n\n{rows}\n\nセッション使用後はその番号は欠番となり、他のチャンネルは番号を保持するため、パッチ、スナップショット、キューは有効のままです。\n\nこの操作は元に戻せず、すべてのタブのアンドゥ履歴を消去します。
@@ -3739,6 +5292,16 @@ Walk through each section. For every entry:
   - JA: オーディオインターフェースとパッチングウィンドウを開きます。
   - [ ] OK    Fix: 
 
+- **`binauralAdvanced`**
+  - EN: Open the listener geometry panel: lateral offset, ear height, head radius, listener angle, and manual head orientation (used when no tracker is active).
+  - JA: リスナージオメトリのパネルを開きます：横方向オフセット、耳の高さ、頭部半径、リスナー角度、手動の頭部の向き（トラッカーが無効のときに使用）。
+  - [ ] OK    Fix: 
+
+- **`binauralAdvancedClose`**
+  - EN: Close the listener geometry panel.
+  - JA: リスナージオメトリのパネルを閉じます。
+  - [ ] OK    Fix: 
+
 - **`binauralAngle`**
   - EN: Where the listener SITS on a circle around the stage origin (degrees, 0 = the audience side, straight in front of the stage). They always face the origin, so this does not turn the head — it walks the listener around the room, changing the distance to every source. To turn the head, use Head Yaw (or Orientation Y/P/R in the Listener Geometry panel). Yaw is measured from this seat, so changing Orbit also re-aims a head tracker’s zero.
   - JA: バイノーラルリスナーの視点の水平回転（度、0=ステージ正面）。
@@ -3747,6 +5310,11 @@ Walk through each section. For every entry:
 - **`binauralAtten`**
   - EN: Overall level offset for binaural output (dB).
   - JA: バイノーラル出力の全体レベルオフセット（dB）。
+  - [ ] OK    Fix: 
+
+- **`binauralAttitude`**
+  - EN: Live head attitude from the active tracker (yaw, pitch, roll in degrees). Shows 'no face tracked' while the webcam does not see you.
+  - JA: アクティブなトラッカーからのライブの頭部姿勢（ヨー、ピッチ、ロール、度）。Webカメラがあなたを捉えていない間は「no face tracked」と表示されます。
   - [ ] OK    Fix: 
 
 - **`binauralDelay`**
@@ -3764,14 +5332,59 @@ Walk through each section. For every entry:
   - JA: バイノーラルレンダラー処理を有効または無効にします。
   - [ ] OK    Fix: 
 
+- **`binauralHeadRadius`**
+  - EN: Head radius for the structural HRTF model (centimeters). Larger heads produce larger interaural time differences.
+  - JA: ストラクチュラルHRTFモデルの頭部半径（センチメートル）。頭が大きいほど両耳間時間差が大きくなります。
+  - [ ] OK    Fix: 
+
+- **`binauralHeight`**
+  - EN: Ear height of the binaural listener (meters). HRTF modes only.
+  - JA: バイノーラルリスナーの耳の高さ（メートル）。HRTFモードのみ。
+  - [ ] OK    Fix: 
+
+- **`binauralListenerX`**
+  - EN: Sideways offset of the binaural listener from the seat Orbit and Distance place them at (meters, positive = to the listener’s right). HRTF modes only.
+  - JA: バイノーラルリスナーの横方向オフセット。Orbit と Distance で決まる座席位置からのずれです（メートル、正 = リスナーの右）。HRTFモードのみ。
+  - [ ] OK    Fix: 
+
+- **`binauralMode`**
+  - EN: Binaural rendering algorithm: ORTF (legacy) virtual microphone pair, Structural HRTF (parametric head model), or SOFA file (measured HRTFs).
+  - JA: バイノーラルレンダリングのアルゴリズム：ORTF（レガシー）は仮想マイクペア、ストラクチュラルHRTFはパラメトリックな頭部モデル、SOFAファイルは実測HRTFを使用します。
+  - [ ] OK    Fix: 
+
+- **`binauralOrientation`**
+  - EN: Manual head orientation offsets from facing the origin: yaw, pitch, roll (degrees). These turn the head on the spot — unlike Orbit, which moves the seat. Ignored while a head tracker is active.
+  - JA: 原点を向いた状態からの手動の頭部の向きオフセット：ヨー、ピッチ、ロール（度）。その場で頭を回します — 座席を動かす Orbit とは異なります。ヘッドトラッカーが有効な間は無視されます。
+  - [ ] OK    Fix: 
+
 - **`binauralOutput`**
   - EN: Select output channel pair for binaural monitoring. Off disables binaural output.
   - JA: バイノーラルモニタリング用の出力チャンネルペアを選択。Offはバイノーラル出力を無効にします。
   - [ ] OK    Fix: 
 
+- **`binauralSetZero`**
+  - EN: Look at the stage center, then click to calibrate the head tracker's zero orientation. Webcam tracking takes a moment to start after selecting it.
+  - JA: ステージ中央を見た状態でクリックすると、ヘッドトラッカーのゼロ方向を校正します。Webカメラトラッキングは選択後、開始までしばらく時間がかかります。
+  - [ ] OK    Fix: 
+
+- **`binauralSofa`**
+  - EN: HRTF set for the SOFA render mode: the built-in SADIE II KU100 or a custom SOFA file stored in the project's sofa folder.
+  - JA: SOFAレンダーモード用のHRTFセット：内蔵のSADIE II KU100、またはプロジェクトのsofaフォルダーに保存したカスタムSOFAファイル。
+  - [ ] OK    Fix: 
+
+- **`binauralTracker`**
+  - EN: Head orientation source: manual (yaw/pitch/roll controls) or a connected head tracker. Tracker attitude bypasses parameter damping for immediate response.
+  - JA: 頭の向きのソース：手動（ヨー/ピッチ/ロール操作）または接続したヘッドトラッカー。トラッカーの姿勢はパラメーターのダンピングを介さず、即座に反映されます。
+  - [ ] OK    Fix: 
+
+- **`binauralYaw`**
+  - EN: Turns the listener’s head on the spot, without moving the seat (degrees, 0 = facing the stage origin, positive = turning right). Mirrors the live tracked yaw and is locked while a head tracker is active. HRTF modes only.
+  - JA: 座席を動かさずに、その場でリスナーの頭を回します（度、0 = ステージ原点を向く、正 = 右へ回転）。トラッキング中のヨーを反映し、ヘッドトラッカーが有効な間はロックされます。HRTFモードのみ。
+  - [ ] OK    Fix: 
+
 - **`clearSolo`**
   - EN: Clear all input solo states.
-  - JA: Clear all input solo states.
+  - JA: すべての入力のソロ状態を解除します。
   - [ ] OK    Fix: 
 
 - **`colorScheme`**
@@ -3801,7 +5414,7 @@ Walk through each section. For every entry:
 
 - **`editChannels`**
   - EN: Arrange the input channels: drag to interleave mono and stereo channels in any order, or remove a specific channel. On a fresh session the numbers follow the display order; they become permanent once the session is in use — a project loaded, the Inputs or Map tab opened, the patch window opened, a snapshot stored, or external control connected. From then on a channel keeps its number wherever you drag it and a removed number is retired as a gap, so the patch, snapshots, QLab cues and DAW plug-in mappings never break. Locked when DSP is running.
-  - JA: 入力チャンネルの並べ替え：ドラッグでモノラルとステレオを自由な順に並べたり、特定のチャンネルを削除できます。新規セッションでは番号は表示順に従います。セッションが使用状態になると番号は永久になります — プロジェクトの読み込み、Inputs または Map タブを開く、パッチウィンドウを開く、スナップショットの保存、外部コントロールの接続。以後、チャンネルはどこに移動しても番号を保ち、削除された番号は欠番として保持されるため、パッチ、スナップショット、QLabキュー、DAWプラグインの割り当ては壊れません。DSP実行中はロックされます。
+  - JA: 入力チャンネルの並べ替え：ドラッグでモノラルとステレオを自由な順に並べたり、特定のチャンネルを削除できます。新規セッションでは番号は表示順に従います。セッションが使用状態になると番号は固定されます — プロジェクトの読み込み、Inputs または Map タブを開く、パッチウィンドウを開く、スナップショットの保存、外部コントロールの接続。以後、チャンネルはどこに移動しても番号を保ち、削除された番号は欠番として保持されるため、パッチ、スナップショット、QLabキュー、DAWプラグインの割り当ては壊れません。DSP実行中はロックされます。
   - [ ] OK    Fix: 
 
 - **`exportLogs`**
@@ -3841,7 +5454,7 @@ Walk through each section. For every entry:
 
 - **`levelMeter`**
   - EN: Opens the Level Meter Window.
-  - JA: Opens the Level Meter Window.
+  - JA: レベルメーターウィンドウを開きます。
   - [ ] OK    Fix: 
 
 - **`lightpadSetup`**
@@ -3984,6 +5597,11 @@ Walk through each section. For every entry:
   - JA: スクリーンリーダーのアナウンスを有効または無効にします。有効にすると、パラメータ名と値がホバー時にアナウンスされ、数秒後にヘルプテキストが読み上げられます。
   - [ ] OK    Fix: 
 
+- **`screenRendering`**
+  - EN: Accelerated draws the windows on the graphics card. Compatible draws them on the CPU, so a video call that shares a single window (such as Zoom) shows them live, and opens menus inside the window. Compatible uses more CPU: go back to Accelerated for shows. Always Accelerated at launch.
+  - JA: Accelerated ではグラフィックカードでウィンドウを描画します。Compatible ではCPUで描画するため、ウィンドウ1つだけを共有するビデオ通話（Zoomなど）でもライブで表示され、メニューはウィンドウ内に開きます。Compatible はCPU負荷が高いので、本番では Accelerated に戻してください。起動時は常に Accelerated です。
+  - [ ] OK    Fix: 
+
 - **`selectProjectFolder`**
   - EN: Select the Location of the Current Project Folder where to store files.
   - JA: ファイルを保存する現在のプロジェクトフォルダの場所を選択します。
@@ -4072,6 +5690,11 @@ Walk through each section. For every entry:
 - **`temperature`**
   - EN: Temperature (gives the Speed of Sound).
   - JA: 温度（Speed of Soundを決定）。
+  - [ ] OK    Fix: 
+
+- **`translationTier`**
+  - EN: Choose how much of the interface is translated. 'Help & messages' keeps the controls in English and translates only the help text, messages and dialogs; 'Everything' translates the full interface including labels. Takes full effect after restarting.
+  - JA: (missing — falls back to English)
   - [ ] OK    Fix: 
 
 ## `systemConfig.messages`
@@ -4184,4 +5807,145 @@ Walk through each section. For every entry:
 - **`systemInfoCopied`**
   - EN: System info copied to clipboard
   - JA: システム情報をクリップボードにコピーしました
+  - [ ] OK    Fix: 
+
+- **`translationTierChanged`**
+  - EN: Translation set to: {tier} (requires restart for full effect)
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+## `updateBanner`
+
+- **`available`**
+  - EN: WFS-DIY v{version} is available!
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+## `wizard.buttons`
+
+- **`gettingStartedHelp`**
+  - EN: Help cards guiding you through the first parameters to adjust when starting a new project
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+## `wizard.steps`
+
+- **`audioDevice.description`**
+  - EN: Select your audio driver and device, set the sample rate and buffer size. Check the patch routing and test your outputs. Close this window when done.
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`audioDevice.title`**
+  - EN: Configure the Audio Interface
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`audioInterface.description`**
+  - EN: Click the button above or press Next to open the Audio Interface window.
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`audioInterface.title`**
+  - EN: Open the Audio Interface
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`configureOutputs.description`**
+  - EN: Use the array presets and geometry tools to calculate speaker positions for your arrays. Close this window when done.
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`configureOutputs.title`**
+  - EN: Configure Output Positions
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`exploreInputs.description`**
+  - EN: Click an input on the map to select it, or lasso several to move them together. Drag to position your sources. Zoom with the mouse wheel or pinch gesture, pan with right-drag or two-finger drag. Add inputs, group them into clusters, and shape your sound field. You can also control positions with a keyboard, SpaceMouse, or other external controllers. Have fun!
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`exploreInputs.title`**
+  - EN: Start Creating!
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`inputChannels.description`**
+  - EN: How many audio sources will you be spatializing? Set Mono Inputs for single sources such as voices and instruments, and Stereo Inputs for stereo feeds such as playback, keyboards or submixes. A stereo input keeps one channel number and takes two hardware inputs, L and R.\nBenefits: the pair moves, joins clusters and is recalled as one source, and it plays as two sources spread by its Width, so the stereo image stays wide across the array.\nLimits: the image between the two sides holds best near the middle of the audience; listeners off to one side mostly hear the nearer side. The whole mix moves together, Floor Reflections, Live Source Tamer, Gradient Maps and Sampler do not apply, and 8 pairs is the maximum. When a source must be placed precisely, use mono stems.\nCPU load: each stereo input is rendered as 6 sources (the total appears next to the stereo count), so estimate about the load of 6 mono inputs for each one.
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`inputChannels.title`**
+  - EN: Set Mono and Stereo Inputs
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`originPoint.description`**
+  - EN: The origin is the reference point for all coordinates. Use the preset buttons or enter custom values. 'Front' places it at the audience edge.
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`originPoint.title`**
+  - EN: Set the Origin Point
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`outputChannels.description`**
+  - EN: Set the number of output channels to match your speaker array.\nEach output corresponds to one physical speaker.
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`outputChannels.title`**
+  - EN: Set Output Channels
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`projectFolder.description`**
+  - EN: Choose a folder to store your WFS project files. This will hold configurations, snapshots, IR files, and samples. Click the button to open the folder selector.
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`projectFolder.title`**
+  - EN: Select a Project Folder
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`reverbChannels.description`**
+  - EN: Reverb channels add room simulation. Set to 0 if you don't need reverb.
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`reverbChannels.title`**
+  - EN: Set Reverb Channels
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`stageConfig.description`**
+  - EN: Set the shape and dimensions of your performance space. Choose box, cylinder, or dome, then enter the size in meters.
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`stageConfig.title`**
+  - EN: Define the Stage
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`startProcessing.description`**
+  - EN: You're all set! Long-press the Processing button to start the WFS engine. You can also start the Binaural Renderer for headphone monitoring.
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`startProcessing.title`**
+  - EN: Start the WFS Engine
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`wizardOfOutZ.description`**
+  - EN: Click the Wizard of OutZ button or press Next to open the output array helper.
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`wizardOfOutZ.title`**
+  - EN: Position Your Outputs
+  - JA: (missing — falls back to English)
   - [ ] OK    Fix:

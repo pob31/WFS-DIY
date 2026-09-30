@@ -1,6 +1,6 @@
 # Proofreading checklist — Chinese (中文)
 
-Locale: `zh`  |  Total keys: 803  |  Source: `Resources/lang/en.json` vs `Resources/lang/zh.json`
+Locale: `zh`  |  Total keys: 1143  |  Source: `Resources/lang/en.json` vs `Resources/lang/zh.json`
 
 ## How to use this file
 
@@ -16,6 +16,27 @@ Walk through each section. For every entry:
 - `\n` in the value is a literal newline in the rendered UI; preserve it.
 
 ---
+
+## `ai.history`
+
+- **`noChanges`**
+  - EN: No AI changes yet.
+  - ZH: 暂无 AI 修改。
+  - [ ] OK    Fix: 
+
+## `ai.server`
+
+- **`copyUrlConfirm`**
+  - EN: MCP URL copied to clipboard: {url}
+  - ZH: MCP URL 已复制到剪贴板: {url}
+  - [ ] OK    Fix: 
+
+## `ai.toast`
+
+- **`moreOlder`**
+  - EN: …and {count} older
+  - ZH: (missing — falls back to English)
+  - [ ] OK    Fix: 
 
 ## `ai.tooltips`
 
@@ -37,6 +58,35 @@ Walk through each section. For every entry:
 - **`urlButton`**
   - EN: Click to copy the MCP server URL. Useful for Claude Code (claude mcp add wfs-diy <URL> -t http) or any MCP client that takes a URL. Claude Desktop instead uses the JSON config snippet — open the (?) help card.
   - ZH: 点击复制 MCP 服务器 URL。适用于 Claude Code (claude mcp add wfs-diy <URL> -t http) 或任何接受 URL 的 MCP 客户端。Claude Desktop 改为使用 JSON 配置片段 — 打开 (?) 帮助卡。
+  - [ ] OK    Fix: 
+
+## `ai.undo`
+
+- **`errorPrefix`**
+  - EN: AI {verb}: {message}
+  - ZH: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+## `arrayHelper.errors`
+
+- **`noPositions`**
+  - EN: No positions to apply. Check geometry parameters.
+  - ZH: 没有可应用的位置。请检查几何参数。
+  - [ ] OK    Fix: 
+
+- **`notEnoughOutputs`**
+  - EN: Not enough output channels! Need {count} starting from {start}
+  - ZH: 输出通道不足! 从 {start} 开始需要 {count} 个
+  - [ ] OK    Fix: 
+
+- **`prefix`**
+  - EN: Error: 
+  - ZH: 错误: 
+  - [ ] OK    Fix: 
+
+- **`speakerCountZero`**
+  - EN: Number of speakers must be greater than 0
+  - ZH: 扬声器数量必须大于0
   - [ ] OK    Fix: 
 
 ## `arrayHelper.status`
@@ -100,6 +150,13 @@ Walk through each section. For every entry:
 - **`stopProcessingFirst`**
   - EN: Stop WFS processing to open the Audio Interface window
   - ZH: 请先停止 WFS 处理再打开音频接口窗口
+  - [ ] OK    Fix: 
+
+## `clusters`
+
+- **`qlabPresetCueCreated`**
+  - EN: QLab cue created: Cluster {cluster} preset "{name}"
+  - ZH: QLab提示已创建: 集群 {cluster} 预设 "{name}"
   - [ ] OK    Fix: 
 
 ## `clusters.help`
@@ -284,6 +341,28 @@ Walk through each section. For every entry:
   - ZH: 沿 Z 轴（高度）移动集群的所有输入。
   - [ ] OK    Fix: 
 
+## `clusters.presets`
+
+- **`exported`**
+  - EN: LFO presets exported.
+  - ZH: LFO 预设已导出。
+  - [ ] OK    Fix: 
+
+- **`imported`**
+  - EN: LFO presets imported.
+  - ZH: LFO 预设已导入。
+  - [ ] OK    Fix: 
+
+- **`recalled`**
+  - EN: LFO preset recalled from tile {n}.
+  - ZH: 已从方格 {n} 调用 LFO 预设。
+  - [ ] OK    Fix: 
+
+- **`stored`**
+  - EN: LFO preset stored in tile {n}.
+  - ZH: LFO 预设已保存到方格 {n}。
+  - [ ] OK    Fix: 
+
 ## `clusters.status`
 
 - **`noInputs`**
@@ -440,6 +519,38 @@ Walk through each section. For every entry:
   - ZH: 没有效果通道。请在 System Config 中设置数量，或导入效果配置。
   - [ ] OK    Fix: 
 
+## `effects.chain`
+
+- **`linked`**
+  - EN: Linked, {group} ({mode}): the chain order, the bypasses and every module parameter are shared with {count} other channel(s). Ctrl-drag to edit this channel alone.
+  - ZH: 已链接，{group}（{mode}）：效果链顺序、旁通和所有模块参数与另外 {count} 个通道共享。按住 Ctrl 拖动可仅编辑本通道。
+  - [ ] OK    Fix: 
+
+- **`linkedAlone`**
+  - EN: Linked, {group} ({mode}): no other channel is in this group yet.
+  - ZH: 已链接，{group}（{mode}）：该组中暂时没有其他通道。
+  - [ ] OK    Fix: 
+
+- **`linkedOff`**
+  - EN: {group}, link mode OFF: this channel neither sends nor receives chain edits.
+  - ZH: {group}，链接模式关：本通道既不发送也不接收效果链编辑。
+  - [ ] OK    Fix: 
+
+- **`presetApplied`**
+  - EN: Reverb preset "{name}" applied to this chain.
+  - ZH: 混响预设“{name}”已应用于此效果链。
+  - [ ] OK    Fix: 
+
+- **`reorderHint`**
+  - EN: Drag a module to reorder the chain. Click a module to edit it.
+  - ZH: 拖动模块可调整效果链顺序。点击模块进行编辑。
+  - [ ] OK    Fix: 
+
+- **`unlinked`**
+  - EN: Unlinked: this chain is this channel's alone.
+  - ZH: 未链接：此效果链仅属于本通道。
+  - [ ] OK    Fix: 
+
 ## `effects.dialogs`
 
 - **`exportTitle`**
@@ -454,6 +565,21 @@ Walk through each section. For every entry:
 
 ## `effects.help`
 
+- **`chainBypass`**
+  - EN: Bypass the whole chain: the feed passes straight to the return with the chain's latency held, so switching back is click-free.
+  - ZH: 旁通整条效果链：馈送直接进入返回，同时保持效果链的延迟，因此切换回来时没有爆音。
+  - [ ] OK    Fix: 
+
+- **`chainLatency`**
+  - EN: The chain's current latency, from the modules that are on (oversampling, lookahead, delay lines). Applied at the next block.
+  - ZH: 效果链当前的延迟，来自已开启的模块（过采样、前瞻、延迟线）。在下一个块生效。
+  - [ ] OK    Fix: 
+
+- **`chainTile`**
+  - EN: Click to edit this module; drag left or right to move it in the chain. The dot shows whether the module is ON, the bar its output level (gain reduction for Dynamics).
+  - ZH: 点击以编辑此模块；向左或向右拖动可在效果链中移动它。圆点显示模块是否开启（ON），条形显示其输出电平（动态处理器显示增益衰减）。
+  - [ ] OK    Fix: 
+
 - **`channelSelector`**
   - EN: Select the effects channel to edit.
   - ZH: 选择要编辑的效果通道。
@@ -464,9 +590,324 @@ Walk through each section. For every entry:
   - ZH: 长按以清空此效果链；按住 Ctrl 可清空所有效果。
   - [ ] OK    Fix: 
 
+- **`crushBits`**
+  - EN: Word length of the quantiser (1 - 24 bits).
+  - ZH: 量化器的字长（1 - 24 位）。
+  - [ ] OK    Fix: 
+
+- **`crushBypass`**
+  - EN: Bypass the bitcrusher / downsampler module.
+  - ZH: 旁通比特粉碎/降采样模块。
+  - [ ] OK    Fix: 
+
+- **`crushDither`**
+  - EN: Dither level before the quantiser (-96 = off).
+  - ZH: 量化器之前的抖动电平（-96 = 关）。
+  - [ ] OK    Fix: 
+
+- **`crushFilter`**
+  - EN: Alias freely, or low-pass before the hold.
+  - ZH: 任由混叠，或在保持之前进行低通滤波。
+  - [ ] OK    Fix: 
+
+- **`crushMix`**
+  - EN: Dry/wet mix of the bitcrusher (wet %).
+  - ZH: 比特粉碎的干/湿混合（湿声 %）。
+  - [ ] OK    Fix: 
+
+- **`crushRate`**
+  - EN: Sample-and-hold rate of the downsampler.
+  - ZH: 降采样器的采样保持速率。
+  - [ ] OK    Fix: 
+
 - **`cycle`**
   - EN: This effect is part of a feedback loop in the sends grid.
   - ZH: 此效果属于发送网格中的一个反馈环路。
+  - [ ] OK    Fix: 
+
+- **`delayBypass`**
+  - EN: Bypass the multitap delay module.
+  - ZH: 旁通多抽头延迟模块。
+  - [ ] OK    Fix: 
+
+- **`delayDiffusion`**
+  - EN: Smear the tap sum with two allpasses (0 - 1).
+  - ZH: 用两个全通滤波器涂抹抽头之和（0 - 1）。
+  - [ ] OK    Fix: 
+
+- **`delayFbHiShelfFreq`**
+  - EN: Corner frequency of the high shelf inside the feedback loop.
+  - ZH: 反馈环路内高频搁架的转折频率。
+  - [ ] OK    Fix: 
+
+- **`delayFbHiShelfGain`**
+  - EN: Gain of the high shelf inside the feedback loop.
+  - ZH: 反馈环路内高频搁架的增益。
+  - [ ] OK    Fix: 
+
+- **`delayFbLoShelfFreq`**
+  - EN: Corner frequency of the low shelf inside the feedback loop.
+  - ZH: 反馈环路内低频搁架的转折频率。
+  - [ ] OK    Fix: 
+
+- **`delayFbLoShelfGain`**
+  - EN: Gain of the low shelf inside the feedback loop.
+  - ZH: 反馈环路内低频搁架的增益。
+  - [ ] OK    Fix: 
+
+- **`delayFeedback`**
+  - EN: Feedback amount of the delay line (0 - 95 %).
+  - ZH: 延迟线的反馈量（0 - 95 %）。
+  - [ ] OK    Fix: 
+
+- **`delayFeedbackTap`**
+  - EN: Tap that feeds the feedback loop.
+  - ZH: 为反馈环路供给信号的抽头。
+  - [ ] OK    Fix: 
+
+- **`delayGlide`**
+  - EN: Glide time when a delay time changes.
+  - ZH: 延迟时间改变时的滑移时间。
+  - [ ] OK    Fix: 
+
+- **`delayInLoCut`**
+  - EN: High-pass the signal entering the delay line.
+  - ZH: 对进入延迟线的信号进行高通滤波。
+  - [ ] OK    Fix: 
+
+- **`delayMix`**
+  - EN: Dry/wet mix of the multitap delay (wet %).
+  - ZH: 多抽头延迟的干/湿混合（湿声 %）。
+  - [ ] OK    Fix: 
+
+- **`delayModDepth`**
+  - EN: Depth of the delay-time modulation, as a percentage of the time.
+  - ZH: 延迟时间调制的深度，以时间的百分比表示。
+  - [ ] OK    Fix: 
+
+- **`delayModRate`**
+  - EN: Rate of the delay-time modulation LFO.
+  - ZH: 延迟时间调制 LFO 的速率。
+  - [ ] OK    Fix: 
+
+- **`delayPattern`**
+  - EN: Tap spacing pattern (Pattern mode only).
+  - ZH: 抽头间隔图案（仅限图案模式）。
+  - [ ] OK    Fix: 
+
+- **`delayTapLevel`**
+  - EN: Level of Tap <Tap ID>.
+  - ZH: 抽头 <Tap ID> 的电平。
+  - [ ] OK    Fix: 
+
+- **`delayTapMode`**
+  - EN: Take tap times from the pattern or from the taps.
+  - ZH: 抽头时间取自图案，或取自各抽头本身。
+  - [ ] OK    Fix: 
+
+- **`delayTapTime`**
+  - EN: Delay time of Tap <Tap ID> (Manual mode).
+  - ZH: 抽头 <Tap ID> 的延迟时间（手动模式）。
+  - [ ] OK    Fix: 
+
+- **`delayTaps`**
+  - EN: Number of live taps (1 - 8).
+  - ZH: 启用的抽头数量（1 - 8）。
+  - [ ] OK    Fix: 
+
+- **`delayTime`**
+  - EN: Base delay time of the multitap delay.
+  - ZH: 多抽头延迟的基础延迟时间。
+  - [ ] OK    Fix: 
+
+- **`distBias`**
+  - EN: Asymmetry of the shaper, for even-harmonic (tube-like) colour.
+  - ZH: 整形器的不对称度，用于产生偶次谐波（类似电子管）的音色。
+  - [ ] OK    Fix: 
+
+- **`distBypass`**
+  - EN: Bypass the distortion module.
+  - ZH: 旁通失真模块。
+  - [ ] OK    Fix: 
+
+- **`distDrive`**
+  - EN: Input gain into the shapers (0 - 40 dB).
+  - ZH: 进入整形器的输入增益（0 - 40 dB）。
+  - [ ] OK    Fix: 
+
+- **`distMix`**
+  - EN: Dry/wet mix of the distortion module (wet %).
+  - ZH: 失真模块的干/湿混合（湿声 %）。
+  - [ ] OK    Fix: 
+
+- **`distOutput`**
+  - EN: Distortion output level (-24 to +12 dB).
+  - ZH: 失真输出电平（-24 至 +12 dB）。
+  - [ ] OK    Fix: 
+
+- **`distOversample`**
+  - EN: Oversampling factor for the distortion shaper.
+  - ZH: 失真整形器的过采样倍数。
+  - [ ] OK    Fix: 
+
+- **`distPostHiShelfFreq`**
+  - EN: Corner frequency of the high shelf after the distortion shaper.
+  - ZH: 失真整形器之后的高频搁架转折频率。
+  - [ ] OK    Fix: 
+
+- **`distPostHiShelfGain`**
+  - EN: Gain of the high shelf after the distortion shaper.
+  - ZH: 失真整形器之后的高频搁架增益。
+  - [ ] OK    Fix: 
+
+- **`distPostLoShelfFreq`**
+  - EN: Corner frequency of the low shelf after the distortion shaper.
+  - ZH: 失真整形器之后的低频搁架转折频率。
+  - [ ] OK    Fix: 
+
+- **`distPostLoShelfGain`**
+  - EN: Gain of the low shelf after the distortion shaper.
+  - ZH: 失真整形器之后的低频搁架增益。
+  - [ ] OK    Fix: 
+
+- **`distPreHiShelfFreq`**
+  - EN: Corner frequency of the high shelf before the distortion shaper.
+  - ZH: 失真整形器之前的高频搁架转折频率。
+  - [ ] OK    Fix: 
+
+- **`distPreHiShelfGain`**
+  - EN: Gain of the high shelf before the distortion shaper.
+  - ZH: 失真整形器之前的高频搁架增益。
+  - [ ] OK    Fix: 
+
+- **`distPreLoShelfFreq`**
+  - EN: Corner frequency of the low shelf before the distortion shaper.
+  - ZH: 失真整形器之前的低频搁架转折频率。
+  - [ ] OK    Fix: 
+
+- **`distPreLoShelfGain`**
+  - EN: Gain of the low shelf before the distortion shaper.
+  - ZH: 失真整形器之前的低频搁架增益。
+  - [ ] OK    Fix: 
+
+- **`distShape`**
+  - EN: Blend from hard clipping (0) to tanh saturation (1).
+  - ZH: 从硬削波（0） 到 tanh 饱和（1） 的混合。
+  - [ ] OK    Fix: 
+
+- **`dynAutoMakeup`**
+  - EN: Derive the makeup gain from the compressor threshold and ratio.
+  - ZH: 根据压缩器阈值和比率自动推算补偿增益。
+  - [ ] OK    Fix: 
+
+- **`dynBypass`**
+  - EN: Bypass this dynamics instance.
+  - ZH: 旁通此动态处理实例。
+  - [ ] OK    Fix: 
+
+- **`dynCompAttack`**
+  - EN: Compressor attack time (0.05 - 200 ms).
+  - ZH: 压缩器启动时间（0.05 - 200 ms）。
+  - [ ] OK    Fix: 
+
+- **`dynCompDetectorDelay`**
+  - EN: Let a transient through before the compressor grabs (transient pass, no latency).
+  - ZH: 让瞬态在压缩器起作用之前通过（瞬态通过，无延迟）。
+  - [ ] OK    Fix: 
+
+- **`dynCompKnee`**
+  - EN: Soft-knee width of the compressor (0 = hard knee).
+  - ZH: 压缩器的软拐点宽度（0 = 硬拐点）。
+  - [ ] OK    Fix: 
+
+- **`dynCompOn`**
+  - EN: Enable the compressor stage of this dynamics instance.
+  - ZH: 启用此动态处理实例的压缩器级。
+  - [ ] OK    Fix: 
+
+- **`dynCompRatio`**
+  - EN: Compressor ratio (1:1 to 100:1; 100 is a limiter).
+  - ZH: 压缩器比率（1:1 至 100:1；100 即限幅器）。
+  - [ ] OK    Fix: 
+
+- **`dynCompRelease`**
+  - EN: Compressor release time (5 - 2000 ms).
+  - ZH: 压缩器释放时间（5 - 2000 ms）。
+  - [ ] OK    Fix: 
+
+- **`dynCompScHiCut`**
+  - EN: Low-pass the compressor's sidechain detector.
+  - ZH: 对压缩器的侧链检测器进行低通滤波。
+  - [ ] OK    Fix: 
+
+- **`dynCompScLoCut`**
+  - EN: High-pass the compressor's sidechain detector.
+  - ZH: 对压缩器的侧链检测器进行高通滤波。
+  - [ ] OK    Fix: 
+
+- **`dynCompThreshold`**
+  - EN: Compressor threshold level (-60 to 0 dB).
+  - ZH: 压缩器阈值电平（-60 至 0 dB）。
+  - [ ] OK    Fix: 
+
+- **`dynDetector`**
+  - EN: Peak or RMS detection for both stages.
+  - ZH: 两级共用的峰值或 RMS 检测。
+  - [ ] OK    Fix: 
+
+- **`dynExpAttack`**
+  - EN: Expander attack time (0.05 - 200 ms).
+  - ZH: 扩展器启动时间（0.05 - 200 ms）。
+  - [ ] OK    Fix: 
+
+- **`dynExpHold`**
+  - EN: Hold time before the expander starts to close.
+  - ZH: 扩展器开始关闭之前的保持时间。
+  - [ ] OK    Fix: 
+
+- **`dynExpOn`**
+  - EN: Enable the expander stage of this dynamics instance.
+  - ZH: 启用此动态处理实例的扩展器级。
+  - [ ] OK    Fix: 
+
+- **`dynExpRange`**
+  - EN: Maximum attenuation the expander may apply (-80 to 0 dB).
+  - ZH: 扩展器可施加的最大衰减（-80 至 0 dB）。
+  - [ ] OK    Fix: 
+
+- **`dynExpRatio`**
+  - EN: Downward expander ratio (1:1 to 1:100; 100 is a gate).
+  - ZH: 向下扩展器比率（1:1 至 1:100；100 即噪声门）。
+  - [ ] OK    Fix: 
+
+- **`dynExpRelease`**
+  - EN: Expander release time (5 - 2000 ms).
+  - ZH: 扩展器释放时间（5 - 2000 ms）。
+  - [ ] OK    Fix: 
+
+- **`dynExpScHiCut`**
+  - EN: Low-pass the expander's sidechain detector.
+  - ZH: 对扩展器的侧链检测器进行低通滤波。
+  - [ ] OK    Fix: 
+
+- **`dynExpScLoCut`**
+  - EN: High-pass the expander's sidechain detector.
+  - ZH: 对扩展器的侧链检测器进行高通滤波。
+  - [ ] OK    Fix: 
+
+- **`dynExpThreshold`**
+  - EN: Expander threshold level (-90 to 0 dB).
+  - ZH: 扩展器阈值电平（-90 至 0 dB）。
+  - [ ] OK    Fix: 
+
+- **`dynLookahead`**
+  - EN: Delay the audio so the detector sees a transient first (adds reported latency).
+  - ZH: 延迟音频，使检测器先看到瞬态（增加报告的延迟）。
+  - [ ] OK    Fix: 
+
+- **`dynMakeup`**
+  - EN: Makeup gain applied after both stages.
+  - ZH: 两级之后施加的补偿增益。
   - [ ] OK    Fix: 
 
 - **`editOnMap`**
@@ -479,9 +920,64 @@ Walk through each section. For every entry:
   - ZH: 此效果由某个输入馈送，因此是其所在组的入口点。
   - [ ] OK    Fix: 
 
+- **`eqBandReset`**
+  - EN: Long-press: reset this band to its default shape, frequency, gain and Q.
+  - ZH: 长按：将此频段重置为默认的形状、频率、增益和 Q 值。
+  - [ ] OK    Fix: 
+
+- **`eqBandToggle`**
+  - EN: Switch this band on or off. Off keeps the band's settings for when it comes back.
+  - ZH: 开启或关闭此频段。关闭时会保留该频段的设置，待重新开启时恢复。
+  - [ ] OK    Fix: 
+
+- **`eqBypass`**
+  - EN: Bypass this EQ instance.
+  - ZH: 旁通此 EQ 实例。
+  - [ ] OK    Fix: 
+
+- **`eqDisplay`**
+  - EN: Drag a band handle to set its frequency and gain; the wheel sets its Q.
+  - ZH: 拖动频段手柄以设置其频率和增益；滚轮设置其 Q 值。
+  - [ ] OK    Fix: 
+
+- **`eqFlatten`**
+  - EN: Long-press: reset every band of this EQ to its default shape, frequency, gain and Q.
+  - ZH: 长按：将此 EQ 的每个频段重置为默认的形状、频率、增益和 Q 值。
+  - [ ] OK    Fix: 
+
+- **`eqFreq`**
+  - EN: Select the EQ Frequency for Band <Band ID> of this EQ instance.
+  - ZH: 为此 EQ 实例的频段 <Band ID> 选择 EQ 频率。
+  - [ ] OK    Fix: 
+
+- **`eqGain`**
+  - EN: Select the EQ Gain/Attenuation for Band <Band ID> of this EQ instance.
+  - ZH: 为此 EQ 实例的频段 <Band ID> 选择 EQ 增益/衰减。
+  - [ ] OK    Fix: 
+
+- **`eqQ`**
+  - EN: Select the EQ Q for Band <Band ID> of this EQ instance.
+  - ZH: 为此 EQ 实例的频段 <Band ID> 选择 EQ 的 Q 值。
+  - [ ] OK    Fix: 
+
+- **`eqShape`**
+  - EN: Select the EQ Mode for Band <Band ID> of this EQ instance.
+  - ZH: 为此 EQ 实例的频段 <Band ID> 选择 EQ 模式。
+  - [ ] OK    Fix: 
+
+- **`eqSlope`**
+  - EN: Select the EQ Slope for Band <Band ID> of this EQ instance.
+  - ZH: 为此 EQ 实例的频段 <Band ID> 选择 EQ 斜率。
+  - [ ] OK    Fix: 
+
 - **`export`**
   - EN: Export Effects Configuration to file (with file explorer window).
   - ZH: 将效果配置导出到文件（使用文件浏览器）。
+  - [ ] OK    Fix: 
+
+- **`grMeter`**
+  - EN: Gain reduction the dynamics module is applying right now.
+  - ZH: 动态处理模块当前正在施加的增益衰减。
   - [ ] OK    Fix: 
 
 - **`groupMute`**
@@ -492,6 +988,86 @@ Walk through each section. For every entry:
 - **`import`**
   - EN: Import Effects Configuration from file (with file explorer window).
   - ZH: 从文件导入效果配置（使用文件浏览器）。
+  - [ ] OK    Fix: 
+
+- **`lfoActive`**
+  - EN: Enable or Disable the Periodic Movement of the Effect Return (LFO).
+  - ZH: 启用或禁用效果返回的周期性运动（LFO）。
+  - [ ] OK    Fix: 
+
+- **`lfoAmplitudeX`**
+  - EN: Width of Movement in Relation to Base Position of the Effect Return.
+  - ZH: 相对于效果返回基础位置的宽度运动幅度。
+  - [ ] OK    Fix: 
+
+- **`lfoAmplitudeY`**
+  - EN: Depth of Movement in Relation to Base Position of the Effect Return.
+  - ZH: 相对于效果返回基础位置的深度运动幅度。
+  - [ ] OK    Fix: 
+
+- **`lfoAmplitudeZ`**
+  - EN: Height of Movement in Relation to Base Position of the Effect Return.
+  - ZH: 相对于效果返回基础位置的高度运动幅度。
+  - [ ] OK    Fix: 
+
+- **`lfoPeriod`**
+  - EN: Base Period of the Movement of the Effect Return.
+  - ZH: 效果返回运动的基础周期。
+  - [ ] OK    Fix: 
+
+- **`lfoPhase`**
+  - EN: Phase Offset of the Movement of the Effect Return.
+  - ZH: 效果返回运动的相位偏移。
+  - [ ] OK    Fix: 
+
+- **`lfoPhaseX`**
+  - EN: Phase Offset of the Movement of the Effect Return in Width.
+  - ZH: 宽度方向上效果返回运动的相位偏移。
+  - [ ] OK    Fix: 
+
+- **`lfoPhaseY`**
+  - EN: Phase Offset of the Movement of the Effect Return in Depth.
+  - ZH: 深度方向上效果返回运动的相位偏移。
+  - [ ] OK    Fix: 
+
+- **`lfoPhaseZ`**
+  - EN: Phase Offset of the Movement of the Effect Return in Height.
+  - ZH: 高度方向上效果返回运动的相位偏移。
+  - [ ] OK    Fix: 
+
+- **`lfoRateX`**
+  - EN: Faster or Slower Movement in Relation to Base Period in Width.
+  - ZH: 宽度方向上相对于基础周期的更快或更慢的运动。
+  - [ ] OK    Fix: 
+
+- **`lfoRateY`**
+  - EN: Faster or Slower Movement in Relation to Base Period in Depth.
+  - ZH: 深度方向上相对于基础周期的更快或更慢的运动。
+  - [ ] OK    Fix: 
+
+- **`lfoRateZ`**
+  - EN: Faster or Slower Movement in Relation to Base Period in Height.
+  - ZH: 高度方向上相对于基础周期的更快或更慢的运动。
+  - [ ] OK    Fix: 
+
+- **`lfoShapeX`**
+  - EN: Movement Behaviour of the Effect Return in Width.
+  - ZH: 宽度方向上效果返回运动的行为。
+  - [ ] OK    Fix: 
+
+- **`lfoShapeY`**
+  - EN: Movement Behaviour of the Effect Return in Depth.
+  - ZH: 深度方向上效果返回运动的行为。
+  - [ ] OK    Fix: 
+
+- **`lfoShapeZ`**
+  - EN: Movement Behaviour of the Effect Return in Height.
+  - ZH: 高度方向上效果返回运动的行为。
+  - [ ] OK    Fix: 
+
+- **`linkBadge`**
+  - EN: Whether this chain is shared with a link group. Set the group and the link mode on the Channel Parameters tab.
+  - ZH: 此效果链是否与某个链接组共享。请在 Channel Parameters 标签页中设置组和链接模式。
   - [ ] OK    Fix: 
 
 - **`linkGroup`**
@@ -514,6 +1090,66 @@ Walk through each section. For every entry:
   - ZH: 在 Map 标签页上显示或隐藏效果返回标记。
   - [ ] OK    Fix: 
 
+- **`modBypass`**
+  - EN: Bypass the chorus / flanger module.
+  - ZH: 旁通合唱/镶边模块。
+  - [ ] OK    Fix: 
+
+- **`modDelay`**
+  - EN: Centre delay of the modulated line.
+  - ZH: 被调制延迟线的中心延迟。
+  - [ ] OK    Fix: 
+
+- **`modDepth`**
+  - EN: Modulation depth as a percentage of the centre delay.
+  - ZH: 调制深度，以中心延迟的百分比表示。
+  - [ ] OK    Fix: 
+
+- **`modFeedback`**
+  - EN: Signed feedback around the modulated line.
+  - ZH: 围绕被调制延迟线的带符号反馈。
+  - [ ] OK    Fix: 
+
+- **`modLoCut`**
+  - EN: High-pass the signal entering the modulated line.
+  - ZH: 对进入被调制延迟线的信号进行高通滤波。
+  - [ ] OK    Fix: 
+
+- **`modMix`**
+  - EN: Dry/wet mix of the chorus / flanger (wet %).
+  - ZH: 合唱/镶边的干/湿混合（湿声 %）。
+  - [ ] OK    Fix: 
+
+- **`modMode`**
+  - EN: Chorus or flanger voicing.
+  - ZH: 合唱或镶边音色。
+  - [ ] OK    Fix: 
+
+- **`modPhase`**
+  - EN: LFO phase offset for this channel (0 - 360 deg).
+  - ZH: 此通道的 LFO 相位偏移（0 - 360 度）。
+  - [ ] OK    Fix: 
+
+- **`modRate`**
+  - EN: LFO rate of the chorus / flanger (0.05 - 10 Hz).
+  - ZH: 合唱/镶边的 LFO 速率（0.05 - 10 Hz）。
+  - [ ] OK    Fix: 
+
+- **`modShape`**
+  - EN: LFO waveform of the chorus / flanger.
+  - ZH: 合唱/镶边的 LFO 波形。
+  - [ ] OK    Fix: 
+
+- **`modThroughZero`**
+  - EN: Delay the dry signal so the modulated line can pass through zero.
+  - ZH: 延迟干声，使被调制的延迟线可以穿过零点。
+  - [ ] OK    Fix: 
+
+- **`modVoices`**
+  - EN: Number of modulated voices (1 - 3).
+  - ZH: 被调制的声部数量（1 - 3）。
+  - [ ] OK    Fix: 
+
 - **`mute`**
   - EN: Mute this effect return.
   - ZH: 静音此效果返回。
@@ -524,6 +1160,121 @@ Walk through each section. For every entry:
   - ZH: 此效果通道的显示名称。
   - [ ] OK    Fix: 
 
+- **`otomoAbsRel`**
+  - EN: Select Relative or Absolute Coordinates of Displacement.
+  - ZH: 选择相对或绝对的位移坐标。
+  - [ ] OK    Fix: 
+
+- **`otomoCoordMode`**
+  - EN: Coordinate display mode for AutomOtion destinations: Cartesian (X/Y/Z), Cylindrical (r/θ/Z), or Spherical (r/θ/φ).
+  - ZH: AutomOtion 目标坐标显示模式：笛卡尔（X/Y/Z）、柱面（r/θ/Z）或球面（r/θ/φ）。
+  - [ ] OK    Fix: 
+
+- **`otomoCurve`**
+  - EN: Bend the Path to the Left (Negative) or Right (Positive) of the Direction of Travel.
+  - ZH: 将路径向运动方向的左（负） 或右（正） 弯曲。
+  - [ ] OK    Fix: 
+
+- **`otomoDest`**
+  - EN: Relative or Absolute Destination {name} ({unit}).
+  - ZH: 相对或绝对目标{name}（{unit}）。
+  - [ ] OK    Fix: 
+
+- **`otomoDuration`**
+  - EN: Duration of the Movement in Seconds (0.1s to 1 hour).
+  - ZH: 运动持续时间（秒，0.1 秒至 1 小时）。
+  - [ ] OK    Fix: 
+
+- **`otomoPause`**
+  - EN: Pause and Resume the Movement.
+  - ZH: 暂停和恢复运动。
+  - [ ] OK    Fix: 
+
+- **`otomoPauseResumeAll`**
+  - EN: Pause or Resume All Active Movements on every effect return.
+  - ZH: 暂停或恢复每个效果返回上所有活动的运动。
+  - [ ] OK    Fix: 
+
+- **`otomoReset`**
+  - EN: Set the Reset Level for the Automatic Trigger.
+  - ZH: 设置自动触发的重置电平。
+  - [ ] OK    Fix: 
+
+- **`otomoSpeedProfile`**
+  - EN: Constant Speed or Gradual Acceleration and Slow Down at the Start and the End of the Movement.
+  - ZH: 运动开始和结束时的恒定速度或渐进加速和减速。
+  - [ ] OK    Fix: 
+
+- **`otomoStart`**
+  - EN: Start the Movement Manually. An effect return always comes home: the movement is an offset on the authored position.
+  - ZH: 手动启动运动。效果返回始终会回到原位：运动是叠加在设定位置上的偏移。
+  - [ ] OK    Fix: 
+
+- **`otomoStop`**
+  - EN: Stop the Movement.
+  - ZH: 停止运动。
+  - [ ] OK    Fix: 
+
+- **`otomoStopAll`**
+  - EN: Stop All Active Movements on every effect return.
+  - ZH: 停止每个效果返回上所有活动的运动。
+  - [ ] OK    Fix: 
+
+- **`otomoThreshold`**
+  - EN: Set the Threshold for the Automatic Trigger of the Movement.
+  - ZH: 设置运动自动触发的阈值。
+  - [ ] OK    Fix: 
+
+- **`otomoTrigger`**
+  - EN: Manual Start of Displacement or Automatic Trigger on the Audio Level.
+  - ZH: 手动启动位移或基于音频电平的自动触发。
+  - [ ] OK    Fix: 
+
+- **`phaserBypass`**
+  - EN: Bypass the phaser module.
+  - ZH: 旁通移相器模块。
+  - [ ] OK    Fix: 
+
+- **`phaserCentre`**
+  - EN: Centre frequency of the allpass sweep (100 - 5000 Hz).
+  - ZH: 全通扫频的中心频率（100 - 5000 Hz）。
+  - [ ] OK    Fix: 
+
+- **`phaserDepth`**
+  - EN: Sweep depth of the phaser, in octaves.
+  - ZH: 移相器的扫频深度，以倍频程计。
+  - [ ] OK    Fix: 
+
+- **`phaserFeedback`**
+  - EN: Signed feedback around the allpass chain.
+  - ZH: 围绕全通链的带符号反馈。
+  - [ ] OK    Fix: 
+
+- **`phaserMix`**
+  - EN: Dry/wet mix of the phaser (wet %).
+  - ZH: 移相器的干/湿混合（湿声 %）。
+  - [ ] OK    Fix: 
+
+- **`phaserRate`**
+  - EN: LFO rate of the phaser (0.02 - 10 Hz).
+  - ZH: 移相器的 LFO 速率（0.02 - 10 Hz）。
+  - [ ] OK    Fix: 
+
+- **`phaserShape`**
+  - EN: LFO waveform of the phaser.
+  - ZH: 移相器的 LFO 波形。
+  - [ ] OK    Fix: 
+
+- **`phaserSpread`**
+  - EN: Spread of the allpass stages around the centre, in octaves.
+  - ZH: 全通级围绕中心的分布范围，以倍频程计。
+  - [ ] OK    Fix: 
+
+- **`phaserStages`**
+  - EN: Number of allpass stages (4, 6, 8 or 12).
+  - ZH: 全通级数量（4、6、8 或 12）。
+  - [ ] OK    Fix: 
+
 - **`reloadBackup`**
   - EN: Reload Effects Configuration from backup file (with confirmation).
   - ZH: 从备份文件重新加载效果配置（需确认）。
@@ -532,6 +1283,151 @@ Walk through each section. For every entry:
 - **`reloadConfig`**
   - EN: Reload Effects Configuration from file (with confirmation).
   - ZH: 从文件重新加载效果配置（需确认）。
+  - [ ] OK    Fix: 
+
+- **`reverbBypass`**
+  - EN: Bypass the in-chain reverb module.
+  - ZH: 旁通链内的混响模块。
+  - [ ] OK    Fix: 
+
+- **`reverbCrossoverHigh`**
+  - EN: High crossover frequency for 3-band decay (1 - 10 kHz).
+  - ZH: 三频段衰减的高分频频率（1 - 10 kHz）。
+  - [ ] OK    Fix: 
+
+- **`reverbCrossoverLow`**
+  - EN: Low crossover frequency for 3-band decay (50 - 500 Hz).
+  - ZH: 三频段衰减的低分频频率（50 - 500 Hz）。
+  - [ ] OK    Fix: 
+
+- **`reverbDiffusion`**
+  - EN: Diffusion amount controlling echo density (0 - 1).
+  - ZH: 控制回声密度的扩散量（0 - 1）。
+  - [ ] OK    Fix: 
+
+- **`reverbERLevel`**
+  - EN: Level of the early reflections (-30 to +6 dB against the dry).
+  - ZH: 早期反射的电平（相对于干声 -30 至 +6 dB）。
+  - [ ] OK    Fix: 
+
+- **`reverbERProfile`**
+  - EN: Early reflections in front of the reverb: Off, Room, Chamber, Hall or Cathedral.
+  - ZH: 混响之前的早期反射：Off、Room、Chamber、Hall 或 Cathedral。
+  - [ ] OK    Fix: 
+
+- **`reverbMix`**
+  - EN: Dry/wet mix of the reverb module (wet %).
+  - ZH: 混响模块的干/湿混合（湿声 %）。
+  - [ ] OK    Fix: 
+
+- **`reverbModDepth`**
+  - EN: Depth of the modulation inside the reverb tank (0 - 100 %).
+  - ZH: 混响腔体内部的调制深度（0 - 100 %）。
+  - [ ] OK    Fix: 
+
+- **`reverbModRate`**
+  - EN: Speed of the modulation inside the reverb tank (0.05 - 5 Hz).
+  - ZH: 混响腔体内部的调制速度（0.05 - 5 Hz）。
+  - [ ] OK    Fix: 
+
+- **`reverbModel`**
+  - EN: Select the reverb algorithm behind this module: FDN, Plate, Modulated Hall or Shimmer.
+  - ZH: 选择此模块背后的混响算法：FDN、Plate、Modulated Hall 或 Shimmer。
+  - [ ] OK    Fix: 
+
+- **`reverbPredelay`**
+  - EN: Predelay before the reverb module's tail (0 - 250 ms).
+  - ZH: 混响模块尾音之前的预延迟（0 - 250 ms）。
+  - [ ] OK    Fix: 
+
+- **`reverbRT60`**
+  - EN: Reverb decay time RT60 (0.2 - 8.0 seconds).
+  - ZH: 混响衰减时间 RT60 (0.2 - 8.0 秒)。
+  - [ ] OK    Fix: 
+
+- **`reverbRT60HighMult`**
+  - EN: High frequency RT60 multiplier (0.1 - 9.0x).
+  - ZH: 高频 RT60 倍数（0.1 - 9.0x）。
+  - [ ] OK    Fix: 
+
+- **`reverbRT60LowMult`**
+  - EN: Low frequency RT60 multiplier (0.1 - 9.0x).
+  - ZH: 低频 RT60 倍数（0.1 - 9.0x）。
+  - [ ] OK    Fix: 
+
+- **`reverbShimmerAmount`**
+  - EN: How much of the tail is pitch-shifted (0 - 100 %).
+  - ZH: 尾音中被移调的比例（0 - 100 %）。
+  - [ ] OK    Fix: 
+
+- **`reverbShimmerPitch`**
+  - EN: The interval the shimmer climbs by on every pass through the tank.
+  - ZH: 闪烁音在每次经过腔体时上升的音程。
+  - [ ] OK    Fix: 
+
+- **`reverbSize`**
+  - EN: Room size multiplier of the reverb module (0.5 - 2.0x).
+  - ZH: 混响模块的房间尺寸倍数（0.5 - 2.0x）。
+  - [ ] OK    Fix: 
+
+- **`reverbTone`**
+  - EN: Low-pass the reverb tail (1 - 20 kHz).
+  - ZH: 对混响尾音进行低通滤波（1 - 20 kHz）。
+  - [ ] OK    Fix: 
+
+- **`reverbType`**
+  - EN: Reverb preset: sets the model, the reflections and the room in one go. Editing any of them afterwards makes it Custom.
+  - ZH: 混响预设：一次性设定模型、反射和房间。之后编辑其中任何一项都会使其变为 Custom。
+  - [ ] OK    Fix: 
+
+- **`settingsFeedDevice`**
+  - EN: Compute device used for the effects feed stage. Applies at the next Processing start.
+  - ZH: 用于效果馈送级的计算设备。在下次启动 Processing 时生效。
+  - [ ] OK    Fix: 
+
+- **`settingsFxFeed`**
+  - EN: Feed effects from each other geometrically, or through the matrix alone (no geometric delay or attenuation).
+  - ZH: 让效果按几何方式相互馈送，或仅通过矩阵馈送（无几何延迟或衰减）。
+  - [ ] OK    Fix: 
+
+- **`settingsLinkMode`**
+  - EN: The link mode a NEW effects channel is stamped with (off, absolute or relative). Existing channels keep their own.
+  - ZH: 新建效果通道所带的链接模式（关、绝对或相对）。已有通道保持各自的模式。
+  - [ ] OK    Fix: 
+
+- **`settingsLinkNames`**
+  - EN: Names of the eight effect link groups. Shown on the Channel Parameters combo, the Chain badge and the sends matrix.
+  - ZH: 八个效果链接组的名称。显示在 Channel Parameters 下拉框、效果链徽标和发送矩阵中。
+  - [ ] OK    Fix: 
+
+- **`settingsLoopGuard`**
+  - EN: Automatically mute an effect-to-effect feed that is running away. The one setting here that applies live.
+  - ZH: 自动将失控的效果间馈送静音。这是此处唯一即时生效的设置。
+  - [ ] OK    Fix: 
+
+- **`settingsLoopGuardCeiling`**
+  - EN: Peak level at which the loop guard trips (dBFS). Applies at the next Processing start.
+  - ZH: 环路保护触发的峰值电平（dBFS）。在下次启动 Processing 时生效。
+  - [ ] OK    Fix: 
+
+- **`settingsMaxDelay`**
+  - EN: Longest delay any effects channel may buffer, in seconds; sizes every delay module. Applies at the next Processing start.
+  - ZH: 任一效果通道可缓冲的最长延迟（秒）；决定每个延迟模块的大小。在下次启动 Processing 时生效。
+  - [ ] OK    Fix: 
+
+- **`settingsRelayout`**
+  - EN: Long-press to lay every effect return out on the default ring again. Clears the effects position ownership latch.
+  - ZH: 长按以将每个效果返回重新排布到默认环上。同时清除效果位置的所有权锁定。
+  - [ ] OK    Fix: 
+
+- **`settingsReturnCushion`**
+  - EN: Blocks of cushion on the effect return rings (Auto = the ledger decides). Applies at the next Processing start.
+  - ZH: 效果返回环上的缓冲块数（Auto = 由账本决定）。在下次启动 Processing 时生效。
+  - [ ] OK    Fix: 
+
+- **`settingsWorkerThreads`**
+  - EN: Number of effects worker threads (-1 = automatic, the reverb-feed rule). Applies at the next Processing start.
+  - ZH: 效果工作线程数量（-1 = 自动，采用混响馈送规则）。在下次启动 Processing 时生效。
   - [ ] OK    Fix: 
 
 - **`solo`**
@@ -549,7 +1445,54 @@ Walk through each section. For every entry:
   - ZH: 将效果配置存储到文件（覆盖前确认）。
   - [ ] OK    Fix: 
 
+- **`tapLevel`**
+  - EN: This tap's level.
+  - ZH: 此抽头的电平。
+  - [ ] OK    Fix: 
+
+- **`tapTime`**
+  - EN: This tap's delay time. In Pattern mode the pattern sets it and the slider follows.
+  - ZH: 此抽头的延迟时间。在图案模式下由图案设定，滑块随之移动。
+  - [ ] OK    Fix: 
+
+- **`tremBypass`**
+  - EN: Bypass the tremolo module.
+  - ZH: 旁通颤音模块。
+  - [ ] OK    Fix: 
+
+- **`tremDepth`**
+  - EN: Tremolo depth in dB (0 - 60 dB).
+  - ZH: 颤音深度，单位 dB (0 - 60 dB)。
+  - [ ] OK    Fix: 
+
+- **`tremMix`**
+  - EN: Dry/wet mix of the tremolo (wet %).
+  - ZH: 颤音的干/湿混合（湿声 %）。
+  - [ ] OK    Fix: 
+
+- **`tremRate`**
+  - EN: Tremolo rate (0.05 - 20 Hz).
+  - ZH: 颤音速率（0.05 - 20 Hz）。
+  - [ ] OK    Fix: 
+
+- **`tremShape`**
+  - EN: Blend the tremolo LFO from sine (0) to triangle (1).
+  - ZH: 颤音 LFO 从正弦（0） 到三角（1） 的混合。
+  - [ ] OK    Fix: 
+
+## `effects.labels`
+
+- **`returnsHome`**
+  - EN: An effect return always comes home: the movement travels as an offset, and the position you set is never overwritten.
+  - ZH: 效果返回始终会回到原位：运动以偏移量的形式叠加，您设置的位置不会被覆盖。
+  - [ ] OK    Fix: 
+
 ## `effects.messages`
+
+- **`assignedGroup`**
+  - EN: Effect {channel} assigned to {group}
+  - ZH: 效果 {channel} 分配到 {group}
+  - [ ] OK    Fix: 
 
 - **`cleared`**
   - EN: Effect chain cleared.
@@ -581,9 +1524,63 @@ Walk through each section. For every entry:
   - ZH: 此效果不在任何链接组中，因此没有可静音的组。
   - [ ] OK    Fix: 
 
+- **`relayoutDone`**
+  - EN: Every effect return laid out on the default ring again.
+  - ZH: 所有效果返回已重新排布到默认环上。
+  - [ ] OK    Fix: 
+
 - **`selectFolderFirst`**
   - EN: Select a project folder first.
   - ZH: 请先选择项目文件夹。
+  - [ ] OK    Fix: 
+
+- **`unlinked`**
+  - EN: Effect {channel} removed from its link group
+  - ZH: 效果 {channel} 已移出链接组
+  - [ ] OK    Fix: 
+
+## `effects.sends`
+
+- **`announce.forbidden`**
+  - EN: an effect cannot feed itself
+  - ZH: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`announce.into`**
+  - EN: into effect
+  - ZH: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`announce.off`**
+  - EN: off
+  - ZH: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`announce.on`**
+  - EN: on
+  - ZH: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`gesture.level`**
+  - EN: Effect Send Level
+  - ZH: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`gesture.toggle`**
+  - EN: Effect Send Switch
+  - ZH: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`hint`**
+  - EN: Click a cell to switch a send; drag up or down to set its level (Shift = fine). Rows: every input, then every effect return. Columns: every effect. The hatched diagonal is an effect feeding itself, which is refused.
+  - ZH: 点击单元格开关发送；上下拖动设置其电平（Shift = 精细）。行：每个输入，然后是每个效果返回。列：每个效果。带斜线的对角线表示效果馈送自身，这是不允许的。
+  - [ ] OK    Fix: 
+
+## `effects.settings`
+
+- **`note`**
+  - EN: Everything here except the Loop guard switch applies at the next Processing start: the engine reads these settings when it prepares.
+  - ZH: 除环路保护开关外，此处所有设置都在下次启动 Processing 时生效：引擎在准备时读取这些设置。
   - [ ] OK    Fix: 
 
 ## `eq.status`
@@ -603,6 +1600,183 @@ Walk through each section. For every entry:
 - **`selectProjectFolder`**
   - EN: Select Project Folder
   - ZH: 选择项目文件夹
+  - [ ] OK    Fix: 
+
+## `fileManager.errors`
+
+- **`backupFailed`**
+  - EN: Could not back up {file} into {folder}, so it was not saved: the file on disk is unchanged.
+  - ZH: 无法将 {file} 备份到 {folder}，因此未保存：磁盘上的文件未改动。
+  - [ ] OK    Fix: 
+
+- **`backupNotFound`**
+  - EN: Backup not found
+  - ZH: 未找到备份
+  - [ ] OK    Fix: 
+
+- **`channelListMismatchNotConfirmed`**
+  - EN: Load refused: the channel list in {path} differs from this session and the load was not confirmed.
+  - ZH: 加载被拒绝：{path} 中的通道列表与此会话不同，且加载未获确认。
+  - [ ] OK    Fix: 
+
+- **`configStateInvalid`**
+  - EN: Config state is invalid
+  - ZH: 配置状态无效
+  - [ ] OK    Fix: 
+
+- **`failedApply`**
+  - EN: Failed to apply: {sections}
+  - ZH: 应用失败：{sections}
+  - [ ] OK    Fix: 
+
+- **`failedCreateFolder`**
+  - EN: Failed to create project folder: {path}
+  - ZH: 创建项目文件夹失败：{path}
+  - [ ] OK    Fix: 
+
+- **`failedCreateValueTree`**
+  - EN: Failed to create ValueTree from XML: {path}
+  - ZH: 从 XML 创建 ValueTree 失败：{path}
+  - [ ] OK    Fix: 
+
+- **`failedCreateXML`**
+  - EN: Failed to create XML from state
+  - ZH: 从状态创建 XML 失败
+  - [ ] OK    Fix: 
+
+- **`failedParseXML`**
+  - EN: Failed to parse XML file: {path}
+  - ZH: 解析 XML 文件失败：{path}
+  - [ ] OK    Fix: 
+
+- **`failedWriteFile`**
+  - EN: Failed to write file: {path}. The file on disk is unchanged.
+  - ZH: 写入文件失败：{path}。磁盘上的文件未改动。
+  - [ ] OK    Fix: 
+
+- **`fileNotFound`**
+  - EN: File not found: {path}
+  - ZH: 未找到文件：{path}
+  - [ ] OK    Fix: 
+
+- **`invalidConfigStructure`**
+  - EN: Invalid configuration file structure
+  - ZH: 配置文件结构无效
+  - [ ] OK    Fix: 
+
+- **`noEffectDataInFile`**
+  - EN: No effects data found in file
+  - ZH: 文件中未找到效果数据
+  - [ ] OK    Fix: 
+
+- **`noInputDataInFile`**
+  - EN: No input data found in file
+  - ZH: 文件中未找到输入数据
+  - [ ] OK    Fix: 
+
+- **`noInputDataInSnapshot`**
+  - EN: No input data in snapshot
+  - ZH: 快照中没有输入数据
+  - [ ] OK    Fix: 
+
+- **`noLFOPresetDataInFile`**
+  - EN: No LFO preset data found in file
+  - ZH: 文件中未找到LFO预设数据
+  - [ ] OK    Fix: 
+
+- **`noNetworkDataInFile`**
+  - EN: No network data found in file
+  - ZH: 文件中未找到网络数据
+  - [ ] OK    Fix: 
+
+- **`noNetworkSections`**
+  - EN: No network sections found in file
+  - ZH: 文件中未找到网络部分
+  - [ ] OK    Fix: 
+
+- **`noOutputDataInFile`**
+  - EN: No output data found in file
+  - ZH: 文件中未找到输出数据
+  - [ ] OK    Fix: 
+
+- **`noProjectFolder`**
+  - EN: No project folder specified
+  - ZH: 未指定项目文件夹
+  - [ ] OK    Fix: 
+
+- **`noReverbDataInFile`**
+  - EN: No reverb data found in file
+  - ZH: 文件中未找到混响数据
+  - [ ] OK    Fix: 
+
+- **`noScopeDataInTemplate`**
+  - EN: No scope data found in template file
+  - ZH: 模板文件中未找到范围数据
+  - [ ] OK    Fix: 
+
+- **`noSystemDataInFile`**
+  - EN: No valid system data found in file: {path}
+  - ZH: 文件中未找到有效的系统数据：{path}
+  - [ ] OK    Fix: 
+
+- **`noValidProjectFolder`**
+  - EN: No valid project folder
+  - ZH: 没有有效的项目文件夹
+  - [ ] OK    Fix: 
+
+- **`prefixEffects`**
+  - EN: Effects: 
+  - ZH: 效果：
+  - [ ] OK    Fix: 
+
+- **`prefixInputs`**
+  - EN: Inputs: 
+  - ZH: 输入：
+  - [ ] OK    Fix: 
+
+- **`prefixNetwork`**
+  - EN: Network: 
+  - ZH: 网络：
+  - [ ] OK    Fix: 
+
+- **`prefixOutputs`**
+  - EN: Outputs: 
+  - ZH: 输出：
+  - [ ] OK    Fix: 
+
+- **`prefixReverbs`**
+  - EN: Reverbs: 
+  - ZH: 混响：
+  - [ ] OK    Fix: 
+
+- **`prefixSystem`**
+  - EN: System: 
+  - ZH: 系统：
+  - [ ] OK    Fix: 
+
+- **`reservedSnapshotName`**
+  - EN: Not a usable snapshot name: {name}. Windows reserves it for a device (CON, PRN, AUX, NUL, COM1-9, LPT1-9), or it holds one of < > " | ? * or a control character.
+  - ZH: 无法使用的快照名称：{name}。Windows 将其保留给设备（CON、PRN、AUX、NUL、COM1-9、LPT1-9），或者名称中含有 < > " | ? * 之一或控制字符。
+  - [ ] OK    Fix: 
+
+- **`snapshotDoesNotExist`**
+  - EN: Snapshot does not exist
+  - ZH: 快照不存在
+  - [ ] OK    Fix: 
+
+- **`snapshotNotFound`**
+  - EN: Snapshot not found
+  - ZH: 未找到快照
+  - [ ] OK    Fix: 
+
+- **`snapshotNotFoundNamed`**
+  - EN: Snapshot not found: {name}
+  - ZH: 未找到快照：{name}
+  - [ ] OK    Fix: 
+
+- **`unusableSnapshotName`**
+  - EN: Not a usable snapshot name: {name}. A name cannot contain /, \ or :
+  - ZH: 无法使用的快照名称：{name}。名称不能包含 /、\ 或 :
   - [ ] OK    Fix: 
 
 ## `help.admOsc`
@@ -677,6 +1851,54 @@ Walk through each section. For every entry:
   - ZH: 效果
   - [ ] OK    Fix: 
 
+## `help.effectsChain`
+
+- **`body`**
+  - EN: The strip shows the eleven modules in their current order: click a tile to edit that module, drag it left or right to move it in the chain. The dot on a tile says whether the module is ON, the bar shows its output level (gain reduction for Dynamics). The badge above says who else hears an edit; beside it the chain bypass (click-free, latency held) and the chain's latency.\nEach module's controls come from the CSV that documents them. The EQs add an interactive display and six band strips with Flatten and per-band Reset long-presses; the Dynamics add a gain-reduction meter; the delay adds its eight tap rows (dormant taps and Pattern-mode times dimmed); the reverb adds models and presets: the Model menu picks the reverb itself (FDN, Plate, Modulated Hall or Shimmer) and only that model's controls are shown, and a preset sets the model, the early reflections and the room at once - editing any of those values turns it back to Custom, while Tone and Mix stay as you set them.
+  - ZH: 这条带子按当前顺序显示十一个模块：点击一个磁贴可编辑该模块，向左或向右拖动可在效果链中移动它。磁贴上的圆点表示该模块是否开启（ON），条形显示其输出电平（动态处理器显示增益衰减）。上方的徽标说明还有谁会听到您的编辑；旁边是效果链旁通（无爆音，保持延时）和效果链的延时。\n每个模块的控件均来自记录它们的 CSV。EQ 增加了交互式显示和六个频段条，并带有 Flatten 与逐频段 Reset 长按；动态处理器增加了增益衰减表；延迟增加了八行抽头（休眠的抽头和图案模式下的时间会变暗）；混响增加了模型和预设：Model 菜单选择混响本身（FDN、Plate、Modulated Hall 或 Shimmer），且只显示该模型的控件，预设则一次性设定模型、早期反射和房间 - 编辑其中任何一个值都会使其变回 Custom，而 Tone 和 Mix 保持您设置的值。
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Effects Chain
+  - ZH: 效果链
+  - [ ] OK    Fix: 
+
+## `help.effectsMovements`
+
+- **`body`**
+  - EN: The LFO and AutomOtion of an effect return, laid out as the Inputs tab lays out the same two blocks. Both travel as OFFSETS the calculation engine adds to the authored position, and the two add to each other: the return always comes home, and the position you set is never overwritten.\nThere is no Stay/Return (a movement that ended somewhere else would move the room itself), no gyrophone (a return has no brightness cone to rotate) and no jitter. The feed geometry follows the base position; only the return follows base + offsets.
+  - ZH: 效果返回的 LFO 和 AutomOtion，布局与 Inputs 标签页对同样两个模块的布局相同。两者都以偏移量的形式传递，由计算引擎叠加到设定位置上，并且彼此叠加：返回始终会回到原位，您设置的位置不会被覆盖。\n没有 Stay/Return（结束在别处的运动会移动房间本身），没有 Gyrophone（返回没有亮度锥可供旋转），也没有抖动。馈送的几何关系跟随基础位置；只有返回跟随基础位置加偏移。
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Effects Movements
+  - ZH: 效果运动
+  - [ ] OK    Fix: 
+
+## `help.effectsSends`
+
+- **`body`**
+  - EN: The whole sends matrix, not one row: every input and every effect return as a source row, every effect as a destination column. Click a cell to switch a send, drag up or down to set its level (Shift = fine), use the wheel to nudge. The hatched diagonal is an effect feeding itself, which is refused.\nThe selected effect's column is highlighted and the two buttons switch every send into it. A green badge marks a column fed by an input - the entry point of its bunch - and an amber one a column inside a feedback cycle. The loop guard (Settings) mutes a feed that runs away; Clear on the header flushes a chain that already has.
+  - ZH: 整张发送矩阵，而不只是一行：每个输入和每个效果返回作为声源行，每个效果作为目标列。点击单元格开关发送，上下拖动设置其电平（Shift = 精细），滚轮可微调。带斜线的对角线表示效果馈送自身，这是不允许的。\n所选效果的列会高亮，两个按钮可一次开关送入该列的所有发送。绿色徽标标记由输入馈送的列 - 即其分组的入口点 - 琥珀色徽标标记位于反馈环路内的列。环路保护（Settings）会将失控的馈送静音；标题栏上的 Clear 会清空已经失控的效果链。
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Effects Post-Processing
+  - ZH: 效果后处理
+  - [ ] OK    Fix: 
+
+## `help.effectsSettings`
+
+- **`body`**
+  - EN: The nine settings every effects channel shares: the eight link-group names and the mode a NEW channel is stamped with; whether effects feed each other geometrically or through the matrix alone; the worker threads, the return cushion, the loop guard and its ceiling, the longest delay any chain may buffer, and the compute device of the feed stage.\nEverything here except the loop-guard switch applies at the next Processing start, because the engine reads these settings when it prepares. Re-layout (long-press) lays every effect return out on the default ring again and hands the positions back to the application.
+  - ZH: 所有效果通道共用的九项设置：八个链接组的名称，以及新建通道所带的模式；效果之间是按几何方式还是仅通过矩阵相互馈送；工作线程、返回缓冲、环路保护及其上限、任一效果链可缓冲的最长延迟，以及馈送级的计算设备。\n除环路保护开关外，此处所有设置都在下次启动 Processing 时生效，因为引擎在准备时读取这些设置。重新排布（长按）会将每个效果返回重新放回默认环上，并把位置交还给应用程序。
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Effects Settings
+  - ZH: 效果设置
+  - [ ] OK    Fix: 
+
 ## `help.floorReflections`
 
 - **`body`**
@@ -723,6 +1945,18 @@ Walk through each section. For every entry:
 - **`title`**
   - EN: Inputs Basic Parameters
   - ZH: 输入基本参数
+  - [ ] OK    Fix: 
+
+## `help.inputEffectSends`
+
+- **`body`**
+  - EN: This input's sends into the effect channels, one strip per effect: the same cells as the Post-Processing matrix of the Effects tab, seen from the input.\nThe fader sets the send level (-92 to 0 dB) and the button switches the send on or off without touching the level, so a send can be muted and brought back at the level it had. The two buttons above switch every send of this input at once.\nAn effect this input feeds is an entry point of its bunch. What the effect does next - its chain, its position on stage and its sends into other effects - is set on the Effects tab.
+  - ZH: 此输入到各效果通道的发送，每个效果一条通道条：与 Effects 选项卡的 Post-Processing 矩阵相同的单元格，从输入的角度查看。\n推子设置发送电平（-92 至 0 dB），按钮在不触碰电平的情况下开关发送，因此可以将发送静音后再以原来的电平恢复。上方的两个按钮一次切换此输入的全部发送。\n此输入所馈送的效果是其组的入口。效果接下来的处理（其链路、在舞台上的位置以及到其他效果的发送）在 Effects 选项卡中设置。
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Effect Sends
+  - ZH: 效果发送
   - [ ] OK    Fix: 
 
 ## `help.inputHF`
@@ -1028,8 +2262,8 @@ Walk through each section. For every entry:
 ## `help.shortcuts`
 
 - **`body`**
-  - EN: *H* opens the help card closest to the pointer.\n*I*, *O* and *R* open the Input, Output and Reverb tabs respectively; for a few seconds afterwards you can type a channel number to select it (confirm with *Enter*).\n*N* opens the Network tab.\n*C* opens the Clusters tab.\n*M* opens the Map tab.\n*L* locks or unlocks the stereo image orientation of the pairs selected on the Map tab.\n*Spacebar* scrolls to the next channel and *Shift+Spacebar* to the previous one in the Input, Output and Reverb tabs. On the Clusters tab they cycle through the clusters.\n*Ctrl/Cmd* while adjusting a parameter of an output channel that is part of an array adjusts the parameter for the selected channel only, temporarily disabling the propagation to the rest of the array.\n*F1* to *F10* assign inputs to the corresponding cluster in the Input and Map tabs, assign outputs to the corresponding array in the Output tab, and select the corresponding cluster in the Clusters tab. *F11* sets the channel back to Single.\n*Shift* while adjusting a parameter of an input that is part of a cluster adjusts this parameter for the other inputs of the cluster in relative mode: the variation affects all inputs of the cluster, but relative offsets are kept. *Ctrl/Cmd+Shift* changes the parameter in absolute mode: the value becomes identical across all inputs of the cluster.\n*Ctrl/Cmd+Z* undoes the last change; *Ctrl/Cmd+Y* or *Ctrl/Cmd+Shift+Z* redoes it.
-  - ZH: *H*：打开离指针最近的帮助卡片。\n*I*、*O*、*R*：分别打开 Inputs（输入）、Outputs（输出）和 Reverb 标签页；随后几秒内可输入通道编号进行选择（按 *Enter* 确认）。\n*N*：打开 Network（网络）标签页。\n*C*：打开 Clusters（集群）标签页。\n*M*：打开 Map（地图）标签页。\n*L*：锁定或解锁在 Map 标签页中选中的声像对的朝向。\n*空格键*：在 Inputs、Outputs 和 Reverb 标签页中切换到下一个通道，*Shift+空格*切换到上一个通道。在 Clusters 标签页中则循环切换集群。\n*Ctrl/Cmd*：调整属于阵列的输出通道参数时按住，仅调整所选通道，暂时禁用向阵列其余通道的传播。\n*F1* 到 *F10*：在 Inputs 和 Map 标签页中将输入分配到对应的集群，在 Outputs 标签页中将输出分配到对应的阵列，在 Clusters 标签页中选择对应的集群。*F11* 将通道恢复为 Single。\n*Shift*：调整属于集群的输入参数时按住，以相对模式调整集群中其他输入的该参数：变化作用于集群的所有输入，但保留相对差值。*Ctrl/Cmd+Shift* 以绝对模式更改参数：集群所有输入的该参数值变为相同。\n*Ctrl/Cmd+Z*：撤销最近的更改；*Ctrl/Cmd+Y* 或 *Ctrl/Cmd+Shift+Z* 重做。
+  - EN: *H* opens the help card closest to the pointer.\n*I*, *O* and *R* open the Input, Output and Reverb tabs respectively; for a few seconds afterwards you can type a channel number to select it (confirm with *Enter*).\n*N* opens the Network tab.\n*C* opens the Clusters tab.\n*M* opens the Map tab.\n*L* locks or unlocks the stereo image orientation of the pairs selected on the Map tab.\n*Spacebar* scrolls to the next channel and *Shift+Spacebar* to the previous one in the Input, Output, Reverb and Effects tabs. On the Clusters tab they cycle through the clusters.\n*Ctrl/Cmd* while adjusting a parameter of an output channel that is part of an array adjusts the parameter for the selected channel only, temporarily disabling the propagation to the rest of the array.\n*F1* to *F10* assign inputs to the corresponding cluster in the Input and Map tabs, assign outputs to the corresponding array in the Output tab, and select the corresponding cluster in the Clusters tab. *F11* sets the channel back to Single. On the Effects tab, *F1* to *F8* put the effect in the corresponding link group and *F11* unlinks it; these link groups are separate from the input clusters.\n*Shift* while adjusting a parameter of an input that is part of a cluster adjusts this parameter for the other inputs of the cluster in relative mode: the variation affects all inputs of the cluster, but relative offsets are kept. *Ctrl/Cmd+Shift* changes the parameter in absolute mode: the value becomes identical across all inputs of the cluster.\n*Ctrl/Cmd+Z* undoes the last change; *Ctrl/Cmd+Y* or *Ctrl/Cmd+Shift+Z* redoes it.
+  - ZH: *H*：打开离指针最近的帮助卡片。\n*I*、*O*、*R*：分别打开 Inputs（输入）、Outputs（输出）和 Reverb 标签页；随后几秒内可输入通道编号进行选择（按 *Enter* 确认）。\n*N*：打开 Network（网络）标签页。\n*C*：打开 Clusters（集群）标签页。\n*M*：打开 Map（地图）标签页。\n*L*：锁定或解锁在 Map 标签页中选中的声像对的朝向。\n*空格键*：在 Inputs、Outputs、Reverb 和 Effects 标签页中切换到下一个通道，*Shift+空格*切换到上一个通道。在 Clusters 标签页中则循环切换集群。\n*Ctrl/Cmd*：调整属于阵列的输出通道参数时按住，仅调整所选通道，暂时禁用向阵列其余通道的传播。\n*F1* 到 *F10*：在 Inputs 和 Map 标签页中将输入分配到对应的集群，在 Outputs 标签页中将输出分配到对应的阵列，在 Clusters 标签页中选择对应的集群。*F11* 将通道恢复为 Single。在 Effects 标签页中，*F1* 到 *F8* 将效果分配到对应的链接组，*F11* 取消链接；这些链接组与输入集群相互独立。\n*Shift*：调整属于集群的输入参数时按住，以相对模式调整集群中其他输入的该参数：变化作用于集群的所有输入，但保留相对差值。*Ctrl/Cmd+Shift* 以绝对模式更改参数：集群所有输入的该参数值变为相同。\n*Ctrl/Cmd+Z*：撤销最近的更改；*Ctrl/Cmd+Y* 或 *Ctrl/Cmd+Shift+Z* 重做。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1088,6 +2322,11 @@ Walk through each section. For every entry:
 - **`selectChannel`**
   - EN: Select Channel
   - ZH: 选择通道
+  - [ ] OK    Fix: 
+
+- **`selectColour`**
+  - EN: Input Colour
+  - ZH: 输入颜色
   - [ ] OK    Fix: 
 
 - **`snapshotIdentity.fixNumbers`**
@@ -1158,6 +2397,28 @@ Walk through each section. For every entry:
 - **`trackingConflictYes`**
   - EN: Yes, switch tracking
   - ZH: 是，切换追踪
+  - [ ] OK    Fix: 
+
+## `inputs.effectSends`
+
+- **`gesture.allOff`**
+  - EN: Input Effect Sends All Off
+  - ZH: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`gesture.allOn`**
+  - EN: Input Effect Sends All On
+  - ZH: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`hint`**
+  - EN: One strip per effect: the fader sets this input's send level into the effect, the button switches the send without changing the level.
+  - ZH: 每个效果一条通道条：推子设置此输入到该效果的发送电平，按钮在不改变电平的情况下开关发送。
+  - [ ] OK    Fix: 
+
+- **`none`**
+  - EN: No effect channels. Set an Effects Channels count on System Config.
+  - ZH: 没有效果通道。请在 System Config 中设置 Effects Channels 的数量。
   - [ ] OK    Fix: 
 
 ## `inputs.gradientMap`
@@ -1242,6 +2503,11 @@ Walk through each section. For every entry:
   - ZH: 选择和移动形状
   - [ ] OK    Fix: 
 
+- **`help.shapeBackward`**
+  - EN: Move selected shape(s) one step back, under the next shape (Page Down)
+  - ZH: 将选中的形状下移一层（Page Down）
+  - [ ] OK    Fix: 
+
 - **`help.shapeDelete`**
   - EN: Delete selected shape(s)
   - ZH: 删除选中的形状
@@ -1252,14 +2518,69 @@ Walk through each section. For every entry:
   - ZH: 启用/禁用形状
   - [ ] OK    Fix: 
 
+- **`help.shapeForward`**
+  - EN: Move selected shape(s) one step forward, over the next shape (Page Up)
+  - ZH: 将选中的形状上移一层（Page Up）
+  - [ ] OK    Fix: 
+
 - **`help.shapeLock`**
   - EN: Lock shape position
   - ZH: 锁定形状位置
   - [ ] OK    Fix: 
 
+- **`help.shapeToBack`**
+  - EN: Send selected shape(s) to the back: the top shape covers those below (End; Page Down = one step)
+  - ZH: 将选中的形状置于底层（上层形状覆盖下层）（End；Page Down = 下移一层）
+  - [ ] OK    Fix: 
+
+- **`help.shapeToFront`**
+  - EN: Bring selected shape(s) to the front: the top shape covers those below (Home; Page Up = one step)
+  - ZH: 将选中的形状置于顶层（上层形状覆盖下层）（Home；Page Up = 上移一层）
+  - [ ] OK    Fix: 
+
 - **`help.whiteValue`**
   - EN: Parameter value mapped to white (0.00–1.00)
   - ZH: 映射到白色的参数值（0.00–1.00）
+  - [ ] OK    Fix: 
+
+- **`hints.darkMaxAtten`**
+  - EN: Dark = max attenuation | Light = none
+  - ZH: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`hints.darkMaxHF`**
+  - EN: Dark = max HF shelf | Light = none
+  - ZH: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`hints.darkMaxHeight`**
+  - EN: Dark = max height | Light = ground
+  - ZH: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`hints.polygonClose`**
+  - EN: Double-click to close polygon
+  - ZH: 双击关闭多边形
+  - [ ] OK    Fix: 
+
+- **`hints.whiteMaxAtten`**
+  - EN: White = max attenuation | Black = none
+  - ZH: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`hints.whiteMaxHF`**
+  - EN: White = max HF shelf | Black = none
+  - ZH: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`hints.whiteMaxHeight`**
+  - EN: White = max height | Black = ground
+  - ZH: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`warnings.heightRatioZero`**
+  - EN: Height Ratio is 0% — increase it for height to take effect
+  - ZH: Height Ratio 为 0% — 请增大它以使高度生效
   - [ ] OK    Fix: 
 
 ## `inputs.help`
@@ -1292,6 +2613,11 @@ Walk through each section. For every entry:
 - **`clusterSelector`**
   - EN: Object is Part of a Cluster.
   - ZH: 对象所属集群。
+  - [ ] OK    Fix: 
+
+- **`colourSwatch`**
+  - EN: Input Colour: the colour identifying this input on the map, the channel tiles and the patch matrix. Auto derives it from the channel number.
+  - ZH: 输入颜色：在地图、通道条和跳线矩阵上标识此输入的颜色。Auto 会根据通道编号生成颜色。
   - [ ] OK    Fix: 
 
 - **`commonAttenDial`**
@@ -1367,6 +2693,26 @@ Walk through each section. For every entry:
 - **`editScope`**
   - EN: Open the Snapshot Scope window for the selected snapshot.
   - ZH: 编辑选定快照的范围过滤器。
+  - [ ] OK    Fix: 
+
+- **`effectSendLevel`**
+  - EN: Level of this input's send into the effect (-92 to 0 dB). Drag the fader; the wheel nudges it.
+  - ZH: 此输入到效果的发送电平（-92 至 0 dB）。拖动推子；滚轮微调。
+  - [ ] OK    Fix: 
+
+- **`effectSendToggle`**
+  - EN: Switch this input's send into the effect on or off. The level is kept.
+  - ZH: 开启或关闭此输入到效果的发送。电平保持不变。
+  - [ ] OK    Fix: 
+
+- **`effectSendsAllOff`**
+  - EN: Switch this input's send into every effect off.
+  - ZH: 关闭此输入到所有效果的发送。
+  - [ ] OK    Fix: 
+
+- **`effectSendsAllOn`**
+  - EN: Switch this input's send into every effect on.
+  - ZH: 开启此输入到所有效果的发送。
   - [ ] OK    Fix: 
 
 - **`exportConfig`**
@@ -2046,6 +3392,67 @@ Walk through each section. For every entry:
   - ZH: 追踪已从输入 {from} 切换到输入 {to}
   - [ ] OK    Fix: 
 
+## `inputs.warnings`
+
+- **`floorReflections.base`**
+  - EN: Floor reflections are enabled for this input but cannot be produced:
+  - ZH: 此输入已启用地板反射，但无法产生：
+  - [ ] OK    Fix: 
+
+- **`floorReflections.noSpeakers`**
+  - EN: no speaker has floor reflections enabled with strictly positive horizontal and vertical parallax (listener head away from and above the speaker).
+  - ZH: 没有扬声器启用地板反射，且水平和垂直视差均严格为正（听者头部远离并高于扬声器）。
+  - [ ] OK    Fix: 
+
+- **`floorReflections.onFloor`**
+  - EN: the source is on the floor — raise it above the floor (Z > 0) for reflections.
+  - ZH: 声源位于地板上 — 请将其抬高到地板以上（Z > 0） 才能产生反射。
+  - [ ] OK    Fix: 
+
+- **`liveSource`**
+  - EN: The live-source tamer is enabled for this input, but no speaker has live-source attenuation enabled. Enable it on at least one output for this to take effect.
+  - ZH: 此输入已启用现场声源驯服器，但没有任何扬声器启用现场声源衰减。请至少在一个输出上启用它，此设置才会生效。
+  - [ ] OK    Fix: 
+
+- **`minimalLatency`**
+  - EN: Minimal latency is enabled for this input, but no speaker has minimal latency enabled. Enable it on at least one output for this to take effect.
+  - ZH: 此输入已启用最小延时，但没有任何扬声器启用最小延时。请至少在一个输出上启用它，此设置才会生效。
+  - [ ] OK    Fix: 
+
+- **`short`**
+  - EN: no effect
+  - ZH: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+## `levelMeter.effects`
+
+- **`tooltip`**
+  - EN: effects engine: last {last} ms | budget {budget} ms | 3s peak {peak} ms | {batches} batch(es) per wake
+  - ZH: 效果引擎：最近 {last} ms | 预算 {budget} ms | 3 秒峰值 {peak} ms | 每次唤醒 {batches} 个批次
+  - [ ] OK    Fix: 
+
+## `levelMeter.gpuStrip`
+
+- **`inactive`**
+  - EN: inactive
+  - ZH: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`status`**
+  - EN: underruns W:{wu} R:{ru} | depth {wd}/{rd} | latency {wl}/{rl} ms
+  - ZH: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`tooltip`**
+  - EN: last {last} ms | budget {budget} ms | 3s peak {peak} ms | underruns {under}
+  - ZH: 最近 {last} ms | 预算 {budget} ms | 3 秒峰值 {peak} ms | 欠载 {under}
+  - [ ] OK    Fix: 
+
+- **`tooltipNoUnderruns`**
+  - EN: last {last} ms | budget {budget} ms | 3s peak {peak} ms
+  - ZH: 最近 {last} ms | 预算 {budget} ms | 3 秒峰值 {peak} ms
+  - [ ] OK    Fix: 
+
 ## `levelMeter.tooltips`
 
 - **`clearSolo`**
@@ -2061,6 +3468,13 @@ Walk through each section. For every entry:
 - **`soloMode`**
   - EN: Single: one input at a time. Multi: multiple inputs simultaneously.
   - ZH: 单选：一次只听一个输入。多选：可同时听多个输入。
+  - [ ] OK    Fix: 
+
+## `map`
+
+- **`detachedMessage`**
+  - EN: The map is displayed in a separate window.
+  - ZH: 地图正在单独的窗口中显示。
   - [ ] OK    Fix: 
 
 ## `map.messages`
@@ -2549,7 +3963,7 @@ Walk through each section. For every entry:
 
 - **`protocolMismatch`**
   - EN: Remote app uses protocol v{remote}, expected v{local} — update the tablet app
-  - ZH: (missing — falls back to English)
+  - ZH: 遥控应用使用协议 v{remote}，需要 v{local} — 请更新平板应用
   - [ ] OK    Fix: 
 
 - **`sendFailing`**
@@ -2860,6 +4274,25 @@ Walk through each section. For every entry:
 - **`setToSingle`**
   - EN: Output {num} set to Single
   - ZH: 输出 {num} 设置为单独
+  - [ ] OK    Fix: 
+
+## `reverbs`
+
+- **`noChannels`**
+  - EN: No reverb channels configured.\n\nSet the number of Reverb Channels in System Config.
+  - ZH: 未配置混响通道。\n\n请在 System Config 中设置 Reverb Channels 的数量。
+  - [ ] OK    Fix: 
+
+## `reverbs.algorithm`
+
+- **`irGpuActive`**
+  - EN: GPU: {device} (+{ms} ms wet)
+  - ZH: GPU: {device}（湿声 +{ms} ms）
+  - [ ] OK    Fix: 
+
+- **`irGpuFallback`**
+  - EN: GPU unavailable - using CPU: {error}
+  - ZH: GPU 不可用 - 正在使用 CPU: {error}
   - [ ] OK    Fix: 
 
 ## `reverbs.dialogs`
@@ -3285,9 +4718,24 @@ Walk through each section. For every entry:
 
 ## `sampler`
 
+- **`exportFailed`**
+  - EN: The sampler config could not be written to {path}.
+  - ZH: 无法将采样器配置写入 {path}。
+  - [ ] OK    Fix: 
+
 - **`guide`**
   - EN: Select a cell on the grid to edit its properties.\nDouble-click to load a sample.\nUse Ctrl+Click to assign cells to the active set.
   - ZH: 在网格上选择一个单元格以编辑其属性。\n双击以加载样本。\n使用 Ctrl+点击将单元格分配给活动集合。
+  - [ ] OK    Fix: 
+
+- **`placeholder`**
+  - EN: Sampler — coming soon
+  - ZH: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`qlabSetCueCreated`**
+  - EN: QLab cue created: Input {channel} set "{name}"
+  - ZH: QLab提示已创建: 输入 {channel} 采样器集 "{name}"
   - [ ] OK    Fix: 
 
 ## `sampler.grid`
@@ -3414,11 +4862,57 @@ Walk through each section. For every entry:
   - ZH: 以米设置基础位置 (X、Y、Z)
   - [ ] OK    Fix: 
 
+## `setAllInputs`
+
+- **`warning`**
+  - EN: Changes will apply to ALL inputs
+  - ZH: 更改将应用于所有输入
+  - [ ] OK    Fix: 
+
+## `snapshot`
+
+- **`qlabExportDone`**
+  - EN: QLab export complete: {count} cues created
+  - ZH: QLab 导出完成：已创建 {count} 个 Cue
+  - [ ] OK    Fix: 
+
+- **`qlabExportStarted`**
+  - EN: Writing {count} cues to QLab...
+  - ZH: 正在向 QLab 写入 {count} 个 Cue...
+  - [ ] OK    Fix: 
+
+- **`qlabMemoText`**
+  - EN: Run either of the following cues to recall or update this snapshot
+  - ZH: 运行以下任一 Cue 来加载或更新此快照
+  - [ ] OK    Fix: 
+
+- **`qlabNoTarget`**
+  - EN: No QLab target configured
+  - ZH: 未配置QLab目标
+  - [ ] OK    Fix: 
+
 ## `snapshotScope`
 
 - **`noEffectChannels`**
   - EN: This session has no effect channels.
   - ZH: 此会话没有效果通道。
+  - [ ] OK    Fix: 
+
+- **`writeSnapshotLoadCueTooltip`**
+  - EN: Also create a QLab cue to load this snapshot via OSC
+  - ZH: 同时创建一个通过 OSC 加载此快照的 QLab 提示
+  - [ ] OK    Fix: 
+
+- **`writeToQLabTooltip`**
+  - EN: Export scope to QLab instead of saving to file
+  - ZH: 将范围导出到 QLab 而非保存到文件
+  - [ ] OK    Fix: 
+
+## `snapshotScope.buttons`
+
+- **`updateSnapshotScopeTooltip`**
+  - EN: Write the edited scope into the selected snapshot without re-saving its values. For 'When Saving' snapshots, stored values outside the new scope are removed (backup created first).
+  - ZH: 将编辑后的范围写入选定的快照，而不重新保存其数值。对于“When Saving”快照，新范围之外的已存数值将被删除（会先创建备份）。
   - [ ] OK    Fix: 
 
 ## `snapshotScope.midi`
@@ -3431,6 +4925,55 @@ Walk through each section. For every entry:
 - **`tooltip`**
   - EN: A note-on above velocity 64 on this channel and note recalls this snapshot. Note-offs and softer notes are ignored. Choose the MIDI input in Audio Interface ▸ Device Settings.
   - ZH: 在此通道和音符上收到力度高于 64 的 Note On 时，将调用此快照。Note Off 及力度较低的音符将被忽略。请在 Audio Interface ▸ Device Settings 中选择 MIDI 输入。
+  - [ ] OK    Fix: 
+
+## `snapshotScope.templates`
+
+- **`deleteTooltip`**
+  - EN: Delete the selected template
+  - ZH: 删除所选模板
+  - [ ] OK    Fix: 
+
+- **`errorTitle`**
+  - EN: Scope Template Error
+  - ZH: 范围模板错误
+  - [ ] OK    Fix: 
+
+- **`overwriteWarning`**
+  - EN: A template with this name already exists — it will be overwritten.
+  - ZH: 已存在同名模板 — 将被覆盖。
+  - [ ] OK    Fix: 
+
+- **`reloadTooltip`**
+  - EN: Replace the grid with the selected template (apply mode is not changed)
+  - ZH: 用所选模板替换网格（应用模式不变）
+  - [ ] OK    Fix: 
+
+- **`storeMessage`**
+  - EN: Enter a name for this scope template:
+  - ZH: 请输入此范围模板的名称：
+  - [ ] OK    Fix: 
+
+- **`storeTitle`**
+  - EN: Store Scope Template
+  - ZH: 保存范围模板
+  - [ ] OK    Fix: 
+
+- **`storeTooltip`**
+  - EN: Save the current grid as a new template
+  - ZH: 将当前网格保存为新模板
+  - [ ] OK    Fix: 
+
+- **`updateTooltip`**
+  - EN: Overwrite the selected template with the current grid
+  - ZH: 用当前网格覆盖所选模板
+  - [ ] OK    Fix: 
+
+## `systemConfig.binauralSofa`
+
+- **`noProject`**
+  - EN: Open a project first to import SOFA files
+  - ZH: 请先打开项目，再导入 SOFA 文件
   - [ ] OK    Fix: 
 
 ## `systemConfig.channelList`
@@ -3687,9 +5230,19 @@ Walk through each section. For every entry:
   - ZH: 减少
   - [ ] OK    Fix: 
 
+- **`reduceEffectChannels.message`**
+  - EN: Reducing from {current} to {new} effects channels will remove settings for channels {start} to {end}.\n\nThis cannot be undone.
+  - ZH: 从 {current} 减少到 {new} 个效果通道将删除通道 {start} 到 {end} 的设置。\n\n此操作无法撤销。
+  - [ ] OK    Fix: 
+
+- **`reduceEffectChannels.title`**
+  - EN: Reduce Effects Channels?
+  - ZH: 减少效果通道?
+  - [ ] OK    Fix: 
+
 - **`reduceInputChannels.messageList`**
   - EN: The last channel(s) of that type in the display order will be removed, with their settings:\n\n{rows}\n\nOnce the session is in use their numbers are retired and the remaining channels keep theirs, so the patch, snapshots and cues stay valid.\n\nThis cannot be undone, and it clears the undo history of every tab.
-  - ZH: 显示顺序中该类型的最后几个通道将连同其设置一起被移除:\n\n{rows}\n\n会话使用后，它们的编号将被退役，其余通道保留各自编号，因此跳线、快照和提示仍然有效。\n\n此操作无法撤销，并会清除所有选项卡的撤销历史。
+  - ZH: 显示顺序中该类型的最后几个通道将连同其设置一起被移除:\n\n{rows}\n\n会话使用后，这些编号将作为空缺保留，其余通道保留各自编号，因此跳线、快照和提示仍然有效。\n\n此操作无法撤销，并会清除所有选项卡的撤销历史。
   - [ ] OK    Fix: 
 
 - **`reduceInputChannels.row`**
@@ -3739,6 +5292,16 @@ Walk through each section. For every entry:
   - ZH: 打开音频接口和路由窗口。
   - [ ] OK    Fix: 
 
+- **`binauralAdvanced`**
+  - EN: Open the listener geometry panel: lateral offset, ear height, head radius, listener angle, and manual head orientation (used when no tracker is active).
+  - ZH: 打开听者几何面板：侧向偏移、耳部高度、头部半径、听者角度，以及手动头部朝向（无追踪器启用时使用）。
+  - [ ] OK    Fix: 
+
+- **`binauralAdvancedClose`**
+  - EN: Close the listener geometry panel.
+  - ZH: 关闭听者几何面板。
+  - [ ] OK    Fix: 
+
 - **`binauralAngle`**
   - EN: Where the listener SITS on a circle around the stage origin (degrees, 0 = the audience side, straight in front of the stage). They always face the origin, so this does not turn the head — it walks the listener around the room, changing the distance to every source. To turn the head, use Head Yaw (or Orientation Y/P/R in the Listener Geometry panel). Yaw is measured from this seat, so changing Orbit also re-aims a head tracker’s zero.
   - ZH: 双声道听者视角的水平旋转 (度，0 = 面向舞台)。
@@ -3747,6 +5310,11 @@ Walk through each section. For every entry:
 - **`binauralAtten`**
   - EN: Overall level offset for binaural output (dB).
   - ZH: 双声道输出的整体电平偏移 (dB)。
+  - [ ] OK    Fix: 
+
+- **`binauralAttitude`**
+  - EN: Live head attitude from the active tracker (yaw, pitch, roll in degrees). Shows 'no face tracked' while the webcam does not see you.
+  - ZH: 当前追踪器给出的实时头部姿态（偏航、俯仰、横滚，单位为度）。摄像头看不到您时显示“no face tracked”。
   - [ ] OK    Fix: 
 
 - **`binauralDelay`**
@@ -3764,9 +5332,54 @@ Walk through each section. For every entry:
   - ZH: 启用或禁用双声道渲染器处理。
   - [ ] OK    Fix: 
 
+- **`binauralHeadRadius`**
+  - EN: Head radius for the structural HRTF model (centimeters). Larger heads produce larger interaural time differences.
+  - ZH: 结构化 HRTF 模型的头部半径（厘米）。头越大，双耳时间差越大。
+  - [ ] OK    Fix: 
+
+- **`binauralHeight`**
+  - EN: Ear height of the binaural listener (meters). HRTF modes only.
+  - ZH: 双耳听者的耳部高度（米）。仅限 HRTF 模式。
+  - [ ] OK    Fix: 
+
+- **`binauralListenerX`**
+  - EN: Sideways offset of the binaural listener from the seat Orbit and Distance place them at (meters, positive = to the listener’s right). HRTF modes only.
+  - ZH: 双耳听者相对于座位的侧向偏移，座位由 Orbit 和 Listener Distance 确定（米，正值 = 听者右侧）。仅限 HRTF 模式。
+  - [ ] OK    Fix: 
+
+- **`binauralMode`**
+  - EN: Binaural rendering algorithm: ORTF (legacy) virtual microphone pair, Structural HRTF (parametric head model), or SOFA file (measured HRTFs).
+  - ZH: 双耳渲染算法：ORTF (legacy) 虚拟麦克风对、Structural HRTF（参数化头部模型）或 SOFA file（实测 HRTF）。
+  - [ ] OK    Fix: 
+
+- **`binauralOrientation`**
+  - EN: Manual head orientation offsets from facing the origin: yaw, pitch, roll (degrees). These turn the head on the spot — unlike Orbit, which moves the seat. Ignored while a head tracker is active.
+  - ZH: 相对于面向原点的手动头部朝向偏移：偏航、俯仰、横滚（度）。这些参数是让头部原地转动 —— 不同于 Orbit 移动座位。头部追踪器启用时忽略。
+  - [ ] OK    Fix: 
+
 - **`binauralOutput`**
   - EN: Select output channel pair for binaural monitoring. Off disables binaural output.
   - ZH: 选择用于双声道监听的输出通道对。Off 禁用双声道输出。
+  - [ ] OK    Fix: 
+
+- **`binauralSetZero`**
+  - EN: Look at the stage center, then click to calibrate the head tracker's zero orientation. Webcam tracking takes a moment to start after selecting it.
+  - ZH: 注视舞台中心，然后点击以校准头部追踪器的零点朝向。选择摄像头追踪后需要片刻才能启动。
+  - [ ] OK    Fix: 
+
+- **`binauralSofa`**
+  - EN: HRTF set for the SOFA render mode: the built-in SADIE II KU100 or a custom SOFA file stored in the project's sofa folder.
+  - ZH: SOFA 渲染模式使用的 HRTF 集：内置的 SADIE II KU100，或存放在项目 sofa 文件夹中的自定义 SOFA 文件。
+  - [ ] OK    Fix: 
+
+- **`binauralTracker`**
+  - EN: Head orientation source: manual (yaw/pitch/roll controls) or a connected head tracker. Tracker attitude bypasses parameter damping for immediate response.
+  - ZH: 头部朝向来源：手动（偏航/俯仰/横滚控件）或已连接的头部追踪器。追踪器姿态绕过参数阻尼，以获得即时响应。
+  - [ ] OK    Fix: 
+
+- **`binauralYaw`**
+  - EN: Turns the listener’s head on the spot, without moving the seat (degrees, 0 = facing the stage origin, positive = turning right). Mirrors the live tracked yaw and is locked while a head tracker is active. HRTF modes only.
+  - ZH: 让听者的头部原地转动，不移动座位（度，0 = 面向舞台原点，正值 = 向右转）。反映实时追踪的偏航，头部追踪器启用时锁定。仅限 HRTF 模式。
   - [ ] OK    Fix: 
 
 - **`clearSolo`**
@@ -3984,6 +5597,11 @@ Walk through each section. For every entry:
   - ZH: 启用或禁用屏幕阅读器播报。启用后, 悬停时会播报参数名称和值, 几秒后会朗读帮助文本。
   - [ ] OK    Fix: 
 
+- **`screenRendering`**
+  - EN: Accelerated draws the windows on the graphics card. Compatible draws them on the CPU, so a video call that shares a single window (such as Zoom) shows them live, and opens menus inside the window. Compatible uses more CPU: go back to Accelerated for shows. Always Accelerated at launch.
+  - ZH: Accelerated 模式用显卡绘制窗口。Compatible 模式用CPU绘制，使只共享单个窗口的视频通话（如Zoom）也能实时显示，并在窗口内打开菜单。Compatible 模式占用更多CPU：演出时请切回 Accelerated。每次启动时均为 Accelerated。
+  - [ ] OK    Fix: 
+
 - **`selectProjectFolder`**
   - EN: Select the Location of the Current Project Folder where to store files.
   - ZH: 选择当前项目文件夹的存储位置。
@@ -4072,6 +5690,11 @@ Walk through each section. For every entry:
 - **`temperature`**
   - EN: Temperature (gives the Speed of Sound).
   - ZH: 温度 (决定Speed of Sound)。
+  - [ ] OK    Fix: 
+
+- **`translationTier`**
+  - EN: Choose how much of the interface is translated. 'Help & messages' keeps the controls in English and translates only the help text, messages and dialogs; 'Everything' translates the full interface including labels. Takes full effect after restarting.
+  - ZH: 选择界面的翻译程度。“Help & messages”保持控件为英文，仅翻译帮助、消息和对话框；“Everything”翻译包括标签在内的整个界面。重启后完全生效。
   - [ ] OK    Fix: 
 
 ## `systemConfig.messages`
@@ -4184,4 +5807,145 @@ Walk through each section. For every entry:
 - **`systemInfoCopied`**
   - EN: System info copied to clipboard
   - ZH: 系统信息已复制到剪贴板
+  - [ ] OK    Fix: 
+
+- **`translationTierChanged`**
+  - EN: Translation set to: {tier} (requires restart for full effect)
+  - ZH: 翻译已设置为：{tier}（需要重启才能完全生效）
+  - [ ] OK    Fix: 
+
+## `updateBanner`
+
+- **`available`**
+  - EN: WFS-DIY v{version} is available!
+  - ZH: WFS-DIY v{version} 现已可用！
+  - [ ] OK    Fix: 
+
+## `wizard.buttons`
+
+- **`gettingStartedHelp`**
+  - EN: Help cards guiding you through the first parameters to adjust when starting a new project
+  - ZH: 帮助卡片，引导您完成新项目启动时需要调整的第一批参数
+  - [ ] OK    Fix: 
+
+## `wizard.steps`
+
+- **`audioDevice.description`**
+  - EN: Select your audio driver and device, set the sample rate and buffer size. Check the patch routing and test your outputs. Close this window when done.
+  - ZH: 选择音频驱动程序和设备，设置采样率和缓冲区大小。检查跳线并测试输出。完成后关闭此窗口。
+  - [ ] OK    Fix: 
+
+- **`audioDevice.title`**
+  - EN: Configure the Audio Interface
+  - ZH: 配置音频接口
+  - [ ] OK    Fix: 
+
+- **`audioInterface.description`**
+  - EN: Click the button above or press Next to open the Audio Interface window.
+  - ZH: 点击上方按钮或按 Next 打开 Audio Interface 窗口。
+  - [ ] OK    Fix: 
+
+- **`audioInterface.title`**
+  - EN: Open the Audio Interface
+  - ZH: 打开音频接口
+  - [ ] OK    Fix: 
+
+- **`configureOutputs.description`**
+  - EN: Use the array presets and geometry tools to calculate speaker positions for your arrays. Close this window when done.
+  - ZH: 使用阵列预设和几何工具计算扬声器位置。完成后关闭此窗口。
+  - [ ] OK    Fix: 
+
+- **`configureOutputs.title`**
+  - EN: Configure Output Positions
+  - ZH: 配置输出位置
+  - [ ] OK    Fix: 
+
+- **`exploreInputs.description`**
+  - EN: Click an input on the map to select it, or lasso several to move them together. Drag to position your sources. Zoom with the mouse wheel or pinch gesture, pan with right-drag or two-finger drag. Add inputs, group them into clusters, and shape your sound field. You can also control positions with a keyboard, SpaceMouse, or other external controllers. Have fun!
+  - ZH: 点击地图上的输入进行选择，或用套索选择多个。拖动定位您的声源。用鼠标滚轮或捏合手势缩放，用右键拖动或双指拖动平移。添加输入，将它们分组为集群，塑造您的声场。您还可以用键盘、SpaceMouse或其他控制器控制位置。尽情享受！
+  - [ ] OK    Fix: 
+
+- **`exploreInputs.title`**
+  - EN: Start Creating!
+  - ZH: 开始创作！
+  - [ ] OK    Fix: 
+
+- **`inputChannels.description`**
+  - EN: How many audio sources will you be spatializing? Set Mono Inputs for single sources such as voices and instruments, and Stereo Inputs for stereo feeds such as playback, keyboards or submixes. A stereo input keeps one channel number and takes two hardware inputs, L and R.\nBenefits: the pair moves, joins clusters and is recalled as one source, and it plays as two sources spread by its Width, so the stereo image stays wide across the array.\nLimits: the image between the two sides holds best near the middle of the audience; listeners off to one side mostly hear the nearer side. The whole mix moves together, Floor Reflections, Live Source Tamer, Gradient Maps and Sampler do not apply, and 8 pairs is the maximum. When a source must be placed precisely, use mono stems.\nCPU load: each stereo input is rendered as 6 sources (the total appears next to the stereo count), so estimate about the load of 6 mono inputs for each one.
+  - ZH: 您将空间化多少个音频源？人声、乐器等单一声源请设置 Mono Inputs，回放、键盘、子混音等立体声信号请设置 Stereo Inputs。一个立体声输入只占一个通道编号，并使用两个硬件输入（L 和 R）。\n优点：这一对作为一个声源移动、加入集群和调用，并由按其 Width 分开的两个声源播放，因此立体声声像在整个阵列上保持宽阔。\n局限：左右之间的声像在观众区中部附近最稳定；坐在一侧的听众主要听到较近的一侧。整个混音一起移动；Floor Reflections、Live Source Tamer、Gradient Maps 和 Sampler 不可用；最多 8 对。需要精确定位声源时，请使用单声道分轨。\nCPU 负载：每个立体声输入按 6 个声源渲染（总数显示在立体声数量旁边），因此每个立体声输入请预估约 6 个单声道输入的负载。
+  - [ ] OK    Fix: 
+
+- **`inputChannels.title`**
+  - EN: Set Mono and Stereo Inputs
+  - ZH: 设置单声道和立体声输入
+  - [ ] OK    Fix: 
+
+- **`originPoint.description`**
+  - EN: The origin is the reference point for all coordinates. Use the preset buttons or enter custom values. 'Front' places it at the audience edge.
+  - ZH: 原点是所有坐标的参考点。使用预设按钮或输入自定义值。'Front'将其放置在观众边缘。
+  - [ ] OK    Fix: 
+
+- **`originPoint.title`**
+  - EN: Set the Origin Point
+  - ZH: 设置原点
+  - [ ] OK    Fix: 
+
+- **`outputChannels.description`**
+  - EN: Set the number of output channels to match your speaker array.\nEach output corresponds to one physical speaker.
+  - ZH: 根据您的扬声器阵列设置输出通道数。\n每个输出对应一个物理扬声器。
+  - [ ] OK    Fix: 
+
+- **`outputChannels.title`**
+  - EN: Set Output Channels
+  - ZH: 设置输出通道数
+  - [ ] OK    Fix: 
+
+- **`projectFolder.description`**
+  - EN: Choose a folder to store your WFS project files. This will hold configurations, snapshots, IR files, and samples. Click the button to open the folder selector.
+  - ZH: 选择一个文件夹来存储您的WFS项目文件。它将保存配置、快照、IR文件和采样。点击按钮打开文件夹选择器。
+  - [ ] OK    Fix: 
+
+- **`projectFolder.title`**
+  - EN: Select a Project Folder
+  - ZH: 选择项目文件夹
+  - [ ] OK    Fix: 
+
+- **`reverbChannels.description`**
+  - EN: Reverb channels add room simulation. Set to 0 if you don't need reverb.
+  - ZH: 混响通道添加房间模拟。如果不需要混响，请设置为0。
+  - [ ] OK    Fix: 
+
+- **`reverbChannels.title`**
+  - EN: Set Reverb Channels
+  - ZH: 设置混响通道数
+  - [ ] OK    Fix: 
+
+- **`stageConfig.description`**
+  - EN: Set the shape and dimensions of your performance space. Choose box, cylinder, or dome, then enter the size in meters.
+  - ZH: 设置演出空间的形状和尺寸。选择 Box、Cylinder 或 Dome，然后以米为单位输入尺寸。
+  - [ ] OK    Fix: 
+
+- **`stageConfig.title`**
+  - EN: Define the Stage
+  - ZH: 定义舞台
+  - [ ] OK    Fix: 
+
+- **`startProcessing.description`**
+  - EN: You're all set! Long-press the Processing button to start the WFS engine. You can also start the Binaural Renderer for headphone monitoring.
+  - ZH: 一切就绪！长按 Processing 按钮启动 WFS 引擎。您也可以启动 Binaural Renderer 进行耳机监听。
+  - [ ] OK    Fix: 
+
+- **`startProcessing.title`**
+  - EN: Start the WFS Engine
+  - ZH: 启动WFS引擎
+  - [ ] OK    Fix: 
+
+- **`wizardOfOutZ.description`**
+  - EN: Click the Wizard of OutZ button or press Next to open the output array helper.
+  - ZH: 点击 Wizard of OutZ 按钮或按 Next 打开定位助手。
+  - [ ] OK    Fix: 
+
+- **`wizardOfOutZ.title`**
+  - EN: Position Your Outputs
+  - ZH: 定位输出
   - [ ] OK    Fix:
