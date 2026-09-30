@@ -9,15 +9,21 @@ This project is based on the Cycling74's Max8 Prototype found at https://wfs-diy
 ## Companion projects and documentation
 
 - **[DAW Plugin Suite](Plugin/README.md)** — VST3 / AU / Standalone plugins (Master + 5 Track variants: Cartesian / Cylindrical / Spherical / ADM Cartesian / ADM Polar) that drive a running WFS-DIY session from any major DAW. Built from `Plugin/` as a standalone CMake subproject.
-- **Android Remote** — companion Android app (WFS Control 2) for touch-based control over OSC. Lives in its own repo: <https://github.com/pob31/WFS_control_2>.
-- **[Documentation/](Documentation/)** — reference material: `CLAUDE.md` (architecture / conventions), the `WFS-UI_*.csv` per-tab parameter inventories, `WFS-UI_arrayWizard.md` (array-wizard preset catalog and geometry formulas), `WFS-UI_plugins.md` (plugin setup guide for OSC / OSCQuery / ADM-OSC), and the `MCP/` specs for the in-progress MCP server.
+- **Android Remote** — companion Android app (WFS Control 2) for touch-based control over OSC. Lives in its own repo: <https://github.com/pob31/WFS-DIY-Android-Remote>.
+- **[Documentation/](Documentation/)** — reference material: `CLAUDE.md` (architecture / conventions), `change_log.md` (what changed in each release), the `WFS-UI_*.csv` per-tab parameter inventories, `WFS-UI_arrayWizard.md` (array-wizard preset catalog and geometry formulas), `WFS-UI_plugins.md` (plugin setup guide for OSC / OSCQuery / ADM-OSC), the `MCP/` specs for the MCP server, and the code audits (`WFS-DIY-audit_20260928.md`, `WFS-DIY-reaudit_20260929.md`).
 
 ## Features
 
-- Cross-platform audio device management
-- Real-time audio processing capabilities
-- JUCE framework integration
-- Multi-platform build support (Windows, macOS, Linux)
+- **Wave Field Synthesis** of mono and stereo inputs over loudspeaker arrays, with an array wizard for common layouts.
+- **Reverb channels** (FDN, SDN, IR) placed in the room and fed from each input's position.
+- **Effect channels**: up to 32 chains of eleven modules (EQ, dynamics, distortion, bitcrusher, chorus/flanger, tremolo, phaser, multitap delay, and a reverb with FDN, plate, hall and shimmer models), each returning to the stage as a WFS source.
+- **Movement**: clusters, LFOs, AutomOtion trajectories, gradient maps, and position tracking over OSC, PSN, RTTrP and MQTT.
+- **Binaural monitoring** on headphones: HRTF rendering from SOFA sets, with head tracking from a webcam or a USB IMU tracker.
+- **Snapshots** with a per-parameter scope, recalled by MIDI notes, OSC, or QLab cues the app writes itself.
+- **Control**: OSC, OSCQuery and ADM-OSC; the Android remote; DAW plugins (VST3 / AU); Stream Deck, 3Dconnexion SpaceMouse and multitouch screens; an MCP server for AI assistants.
+- **GPU acceleration** for the WFS renderers and the reverbs: CUDA, HIP and Metal.
+- **Nine interface languages**: English, French, German, Spanish, Italian, Portuguese, Japanese, Korean and Chinese.
+- Windows, macOS and Linux.
 
 ## Building the Project
 
@@ -110,7 +116,8 @@ in-process on macOS (no third-party SDK). Kernels are compiled at runtime
 (NVRTC / hipRTC / Metal), and release installers bundle those compiler runtimes,
 so end users only need their vendor GPU driver. Devices are selected per engine
 in System Config. The CPU path remains the reference implementation and every
-GPU path is gated bit-exact against committed render baselines.
+GPU path is gated bit-exact against committed render baselines. The effect
+channels always run on the CPU.
 
 Building the GPU plugins locally needs the vendor toolkit (CUDA Toolkit for
 `wfs_cuda`, AMD HIP SDK / ROCm for `wfs_hip`) — see
