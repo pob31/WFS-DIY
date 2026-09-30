@@ -2,7 +2,7 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
-## v1.0.0beta52 — 2026-09-30
+## v1.0.0beta52 — 2026-09-30 (also tagged plugins-v0.0.6)
 
 ### Added
 - **Effect channels and the Effects tab.** Up to 32 effect chains, each fed by inputs and by other effects and returning to the stage as a WFS source. A chain has eleven modules: EQ 1, Dynamics 1, Dynamics 2, Distortion, Bitcrusher, EQ 2, Chorus/Flanger, Tremolo, Phaser, Multitap Delay and Reverb, in that order on a new channel and reordered by dragging. The Effects tab, between Reverb and Inputs, has five sub-tabs: Channel Parameters, Chain (the module strip with its meters, and the selected module's parameters), Post-Processing (the whole sends matrix), Movements (LFO and AutomOtion, as on the Inputs tab) and Settings. Each module has its own colour on its tile and around its parameters. A module that is off greys out but stays editable, so a sound can be set up before it is switched in. Every value can be typed, and a help card explains each sub-tab. The count is set on System Config (Effects Channels), and the level-meter window shows a feed and a return meter per effect. The Channel Parameters sub-tab is translated in the eight languages; the module controls and the other sub-tabs are in English for now. The effects run on the CPU.
@@ -38,7 +38,7 @@ All notable changes to WFS DIY are documented in this file, organized by release
 - **A flood of tracking OSC no longer grows the app's memory without limit**, and turning tracking off or changing its port during one no longer risks a crash. Tracking OSC now has the bounded queue the main OSC ports have, and reports drops in the session log.
 - **OSCQuery replies are built on the app's main thread**, no longer from network threads reading the session while it changes.
 - **Quitting no longer touches data that is already gone**, which could crash on quit on macOS.
-- **DAW plugins: a deleted Track or Master plugin no longer stays registered** (in the next plugins release). A host may delete a plugin without releasing it first; the bridge kept it, so the next message called into freed memory, and a deleted Master blocked any new Master until the host restarted.
+- **DAW plugins: a deleted Track or Master plugin no longer stays registered** (plugins v0.0.6). A host may delete a plugin without releasing it first; the bridge kept it, so the next message called into freed memory, and a deleted Master blocked any new Master until the host restarted.
 - **A relatively linked array follows an orientation across ±180°.** Turning a member from 179° to -179° sent every other member -358° and parked them all at -180°.
 - **The MIDI snapshot input reconnects after any unplug (Windows).** A controller that dropped off and came back within a split second stayed disconnected, and a USB stick coming or going reopened the MIDI port. The app now follows Windows' own MIDI device notifications, and checks a disconnected port again every 2 seconds.
 - **One Ctrl+Z takes back one push of the Space Mouse or one drag of a joystick**, and **one Stream Deck gesture** (a run of turns of one dial, or one press). Before, their edits merged into whatever undo step was open, so one Ctrl+Z could take back several.
@@ -52,6 +52,7 @@ All notable changes to WFS DIY are documented in this file, organized by release
 
 ### Chore / Internal
 - **spatcore** PRs #12 to #23, pinned at main `1216077`: the effects engine and the send matrix (v0.3.3), the reverb models, early reflections, presets and spillover (v0.4.0), Stream Deck dial acceleration, the shared typed-value reader, and the audit fixes.
+- **DAW plugins v0.0.6**: the bridge fix above, and JUCE 9.0.2, which the app already uses.
 - **Two code audits**: `Documentation/WFS-DIY-audit_20260928.md` and `Documentation/WFS-DIY-reaudit_20260929.md`. The re-audit also records what was fixed, how it was checked, and what is still open.
 - The Chain sub-tab's module panels are generated from `Documentation/WFS-UI_effects.csv` by `tools/gen_effects_module_ui.py`. The snapshot row moved to `Source/gui/snapshots/`, shared by the Inputs and Effects tabs.
 - **Tests:** new self-tests (`WFS_TEST_VALUE_GATES`, `WFS_TEST_ENGINE_RECONFIG`, and phases for the effects, snapshots, reverb presets and Stream Deck), `run_selftest.py` to run any of them headless, the new drivers `tracking_check.py` and `network_threads_check.py`, and more cases in `osc_replay.py`, `mcp_replay.py` and `session_roundtrip.py`. `WFS_TEST_RENDER_UI=<folder>` renders every tab to PNG files offscreen. `offline-render --audition <dir>` renders listening reels and a measured sheet for every reverb preset.
