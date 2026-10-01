@@ -238,6 +238,19 @@ public:
         ++sharedInputsGeneration;
     }
 
+    /** Number of reverb-return taps currently wired (message thread). */
+    int getNumReverbTaps() const
+    {
+        const juce::SpinLock::ScopedLockType lock (sharedInputsLock);
+        return (int) sharedReverbs.size();
+    }
+
+    /** Reverb-tap blocks the HRTF path has rendered since launch (any thread). */
+    uint32_t getReverbTapBlocksRead() const noexcept
+    {
+        return reverbTapBlocksRead.load (std::memory_order_relaxed);
+    }
+
     /** Notify that new input data is available in shared buffers. */
     void notifyInputAvailable()
     {
@@ -609,6 +622,7 @@ private:
                 juce::FloatVectorOperations::clear (dest + got, numSamples - got);
 
             hrtfInputPtrs[(size_t) srcIdx] = dest;
+            reverbTapBlocksRead.fetch_add (1, std::memory_order_relaxed);
             hrtfSourceGains[(size_t) srcIdx] = rt.reverbAttenLinear;
             hrtfPositions[(size_t) srcIdx * 3 + 0] = rt.reverbPos[r][0];
             hrtfPositions[(size_t) srcIdx * 3 + 1] = rt.reverbPos[r][1];
@@ -820,7 +834,7 @@ private:
     std::vector<SharedInputRingBuffer*> sharedInputs;
     std::vector<int> sharedReadPositions;
     bool useSharedInputs = false;
-    juce::SpinLock sharedInputsLock;
+    mutable juce::SpinLock sharedInputsLock;
     uint32_t sharedInputsGeneration = 0;
 
     // Lock-free ring buffers for input (fallback when shared buffers aren't set)
@@ -870,4 +884,7 @@ private:
     // discipline as sharedInputs above.
     std::vector<SharedInputRingBuffer*> sharedReverbs;
     std::vector<int> sharedReverbReadPositions;
+
+    // Reverb-tap blocks the HRTF path has rendered (self-test readout only).
+    std::atomic<uint32_t> reverbTapBlocksRead { 0 };
 };

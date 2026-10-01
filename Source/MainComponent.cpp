@@ -3826,6 +3826,50 @@ void MainComponent::runEngineReconfigSelfTest()
         handleProcessingChange (true);
     };
 
+    // --- E1: the binaural reverb tap after a project open --------------------
+    // The order every launch has: the device opens on the empty session, then
+    // the project brings its reverb nodes. The taps were built only on a device
+    // start, so an HRTF mode rendered no Reverb-tab reverb at all.
+    if (const int reverbs = parameters.getNumReverbChannels(); reverbs == 0 || binauralProcessor == nullptr)
+    {
+        logLine ("SELF-TEST SKIP E1: the project has no reverb node");
+    }
+    else
+    {
+        check (binauralProcessor->getNumReverbTaps() == reverbs,
+               "E1: one binaural reverb tap per reverb node after the project opened ("
+               + juce::String (binauralProcessor->getNumReverbTaps()) + " taps, "
+               + juce::String (reverbs) + " nodes)");
+
+        auto binauralState = vts.getBinauralState();
+        const juce::var modeBefore = binauralState.getProperty (WFSParameterIDs::binauralRenderMode);
+        const bool binauralBefore = vts.getBinauralEnabled();
+        const int binauralChannelBefore = vts.getBinauralOutputChannel();
+
+        binauralState.setProperty (WFSParameterIDs::binauralRenderMode, 1, nullptr);   // Structural: no SOFA to load
+        vts.setBinauralOutputChannel (0);
+        vts.setBinauralEnabled (true);
+        for (int tick = 0; tick < 8 && ! binauralProcessor->isEnabled(); ++tick)
+            timerCallback();
+        binauralCalcEngine->refreshRtSnapshot();
+
+        const uint32_t read0 = binauralProcessor->getReverbTapBlocksRead();
+        const auto flow = blocksDuring (300);
+        const uint32_t read = binauralProcessor->getReverbTapBlocksRead() - read0;
+        check (binauralProcessor->isEnabled() && flow.processed > 0 && read > 0,
+               "E1: the HRTF path renders the reverb returns: " + juce::String (read)
+               + " tap blocks in " + juce::String (flow.processed) + " device blocks");
+
+        if (modeBefore.isVoid())
+            binauralState.removeProperty (WFSParameterIDs::binauralRenderMode, nullptr);
+        else
+            binauralState.setProperty (WFSParameterIDs::binauralRenderMode, modeBefore, nullptr);
+        vts.setBinauralEnabled (binauralBefore);
+        vts.setBinauralOutputChannel (binauralChannelBefore);
+        for (int tick = 0; tick < 8 && binauralProcessor->isEnabled() != binauralBefore; ++tick)
+            timerCallback();
+    }
+
     // --- E2: the gate, from both sides ---------------------------------------
     {
         Blocks held;
@@ -12989,6 +13033,10 @@ void MainComponent::handleChannelCountChange()
         double sr = device ? device->getCurrentSampleRate() : 48000.0;
         int bs = device ? device->getCurrentBufferSizeSamples() : 512;
         binauralProcessor->prepareToPlay(sr, bs, numRenderSources);
+        // The reverb count is one of the counts that may have moved. The taps
+        // used to be built only on a device start, which at launch comes before
+        // the project opens: headphones got no Reverb-tab reverb at all.
+        rebuildBinauralReverbTaps (bs, reverbs);
         if (binauralProcessor->isEnabled())
             binauralProcessor->startProcessing();
     }
@@ -14665,6 +14713,22 @@ void MainComponent::showUpdateBanner (const juce::String& version, const juce::S
 }
 
 //==============================================================================
+void MainComponent::rebuildBinauralReverbTaps (int blockSize, int numReverbs)
+{
+    jassert (binauralProcessor == nullptr || ! binauralProcessor->isThreadRunning());
+
+    sharedReverbReturnBuffers.clear();
+    for (int i = 0; i < numReverbs; ++i)
+    {
+        auto ring = std::make_unique<SharedInputRingBuffer>();
+        ring->setSize (blockSize * 4);
+        sharedReverbReturnBuffers.push_back (std::move (ring));
+    }
+
+    if (binauralProcessor)
+        binauralProcessor->setSharedReverbBuffers (sharedReverbReturnBuffers);
+}
+
 void MainComponent::setupSharedInputFeed (int blockSize, double sampleRate)
 {
     // Only meaningful once the engine is started; the audio callback gates its
@@ -15082,6 +15146,9 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
     {
         binauralProcessor->stopProcessing();
         binauralProcessor->prepareToPlay(sampleRate, samplesPerBlockExpected, numRenderSources);
+        // Here, not beside the reverb engine below: the worker had already
+        // been restarted by then, still reading the rings that were destroyed
+        rebuildBinauralReverbTaps (samplesPerBlockExpected, parameters.getNumReverbChannels());
         binauralProcessor->startProcessing();
 
         // Sample rate / block size may have changed: the cooked SOFA set is
@@ -15132,18 +15199,7 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
                                        numReverbs, parameters.getNumOutputChannels(),
                                        &workgroupCoordinator);
 
-        // (Re)build the binaural monitor's reverb-return taps and hand them
-        // to the worker (spinlock+generation publish, safe while running).
-        sharedReverbReturnBuffers.clear();
-        for (int i = 0; i < numReverbs; ++i)
-        {
-            auto ring = std::make_unique<SharedInputRingBuffer>();
-            ring->setSize (samplesPerBlockExpected * 4);
-            sharedReverbReturnBuffers.push_back (std::move (ring));
-        }
-        if (binauralProcessor)
-            binauralProcessor->setSharedReverbBuffers (sharedReverbReturnBuffers);
-
+        // (The binaural reverb taps were rebuilt above, with the worker stopped.)
         reverbEngine->startProcessing();
 
 #if REVERB_DIAGNOSTICS

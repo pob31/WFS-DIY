@@ -801,6 +801,9 @@ private:
     // Called from startAudioEngine() and rebuilt by prepareToPlay() after a device
     // restart (releaseResources() tears these down; this re-creates them).
     void setupSharedInputFeed(int blockSize, double sampleRate);
+    // One binaural reverb tap per reverb node. The binaural worker must be
+    // stopped and the callback held out: both hold raw pointers into the rings.
+    void rebuildBinauralReverbTaps(int blockSize, int numReverbs);
     void loadAudioPatches();  // Load input/output patch matrices from ValueTree
     void applyInputPatch(const juce::AudioSourceChannelInfo& bufferToFill);  // Apply input patching
     void applyOutputPatch(const juce::AudioSourceChannelInfo& bufferToFill,
