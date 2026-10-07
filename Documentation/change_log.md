@@ -2,6 +2,16 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
+## v1.0.0beta54 — 2026-10-07
+
+### Added
+- **AutomOtion transport for the effects over OSC**: `/wfs/effect/otomoStart <ID>`, `otomoStop <ID>`, `otomoPause <ID> [0|1]`, `otomoStopAll` and `otomoPauseResumeAll [0|1]`, as on the inputs.
+
+### Fixed
+- **The AutomOtion OSC commands now work.** `/wfs/input/otomoStart <ID>`, `otomoStop <ID>`, `otomoPause <ID>`, `otomoStopAll` and `otomoPauseResumeAll`, shown in the Inputs tab's help, did nothing at all, and `/wfs/input/otomoPauseResume` (or `/wfs/effect/otomoPauseResume`) only changed the pause button, while the movement kept going. They now start, stop, pause and resume the movement, the whole cluster for an input in a cluster, as the buttons do. A pause takes 0 (pause) or 1 (resume), or nothing to toggle; `otomoPauseResumeAll` takes the same. Each command, and each refusal (an input that does not exist, a value other than 0 or 1), is written to the session log. The pause buttons on the tabs and the Stream Deck follow each command, including an OSC stop of a paused movement.
+- **The Inputs tab's pause button no longer shows "paused" on a channel that is not.** Selecting a channel lit the button the wrong way round.
+- **Effect parameters sent inside an OSC bundle are no longer dropped.** Only single messages reached the effects.
+
 ## v1.0.0beta53 — 2026-10-01
 
 ### Fixed
