@@ -2675,6 +2675,67 @@ MainComponent::MainComponent()
         }
     };
 
+    // AutomOtion transport over OSC. Inputs act on the whole cluster, as the
+    // Inputs tab and the Stream Deck do; effects have no clusters.
+    oscManager->onOtomoTransport = [this] (bool effects, WFSNetwork::OSCManager::OtomoTransport action,
+                                           int slot, int value)
+    {
+        using T = WFSNetwork::OSCManager::OtomoTransport;
+        auto* otomo = effects ? effectOtomoProcessor.get() : automOtionProcessor.get();
+        if (otomo == nullptr)
+            return;
+
+        switch (action)
+        {
+            case T::Start:
+                if (effects) otomo->startMotion (slot);
+                else         otomo->startClusterMotion (slot);
+                break;
+
+            case T::Stop:
+                if (effects) otomo->stopMotion (slot);
+                else         otomo->stopClusterMotion (slot);
+                break;
+
+            case T::Pause:
+            {
+                // A toggle asks the processor, not the latch: the latch can be
+                // stale (a paused movement stopped from the GUI keeps its 0).
+                const bool pause = value < 0 ? ! otomo->isPaused (slot) : value == 0;
+                if (effects) { if (pause) otomo->pauseMotion (slot);        else otomo->resumeMotion (slot); }
+                else         { if (pause) otomo->pauseClusterMotion (slot); else otomo->resumeClusterMotion (slot); }
+                break;
+            }
+
+            case T::StopAll:
+                otomo->stopAllMotion();
+                break;
+
+            case T::PauseResumeAll:
+            {
+                const bool pause = value < 0 ? ! otomo->isAnyPaused() : value == 0;
+                if (pause) otomo->pauseAllMotion();
+                else       otomo->resumeAllMotion();
+                break;
+            }
+        }
+
+        // The latch is what the GUI pause buttons and the Stream Deck show, so
+        // it follows the processor on every channel the act may have touched.
+        // Run-state, not an edit: no undo entry.
+        auto& vts = parameters.getValueTreeState();
+        const int count = effects ? vts.getNumEffectChannels() : vts.getNumInputChannels();
+        const auto& latchId = effects ? WFSParameterIDs::effectOtomoPauseResume
+                                      : WFSParameterIDs::inputOtomoPauseResume;
+        for (int i = 0; i < count; ++i)
+        {
+            auto section = effects ? vts.getEffectAutoMotionSection (i) : vts.getInputAutoMotionSection (i);
+            const int latch = otomo->isPaused (i) ? 0 : 1;
+            if (section.isValid() && WFSVar::toInt (section.getProperty (latchId), 1) != latch)
+                section.setProperty (latchId, latch, nullptr);
+        }
+    };
+
     // Wire dirty tracker source detection delegate
     parameters.getDirtyTracker().getIncomingProtocol = [this]() -> WFSNetwork::Protocol {
         return oscManager ? oscManager->getIncomingProtocol()

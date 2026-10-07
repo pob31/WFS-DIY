@@ -1943,7 +1943,8 @@ void OSCManager::handleIncomingBundle(const juce::OSCBundle& bundle,
             logger.logReceivedWithDetails(message, protocol, senderIP, port, transport);
 
             if (OSCMessageRouter::isInputAddress(address) || OSCMessageRouter::isOutputAddress(address)
-                || OSCMessageRouter::isReverbAddress(address) || OSCMessageRouter::isConfigAddress(address))
+                || OSCMessageRouter::isReverbAddress(address) || OSCMessageRouter::isEffectAddress(address)
+                || OSCMessageRouter::isConfigAddress(address))
             {
                 // Same OSCQuery echo suppression as the non-bundled path: any
                 // synchronous ValueTree write records this sender as its origin
@@ -2068,6 +2069,106 @@ void OSCManager::handleEffectVerb (const juce::String& verb, const juce::OSCMess
     }
 
     refuse ("unknown effect verb");
+}
+
+bool OSCManager::handleOtomoTransport (const juce::OSCMessage& message, const juce::String& address,
+                                       const juce::String& senderIP, int port,
+                                       spatcore::control::osc::ConnectionMode transport)
+{
+    const bool effects = address.startsWith (OSCPaths::EFFECT_PREFIX);
+    if (! effects && ! address.startsWith (OSCPaths::INPUT_PREFIX))
+        return false;
+
+    const juce::String verb = address.fromFirstOccurrenceOf (effects ? OSCPaths::EFFECT_PREFIX
+                                                                     : OSCPaths::INPUT_PREFIX, false, false);
+    OtomoTransport action;
+    if      (verb == "otomoStart")          action = OtomoTransport::Start;
+    else if (verb == "otomoStop")           action = OtomoTransport::Stop;
+    else if (verb == "otomoPause"
+          || verb == "otomoPauseResume")    action = OtomoTransport::Pause;
+    else if (verb == "otomoStopAll")        action = OtomoTransport::StopAll;
+    else if (verb == "otomoPauseResumeAll") action = OtomoTransport::PauseResumeAll;
+    else
+        return false;
+
+    // Same reading as handleEffectVerb: either wire type, -1 when absent.
+    auto intArg = [&message] (int index) -> int
+    {
+        if (message.size() <= index) return -1;
+        const auto& a = message[index];
+        if (a.isInt32())   return a.getInt32();
+        if (a.isFloat32()) return juce::roundToInt (a.getFloat32());
+        if (a.isString())  return a.getString().trim().getIntValue();
+        return -1;
+    };
+
+    auto refuse = [&] (const juce::String& why)
+    {
+        logger.logRejected (address, senderIP, port, transport, why);
+        logRefusalToSession (address, why);
+        ++parseErrors;
+    };
+
+    const bool global = action == OtomoTransport::StopAll || action == OtomoTransport::PauseResumeAll;
+    int slot = -1;
+    int valueIndex = 0;
+
+    if (! global)
+    {
+        const int id = intArg (0);
+        valueIndex = 1;
+
+        if (effects)
+        {
+            const int numEffects = state.getNumEffectChannels();
+            if (id < 1 || id > numEffects)
+            {
+                refuse ("effect " + juce::String (id) + " does not exist (" + juce::String (numEffects) + " effects channel(s))");
+                return true;
+            }
+            slot = id - 1;  // effect ids are dense
+        }
+        else
+        {
+            slot = id > 0 ? resolveExternalInputSlot (id) : -1;
+            if (slot < 0)
+            {
+                refuse ("input " + juce::String (id) + " does not exist");
+                return true;
+            }
+        }
+    }
+
+    int value = -1;
+    if (action == OtomoTransport::Pause || action == OtomoTransport::PauseResumeAll)
+    {
+        if (message.size() > valueIndex)
+        {
+            value = intArg (valueIndex);
+            if (value != 0 && value != 1)
+            {
+                refuse (verb + " takes 0 (pause) or 1 (resume), or nothing to toggle");
+                return true;
+            }
+        }
+    }
+
+    const juce::String what = (global ? juce::String ("all channels")
+                                      : (effects ? "effect " : "input ") + juce::String (intArg (0)))
+                            + (value < 0 ? juce::String() : value == 0 ? " pause" : " resume");
+    logger.logText ("AutomOtion " + address + ": " + what);
+    WFSLogger::getInstance().logInfo ("OSC accepted " + address + " - " + what);
+
+    juce::MessageManager::callAsync ([this, effects, action, slot, value, senderIP]
+    {
+        // The callback re-syncs the pause latches; like any OSC write they are
+        // not echoed back to the client that caused them.
+        ScopedIncomingProtocol incomingGuard (*this, Protocol::OSC);
+        if (oscQueryServer) oscQueryServer->beginIncomingOSC (senderIP);
+        if (onOtomoTransport) onOtomoTransport (effects, action, slot, value);
+        if (oscQueryServer) oscQueryServer->endIncomingOSC();
+    });
+    return true;
 }
 
 void OSCManager::logRefusalToSession (const juce::String& address, const juce::String& reason)
@@ -2368,6 +2469,11 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
         }
         return;
     }
+
+    // AutomOtion transport (inputs and effects). Before the parameter routing:
+    // all but otomoPauseResume are unknown to it, and that one must act too.
+    if (handleOtomoTransport (message, address, senderIP, port, transport))
+        return;
 
     //==========================================================================
     // Handle Cylindrical/Spherical coordinate addresses

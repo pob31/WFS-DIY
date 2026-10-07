@@ -603,6 +603,22 @@ public:
     std::function<void (int effectIdOrMinusOne)> onEffectClear;
 
     //==========================================================================
+    // AutomOtion transport, the same five under /wfs/input/ and /wfs/effect/:
+    //   otomoStart <ID>, otomoStop <ID>, otomoPause <ID> [0|1],
+    //   otomoStopAll, otomoPauseResumeAll [0|1]
+    // plus the stored latch's own address, otomoPauseResume <ID> [0|1], which
+    // takes the same road: a pause is an act on the processor, and a latch
+    // written without one would show "paused" over a source still moving.
+    // Pause values follow the latch: 0 = pause, 1 = resume, absent = toggle.
+    //==========================================================================
+
+    enum class OtomoTransport { Start, Stop, Pause, StopAll, PauseResumeAll };
+
+    /** Runs on the message thread. slot is the 0-based input slot or effect
+        index (-1 for the two global verbs); value is 0, 1 or -1 (toggle). */
+    std::function<void (bool effects, OtomoTransport action, int slot, int value)> onOtomoTransport;
+
+    //==========================================================================
     // QLab Integration
     //==========================================================================
 
@@ -989,6 +1005,12 @@ private:
     void handleEffectVerb (const juce::String& verb, const juce::OSCMessage& message,
                            const juce::String& address, const juce::String& senderIP,
                            int port, spatcore::control::osc::ConnectionMode transport);
+
+    /** The AutomOtion transport verbs (see onOtomoTransport). Returns false
+        when the address is none of them, so routing carries on. */
+    bool handleOtomoTransport (const juce::OSCMessage& message, const juce::String& address,
+                               const juce::String& senderIP, int port,
+                               spatcore::control::osc::ConnectionMode transport);
 
     // Token bucket for the above: 20 lines of burst, refilled at 5 a second.
     // Sized for the difference between an operator and a loop - a person

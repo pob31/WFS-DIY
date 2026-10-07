@@ -5993,8 +5993,9 @@ private:
         otomoResetDial.setValue(juce::jlimit(0.0f, 1.0f, resetSlider));
         otomoResetValueLabel.setText(juce::String(resetDB, 1), juce::dontSendNotification);
 
-        bool pauseResume = getIntParam(WFSParameterIDs::inputOtomoPauseResume, 0) != 0;
-        otomoPauseButton.setToggleState(pauseResume, juce::dontSendNotification);
+        // Toggled = paused, and the latch stores 0 for paused (1 = running)
+        bool paused = getIntParam(WFSParameterIDs::inputOtomoPauseResume, 1) == 0;
+        otomoPauseButton.setToggleState(paused, juce::dontSendNotification);
 
         // ==================== MUTES TAB ====================
         // Every button, not just as many as the list has entries: an output the
