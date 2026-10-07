@@ -46,6 +46,10 @@ struct AutomOtionFamily
     // Guards. Either one invalid = that guard never blocks this family.
     juce::Identifier trackingActive, samplerActive;
 
+    // The stored pause latch (0 = paused, 1 = running). The processor acts on
+    // writes to it and keeps it equal to its own run-state.
+    juce::Identifier pauseLatch;
+
     int numSlots = 64;
 
     /** How long the level has to stay below the reset threshold before an audio
@@ -91,6 +95,7 @@ struct AutomOtionFamily
         f.phi = WFSParameterIDs::inputOtomoPhi;
         f.trackingActive = WFSParameterIDs::inputTrackingActive;
         f.samplerActive = WFSParameterIDs::inputSamplerActive;
+        f.pauseLatch = WFSParameterIDs::inputOtomoPauseResume;
         f.numSlots = numInputs;
         return f;
     }
@@ -129,6 +134,7 @@ struct AutomOtionFamily
         f.rsph = WFSParameterIDs::effectOtomoRsph;
         f.phi = WFSParameterIDs::effectOtomoPhi;
         // trackingActive / samplerActive left invalid: neither guard applies
+        f.pauseLatch = WFSParameterIDs::effectOtomoPauseResume;
         f.numSlots = numEffects;
         f.rearmHoldSeconds = 0.5f;
         f.writeOffset = std::move (sink);
@@ -151,7 +157,7 @@ struct AutomOtionFamily
  * - Global stop/pause controls
  * - Only active when tracking is disabled for the input
  */
-class AutomOtionProcessor
+class AutomOtionProcessor : private juce::ValueTree::Listener
 {
 public:
     //==========================================================================
@@ -245,6 +251,12 @@ public:
           numInputChannels (family.numSlots)
     {
         states.resize (static_cast<size_t> (numInputChannels));
+        valueTreeState.addListener (this);
+    }
+
+    ~AutomOtionProcessor() override
+    {
+        valueTreeState.removeListener (this);
     }
 
     /** The input family, which is what every caller that names a count means. */
@@ -264,6 +276,30 @@ public:
         for (int i = 0; i < numInputChannels; ++i)
         {
             processInput (i, deltaTimeSeconds);
+        }
+
+        syncPauseLatches();
+    }
+
+    /** Make every channel's pause latch say what the processor is doing. Every
+        stop, start and end of a movement passes through here within a tick, so
+        a movement stopped while paused no longer leaves its pause button lit,
+        whichever control stopped it. Run-state, not an edit: no undo entry. */
+    void syncPauseLatches()
+    {
+        if (! family.pauseLatch.isValid())
+            return;
+
+        const juce::ScopedValueSetter<bool> guard (writingPauseLatches, true);
+        for (int i = 0; i < numInputChannels; ++i)
+        {
+            auto section = family.otomoSection (i);
+            if (! section.isValid())
+                continue;
+
+            const int latch = isPaused (i) ? 0 : 1;
+            if (static_cast<int> (section.getProperty (family.pauseLatch, 1)) != latch)
+                section.setProperty (family.pauseLatch, latch, nullptr);
         }
     }
 
@@ -1230,4 +1266,29 @@ private:
     int numInputChannels;
     std::vector<AutomOtionState> states;
     ParameterDirtyTracker* dirtyTracker = nullptr;
+    bool writingPauseLatches = false;
+
+    /** A write to the pause latch from anywhere (MCP, an OSC parameter write, a
+        QLab cue, an undo) pauses or resumes the movement, the whole cluster for
+        an input as the buttons do. A write that already matches the run-state
+        (the buttons act first, then store) does nothing, and so does a pause
+        sent to a channel with no movement: the next tick puts its latch back. */
+    void valueTreePropertyChanged (juce::ValueTree& tree, const juce::Identifier& property) override
+    {
+        if (property != family.pauseLatch || writingPauseLatches)
+            return;
+
+        for (int i = 0; i < numInputChannels; ++i)
+        {
+            if (family.otomoSection (i) != tree)
+                continue;
+
+            const bool wantPaused = static_cast<int> (tree.getProperty (property, 1)) == 0;
+            if (wantPaused && ! isPaused (i))
+                pauseClusterMotion (i);
+            else if (! wantPaused && isPaused (i))
+                resumeClusterMotion (i);
+            return;
+        }
+    }
 };

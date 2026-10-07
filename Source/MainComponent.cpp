@@ -2720,20 +2720,9 @@ MainComponent::MainComponent()
             }
         }
 
-        // The latch is what the GUI pause buttons and the Stream Deck show, so
-        // it follows the processor on every channel the act may have touched.
-        // Run-state, not an edit: no undo entry.
-        auto& vts = parameters.getValueTreeState();
-        const int count = effects ? vts.getNumEffectChannels() : vts.getNumInputChannels();
-        const auto& latchId = effects ? WFSParameterIDs::effectOtomoPauseResume
-                                      : WFSParameterIDs::inputOtomoPauseResume;
-        for (int i = 0; i < count; ++i)
-        {
-            auto section = effects ? vts.getEffectAutoMotionSection (i) : vts.getInputAutoMotionSection (i);
-            const int latch = otomo->isPaused (i) ? 0 : 1;
-            if (section.isValid() && WFSVar::toInt (section.getProperty (latchId), 1) != latch)
-                section.setProperty (latchId, latch, nullptr);
-        }
+        // The next tick would do it too; now keeps the write inside this OSC
+        // origin window, so it is not echoed back to the sender.
+        otomo->syncPauseLatches();
     };
 
     // Wire dirty tracker source detection delegate
