@@ -14,7 +14,7 @@ Network	Target/Server IPv4	networkTSip	IP number box	IP (4x INT)			127.0.0.1	1		
 Network	Target/Server Tx Port	networkTSport	number box	INT	1	65535	9000	1	Port		For each target/server (up to 6 targets/servers)	Transmit Port for this Target.
 Network	Target/Server Rx Enable	networkTSrxEnable	toggle button	INT	0	1	0	1		OFF ; ON	For each target/server (up to 6 targets/servers)	Enable or Disable Data Reception.
 Network	Target/Server Tx Enable	networkTStxEnable	toggle button	INT	0	1	0	1		OFF ; ON	For each target/server (up to 6 targets/servers)	Enable or Disable Data Transmission.
-Network	Target/Server Protocol	networkTSProtocol	drop down menu	INT	0	7	0	1		DISABLED ; OSC ; Remote ; ADM-OSC ; QLab	For each target/server (up to 6 targets/servers). Stored values: 0=DISABLED, 1=OSC, 2=Remote, 3=ADM-OSC, 7=QLab (4-6 reserved).	Select the Protocol: DISABLED, OSC, REMOTE, or ADM-OSC.
+Network	Target/Server Protocol	networkTSProtocol	drop down menu	INT	0	10	0	1		DISABLED ; OSC ; Remote ; ADM-OSC ; QLab ; Go.dot	For each target/server (up to 6 targets/servers). Stored values: 0=DISABLED, 1=OSC, 2=Remote, 3=ADM-OSC, 7=QLab, 10=Go.dot (4-6 and 8-9 reserved).	Select the Protocol: DISABLED, OSC, REMOTE, ADM-OSC, QLab or Go.dot.
 Network	Target/Server QLab Patch	networkTSqlabPatch	number box	INT	1	16	1	1			For each QLab target. Visible/editable only when Protocol == QLab.	Patch number used when sending cues to this QLab target.
 Network	Remove Target/Server		text button				REMOVE				For each target/server. With confirmation dialog.	Delete this Network Target.
 Network	Find My Remote		text button				Find My Remote				Opens a password prompt, then sends /findDevice <password> to all REMOTE targets.	Make your Remote Flash and Buzz to Find it.

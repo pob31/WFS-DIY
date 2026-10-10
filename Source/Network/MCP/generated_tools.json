@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "input_hash": "8930057555e0011ba01826caf54939d7556cc6b1754dd16e96df3999226dc282",
+  "input_hash": "f328272a09e25255077d0f612b0698bd81f6abe0922276fc11b35085096aa612",
   "source_csvs": [
     "WFS-UI_config.csv",
     "WFS-UI_input.csv",
@@ -7603,7 +7603,7 @@
     },
     {
       "name": "network_set_ts_protocol",
-      "description": "Select the Protocol: DISABLED, OSC, REMOTE, or ADM-OSC. Enum: DISABLED ; OSC ; Remote ; ADM-OSC ; QLab.",
+      "description": "Select the Protocol: DISABLED, OSC, REMOTE, ADM-OSC, QLab or Go.dot. Enum: DISABLED ; OSC ; Remote ; ADM-OSC ; QLab ; Go.dot.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -7620,7 +7620,8 @@
               "OSC",
               "Remote",
               "ADMOSC",
-              "QLab"
+              "QLab",
+              "Godot"
             ],
             "description": "Target/Server Protocol (enum).",
             "default": "DISABLED"

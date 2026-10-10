@@ -308,7 +308,15 @@
       "findDeviceSent": "Comando Buscar dispositivo enviado.",
       "maxTargetsReached": "Número máximo de destinos/servidores alcanzado.",
       "passwordEmpty": "La contraseña no puede estar vacía.",
-      "oscManagerError": "Error: gestor OSC no disponible"
+      "oscManagerError": "Error: gestor OSC no disponible",
+      "godotDeclared": "WFS-DIY está declarado en Go.dot",
+      "godotDeclareRefused": "Go.dot rechazó la declaración de WFS-DIY: {reason}",
+      "godotDescribed": "Go.dot leyó {count} parámetros de WFS-DIY para sus menús",
+      "godotDescribeFailed": "Go.dot no pudo leer los parámetros de WFS-DIY: {problem}",
+      "godotCueCreated": "Cue de Go.dot creado: {name}",
+      "godotCueUpdated": "Cue de Go.dot actualizado: {name}",
+      "godotCueRefused": "Go.dot rechazó el cue: {reason}",
+      "godotNoAnswer": "Sin respuesta de Go.dot: ¿está en marcha y su pestaña Network admite esta máquina?"
     }
   },
   "audioPatch": {
@@ -411,7 +419,8 @@
       "lfoPhaseYDial": "Desplazamiento de fase del movimiento del cluster en profundidad.",
       "lfoPhaseZDial": "Desplazamiento de fase del movimiento del cluster en altura.",
       "lfoPhaseRotDial": "Desplazamiento de fase de la rotación del cluster.",
-      "lfoPhaseScaleDial": "Desplazamiento de fase del escalado del cluster."
+      "lfoPhaseScaleDial": "Desplazamiento de fase del escalado del cluster.",
+      "cuePreset": "Crear una cue en QLab o Go.dot para recuperar el último preset LFO seleccionado para el cluster actual."
     }
   },
   "eq": {
@@ -1070,7 +1079,11 @@
       "updateSnapshotScopeTooltip": "Escribe el alcance editado en el snapshot seleccionado sin volver a guardar sus valores. Para snapshots 'When Saving', los valores almacenados fuera del nuevo alcance se eliminan (se crea una copia de seguridad primero)."
     },
     "writeToQLabTooltip": "Exportar scope a QLab en lugar de guardar en archivo",
-    "writeSnapshotLoadCueTooltip": "También crear un cue de QLab para cargar este snapshot vía OSC"
+    "writeSnapshotLoadCueTooltip": "También crear un cue de QLab para cargar este snapshot vía OSC",
+    "writeToGoDotTooltip": "Guardar el snapshot y escribir su scope en Go.dot como un solo cue",
+    "writeToBothTooltip": "Guardar el snapshot y escribir su scope en QLab y, como un solo cue, en Go.dot",
+    "writeSnapshotLoadCueGoDotTooltip": "También crear un cue de Go.dot para cargar este snapshot vía OSC",
+    "writeSnapshotLoadCueBothTooltip": "También crear un cue de QLab y un cue de Go.dot para cargar este snapshot vía OSC"
   },
   "fileManager": {
     "dialogs": {

@@ -2056,6 +2056,14 @@ bool WFSFileManager::saveInputSnapshotWithExtendedScope (const juce::String& sna
     if (file.existsAsFile())
         existing = readFromXmlFile (file);
 
+    // The Go.dot cues this snapshot has written - its per-parameter cue and its
+    // load cue - are named by identifiers kept on the root. A Store over the
+    // name and an Update keep them, so the next export updates those cues in
+    // Go.dot instead of making new ones (Go.dot's authoring protocol, decision C).
+    for (const auto& attribute : { goDotCueIdAttribute (false), goDotCueIdAttribute (true) })
+        if (existing.isValid() && existing.hasProperty (attribute))
+            snapshot.setProperty (attribute, existing.getProperty (attribute), nullptr);
+
     // This function builds a BRAND-NEW tree and overwrites the file, so both
     // "Store Snapshot" and "Update Snapshot" would otherwise destroy an
     // existing MIDI binding. The caller is responsible for having carried the
@@ -2280,6 +2288,38 @@ WFSFileManager::ExtendedSnapshotScope WFSFileManager::getExtendedSnapshotScope (
     }
 
     return scope;
+}
+
+juce::Identifier WFSFileManager::goDotCueIdAttribute (bool loadCue)
+{
+    return loadCue ? juce::Identifier ("godotLoadCueId") : juce::Identifier ("godotCueId");
+}
+
+juce::String WFSFileManager::getSnapshotGoDotCueId (const juce::String& snapshotName, bool loadCue)
+{
+    auto file = getNamedXmlFile (getInputSnapshotsFolder(), snapshotName);
+    if (file == juce::File() || ! file.existsAsFile())
+        return {};
+
+    const auto snapshot = readFromXmlFile (file);
+    return snapshot.isValid() ? snapshot.getProperty (goDotCueIdAttribute (loadCue)).toString() : juce::String();
+}
+
+bool WFSFileManager::setSnapshotGoDotCueId (const juce::String& snapshotName, bool loadCue, const juce::String& cueId)
+{
+    auto file = getNamedXmlFile (getInputSnapshotsFolder(), snapshotName);
+    auto snapshot = readFromXmlFile (file);
+
+    if (! snapshot.isValid())
+    {
+        setError (LOC ("fileManager.errors.snapshotNotFoundNamed").replace ("{name}", snapshotName));
+        return false;
+    }
+
+    // Read-modify-write of the root, as setExtendedSnapshotScope does; no backup:
+    // an identifier is not a change to what the snapshot recalls.
+    snapshot.setProperty (goDotCueIdAttribute (loadCue), cueId, nullptr);
+    return writeToXmlFile (snapshot, file);
 }
 
 bool WFSFileManager::setExtendedSnapshotScope (const juce::String& snapshotName, const ExtendedSnapshotScope& scope)

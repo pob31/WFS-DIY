@@ -63,7 +63,8 @@ enum class Protocol
     RTTrP = 6,      // RTTrP tracking protocol
     QLab = 7,       // QLab cue writing protocol
     MQTT = 8,       // MQTT tracking protocol
-    MCP = 9         // Model Context Protocol (AI client control surface)
+    MCP = 9,        // Model Context Protocol (AI client control surface)
+    GoDot = 10      // Go.dot cue writing protocol (D:\dev\go.dot docs/godot-authoring-protocol-0.1.md)
 };
 
 //==============================================================================
@@ -106,6 +107,10 @@ constexpr int DEFAULT_QLAB_PORT = 53000;
 
 /** Default QLab OSC reply port */
 constexpr int DEFAULT_QLAB_REPLY_PORT = 53001;
+
+/** Default Go.dot OSC port. Go.dot answers a declare or a capture on the
+    port WFS-DIY declares (its own UDP receive port), so there is no reply port. */
+constexpr int DEFAULT_GODOT_PORT = 8010;
 
 //==============================================================================
 // OSC Address Patterns
@@ -246,6 +251,7 @@ struct LogEntry
             case Protocol::QLab:     return "QLab";
             case Protocol::MQTT:     return "MQTT";
             case Protocol::MCP:      return "MCP";
+            case Protocol::GoDot:    return "Go.dot";
             default:                 return "Unknown";
         }
     }

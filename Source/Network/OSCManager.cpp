@@ -469,6 +469,10 @@ bool OSCManager::connectTarget(int targetIndex)
                 logger.logText("Connected to target " + juce::String(targetIndex + 1) +
                                " (" + config.ipAddress + ":" + juce::String(config.port) + ")");
                 DBG("OSCManager::connectTarget - target " << targetIndex << " CONNECTED (UDP)");
+
+                // A Go.dot target learns who WFS-DIY is the moment it is reachable.
+                if (config.protocol == Protocol::GoDot)
+                    declareToGoDot();
             }
         }
         else
@@ -610,11 +614,22 @@ void OSCManager::setIPFilteringEnabled(bool enabled)
 bool OSCManager::startOSCQuery(int oscPort, int httpPort)
 {
     if (!oscQueryServer)
+    {
         oscQueryServer = std::make_unique<OSCQueryServer>(state);
+        oscQueryServer->snapshotNames = [this]()
+        {
+            return snapshotNamesProvider ? snapshotNamesProvider() : juce::StringArray();
+        };
+    }
 
     if (oscQueryServer->start(oscPort, httpPort))
     {
         logger.logText("OSC Query server started on HTTP port " + juce::String(httpPort));
+
+        // Go.dot reads the description from this port: tell it the port now
+        // exists, so its menus follow (a declare sent before had port 0).
+        if (hasGoDotTarget())
+            declareToGoDot();
         return true;
     }
 
@@ -1442,6 +1457,13 @@ bool OSCManager::isAllowedIP(const juce::String& senderIP) const
 
 void OSCManager::timerCallback()
 {
+    expireGoDotCaptures();
+
+    // Go.dot started after WFS-DIY did not hear the declare sent on connect:
+    // say it again, every ten seconds, until it answers.
+    if (! goDotDeclareAnswered && juce::Time::currentTimeMillis() - goDotLastDeclareMs > 10000 && hasGoDotTarget())
+        declareToGoDot();
+
     auto now = juce::Time::currentTimeMillis();
 
     // Poll connection statuses and handle Remote handshake/heartbeat
@@ -1721,6 +1743,16 @@ void OSCManager::handleIncomingMessage(const juce::OSCMessage& message,
     ++messagesReceived;
 
     juce::String address = message.getAddressPattern().toString();
+
+    // Go.dot's answers to a declare or a capture. Taken here, before the
+    // address decides the protocol: they are not parameters, and the router
+    // would otherwise log them as OSC and drop them as unknown.
+    if (GoDot::isAnswer (address))
+    {
+        logger.logReceivedWithDetails (message, Protocol::GoDot, senderIP, port, transport);
+        handleGoDotAnswer (message, senderIP);
+        return;
+    }
 
     // Determine protocol from address
     Protocol protocol = Protocol::OSC;
@@ -4269,6 +4301,30 @@ void OSCManager::handleClusterLFOMessage(const juce::OSCMessage& message)
         return;
     }
 
+    // The OSCQuery shape, /wfs/cluster/<n>/lfoPresetRecall <preset>: what the
+    // tree publishes and what a Go.dot cue sends (one node per cluster).
+    if (const int shortFormCluster = OSCMessageRouter::clusterOfPresetRecallShortForm (address);
+        shortFormCluster > 0)
+    {
+        int presetNumber = 0;
+        if (message.size() >= 1 && message[0].isInt32())
+            presetNumber = message[0].getInt32();
+        else if (message.size() >= 1 && message[0].isFloat32())
+            presetNumber = static_cast<int> (message[0].getFloat32());
+
+        if (shortFormCluster > 10 || presetNumber < 1 || presetNumber > 16)
+        {
+            ++parseErrors;
+            return;
+        }
+
+        juce::MessageManager::callAsync ([this, clusterId = shortFormCluster, presetIndex = presetNumber - 1]()
+        {
+            state.recallClusterLFOPreset (clusterId, presetIndex);
+        });
+        return;
+    }
+
     if (message.size() < 2)
     {
         ++parseErrors;
@@ -6565,6 +6621,166 @@ void OSCManager::sendToQLab (const QLabCueSequence& sequence,
             juce::MessageManager::callAsync ([cb, count]() { cb (count); });
         }
     }).detach();
+}
+
+//==============================================================================
+// Go.dot Integration (Go.dot's docs/godot-authoring-protocol-0.1.md)
+//==============================================================================
+
+bool OSCManager::hasGoDotTarget() const
+{
+    for (int i = 0; i < MAX_TARGETS; ++i)
+    {
+        if (targetConfigs[static_cast<size_t>(i)].protocol == Protocol::GoDot)
+            return true;
+    }
+    return false;
+}
+
+void OSCManager::declareToGoDot()
+{
+    const int queryPort = (oscQueryServer != nullptr && oscQueryServer->isRunning())
+                              ? oscQueryServer->getHttpPort() : 0;
+    const auto message = GoDot::declareMessage (globalConfig.udpReceivePort, queryPort);
+    bool sent = false;
+
+    for (int i = 0; i < MAX_TARGETS; ++i)
+    {
+        const auto& config = targetConfigs[static_cast<size_t>(i)];
+        if (config.protocol == Protocol::GoDot && config.txEnabled)
+        {
+            sendMessageDirect (i, message);
+            sent = true;
+        }
+    }
+
+    if (sent)
+    {
+        goDotLastDeclareMs = juce::Time::currentTimeMillis();
+        goDotDeclareAnswered = false;
+    }
+}
+
+void OSCManager::notifySnapshotsChanged()
+{
+    if (oscQueryServer)
+        oscQueryServer->snapshotsChanged();
+
+    if (hasGoDotTarget())
+        declareToGoDot();
+}
+
+void OSCManager::sendToGoDot (const GoDot::Cue& cue, std::function<void (const GoDot::Answer&)> onDone)
+{
+    std::vector<int> targets;
+    for (int i = 0; i < MAX_TARGETS; ++i)
+    {
+        const auto& config = targetConfigs[static_cast<size_t>(i)];
+        if (config.protocol == Protocol::GoDot && config.txEnabled)
+            targets.push_back (i);
+    }
+
+    if (targets.empty() || cue.messages.empty() || ! GoDot::isCueId (cue.id))
+    {
+        logger.logText ("Go.dot send skipped: " + juce::String (targets.empty() ? "no Go.dot target with Tx on"
+                                                                : cue.messages.empty() ? "the cue has no message"
+                                                                                       : "the cue has no identifier"));
+        if (onDone)
+            juce::MessageManager::callAsync ([onDone]() { onDone ({}); });
+        return;
+    }
+
+    // Go.dot keeps these cues in its show file, so the channel numbers in them
+    // outlive this session, exactly as QLab's do.
+    state.markChannelNumbersUserOwned ("Go.dot cue send");
+
+    const auto chunks = GoDot::captureMessages ("standby", {}, cue);
+
+    // A second send of the same cue before the first was answered replaces the
+    // first's wait: the newer one is what the operator is looking at.
+    auto& pending = pendingGoDotCaptures[cue.id];
+    pending = {};
+    pending.expected = static_cast<int> (chunks.size() * targets.size());
+    pending.deadline = juce::Time::currentTimeMillis() + GoDot::answerTimeoutMs;
+    pending.onDone = std::move (onDone);
+
+    for (int target : targets)
+        for (const auto& chunk : chunks)
+            sendMessageDirect (target, chunk);
+
+    logger.logText ("Go.dot: cue " + cue.id + " sent, " + juce::String (cue.messages.size())
+                    + " message(s) in " + juce::String (chunks.size()) + " datagram(s) to "
+                    + juce::String (targets.size()) + " target(s)");
+}
+
+void OSCManager::handleGoDotAnswer (const juce::OSCMessage& message, const juce::String& senderIP)
+{
+    const auto answer = GoDot::readAnswer (message);
+
+    if (! answer.isCaptured())
+    {
+        if (answer.isDeclared())
+            goDotDeclareAnswered = true;
+
+        logger.logText ("Go.dot at " + senderIP + ": " + answer.address + " " + answer.id + " " + answer.outcome
+                        + (answer.isDescribed() ? " (" + juce::String (answer.nodeCount) + " nodes)" : juce::String()));
+        if (onGoDotAnswer)
+            onGoDotAnswer (answer);
+        return;
+    }
+
+    const auto it = pendingGoDotCaptures.find (answer.id);
+    if (it == pendingGoDotCaptures.end())
+        return;   // late, or for a capture already reported
+
+    auto& pending = it->second;
+    ++pending.answered;
+
+    if (pending.answered == 1)
+        pending.first = answer;
+
+    const bool refused = ! answer.landed();
+    const bool complete = pending.answered >= pending.expected;
+
+    if (! pending.reported && (refused || complete))
+    {
+        pending.reported = true;
+        if (pending.onDone)
+            pending.onDone (refused ? answer : pending.first);
+    }
+
+    if (complete)
+        pendingGoDotCaptures.erase (it);
+}
+
+void OSCManager::expireGoDotCaptures()
+{
+    const auto now = juce::Time::currentTimeMillis();
+
+    for (auto it = pendingGoDotCaptures.begin(); it != pendingGoDotCaptures.end();)
+    {
+        if (now < it->second.deadline)
+        {
+            ++it;
+            continue;
+        }
+
+        auto pending = std::move (it->second);
+        const auto id = it->first;
+        it = pendingGoDotCaptures.erase (it);
+
+        if (! pending.reported && pending.onDone)
+        {
+            // Some answers but not all: what arrived decides; none: the empty Answer.
+            GoDot::Answer answer;
+            if (pending.answered > 0)
+                answer = pending.first;
+            answer.id = id;
+            logger.logText ("Go.dot: cue " + id + " - " + juce::String (pending.answered) + " of "
+                            + juce::String (pending.expected) + " answers arrived in time");
+            pending.onDone (answer);
+        }
+    }
 }
 
 //==============================================================================

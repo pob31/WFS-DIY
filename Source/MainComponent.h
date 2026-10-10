@@ -160,6 +160,23 @@ public:
     /** Rebuild and republish the (channel, note) -> snapshot binding index. */
     void refreshMidiSnapshotBindings();
 
+    /** Write one cue into Go.dot and say what came of it through `show`:
+        created, updated, refused with Go.dot's reason, or no answer (Go.dot's
+        docs/godot-authoring-protocol-0.1.md). Message thread. */
+    void writeCueToGoDot (const WFSNetwork::GoDot::Cue& cue, std::function<void (const juce::String&)> show);
+
+    /** The snapshot's in-scope parameters as one Go.dot cue, updating the cue
+        it wrote before (its identifier is kept in the snapshot file). */
+    void exportSnapshotToGoDot (const juce::String& snapshotName,
+                                const WFSFileManager::ExtendedSnapshotScope& scope,
+                                const juce::ValueTree& inputsData,
+                                const juce::ValueTree& effectsData);
+
+    /** The Go.dot cue identifier a snapshot keeps for its per-parameter cue or
+        its load cue: the one in its file, else a new one written there first,
+        so a send that is never answered and is tried again updates one cue. */
+    juce::String goDotCueIdFor (const juce::String& snapshotName, bool loadCue);
+
     // Audio Interface Window
     void openAudioInterfaceWindow();
     void setupPatchWindowStreamDeck (PatchWindowPages::PatchCallbacks& cb,

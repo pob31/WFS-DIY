@@ -196,6 +196,25 @@ public:
     {
         std::vector<EffectCue> cues;
 
+        forEachEffectNode (effectsData, numEffects,
+                           [&] (const juce::ValueTree& node, const juce::Identifier& nodeType,
+                                int instance, int band, int tap, int effectId)
+                           {
+                               appendEffectNodeCues (cues, node, nodeType, instance, band, tap, effectId,
+                                                     grid, numOutputs, oneTokenRowsSkipped);
+                           });
+
+        return cues;
+    }
+
+    /** Every node of a snapshot's effects half that can carry parameters: each
+        <Effect>'s module nodes, then their <Band> / <Tap> children (`band` /
+        `tap` 1-based, 0 when the node is not one). A ghost <Effect> beyond the
+        live count is skipped, exactly as recall skips it. Shared by the QLab and
+        the Go.dot builders, so both walk the same nodes. */
+    template <typename Visit>
+    static void forEachEffectNode (const juce::ValueTree& effectsData, int numEffects, Visit&& visit)
+    {
         for (int e = 0; e < effectsData.getNumChildren(); ++e)
         {
             const auto entry = effectsData.getChild (e);
@@ -212,7 +231,7 @@ public:
                 const auto nodeType = node.getType();
                 const int instance = effectInstanceOf (nodeType);
 
-                appendEffectNodeCues (cues, node, nodeType, instance, 0, 0, effectId, grid, numOutputs, oneTokenRowsSkipped);
+                visit (node, nodeType, instance, 0, 0, effectId);
 
                 for (int k = 0; k < node.getNumChildren(); ++k)
                 {
@@ -220,14 +239,67 @@ public:
                     const int index = child.getProperty (WFSParameterIDs::id).toString().getIntValue();
 
                     if (child.hasType (WFSParameterIDs::Band))
-                        appendEffectNodeCues (cues, child, nodeType, instance, index, 0, effectId, grid, numOutputs, oneTokenRowsSkipped);
+                        visit (child, nodeType, instance, index, 0, effectId);
                     else if (child.hasType (WFSParameterIDs::Tap))
-                        appendEffectNodeCues (cues, child, nodeType, instance, 0, index, effectId, grid, numOutputs, oneTokenRowsSkipped);
+                        visit (child, nodeType, instance, 0, index, effectId);
                 }
             }
         }
+    }
 
-        return cues;
+    /** Every in-scope parameter of one input channel's snapshot entry, with its
+        value as it goes out on the wire: the sampler set counted from 1, the
+        mute list fitted to the live output count. inputName is never exported.
+        `visit (paramId, oscPath, value, isMuteList)`. Shared by the QLab and the
+        Go.dot builders. */
+    template <typename Visit>
+    static void forEachInScopeInputParameter (const juce::ValueTree& inputData,
+                                              int channelIndex,
+                                              const WFSFileManager::ExtendedSnapshotScope& scope,
+                                              int numOutputs,
+                                              Visit&& visit)
+    {
+        const auto& inputMappings = OSCMessageBuilder::getInputMappings();
+
+        for (int s = 0; s < inputData.getNumChildren(); ++s)
+        {
+            auto section = inputData.getChild (s);
+
+            for (int p = 0; p < section.getNumProperties(); ++p)
+            {
+                auto paramId = section.getPropertyName (p);
+
+                if (paramId == WFSParameterIDs::inputName)
+                    continue;
+
+                auto it = inputMappings.find (paramId);
+                if (it == inputMappings.end())
+                    continue;
+
+                if (!scope.isParameterIncluded (paramId, channelIndex))
+                    continue;
+
+                auto value = section.getProperty (paramId);
+
+                // Stored zero-based; /wfs/input/samplerSet counts sets from 1.
+                if (paramId == WFSParameterIDs::inputSamplerActiveSet)
+                    value = juce::var (value.toString().getIntValue() + 1);
+
+                const bool isMuteList = (paramId == WFSParameterIDs::inputMutes);
+                if (isMuteList)
+                    value = juce::var (WFSValueTreeState::normaliseMuteList (value, numOutputs));
+
+                visit (paramId, it->second.oscPath, value, isMuteList);
+            }
+        }
+    }
+
+    /** Snapshot entries are keyed by the permanent channel NUMBER, the scope
+        mask by live SLOT: the slot of a number, or a negative value for the
+        ghost entry of a deleted channel. See the private note below. */
+    static int slotOf (int channelNumber, const std::function<int (int)>& numberToSlot, int numChannels)
+    {
+        return resolveSlot (channelNumber, numberToSlot, numChannels);
     }
 
     /**
@@ -664,37 +736,11 @@ private:
         int numOutputs,
         int& cueCounter)
     {
-        const auto& inputMappings = OSCMessageBuilder::getInputMappings();
-
-        for (int s = 0; s < inputData.getNumChildren(); ++s)
-        {
-            auto section = inputData.getChild (s);
-
-            for (int p = 0; p < section.getNumProperties(); ++p)
+        forEachInScopeInputParameter (inputData, channelIndex, scope, numOutputs,
+            [&] (const juce::Identifier& paramId, const juce::String& oscPath,
+                 const juce::var& value, bool isMuteList)
             {
-                auto paramId = section.getPropertyName (p);
-
-                if (paramId == WFSParameterIDs::inputName)
-                    continue;
-
-                auto it = inputMappings.find (paramId);
-                if (it == inputMappings.end())
-                    continue;
-
-                if (!scope.isParameterIncluded (paramId, channelIndex))
-                    continue;
-
-                auto oscPath = it->second.oscPath;
-                auto value = section.getProperty (paramId);
                 ++cueCounter;
-
-                // Stored zero-based; /wfs/input/samplerSet counts sets from 1.
-                if (paramId == WFSParameterIDs::inputSamplerActiveSet)
-                    value = juce::var (value.toString().getIntValue() + 1);
-
-                const bool isMuteList = (paramId == WFSParameterIDs::inputMutes);
-                if (isMuteList)
-                    value = juce::var (WFSValueTreeState::normaliseMuteList (value, numOutputs));
 
                 QLabCueSequence::NetworkCue cue;
                 cue.movePosition = cueCounter;  // 1-based
@@ -722,8 +768,7 @@ private:
                                : formatCueName (paramId, channelId, value)));
 
                 networkCues.push_back (std::move (cue));
-            }
-        }
+            });
     }
 
     /**

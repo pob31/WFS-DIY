@@ -598,7 +598,8 @@
       "mqtt": "MQTT",
       "qlab": "QLab",
       "udp": "UDP",
-      "tcp": "TCP"
+      "tcp": "TCP",
+      "godot": "Go.dot"
     },
 
     "dialogs": {
@@ -629,7 +630,15 @@
       "findDeviceSent": "Find Device command sent.",
       "maxTargetsReached": "Maximum Number of Targets/Servers Reached.",
       "passwordEmpty": "Password cannot be empty.",
-      "oscManagerError": "Error: OSC Manager not available"
+      "oscManagerError": "Error: OSC Manager not available",
+      "godotDeclared": "WFS-DIY is declared in Go.dot",
+      "godotDeclareRefused": "Go.dot refused WFS-DIY's declaration: {reason}",
+      "godotDescribed": "Go.dot read {count} WFS-DIY parameters for its menus",
+      "godotDescribeFailed": "Go.dot could not read WFS-DIY's parameters: {problem}",
+      "godotCueCreated": "Go.dot cue created: {name}",
+      "godotCueUpdated": "Go.dot cue updated: {name}",
+      "godotCueRefused": "Go.dot refused the cue: {reason}",
+      "godotNoAnswer": "No answer from Go.dot: is it running, and does its Network tab let this machine in?"
     }
   },
 
@@ -961,7 +970,8 @@
       "stopAllLFO": "Stop LFO on all 10 clusters.",
       "exportPresets": "Export all 16 LFO presets to an XML file.",
       "importPresets": "Import LFO presets from an XML file.",
-      "qlabPreset": "Create a QLab network cue to recall the last selected LFO preset for the current cluster."
+      "qlabPreset": "Create a QLab network cue to recall the last selected LFO preset for the current cluster.",
+      "cuePreset": "Create a cue in QLab or Go.dot to recall the last selected LFO preset for the current cluster."
     },
     "presets": {
       "stopAll": "Stop All",
@@ -2713,7 +2723,15 @@
       "enable": "Recall on MIDI note",
       "tooltip": "A note-on above velocity 64 on this channel and note recalls this snapshot. Note-offs and softer notes are ignored. Choose the MIDI input in Audio Interface ▸ Device Settings.",
       "conflict": "Used by '{name}' (ch {ch}, note {note}) — pick another note to save."
-    }
+    },
+    "writeToGoDot": "Write to Go.dot",
+    "writeToGoDotTooltip": "Save the snapshot, then write its scope to Go.dot as one cue",
+    "writeToBoth": "Write to QLab and Go.dot",
+    "writeToBothTooltip": "Save the snapshot, then write its scope to QLab and, as one cue, to Go.dot",
+    "writeSnapshotLoadCueGoDot": "Write Snapshot Load Cue to Go.dot",
+    "writeSnapshotLoadCueGoDotTooltip": "Also create a Go.dot cue to load this snapshot via OSC",
+    "writeSnapshotLoadCueBoth": "Write Snapshot Load Cue to QLab and Go.dot",
+    "writeSnapshotLoadCueBothTooltip": "Also create a QLab cue and a Go.dot cue to load this snapshot via OSC"
   },
 
   "snapshot": {
@@ -2723,7 +2741,9 @@
     "qlabGroupName": "Snapshot \"{name}\"",
     "qlabMemoText": "Run either of the following cues to recall or update this snapshot",
     "qlabReloadName": "Reload \"{name}\"",
-    "qlabUpdateName": "Update \"{name}\""
+    "qlabUpdateName": "Update \"{name}\"",
+    "godotWriting": "Writing {count} parameters to Go.dot as one cue...",
+    "godotNothingInScope": "Go.dot export: no parameters in scope"
   },
 
   "setAllInputs": {

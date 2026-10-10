@@ -993,7 +993,8 @@ public:
         modeRow.removeFromLeft (sc(10));
         applyRecallingButton.setBounds (modeRow.removeFromLeft (sc(140)));
         modeRow.removeFromLeft (sc(10));
-        writeToQLabToggle.setBounds (modeRow.removeFromLeft (sc(140)));
+        // Wide enough for "Write to QLab and Go.dot" (setCueingAvailable).
+        writeToQLabToggle.setBounds (modeRow.removeFromLeft (juce::jmin (modeRow.getWidth(), sc(220))));
         bounds.removeFromTop (sc(5));
 
         // Snapshot load cue checkbox (below mode row, indented)
@@ -1121,6 +1122,22 @@ public:
         }
 
         updateSnapshotLoadCueVisibility();
+    }
+
+    /** The cueing systems a store or an update writes to: QLab, Go.dot, or
+        both (Go.dot's authoring protocol). The radio and the load-cue box name
+        what exists, and are offered when either does. */
+    void setCueingAvailable (bool qlab, bool godot)
+    {
+        const char* which = qlab && godot ? "Both" : godot ? "GoDot" : "";
+        const juce::String suffix (which);
+
+        writeToQLabToggle.setButtonText (LOC ("snapshotScope.writeTo" + (suffix.isEmpty() ? juce::String ("QLab") : suffix)));
+        writeToQLabToggle.setTooltip (LOC ("snapshotScope.writeTo" + (suffix.isEmpty() ? juce::String ("QLab") : suffix) + "Tooltip"));
+        writeSnapshotLoadCueToggle.setButtonText (LOC ("snapshotScope.writeSnapshotLoadCue" + suffix));
+        writeSnapshotLoadCueToggle.setTooltip (LOC ("snapshotScope.writeSnapshotLoadCue" + suffix + "Tooltip"));
+
+        setQLabAvailable (qlab || godot);
     }
 
 private:
@@ -1524,6 +1541,13 @@ public:
     {
         if (auto* c = dynamic_cast<SnapshotScopeContent*> (getContentComponent()))
             c->setQLabAvailable (available);
+    }
+
+    /** Which cueing systems a store writes to (pass through to content) */
+    void setCueingAvailable (bool qlab, bool godot)
+    {
+        if (auto* c = dynamic_cast<SnapshotScopeContent*> (getContentComponent()))
+            c->setCueingAvailable (qlab, godot);
     }
 
     /** Switch the open window to `family`'s grid (a second row's Edit Scope). */

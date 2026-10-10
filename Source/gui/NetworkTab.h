@@ -3349,6 +3349,7 @@ private:
                 case 3: targetConfig.protocol = WFSNetwork::Protocol::Remote; break;
                 case 4: targetConfig.protocol = WFSNetwork::Protocol::ADMOSC; break;
                 case 8: targetConfig.protocol = WFSNetwork::Protocol::QLab; break;
+                case 11: targetConfig.protocol = WFSNetwork::Protocol::GoDot; break;
                 default: targetConfig.protocol = WFSNetwork::Protocol::Disabled; break;
             }
 
@@ -3477,6 +3478,7 @@ private:
             row.protocolSelector.addItem(LOC("network.protocols.remote"), 3);
             row.protocolSelector.addItem(LOC("network.protocols.admOsc"), 4);
             row.protocolSelector.addItem(LOC("network.protocols.qlab"), 8);  // QLab = Protocol enum 7, ComboBox ID = 7+1
+            row.protocolSelector.addItem(LOC("network.protocols.godot"), 11);  // Go.dot = Protocol enum 10, ComboBox ID = 10+1
             row.protocolSelector.setSelectedId(1, juce::dontSendNotification);
             row.protocolSelector.onChange = [this, i]() {
                 // Check if trying to select REMOTE when one already exists
@@ -3516,6 +3518,19 @@ private:
                     targetRows[i].txEnableButton.setButtonText(LOC("network.toggles.on"));
                     if (targetRows[i].nameEditor.getText() == LOC("network.table.defaultTarget").replace("{num}", juce::String(i + 1)))
                         targetRows[i].nameEditor.setText("QLab", false);
+                }
+                // Defaults for Go.dot targets: Tx carries the declare and the captures,
+                // Rx lets Go.dot's answers through a "Registered Only" filter.
+                if (targetRows[i].protocolSelector.getSelectedId() == 11)  // Go.dot
+                {
+                    if (targetRows[i].txPortEditor.getText() == "9000")
+                        targetRows[i].txPortEditor.setText(juce::String(WFSNetwork::DEFAULT_GODOT_PORT), false);
+                    targetRows[i].txEnableButton.setToggleState(true, juce::dontSendNotification);
+                    targetRows[i].txEnableButton.setButtonText(LOC("network.toggles.on"));
+                    targetRows[i].rxEnableButton.setToggleState(true, juce::dontSendNotification);
+                    targetRows[i].rxEnableButton.setButtonText(LOC("network.toggles.on"));
+                    if (targetRows[i].nameEditor.getText() == LOC("network.table.defaultTarget").replace("{num}", juce::String(i + 1)))
+                        targetRows[i].nameEditor.setText("Go.dot", false);
                 }
                 // Update appearance when protocol changes
                 updateAdmOscAppearance();

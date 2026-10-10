@@ -74,13 +74,17 @@ public:
         rewritten - the MIDI binding index rebuilds from this. */
     std::function<void()> onSnapshotsChanged;
 
-    /** QLab export after a store / update in Write-to-QLab mode. */
+    /** Cue export after a store / update in Write-to-QLab mode: to QLab and/or
+        Go.dot, whichever targets exist (the host decides). */
     std::function<void (const juce::String& snapshotName, const Scope& scope)> onQLabExportRequested;
 
     /** Whether a QLab target is configured. */
     std::function<bool()> isQLabAvailable;
 
-    /** Create a QLab cue that loads this snapshot over OSC. */
+    /** Whether a Go.dot target is configured. */
+    std::function<bool()> isGoDotAvailable;
+
+    /** Create a cue that loads this snapshot over OSC, in QLab and/or Go.dot. */
     std::function<void (const juce::String& snapshotName)> onQLabSnapshotLoadCueRequested;
 
     /** After a load that bypassed the recall seam (Reload w/o Scope). */
@@ -438,7 +442,8 @@ public:
 
         scopeWindow = std::make_unique<SnapshotScopeWindow> (parameters, windowTitle, *working, hasSelectedSnapshot,
                                                              &parameters.getDirtyTracker(), family);
-        scopeWindow->setQLabAvailable (isQLabAvailable ? isQLabAvailable() : false);
+        scopeWindow->setCueingAvailable (isQLabAvailable ? isQLabAvailable() : false,
+                                         isGoDotAvailable ? isGoDotAvailable() : false);
         // A named pointer: in a nested lambda's init-capture MSVC resolves a
         // bare `this` to the enclosing closure.
         SnapshotSession* const self = this;

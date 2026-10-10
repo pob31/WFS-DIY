@@ -4,6 +4,7 @@
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
 #include "OSCParameterBounds.h"
+#include "GoDotProtocol.h"
 #include "../../spatcore/control/osc/NetworkJson.h"
 
 namespace WFSNetwork
@@ -997,7 +998,31 @@ juce::DynamicObject* OSCQueryServer::buildFullTree()
         for (int i = 0; i < count; ++i)
             contents->setProperty(juce::String(state.getInputChannelNumber(i)),
                                   juce::var(buildInputChannelJson(i)));
+
+        // /wfs/input/snapshot/load|store, beside the numbered channels: the
+        // address the router has always intercepted, published for Go.dot.
+        contents->setProperty("snapshot", juce::var(buildSnapshotJson()));
         wfsContents->setProperty("input", juce::var(container));
+    }
+
+    // /wfs/effect/<ID>/<name>: the OSCQuery short form the router reads
+    // (OSCMessageRouter::parseEffectMessage), one node per parameter.
+    {
+        auto* container = makeContainerNode("/wfs/effect", "Effect Channels");
+        auto* contents = container->getProperties()["CONTENTS"].getDynamicObject();
+        int count = state.getNumEffectChannels();
+        for (int i = 0; i < count; ++i)
+            contents->setProperty(juce::String(i + 1), juce::var(buildEffectChannelJson(i)));
+        wfsContents->setProperty("effect", juce::var(container));
+    }
+
+    // /wfs/cluster/<n>/lfoPresetRecall: one node per cluster.
+    {
+        auto* container = makeContainerNode("/wfs/cluster", "Clusters");
+        auto* contents = container->getProperties()["CONTENTS"].getDynamicObject();
+        for (int c = 1; c <= 10; ++c)
+            contents->setProperty(juce::String(c), juce::var(buildClusterJson(c)));
+        wfsContents->setProperty("cluster", juce::var(container));
     }
 
     // /wfs/output
@@ -1045,7 +1070,14 @@ juce::DynamicObject* OSCQueryServer::buildInputChannelJson(int channelIndex)
     {
         juce::String fullPath = basePath + "/" + oscName;
         juce::var value = state.getParameter(paramId, channelIndex);
-        juce::String typeTag = getOSCTypeTag(value, paramId);
+
+        // Typed by the PARAMETER (GoDot::valueTypeTag), never by the var: a
+        // parameter with no bounds entry is "s" whether this session typed its
+        // var or the project load left it a string, so the description Go.dot
+        // fetches agrees with the cues WFS-DIY writes into it.
+        juce::String typeTag = GoDot::valueTypeTag(paramId);
+        if (typeTag == "s")
+            value = value.toString();
         auto range = getParamRange(paramId);
 
         if (range.hasRange)
@@ -1072,6 +1104,114 @@ juce::DynamicObject* OSCQueryServer::buildInputChannelJson(int channelIndex)
     }
 
     return channel;
+}
+
+juce::DynamicObject* OSCQueryServer::buildEffectChannelJson(int effectIndex)
+{
+    const int effectId = effectIndex + 1;
+    const juce::String basePath = "/wfs/effect/" + juce::String(effectId);
+    auto* channel = makeContainerNode(basePath, "Effect " + juce::String(effectId));
+    auto* contents = channel->getProperties()["CONTENTS"].getDynamicObject();
+
+    // Write-only: an effect's sub-indexed shapes (instance, band, tap) have no
+    // single VALUE to publish, and none of these is pushed on LISTEN. What they
+    // describe is what a cue may send, which is all a menu needs.
+    for (const auto& [oscName, paramId] : OSCMessageRouter::getEffectAddressMap())
+    {
+        const auto tags = GoDot::effectTypeTags(paramId);
+        if (tags.isEmpty())
+            continue;
+
+        contents->setProperty(oscName, juce::var(makeEventNode(basePath + "/" + oscName, tags, {}, oscName)));
+    }
+
+    return channel;
+}
+
+juce::DynamicObject* OSCQueryServer::buildClusterJson(int clusterId)
+{
+    const juce::String basePath = "/wfs/cluster/" + juce::String(clusterId);
+    auto* cluster = makeContainerNode(basePath, "Cluster " + juce::String(clusterId));
+    auto* contents = cluster->getProperties()["CONTENTS"].getDynamicObject();
+
+    // The stored presets, 1-based, and their names in the description: VALS
+    // carry values, not labels.
+    juce::Array<juce::var> vals;
+    juce::StringArray names;
+    auto presets = state.getClusterLFOPresetsSection();
+    for (int p = 0; p < presets.getNumChildren(); ++p)
+    {
+        const auto name = presets.getChild(p).getProperty(WFSParameterIDs::clusterLFOPresetName, "").toString();
+        vals.add(p + 1);
+        names.add(juce::String(p + 1) + (name.isNotEmpty() ? " " + name : juce::String()));
+    }
+
+    auto* node = makeEventNode(basePath + "/lfoPresetRecall", "i", vals,
+                               "Recall an LFO preset on this cluster"
+                               + (names.isEmpty() ? juce::String() : ": " + names.joinIntoString(", ")));
+    auto range = node->getProperty("RANGE");
+    if (auto* first = range.isArray() && range.size() > 0 ? range[0].getDynamicObject() : nullptr)
+    {
+        first->setProperty("MIN", 1);
+        first->setProperty("MAX", 16);
+    }
+    else
+    {
+        auto* rangeObj = new juce::DynamicObject();
+        rangeObj->setProperty("MIN", 1);
+        rangeObj->setProperty("MAX", 16);
+        juce::Array<juce::var> rangeArr;
+        rangeArr.add(juce::var(rangeObj));
+        node->setProperty("RANGE", rangeArr);
+    }
+    contents->setProperty("lfoPresetRecall", juce::var(node));
+
+    return cluster;
+}
+
+juce::DynamicObject* OSCQueryServer::buildSnapshotJson()
+{
+    auto* snapshot = makeContainerNode("/wfs/input/snapshot", "Snapshots");
+    auto* contents = snapshot->getProperties()["CONTENTS"].getDynamicObject();
+
+    juce::Array<juce::var> vals;
+    if (snapshotNames)
+    {
+        auto names = snapshotNames();
+        names.sortNatural();
+        for (const auto& name : names)
+            vals.add(name);
+    }
+
+    contents->setProperty("load", juce::var(makeEventNode("/wfs/input/snapshot/load", "s", vals,
+                                                          "Load a snapshot from its file, by name")));
+    contents->setProperty("store", juce::var(makeEventNode("/wfs/input/snapshot/store", "s", vals,
+                                                           "Store a snapshot again with its own scope, by name")));
+    return snapshot;
+}
+
+juce::DynamicObject* OSCQueryServer::makeEventNode(const juce::String& fullPath,
+                                                     const juce::String& type,
+                                                     const juce::Array<juce::var>& vals,
+                                                     const juce::String& description)
+{
+    auto* node = new juce::DynamicObject();
+    node->setProperty("FULL_PATH", fullPath);
+    if (type.isNotEmpty())
+        node->setProperty("TYPE", type);
+    node->setProperty("ACCESS", 2);
+
+    if (! vals.isEmpty())
+    {
+        auto* rangeObj = new juce::DynamicObject();
+        rangeObj->setProperty("VALS", vals);
+        juce::Array<juce::var> rangeArr;
+        rangeArr.add(juce::var(rangeObj));
+        node->setProperty("RANGE", rangeArr);
+    }
+
+    node->setProperty("DESCRIPTION", description);
+    return node;
 }
 
 juce::DynamicObject* OSCQueryServer::buildOutputChannelJson(int channelIndex)

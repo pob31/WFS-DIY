@@ -12,6 +12,7 @@
 #include "../../spatcore/control/osc/OSCReceiverWithSenderIP.h"
 #include "../../spatcore/control/osc/OSCTCPReceiver.h"
 #include "OSCQueryServer.h"
+#include "GoDotProtocol.h"
 #include "OSCParameterRamper.h"
 #include "TrackingOSCReceiver.h"
 #include "TrackingPSNReceiver.h"
@@ -643,6 +644,42 @@ public:
     void sendToQLab (const QLabCueSequence& sequence,
                      std::function<void(int sentCount)> onComplete = nullptr);
 
+    //==========================================================================
+    // Go.dot Integration (Go.dot's docs/godot-authoring-protocol-0.1.md)
+    //==========================================================================
+
+    /** True when a target is configured with the Go.dot protocol. */
+    bool hasGoDotTarget() const;
+
+    /** Declare WFS-DIY to every Go.dot target with Tx on: the root /wfs, the
+        UDP receive port (where Go.dot's cues and answers arrive) and the
+        OSCQuery port, 0 when OSCQuery is off. Go.dot fetches the OSCQuery
+        description and offers it as menus, so this is sent on connect, when
+        OSCQuery starts, and whenever the list of snapshots changes. */
+    void declareToGoDot();
+
+    /** Write one cue into every Go.dot target (one datagram, or chunks under
+        1200 bytes): after the standby, or, when its id names a cue Go.dot
+        already has, in place. No thread, no reply port, no pacing - Go.dot
+        answers each datagram on the receive port. onDone runs on the message
+        thread exactly once: with the first refusal, else the first chunk's
+        answer; with an Answer whose outcome is empty when nothing answered
+        within two seconds. */
+    void sendToGoDot (const GoDot::Cue& cue, std::function<void (const GoDot::Answer&)> onDone);
+
+    /** Go.dot's answers to a declare (/godot/declared, /godot/described),
+        for the status line. Message thread. */
+    std::function<void (const GoDot::Answer&)> onGoDotAnswer;
+
+    /** The snapshot names the OSCQuery tree offers at /wfs/input/snapshot/load
+        (Go.dot's menu). Set by the host. Message thread. */
+    std::function<juce::StringArray()> snapshotNamesProvider;
+
+    /** A snapshot was stored, deleted or renamed: the tree's names change, so
+        LISTENing clients hear PATH_CHANGED and Go.dot is declared to again,
+        which makes it read the description afresh. */
+    void notifySnapshotsChanged();
+
     /**
      * Step all active input-parameter ramps. Call at ~50 Hz from the main
      * timer; progress uses wall-clock elapsed time so late timer ticks do not
@@ -675,6 +712,30 @@ private:
     /** Send an OSC message directly to a target, bypassing the rate limiter.
      *  Used for QLab command sequences that must not be coalesced. */
     void sendMessageDirect (int targetIndex, const juce::OSCMessage& message);
+
+    /** One Go.dot answer, arriving on the receive port. Message thread. */
+    void handleGoDotAnswer (const juce::OSCMessage& message, const juce::String& senderIP);
+
+    /** Report the captures Go.dot has not answered in time. From the timer. */
+    void expireGoDotCaptures();
+
+    /** A capture waiting for its answers, keyed by cue id: one per datagram per
+        Go.dot target. The first refusal decides; else the first answer does. */
+    struct PendingGoDotCapture
+    {
+        int expected = 0;
+        int answered = 0;
+        bool reported = false;
+        GoDot::Answer first;
+        juce::int64 deadline = 0;
+        std::function<void (const GoDot::Answer&)> onDone;
+    };
+    std::map<juce::String, PendingGoDotCapture> pendingGoDotCaptures;
+
+    /** A declare nobody answered - Go.dot started after WFS-DIY - is sent
+        again every ten seconds until one is answered. Message thread. */
+    juce::int64 goDotLastDeclareMs = 0;
+    bool goDotDeclareAnswered = true;
 
     //==========================================================================
     // ValueTree::Listener

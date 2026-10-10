@@ -570,7 +570,8 @@
       "mqtt": "MQTT",
       "qlab": "QLab",
       "udp": "UDP",
-      "tcp": "TCP"
+      "tcp": "TCP",
+      "godot": "Go.dot"
     },
     "dialogs": {
       "importConfig": "Importar configuración de red",
@@ -600,7 +601,15 @@
       "findDeviceSent": "Comando Buscar dispositivo enviado.",
       "maxTargetsReached": "Número máximo de destinos/servidores alcanzado.",
       "passwordEmpty": "La contraseña no puede estar vacía.",
-      "oscManagerError": "Error: gestor OSC no disponible"
+      "oscManagerError": "Error: gestor OSC no disponible",
+      "godotDeclared": "WFS-DIY está declarado en Go.dot",
+      "godotDeclareRefused": "Go.dot rechazó la declaración de WFS-DIY: {reason}",
+      "godotDescribed": "Go.dot leyó {count} parámetros de WFS-DIY para sus menús",
+      "godotDescribeFailed": "Go.dot no pudo leer los parámetros de WFS-DIY: {problem}",
+      "godotCueCreated": "Cue de Go.dot creado: {name}",
+      "godotCueUpdated": "Cue de Go.dot actualizado: {name}",
+      "godotCueRefused": "Go.dot rechazó el cue: {reason}",
+      "godotNoAnswer": "Sin respuesta de Go.dot: ¿está en marcha y su pestaña Network admite esta máquina?"
     }
   },
   "accessibility": {
@@ -898,7 +907,8 @@
       "lfoPhaseYDial": "Desplazamiento de fase del movimiento del cluster en profundidad.",
       "lfoPhaseZDial": "Desplazamiento de fase del movimiento del cluster en altura.",
       "lfoPhaseRotDial": "Desplazamiento de fase de la rotación del cluster.",
-      "lfoPhaseScaleDial": "Desplazamiento de fase del escalado del cluster."
+      "lfoPhaseScaleDial": "Desplazamiento de fase del escalado del cluster.",
+      "cuePreset": "Crear una cue en QLab o Go.dot para recuperar el último preset LFO seleccionado para el cluster actual."
     },
     "presets": {
       "stopAll": "Detener todo",
@@ -2397,7 +2407,15 @@
       "nameLabel": "Nombre de plantilla",
       "errorTitle": "Error de plantilla de alcance",
       "overwriteWarning": "Ya existe una plantilla con este nombre — se sobrescribirá."
-    }
+    },
+    "writeToGoDot": "Escribir a Go.dot",
+    "writeToGoDotTooltip": "Guardar el snapshot y escribir su scope en Go.dot como un solo cue",
+    "writeToBoth": "Escribir a QLab y Go.dot",
+    "writeToBothTooltip": "Guardar el snapshot y escribir su scope en QLab y, como un solo cue, en Go.dot",
+    "writeSnapshotLoadCueGoDot": "Escribir cue de carga en Go.dot",
+    "writeSnapshotLoadCueGoDotTooltip": "También crear un cue de Go.dot para cargar este snapshot vía OSC",
+    "writeSnapshotLoadCueBoth": "Escribir cue de carga en QLab y Go.dot",
+    "writeSnapshotLoadCueBothTooltip": "También crear un cue de QLab y un cue de Go.dot para cargar este snapshot vía OSC"
   },
   "snapshot": {
     "qlabNoTarget": "No hay destino QLab configurado",
@@ -2406,7 +2424,9 @@
     "qlabGroupName": "Captura \"{name}\"",
     "qlabMemoText": "Ejecute cualquiera de los siguientes cues para recuperar o actualizar este snapshot",
     "qlabReloadName": "Recargar \"{name}\"",
-    "qlabUpdateName": "Actualizar \"{name}\""
+    "qlabUpdateName": "Actualizar \"{name}\"",
+    "godotWriting": "Escribiendo {count} parámetros en Go.dot como un solo cue...",
+    "godotNothingInScope": "Exportación a Go.dot: ningún parámetro en el scope"
   },
   "setAllInputs": {
     "windowTitle": "Aplicar a todas las entradas",

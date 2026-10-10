@@ -2165,7 +2165,7 @@ private:
         oscMethodMap[&stopAllLFOButton]  = LOC ("clusters.osc.lfoStopAll");
         helpTextMap[&exportPresetsButton] = LOC ("clusters.help.exportPresets");
         helpTextMap[&importPresetsButton] = LOC ("clusters.help.importPresets");
-        helpTextMap[&qlabPresetButton]   = LOC ("clusters.help.qlabPreset");
+        helpTextMap[&qlabPresetButton]   = LOC ("clusters.help.cuePreset");
 
         // Register mouse listeners
         for (auto& pair : helpTextMap)

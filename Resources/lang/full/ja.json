@@ -579,7 +579,8 @@
       "mqtt": "MQTT",
       "qlab": "QLab",
       "udp": "UDP",
-      "tcp": "TCP"
+      "tcp": "TCP",
+      "godot": "Go.dot"
     },
     "dialogs": {
       "importConfig": "ネットワーク設定をインポート",
@@ -609,7 +610,15 @@
       "findDeviceSent": "デバイス検索コマンドを送信しました。",
       "maxTargetsReached": "ターゲット/サーバーの最大数に達しました。",
       "passwordEmpty": "パスワードを空にすることはできません。",
-      "oscManagerError": "エラー: OSCマネージャーが利用できません"
+      "oscManagerError": "エラー: OSCマネージャーが利用できません",
+      "godotDeclared": "WFS-DIYはGo.dotに登録されました",
+      "godotDeclareRefused": "Go.dotがWFS-DIYの登録を拒否しました: {reason}",
+      "godotDescribed": "Go.dotがメニュー用にWFS-DIYのパラメーター{count}個を読み込みました",
+      "godotDescribeFailed": "Go.dotがWFS-DIYのパラメーターを読み込めませんでした: {problem}",
+      "godotCueCreated": "Go.dotキュー作成: {name}",
+      "godotCueUpdated": "Go.dotキュー更新: {name}",
+      "godotCueRefused": "Go.dotがキューを拒否しました: {reason}",
+      "godotNoAnswer": "Go.dotから応答がありません。起動していて、Networkタブでこのマシンが許可されていますか?"
     }
   },
   "accessibility": {
@@ -907,7 +916,8 @@
       "lfoPhaseYDial": "奥行き方向のクラスターの動きの位相オフセット。",
       "lfoPhaseZDial": "高さ方向のクラスターの動きの位相オフセット。",
       "lfoPhaseRotDial": "クラスター回転の位相オフセット。",
-      "lfoPhaseScaleDial": "クラスタースケーリングの位相オフセット。"
+      "lfoPhaseScaleDial": "クラスタースケーリングの位相オフセット。",
+      "cuePreset": "現在のクラスターで最後に選択されたLFOプリセットを呼び出すキューをQLabまたはGo.dotに作成。"
     },
     "presets": {
       "stopAll": "すべて停止",
@@ -2406,7 +2416,15 @@
     "families": {
       "inputs": "入力",
       "effects": "エフェクト"
-    }
+    },
+    "writeToGoDot": "Go.dotに書き出す",
+    "writeToGoDotTooltip": "スナップショットを保存し、そのスコープを1つのキューとしてGo.dotに書き出す",
+    "writeToBoth": "QLabとGo.dotに書き出す",
+    "writeToBothTooltip": "スナップショットを保存し、そのスコープをQLabに、また1つのキューとしてGo.dotに書き出す",
+    "writeSnapshotLoadCueGoDot": "スナップショット読込キューをGo.dotに書き出す",
+    "writeSnapshotLoadCueGoDotTooltip": "このスナップショットをOSCで読み込むGo.dotキューも作成する",
+    "writeSnapshotLoadCueBoth": "スナップショット読込キューをQLabとGo.dotに書き出す",
+    "writeSnapshotLoadCueBothTooltip": "このスナップショットをOSCで読み込むQLabキューとGo.dotキューも作成する"
   },
   "snapshot": {
     "qlabNoTarget": "QLab送信先が設定されていません",
@@ -2415,7 +2433,9 @@
     "qlabGroupName": "スナップショット \"{name}\"",
     "qlabMemoText": "以下のいずれかのキューを実行してこのスナップショットを読み込みまたは更新",
     "qlabReloadName": "読み込み \"{name}\"",
-    "qlabUpdateName": "更新 \"{name}\""
+    "qlabUpdateName": "更新 \"{name}\"",
+    "godotWriting": "{count}個のパラメーターを1つのキューとしてGo.dotに書き出し中...",
+    "godotNothingInScope": "Go.dotエクスポート: スコープ内にパラメーターがありません"
   },
   "setAllInputs": {
     "windowTitle": "全入力に適用",

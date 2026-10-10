@@ -1522,6 +1522,8 @@ Full bidirectional TCP support for OSC communication:
 - **OSCQuery** - Parameter discovery server
 - **PSN** - PosiStageNet tracking protocol (UDP port 56565)
 - **RTTrP** - Real-Time Tracking Protocol (UDP port 24220)
+- **QLab** - writes snapshot, sampler and LFO preset cues into QLab (port 53000, replies on 53001)
+- **Go.dot** - writes the same cues into Go.dot in its own protocol (port 8010); see *Go.dot Export*
 
 ### Network Log Window Features
 - Independent floating window (for second monitor)
@@ -2183,12 +2185,12 @@ Absence of either attribute means unbound, which is how every pre-beta42 file re
 
 ### QLab Export
 
-The snapshot scope window offers a **Write to QLab** mode as an exclusive alternative to save/recall. When selected, storing a snapshot exports its in-scope parameters as QLab network cues instead of writing an XML file.
+The snapshot scope window offers a **Write to QLab** mode beside save/recall. When selected, storing a snapshot saves its XML file first and then exports its in-scope parameters as QLab network cues (the export re-reads the file it just saved, `SnapshotSession::update` / `storeNamed`).
 
 **How it works:**
 - The scope window has three mutually exclusive radio options: *When Saving*, *When Recalling*, and *Write to QLab*
-- *Write to QLab* is only available when a QLab connection is active (configured in Network tab)
-- The OK button triggers the selected mode — either XML save/recall or QLab export, never both
+- *Write to QLab* is only available when a QLab (or Go.dot, below) target is configured in the Network tab; the radio's text names which ("Write to QLab", "Write to Go.dot", "Write to QLab and Go.dot")
+- The file is always saved; the export follows only a save that landed
 
 **QLab cue structure:**
 - A **Group cue** named "Snapshot \<name\>" in playlist mode (mode 6)
@@ -2209,6 +2211,21 @@ The snapshot scope window offers a **Write to QLab** mode as an exclusive altern
 2. Query `/cue/selected/uniqueID` on reply port 53001 to get the group's UUID
 3. For each network cue: send creation messages, query unique ID, then `/move/<uuid>` into the group
 4. Uses 30ms delays between steps for QLab processing
+
+### Go.dot Export
+
+A network target of protocol **Go.dot** (enum 10, default port 8010, Rx and Tx on) makes every QLab export also - or instead - go to Go.dot, the author's own cue player, in its own protocol. The contract is Go.dot's `docs/godot-authoring-protocol-0.1.md` (repository `go.dot`, sibling of this one); `Source/Network/GoDotProtocol.h` is WFS-DIY's half of it.
+
+**What differs from QLab:**
+- **One cue, many messages.** A Go.dot OSC cue sends all its messages in one tick, so a snapshot is ONE cue, not a playlist group of ~275 network cues per effect channel.
+- **One datagram out, one answer back.** `/godot/cmd/cue/capture` carries the cue's head (where it lands, its identifier, name) and its `address value` pairs; Go.dot answers `/godot/captured <id> created|updated|<reason>` on WFS-DIY's UDP receive port. No thread, no reply port, no 30 ms pacing. A capture over 1200 bytes is sent as chunks (`GoDot::captureMessages`).
+- **WFS-DIY keeps the cue's identifier** on the snapshot file's root (`godotCueId`, `godotLoadCueId`; `WFSFileManager::getSnapshotGoDotCueId`), so the next export UPDATES the same Go.dot cue. `saveInputSnapshotWithExtendedScope` carries both attributes over a re-save.
+- **WFS-DIY declares itself** (`/godot/cmd/mount/declare "/wfs" <UDP rx port> <OSCQuery port> "WFS-DIY"`) on connect, when OSCQuery starts, and whenever the snapshot list changes (`OSCManager::notifySnapshotsChanged`). Go.dot then fetches the OSCQuery tree (`GET /wfs`) and offers it as cascaded menus in its OSC cue editor.
+- **The addresses are the OSCQuery short form**, `/wfs/input/<n>/<name> <value>`, `/wfs/effect/<ID>/<name> [instance] [band|tap] <value>`, `/wfs/cluster/<n>/lfoPresetRecall <preset>` (accepted by `handleClusterLFOMessage` since this change), because Go.dot checks every cue against the tree it fetched. `GoDot::valueTypeTag` types a parameter by its bounds entry ("i"/"f") or "s"; the tree's input and effect nodes and the builder both use it, so they cannot disagree.
+
+**The OSCQuery tree gained, for Go.dot's menus:** `/wfs/input/snapshot/load|store` (write-only, `s`, VALS = the snapshot names), `/wfs/effect/<ID>/<name>` (write-only, typed per `GoDot::effectTypeTags`), `/wfs/cluster/<n>/lfoPresetRecall` (write-only, `i`, 1..16, VALS = the stored presets). Input nodes are now typed by the parameter, never by the var.
+
+**Key files:** `Source/Network/GoDotProtocol.h` (addresses, types, atoms, chunks, answers), `Source/Network/GoDotCueBuilder.h` (the four exports, sharing `QLabCueBuilder::forEachInScopeInputParameter` / `forEachEffectNode`), `OSCManager::sendToGoDot` / `declareToGoDot` / `handleGoDotAnswer`, `MainComponent::exportSnapshotToGoDot`. Bench without Go.dot: `tools/validation/control-replay/godot_mock.py` answers like Go.dot and checks each captured address against the fetched tree. Self-test: `WFS_TEST_MUTES_PERSIST` case M6d.
 
 ---
 

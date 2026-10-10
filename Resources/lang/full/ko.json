@@ -579,7 +579,8 @@
       "mqtt": "MQTT",
       "qlab": "QLab",
       "udp": "UDP",
-      "tcp": "TCP"
+      "tcp": "TCP",
+      "godot": "Go.dot"
     },
     "dialogs": {
       "importConfig": "네트워크 설정 가져오기",
@@ -609,7 +610,15 @@
       "findDeviceSent": "장치 찾기 명령이 전송되었습니다.",
       "maxTargetsReached": "대상/서버의 최대 수에 도달했습니다.",
       "passwordEmpty": "비밀번호는 비워둘 수 없습니다.",
-      "oscManagerError": "오류: OSC 관리자를 사용할 수 없습니다"
+      "oscManagerError": "오류: OSC 관리자를 사용할 수 없습니다",
+      "godotDeclared": "WFS-DIY가 Go.dot에 등록되었습니다",
+      "godotDeclareRefused": "Go.dot이 WFS-DIY 등록을 거부했습니다: {reason}",
+      "godotDescribed": "Go.dot이 메뉴용으로 WFS-DIY 파라미터 {count}개를 읽었습니다",
+      "godotDescribeFailed": "Go.dot이 WFS-DIY 파라미터를 읽지 못했습니다: {problem}",
+      "godotCueCreated": "Go.dot 큐 생성: {name}",
+      "godotCueUpdated": "Go.dot 큐 업데이트: {name}",
+      "godotCueRefused": "Go.dot이 큐를 거부했습니다: {reason}",
+      "godotNoAnswer": "Go.dot의 응답이 없습니다. 실행 중이며 Network 탭에서 이 컴퓨터를 허용하고 있습니까?"
     }
   },
   "accessibility": {
@@ -907,7 +916,8 @@
       "lfoPhaseYDial": "깊이에서 클러스터 움직임의 위상 오프셋.",
       "lfoPhaseZDial": "높이에서 클러스터 움직임의 위상 오프셋.",
       "lfoPhaseRotDial": "클러스터 회전의 위상 오프셋.",
-      "lfoPhaseScaleDial": "클러스터 스케일링의 위상 오프셋."
+      "lfoPhaseScaleDial": "클러스터 스케일링의 위상 오프셋.",
+      "cuePreset": "현재 클러스터에서 마지막으로 선택한 LFO 프리셋을 불러오는 큐를 QLab 또는 Go.dot에 만듭니다."
     },
     "presets": {
       "stopAll": "모두 중지",
@@ -2406,7 +2416,15 @@
     "families": {
       "inputs": "입력",
       "effects": "이펙트"
-    }
+    },
+    "writeToGoDot": "Go.dot에 쓰기",
+    "writeToGoDotTooltip": "스냅샷을 저장한 뒤 스코프를 하나의 큐로 Go.dot에 쓰기",
+    "writeToBoth": "QLab과 Go.dot에 쓰기",
+    "writeToBothTooltip": "스냅샷을 저장한 뒤 스코프를 QLab에, 그리고 하나의 큐로 Go.dot에 쓰기",
+    "writeSnapshotLoadCueGoDot": "스냅샷 로드 큐를 Go.dot에 쓰기",
+    "writeSnapshotLoadCueGoDotTooltip": "OSC로 이 스냅샷을 로드하는 Go.dot 큐도 생성",
+    "writeSnapshotLoadCueBoth": "스냅샷 로드 큐를 QLab과 Go.dot에 쓰기",
+    "writeSnapshotLoadCueBothTooltip": "OSC로 이 스냅샷을 로드하는 QLab 큐와 Go.dot 큐도 생성"
   },
   "snapshot": {
     "qlabNoTarget": "QLab 대상이 설정되지 않았습니다",
@@ -2415,7 +2433,9 @@
     "qlabGroupName": "스냅샷 \"{name}\"",
     "qlabMemoText": "다음 큐 중 하나를 실행하여 이 스냅샷을 불러오거나 업데이트하세요",
     "qlabReloadName": "불러오기 \"{name}\"",
-    "qlabUpdateName": "업데이트 \"{name}\""
+    "qlabUpdateName": "업데이트 \"{name}\"",
+    "godotWriting": "{count}개 파라미터를 하나의 큐로 Go.dot에 쓰는 중...",
+    "godotNothingInScope": "Go.dot 내보내기: 스코프에 파라미터가 없습니다"
   },
   "setAllInputs": {
     "windowTitle": "모든 입력 설정",

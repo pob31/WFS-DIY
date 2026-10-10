@@ -277,6 +277,8 @@ public:
     static bool isClusterScaleRotationAddress(const juce::String& address);
     static bool isClusterCumulativeScaleRotationAddress(const juce::String& address);
     static bool isClusterLFOAddress(const juce::String& address);
+    /** The cluster of /wfs/cluster/<n>/lfoPresetRecall, or 0 for any other address. */
+    static int clusterOfPresetRecallShortForm(const juce::String& address);
     static bool isADMOSCAddress(const juce::String& address);
 
     /** Parse an ADM-OSC message (/adm/obj/N/xyz, /adm/obj/N/aed, etc.) */

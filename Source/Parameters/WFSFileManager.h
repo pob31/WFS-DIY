@@ -514,6 +514,18 @@ public:
     /** Get list of available input snapshots */
     juce::StringArray getInputSnapshotNames() const;
 
+    /** The identifier of the Go.dot cue this snapshot has written - its
+        per-parameter cue, or with `loadCue` its load cue - kept on the
+        snapshot's root so a later export updates that cue (Go.dot's authoring
+        protocol). Empty when it has written none. */
+    juce::String getSnapshotGoDotCueId (const juce::String& snapshotName, bool loadCue);
+
+    /** Keep a Go.dot cue identifier on the snapshot's root. */
+    bool setSnapshotGoDotCueId (const juce::String& snapshotName, bool loadCue, const juce::String& cueId);
+
+    /** The root attribute each identifier lives in: godotCueId, godotLoadCueId. */
+    static juce::Identifier goDotCueIdAttribute (bool loadCue);
+
     /** Get default snapshot name (timestamp) */
     static juce::String getDefaultSnapshotName();
 

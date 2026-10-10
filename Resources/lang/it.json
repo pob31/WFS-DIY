@@ -308,7 +308,15 @@
       "findDeviceSent": "Comando Trova dispositivo inviato.",
       "maxTargetsReached": "Numero massimo di destinazioni/server raggiunto.",
       "passwordEmpty": "La password non può essere vuota.",
-      "oscManagerError": "Errore: OSC Manager non disponibile"
+      "oscManagerError": "Errore: OSC Manager non disponibile",
+      "godotDeclared": "WFS-DIY è dichiarato in Go.dot",
+      "godotDeclareRefused": "Go.dot ha rifiutato la dichiarazione di WFS-DIY: {reason}",
+      "godotDescribed": "Go.dot ha letto {count} parametri di WFS-DIY per i suoi menu",
+      "godotDescribeFailed": "Go.dot non ha potuto leggere i parametri di WFS-DIY: {problem}",
+      "godotCueCreated": "Cue Go.dot creato: {name}",
+      "godotCueUpdated": "Cue Go.dot aggiornato: {name}",
+      "godotCueRefused": "Go.dot ha rifiutato il cue: {reason}",
+      "godotNoAnswer": "Nessuna risposta da Go.dot: è in esecuzione, e la sua scheda Network accetta questa macchina?"
     }
   },
   "audioPatch": {
@@ -411,7 +419,8 @@
       "lfoPhaseYDial": "Sfasamento del movimento del cluster in profondità.",
       "lfoPhaseZDial": "Sfasamento del movimento del cluster in altezza.",
       "lfoPhaseRotDial": "Sfasamento della rotazione del cluster.",
-      "lfoPhaseScaleDial": "Sfasamento del ridimensionamento del cluster."
+      "lfoPhaseScaleDial": "Sfasamento del ridimensionamento del cluster.",
+      "cuePreset": "Crea una cue in QLab o Go.dot per richiamare l'ultimo preset LFO selezionato per il cluster corrente."
     }
   },
   "eq": {
@@ -1055,7 +1064,11 @@
       "storeMessage": "Inserisci un nome per questo modello di ambito:",
       "errorTitle": "Errore del modello di ambito",
       "overwriteWarning": "Esiste già un modello con questo nome — verrà sovrascritto."
-    }
+    },
+    "writeToGoDotTooltip": "Salva lo snapshot, poi scrivi il suo scope in Go.dot come un unico cue",
+    "writeToBothTooltip": "Salva lo snapshot, poi scrivi il suo scope su QLab e, come un unico cue, su Go.dot",
+    "writeSnapshotLoadCueGoDotTooltip": "Crea anche un cue Go.dot per caricare questo snapshot via OSC",
+    "writeSnapshotLoadCueBothTooltip": "Crea anche un cue QLab e un cue Go.dot per caricare questo snapshot via OSC"
   },
   "fileManager": {
     "dialogs": {

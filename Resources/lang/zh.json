@@ -311,7 +311,15 @@
       "findDeviceSent": "查找设备命令已发送。",
       "maxTargetsReached": "已达到最大目标/服务器数量。",
       "passwordEmpty": "密码不能为空。",
-      "oscManagerError": "错误：OSC 管理器不可用"
+      "oscManagerError": "错误：OSC 管理器不可用",
+      "godotDeclared": "WFS-DIY 已在 Go.dot 中声明",
+      "godotDeclareRefused": "Go.dot 拒绝了 WFS-DIY 的声明: {reason}",
+      "godotDescribed": "Go.dot 已读取 {count} 个 WFS-DIY 参数用于菜单",
+      "godotDescribeFailed": "Go.dot 无法读取 WFS-DIY 的参数: {problem}",
+      "godotCueCreated": "Go.dot 提示已创建: {name}",
+      "godotCueUpdated": "Go.dot 提示已更新: {name}",
+      "godotCueRefused": "Go.dot 拒绝了该提示: {reason}",
+      "godotNoAnswer": "Go.dot 无响应：它是否在运行，其 Network 选项卡是否允许本机？"
     }
   },
   "audioPatch": {
@@ -414,7 +422,8 @@
       "lfoPhaseYDial": "深度方向上集群运动的相位偏移。",
       "lfoPhaseZDial": "高度方向上集群运动的相位偏移。",
       "lfoPhaseRotDial": "集群旋转的相位偏移。",
-      "lfoPhaseScaleDial": "集群缩放的相位偏移。"
+      "lfoPhaseScaleDial": "集群缩放的相位偏移。",
+      "cuePreset": "在 QLab 或 Go.dot 中创建提示，以调用当前集群最后选择的 LFO 预设。"
     },
     "presets": {
       "stored": "LFO 预设已保存到方格 {n}。",
@@ -1078,13 +1087,19 @@
       "storeMessage": "请输入此范围模板的名称：",
       "errorTitle": "范围模板错误",
       "overwriteWarning": "已存在同名模板 — 将被覆盖。"
-    }
+    },
+    "writeToGoDotTooltip": "保存快照，然后将其范围作为一个提示写入 Go.dot",
+    "writeToBothTooltip": "保存快照，然后将其范围写入 QLab，并作为一个提示写入 Go.dot",
+    "writeSnapshotLoadCueGoDotTooltip": "同时创建一个通过 OSC 加载此快照的 Go.dot 提示",
+    "writeSnapshotLoadCueBothTooltip": "同时创建通过 OSC 加载此快照的 QLab 提示和 Go.dot 提示"
   },
   "snapshot": {
     "qlabNoTarget": "未配置QLab目标",
     "qlabExportStarted": "正在向 QLab 写入 {count} 个 Cue...",
     "qlabExportDone": "QLab 导出完成：已创建 {count} 个 Cue",
-    "qlabMemoText": "运行以下任一 Cue 来加载或更新此快照"
+    "qlabMemoText": "运行以下任一 Cue 来加载或更新此快照",
+    "godotWriting": "正在将 {count} 个参数作为一个提示写入 Go.dot...",
+    "godotNothingInScope": "Go.dot 导出：范围内没有参数"
   },
   "setAllInputs": {
     "warning": "更改将应用于所有输入"

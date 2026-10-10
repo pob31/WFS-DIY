@@ -309,7 +309,15 @@
       "findDeviceSent": "Commande Trouver l'appareil envoyée.",
       "maxTargetsReached": "Nombre maximum de cibles/serveurs atteint.",
       "passwordEmpty": "Le mot de passe ne peut pas être vide.",
-      "oscManagerError": "Erreur : Gestionnaire OSC non disponible"
+      "oscManagerError": "Erreur : Gestionnaire OSC non disponible",
+      "godotDeclared": "WFS-DIY est déclaré dans Go.dot",
+      "godotDeclareRefused": "Go.dot a refusé la déclaration de WFS-DIY : {reason}",
+      "godotDescribed": "Go.dot a lu {count} paramètres de WFS-DIY pour ses menus",
+      "godotDescribeFailed": "Go.dot n'a pas pu lire les paramètres de WFS-DIY : {problem}",
+      "godotCueCreated": "Cue Go.dot créé : {name}",
+      "godotCueUpdated": "Cue Go.dot mis à jour : {name}",
+      "godotCueRefused": "Go.dot a refusé le cue : {reason}",
+      "godotNoAnswer": "Pas de réponse de Go.dot : est-il lancé, et son onglet Network accepte-t-il cette machine ?"
     }
   },
   "audioPatch": {
@@ -411,7 +419,8 @@
       "stopAllLFO": "Arrêter le LFO sur les 10 clusters.",
       "exportPresets": "Exporter les 16 presets LFO vers un fichier XML.",
       "importPresets": "Importer les presets LFO depuis un fichier XML.",
-      "qlabPreset": "Créer une cue réseau QLab pour rappeler le dernier preset LFO sélectionné pour le cluster courant."
+      "qlabPreset": "Créer une cue réseau QLab pour rappeler le dernier preset LFO sélectionné pour le cluster courant.",
+      "cuePreset": "Créer une cue dans QLab ou Go.dot pour rappeler le dernier preset LFO sélectionné pour le cluster courant."
     }
   },
   "eq": {
@@ -1050,7 +1059,11 @@
       "deleteTooltip": "Supprimer le modèle sélectionné",
       "storeMessage": "Saisissez un nom pour ce modèle de portée :",
       "overwriteWarning": "Un modèle portant ce nom existe déjà — il sera écrasé."
-    }
+    },
+    "writeToGoDotTooltip": "Sauvegarder le snapshot, puis écrire son scope dans Go.dot en un seul cue",
+    "writeToBothTooltip": "Sauvegarder le snapshot, puis écrire son scope dans QLab et, en un seul cue, dans Go.dot",
+    "writeSnapshotLoadCueGoDotTooltip": "Créer aussi un cue Go.dot pour charger ce snapshot via OSC",
+    "writeSnapshotLoadCueBothTooltip": "Créer aussi un cue QLab et un cue Go.dot pour charger ce snapshot via OSC"
   },
   "fileManager": {
     "dialogs": {

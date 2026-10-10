@@ -570,7 +570,8 @@
       "mqtt": "MQTT",
       "qlab": "QLab",
       "udp": "UDP",
-      "tcp": "TCP"
+      "tcp": "TCP",
+      "godot": "Go.dot"
     },
     "dialogs": {
       "importConfig": "Importa Configurazione di Rete",
@@ -600,7 +601,15 @@
       "findDeviceSent": "Comando Trova dispositivo inviato.",
       "maxTargetsReached": "Numero massimo di destinazioni/server raggiunto.",
       "passwordEmpty": "La password non può essere vuota.",
-      "oscManagerError": "Errore: OSC Manager non disponibile"
+      "oscManagerError": "Errore: OSC Manager non disponibile",
+      "godotDeclared": "WFS-DIY è dichiarato in Go.dot",
+      "godotDeclareRefused": "Go.dot ha rifiutato la dichiarazione di WFS-DIY: {reason}",
+      "godotDescribed": "Go.dot ha letto {count} parametri di WFS-DIY per i suoi menu",
+      "godotDescribeFailed": "Go.dot non ha potuto leggere i parametri di WFS-DIY: {problem}",
+      "godotCueCreated": "Cue Go.dot creato: {name}",
+      "godotCueUpdated": "Cue Go.dot aggiornato: {name}",
+      "godotCueRefused": "Go.dot ha rifiutato il cue: {reason}",
+      "godotNoAnswer": "Nessuna risposta da Go.dot: è in esecuzione, e la sua scheda Network accetta questa macchina?"
     }
   },
   "accessibility": {
@@ -898,7 +907,8 @@
       "lfoPhaseYDial": "Sfasamento del movimento del cluster in profondità.",
       "lfoPhaseZDial": "Sfasamento del movimento del cluster in altezza.",
       "lfoPhaseRotDial": "Sfasamento della rotazione del cluster.",
-      "lfoPhaseScaleDial": "Sfasamento del ridimensionamento del cluster."
+      "lfoPhaseScaleDial": "Sfasamento del ridimensionamento del cluster.",
+      "cuePreset": "Crea una cue in QLab o Go.dot per richiamare l'ultimo preset LFO selezionato per il cluster corrente."
     },
     "presets": {
       "stopAll": "Ferma tutto",
@@ -2430,7 +2440,15 @@
     "families": {
       "inputs": "Ingressi",
       "effects": "Effetti"
-    }
+    },
+    "writeToGoDot": "Scrivi su Go.dot",
+    "writeToGoDotTooltip": "Salva lo snapshot, poi scrivi il suo scope in Go.dot come un unico cue",
+    "writeToBoth": "Scrivi su QLab e Go.dot",
+    "writeToBothTooltip": "Salva lo snapshot, poi scrivi il suo scope su QLab e, come un unico cue, su Go.dot",
+    "writeSnapshotLoadCueGoDot": "Scrivi cue di caricamento su Go.dot",
+    "writeSnapshotLoadCueGoDotTooltip": "Crea anche un cue Go.dot per caricare questo snapshot via OSC",
+    "writeSnapshotLoadCueBoth": "Scrivi cue di caricamento su QLab e Go.dot",
+    "writeSnapshotLoadCueBothTooltip": "Crea anche un cue QLab e un cue Go.dot per caricare questo snapshot via OSC"
   },
   "snapshot": {
     "qlabNoTarget": "Nessuna destinazione QLab configurata",
@@ -2439,7 +2457,9 @@
     "qlabGroupName": "Istantanea \"{name}\"",
     "qlabMemoText": "Eseguire uno dei seguenti cue per richiamare o aggiornare questo snapshot",
     "qlabReloadName": "Ricarica \"{name}\"",
-    "qlabUpdateName": "Aggiorna \"{name}\""
+    "qlabUpdateName": "Aggiorna \"{name}\"",
+    "godotWriting": "Scrittura di {count} parametri in Go.dot come un unico cue...",
+    "godotNothingInScope": "Esportazione Go.dot: nessun parametro nello scope"
   },
   "setAllInputs": {
     "windowTitle": "Imposta Tutti gli Ingressi",

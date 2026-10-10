@@ -10,6 +10,7 @@
 #include "Localization/LocalizationManager.h"
 #include "Accessibility/TTSManager.h"
 #include "Network/QLabCueBuilder.h"
+#include "Network/GoDotCueBuilder.h"
 #include "Network/OSCMessageRouter.h"
 #include "Helpers/CoordinateConverter.h"
 #include "Helpers/ArrayGeometryCalculator.h"
@@ -337,6 +338,8 @@ MainComponent::MainComponent()
         refreshMidiSnapshotBindings();
         if (snapshotSession != nullptr)
             snapshotSession->projectFolderChanged();
+        if (oscManager)
+            oscManager->notifySnapshotsChanged();   // another project, other snapshot names
     };
 
     // Restore project folder from AppSettings (persists across sessions)
@@ -554,9 +557,12 @@ MainComponent::MainComponent()
         recallSnapshotByName (snapshotName);
     };
 
-    // Any snapshot created / updated / deleted / re-scoped can change a binding.
+    // Any snapshot created / updated / deleted / re-scoped can change a binding,
+    // and the names the OSCQuery tree offers Go.dot as a menu.
     snapshotSession->onSnapshotsChanged = [this]() {
         refreshMidiSnapshotBindings();
+        if (oscManager)
+            oscManager->notifySnapshotsChanged();
     };
 
     snapshotSession->onConfigReloaded = [this]() {
@@ -576,15 +582,25 @@ MainComponent::MainComponent()
         return oscManager && oscManager->hasQLabTarget();
     };
 
-    // QLab export callback for the snapshot row
+    snapshotSession->isGoDotAvailable = [this]() {
+        return oscManager && oscManager->hasGoDotTarget();
+    };
+
+    // Cue export callback for the snapshot row: to QLab as a playlist group of
+    // network cues, to Go.dot as one cue carrying every message, or both.
     snapshotSession->onQLabExportRequested = [this](const juce::String& snapshotName,
                                                      const WFSFileManager::ExtendedSnapshotScope& scope) {
-        if (!oscManager || !oscManager->hasQLabTarget())
+        const bool toQLab  = oscManager && oscManager->hasQLabTarget();
+        const bool toGoDot = oscManager && oscManager->hasGoDotTarget();
+
+        if (! toQLab && ! toGoDot)
         {
             if (inputsTab != nullptr)
                 inputsTab->showStatusMessage (LOC("snapshot.qlabNoTarget"));
             return;
         }
+
+        const juce::String what (toQLab ? "QLab export" : "Go.dot export");
 
         auto& fileManager = parameters.getFileManager();
         auto snapshotFile = WFSFileManager::getNamedXmlFile (fileManager.getInputSnapshotsFolder(), snapshotName);
@@ -593,7 +609,7 @@ MainComponent::MainComponent()
         if (xml == nullptr)
         {
             if (inputsTab != nullptr)
-                inputsTab->showStatusMessage ("QLab export: could not read snapshot file");
+                inputsTab->showStatusMessage (what + ": could not read snapshot file");
             return;
         }
 
@@ -604,11 +620,18 @@ MainComponent::MainComponent()
         if (!inputsData.isValid() && !effectsData.isValid())
         {
             if (inputsTab != nullptr)
-                inputsTab->showStatusMessage ("QLab export: no input data in snapshot");
+                inputsTab->showStatusMessage (what + ": no input data in snapshot");
             return;
         }
 
         int numChannels = parameters.getNumInputChannels();
+
+        if (toGoDot)
+            exportSnapshotToGoDot (snapshotName, scope, inputsData, effectsData);
+
+        if (! toQLab)
+            return;
+
         int patchNumber = oscManager->getQLabPatchNumber();
 
         // Fold the global sampler master into the scope so QLab applies the
@@ -663,8 +686,18 @@ MainComponent::MainComponent()
                 LOC("snapshot.qlabExportStarted").replace ("{count}", juce::String (cueCount)));
     };
 
-    // QLab snapshot load cue callback
+    // Snapshot load cue callback: QLab and/or Go.dot
     snapshotSession->onQLabSnapshotLoadCueRequested = [this](const juce::String& snapshotName) {
+        if (oscManager && oscManager->hasGoDotTarget())
+        {
+            auto cue = WFSNetwork::GoDotCueBuilder::buildSnapshotLoadCue (snapshotName);
+            cue.id = goDotCueIdFor (snapshotName, true);
+            writeCueToGoDot (cue, [this] (const juce::String& text) {
+                if (inputsTab != nullptr)
+                    inputsTab->showStatusMessage (text);
+            });
+        }
+
         if (!oscManager || !oscManager->hasQLabTarget())
             return;
 
@@ -773,10 +806,22 @@ MainComponent::MainComponent()
 
     // QLab sampler set cue creation
     inputsTab->getSamplerSubTab().isQLabAvailable = [this]() {
-        return oscManager && oscManager->hasQLabTarget();
+        return oscManager && (oscManager->hasQLabTarget() || oscManager->hasGoDotTarget());
     };
 
     inputsTab->getSamplerSubTab().onQLabSetCueRequested = [this] (int channelId, int setNumber, const juce::String& setName) {
+        // A new Go.dot cue on each press, as QLab gets one: the same set may be
+        // wanted at two places in a show.
+        if (oscManager && oscManager->hasGoDotTarget())
+        {
+            auto cue = WFSNetwork::GoDotCueBuilder::buildSamplerSetCue (channelId, setNumber, setName);
+            cue.id = WFSNetwork::GoDot::newCueId();
+            writeCueToGoDot (cue, [this] (const juce::String& text) {
+                if (inputsTab != nullptr)
+                    inputsTab->showStatusMessage (text);
+            });
+        }
+
         if (! oscManager || ! oscManager->hasQLabTarget()) return;
         int patchNumber = oscManager->getQLabPatchNumber();
         auto sequence = WFSNetwork::QLabCueBuilder::buildSamplerSetCue (channelId, setNumber, setName, patchNumber);
@@ -1562,10 +1607,20 @@ MainComponent::MainComponent()
 
         // QLab cluster preset cue creation
         clustersTab->isQLabAvailable = [this]() {
-            return oscManager && oscManager->hasQLabTarget();
+            return oscManager && (oscManager->hasQLabTarget() || oscManager->hasGoDotTarget());
         };
 
         clustersTab->onQLabPresetCueRequested = [this] (int clusterId, int presetNumber, const juce::String& presetName) {
+            if (oscManager && oscManager->hasGoDotTarget())
+            {
+                auto cue = WFSNetwork::GoDotCueBuilder::buildClusterLFOPresetCue (clusterId, presetNumber, presetName);
+                cue.id = WFSNetwork::GoDot::newCueId();
+                writeCueToGoDot (cue, [this] (const juce::String& text) {
+                    if (clustersTab != nullptr && clustersTab->getStatusBar() != nullptr)
+                        clustersTab->getStatusBar()->showTemporaryMessage (text, 3000);
+                });
+            }
+
             if (! oscManager || ! oscManager->hasQLabTarget()) return;
             int patchNumber = oscManager->getQLabPatchNumber();
             auto sequence = WFSNetwork::QLabCueBuilder::buildClusterLFOPresetCue (clusterId, presetNumber, presetName, patchNumber);
@@ -2633,6 +2688,27 @@ MainComponent::MainComponent()
             effectsHost->requestClear (effectIdOrMinusOne > 0 ? effectIdOrMinusOne - 1 : -1);
     };
 
+    // Go.dot (its docs/godot-authoring-protocol-0.1.md): the snapshot names the
+    // OSCQuery tree offers as a menu, and what Go.dot says when WFS-DIY declares
+    // itself, on the status line.
+    oscManager->snapshotNamesProvider = [this]() {
+        return parameters.getFileManager().getInputSnapshotNames();
+    };
+
+    oscManager->onGoDotAnswer = [this] (const WFSNetwork::GoDot::Answer& answer) {
+        juce::String text;
+
+        if (answer.isDeclared())
+            text = answer.landed() ? LOC ("network.messages.godotDeclared")
+                                   : LOC ("network.messages.godotDeclareRefused").replace ("{reason}", answer.outcome);
+        else if (answer.isDescribed())
+            text = answer.problem.isEmpty() ? LOC ("network.messages.godotDescribed").replace ("{count}", juce::String (answer.nodeCount))
+                                            : LOC ("network.messages.godotDescribeFailed").replace ("{problem}", answer.problem);
+
+        if (text.isNotEmpty() && statusBar != nullptr)
+            statusBar->showTemporaryMessage (text, 4000);
+    };
+
     // Snapshot OSC command callbacks
     // Both external trigger paths and the Inputs long-press funnel through the
     // one seam, so the recall logic cannot drift into three copies again.
@@ -2665,6 +2741,9 @@ MainComponent::MainComponent()
             // An OSC-stored snapshot carries whatever binding getExtendedSnapshotScope
             // just read back from the file, so the index may have changed.
             refreshMidiSnapshotBindings();
+
+            // A store under a new name adds to the names Go.dot's menu offers.
+            oscManager->notifySnapshotsChanged();
         }
         else
         {
@@ -4613,6 +4692,119 @@ void MainComponent::runInputMutesPersistSelfTest()
         check(customString == "/wfs/input/mutes " + juce::String(vts.getInputChannelNumber(0)) + " 1 1"
                   && parsed.valid && parsed.muteOutput == 1 && static_cast<int>(parsed.value) == 1,
               "M6c: a one-output list goes out as output 1 muted and is received: " + customString);
+    }
+
+    // M6d: Go.dot gets the same parameters as ONE cue (Go.dot's authoring
+    // protocol): each message in the OSCQuery short form the tree publishes,
+    // typed as the tree types it, and each parses back through the router to
+    // its own parameter on its own channel. Chunking loses no pair.
+    {
+        // An atom list read back into OSC arguments, as Go.dot's
+        // osc::valuesFromAtoms does: i: f: s:"..." with \\ \" \n escaped.
+        auto messageFromAtoms = [](const juce::String& address, const juce::String& atoms)
+        {
+            juce::OSCMessage m (address);
+            auto rest = atoms.trim();
+            while (rest.isNotEmpty())
+            {
+                if (rest.startsWith ("s:\""))
+                {
+                    juce::String text;
+                    int i = 3;
+                    for (; i < rest.length() && rest[i] != '"'; ++i)
+                    {
+                        if (rest[i] == '\\' && i + 1 < rest.length())
+                        {
+                            ++i;
+                            text << (rest[i] == 'n' ? juce::String ("\n") : juce::String::charToString (rest[i]));
+                        }
+                        else
+                            text << juce::String::charToString (rest[i]);
+                    }
+                    m.addString (text);
+                    rest = rest.substring (i + 1).trim();
+                    continue;
+                }
+                const auto word = rest.upToFirstOccurrenceOf (" ", false, false);
+                rest = rest.fromFirstOccurrenceOf (" ", false, false).trim();
+                if (word.startsWith ("i:")) m.addInt32 (word.substring (2).getIntValue());
+                else if (word.startsWith ("f:")) m.addFloat32 (word.substring (2).getFloatValue());
+            }
+            return m;
+        };
+
+        const auto file = fm.getInputSnapshotsFolder().getChildFile("mutes-selftest.xml");
+        juce::ValueTree inputsData;
+        if (auto xml = juce::XmlDocument::parse(file))
+            inputsData = juce::ValueTree::fromXml(*xml).getChildWithName(Inputs);
+
+        const auto effScope = all.withGlobals(fm.isSamplerMasterOn(), numChannels);
+        const auto numberToSlot = [&vts](int number) { return vts.getSlotForChannelNumber(number); };
+        WFSNetwork::GoDotCueBuilder::Skipped skipped;
+        auto cue = WFSNetwork::GoDotCueBuilder::buildSnapshotCue("mutes-selftest", inputsData, effScope, numChannels,
+                                                                 numberToSlot, numOutputs, {}, 0, &skipped);
+        const int qlabCount = WFSNetwork::QLabCueBuilder::countCues(inputsData, effScope, numChannels, numberToSlot);
+        const int accounted = static_cast<int>(cue.messages.size()) + skipped.oneOutputMuteRows
+                              + skipped.notNumbers + skipped.unnamed;
+        check(accounted == qlabCount,
+              "M6d: the Go.dot cue accounts for every QLab cue: " + juce::String(static_cast<int>(cue.messages.size()))
+                  + " messages + " + juce::String(accounted - static_cast<int>(cue.messages.size()))
+                  + " skipped vs " + juce::String(qlabCount));
+
+        const int number0 = vts.getInputChannelNumber(0);
+        const auto muteAddress = "/wfs/input/" + juce::String(number0) + "/mutes";
+        bool foundMute = false;
+        int parsedBack = 0;
+        juce::StringArray refused;
+
+        for (const auto& [address, atoms] : cue.messages)
+        {
+            const auto msg = messageFromAtoms(address, atoms);
+            const auto parsed = OSCMessageRouter::parseInputMessage(msg);
+            const auto oscName = WFSNetwork::GoDot::inputNameOf(parsed.paramId);
+            if (parsed.valid && address.endsWith("/" + oscName)
+                && address == "/wfs/input/" + juce::String(parsed.channelId) + "/" + oscName)
+                ++parsedBack;
+            else if (refused.size() < 12)
+                refused.add(address + " " + atoms + (parsed.invalidReason.isNotEmpty() ? " (" + parsed.invalidReason + ")" : ""));
+
+            if (address == muteAddress)
+            {
+                foundMute = true;
+                check(atoms == WFSNetwork::GoDot::quoted(pattern) && parsed.valid && parsed.value.toString() == pattern,
+                      "M6d: the mute message carries the whole list as one string: " + atoms);
+            }
+        }
+
+        check(foundMute, "M6d: the cue has the mute message at " + muteAddress);
+        check(! cue.messages.empty() && parsedBack == static_cast<int>(cue.messages.size()),
+              "M6d: " + juce::String(parsedBack) + " of " + juce::String(static_cast<int>(cue.messages.size()))
+                  + " messages parse back to their own parameter"
+                  + (refused.isEmpty() ? juce::String() : "; refused: " + refused.joinIntoString(" | ")));
+
+        // Chunks: under the ceiling, the head on the first, `more` on the rest, every pair kept in order.
+        cue.id = WFSNetwork::GoDot::newCueId();
+        check(WFSNetwork::GoDot::isCueId(cue.id), "M6d: a drawn identifier is Crockford base32: " + cue.id);
+        const auto chunks = WFSNetwork::GoDot::captureMessages("standby", {}, cue);
+        int pairs = 0;
+        bool shapes = true;
+        for (size_t c = 0; c < chunks.size(); ++c)
+        {
+            const auto& m = chunks[c];
+            shapes = shapes && m.size() >= 9 && (m.size() - 7) % 2 == 0
+                     && m[0].getString() == (c == 0 ? "standby" : "more")
+                     && m[2].getString() == cue.id
+                     && (c == 0 || m[1].getString() == cue.id);
+            for (int a = 7; a + 1 < m.size(); a += 2)
+            {
+                const auto& [address, atoms] = cue.messages[static_cast<size_t>(pairs)];
+                shapes = shapes && m[a].getString() == address && m[a + 1].getString() == atoms;
+                ++pairs;
+            }
+        }
+        check(shapes && pairs == static_cast<int>(cue.messages.size()),
+              "M6d: " + juce::String(static_cast<int>(chunks.size())) + " chunk(s) carry all "
+                  + juce::String(pairs) + " pairs in order, the head first and `more` after");
     }
 
     fm.setProjectFolder(previousFolder);
@@ -13617,6 +13809,92 @@ void MainComponent::refreshMidiSnapshotBindings()
         rows.emplace_back (b.channel, b.note, b.snapshotName);
 
     midiSnapshotTrigger->setBindings (rows);
+}
+
+void MainComponent::writeCueToGoDot (const WFSNetwork::GoDot::Cue& cue,
+                                     std::function<void (const juce::String&)> show)
+{
+    if (! oscManager)
+        return;
+
+    oscManager->sendToGoDot (cue, [cueName = cue.name, show = std::move (show)] (const WFSNetwork::GoDot::Answer& answer)
+    {
+        juce::String text;
+
+        if (answer.outcome.isEmpty())
+            text = LOC ("network.messages.godotNoAnswer");
+        else if (answer.landed())
+            text = LOC (answer.outcome == "created" ? "network.messages.godotCueCreated" : "network.messages.godotCueUpdated")
+                       .replace ("{name}", answer.name.isNotEmpty() ? answer.name : cueName);
+        else
+            text = LOC ("network.messages.godotCueRefused").replace ("{reason}", answer.outcome);
+
+        WFSLogger::getInstance().logInfo ("Go.dot: " + text);
+        if (show)
+            show (text);
+    });
+}
+
+juce::String MainComponent::goDotCueIdFor (const juce::String& snapshotName, bool loadCue)
+{
+    auto& fileManager = parameters.getFileManager();
+    auto id = fileManager.getSnapshotGoDotCueId (snapshotName, loadCue);
+
+    if (! WFSNetwork::GoDot::isCueId (id))
+    {
+        id = WFSNetwork::GoDot::newCueId();
+        if (! fileManager.setSnapshotGoDotCueId (snapshotName, loadCue, id))
+            WFSLogger::getInstance().logWarning ("Go.dot: could not keep the cue identifier in snapshot '"
+                                                 + snapshotName + "': " + fileManager.getLastError());
+    }
+
+    return id;
+}
+
+void MainComponent::exportSnapshotToGoDot (const juce::String& snapshotName,
+                                           const WFSFileManager::ExtendedSnapshotScope& scope,
+                                           const juce::ValueTree& inputsData,
+                                           const juce::ValueTree& effectsData)
+{
+    auto& fileManager = parameters.getFileManager();
+    const int numChannels = parameters.getNumInputChannels();
+
+    // The same preparation as the QLab export, so both select the same
+    // parameters: the global sampler master folded in, numbers paired with
+    // slots through live state.
+    const auto effScope = scope.withGlobals (fileManager.isSamplerMasterOn(), numChannels);
+    auto& vts = parameters.getValueTreeState();
+    const auto numberToSlot = [&vts] (int number) { return vts.getSlotForChannelNumber (number); };
+
+    WFSNetwork::GoDotCueBuilder::Skipped skipped;
+    auto cue = WFSNetwork::GoDotCueBuilder::buildSnapshotCue (snapshotName, inputsData, effScope, numChannels,
+                                                              numberToSlot, parameters.getNumOutputChannels(),
+                                                              effectsData, parameters.getNumEffectChannels(),
+                                                              &skipped);
+
+    if (skipped.oneOutputMuteRows + skipped.notNumbers + skipped.unnamed > 0)
+        WFSLogger::getInstance().logWarning ("Go.dot export of '" + snapshotName + "': "
+                                             + juce::String (skipped.oneOutputMuteRows) + " one-output mute row(s), "
+                                             + juce::String (skipped.notNumbers) + " non-numeric value(s) and "
+                                             + juce::String (skipped.unnamed) + " parameter(s) with no OSC name not written"
+                                             " (the snapshot load cue still recalls them)");
+
+    if (cue.messages.empty())
+    {
+        if (inputsTab != nullptr)
+            inputsTab->showStatusMessage (LOC ("snapshot.godotNothingInScope"));
+        return;
+    }
+
+    cue.id = goDotCueIdFor (snapshotName, false);
+
+    if (inputsTab != nullptr)
+        inputsTab->showStatusMessage (LOC ("snapshot.godotWriting").replace ("{count}", juce::String (cue.messages.size())));
+
+    writeCueToGoDot (cue, [this] (const juce::String& text) {
+        if (inputsTab != nullptr)
+            inputsTab->showStatusMessage (text);
+    });
 }
 
 void MainComponent::reportMidiPortState (MidiSnapshotTrigger::PortState previous,

@@ -28,6 +28,7 @@ juce::Colour NetworkLogWindowContent::getProtocolColor(WFSNetwork::Protocol prot
         case WFSNetwork::Protocol::RTTrP:    return juce::Colour(0xFF77AA44);
         case WFSNetwork::Protocol::MQTT:     return juce::Colour(0xFF44AAAA);
         case WFSNetwork::Protocol::MCP:      return juce::Colour(0xFFCC44AA);
+        case WFSNetwork::Protocol::GoDot:    return juce::Colour(0xFFDD8833);
         default:                             return juce::Colour(0xFF888888);
     }
 }
@@ -546,6 +547,7 @@ void NetworkLogWindowContent::applyFilters()
                 else if (name == "QLab") filter.enabledProtocols.insert(WFSNetwork::Protocol::QLab);
                 else if (name == "MQTT") filter.enabledProtocols.insert(WFSNetwork::Protocol::MQTT);
                 else if (name == "MCP")  filter.enabledProtocols.insert(WFSNetwork::Protocol::MCP);
+                else if (name == "Go.dot") filter.enabledProtocols.insert(WFSNetwork::Protocol::GoDot);
             }
         }
     }
@@ -609,6 +611,7 @@ void NetworkLogWindowContent::updateFilterToggles()
                 WFSNetwork::Protocol::QLab,
                 WFSNetwork::Protocol::MQTT,
                 WFSNetwork::Protocol::MCP,
+                WFSNetwork::Protocol::GoDot,
             };
             auto seen = logger.getUniqueProtocols();
             baseline.insert(seen.begin(), seen.end());

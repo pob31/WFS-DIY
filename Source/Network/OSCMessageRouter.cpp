@@ -1011,7 +1011,23 @@ bool OSCMessageRouter::isClusterCumulativeScaleRotationAddress(const juce::Strin
 
 bool OSCMessageRouter::isClusterLFOAddress(const juce::String& address)
 {
-    return address.startsWith("/wfs/cluster/lfo");
+    return address.startsWith("/wfs/cluster/lfo") || clusterOfPresetRecallShortForm(address) > 0;
+}
+
+int OSCMessageRouter::clusterOfPresetRecallShortForm(const juce::String& address)
+{
+    // /wfs/cluster/<n>/lfoPresetRecall <preset>: the OSCQuery shape of
+    // /wfs/cluster/lfoPresetRecall <n> <preset>, which is how the tree publishes
+    // it (one node per cluster) and so how a Go.dot cue addresses it.
+    static const juce::String head ("/wfs/cluster/"), tail ("/lfoPresetRecall");
+    if (! address.startsWith(head) || ! address.endsWith(tail))
+        return 0;
+
+    const auto number = address.substring(head.length(), address.length() - tail.length());
+    if (number.isEmpty() || ! number.containsOnly("0123456789"))
+        return 0;
+
+    return number.getIntValue();
 }
 
 juce::String OSCMessageRouter::extractParamName(const juce::String& address)

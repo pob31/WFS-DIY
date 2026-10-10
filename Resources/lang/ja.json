@@ -309,7 +309,15 @@
       "findDeviceSent": "デバイス検索コマンドを送信しました。",
       "maxTargetsReached": "ターゲット/サーバーの最大数に達しました。",
       "passwordEmpty": "パスワードを空にすることはできません。",
-      "oscManagerError": "エラー: OSCマネージャーが利用できません"
+      "oscManagerError": "エラー: OSCマネージャーが利用できません",
+      "godotDeclared": "WFS-DIYはGo.dotに登録されました",
+      "godotDeclareRefused": "Go.dotがWFS-DIYの登録を拒否しました: {reason}",
+      "godotDescribed": "Go.dotがメニュー用にWFS-DIYのパラメーター{count}個を読み込みました",
+      "godotDescribeFailed": "Go.dotがWFS-DIYのパラメーターを読み込めませんでした: {problem}",
+      "godotCueCreated": "Go.dotキュー作成: {name}",
+      "godotCueUpdated": "Go.dotキュー更新: {name}",
+      "godotCueRefused": "Go.dotがキューを拒否しました: {reason}",
+      "godotNoAnswer": "Go.dotから応答がありません。起動していて、Networkタブでこのマシンが許可されていますか?"
     }
   },
   "audioPatch": {
@@ -412,7 +420,8 @@
       "lfoPhaseYDial": "奥行き方向のクラスターの動きの位相オフセット。",
       "lfoPhaseZDial": "高さ方向のクラスターの動きの位相オフセット。",
       "lfoPhaseRotDial": "クラスター回転の位相オフセット。",
-      "lfoPhaseScaleDial": "クラスタースケーリングの位相オフセット。"
+      "lfoPhaseScaleDial": "クラスタースケーリングの位相オフセット。",
+      "cuePreset": "現在のクラスターで最後に選択されたLFOプリセットを呼び出すキューをQLabまたはGo.dotに作成。"
     }
   },
   "eq": {
@@ -1068,7 +1077,11 @@
       "storeMessage": "このスコープテンプレートの名前を入力してください：",
       "errorTitle": "スコープテンプレートのエラー",
       "overwriteWarning": "この名前のテンプレートは既に存在します — 上書きされます。"
-    }
+    },
+    "writeToGoDotTooltip": "スナップショットを保存し、そのスコープを1つのキューとしてGo.dotに書き出す",
+    "writeToBothTooltip": "スナップショットを保存し、そのスコープをQLabに、また1つのキューとしてGo.dotに書き出す",
+    "writeSnapshotLoadCueGoDotTooltip": "このスナップショットをOSCで読み込むGo.dotキューも作成する",
+    "writeSnapshotLoadCueBothTooltip": "このスナップショットをOSCで読み込むQLabキューとGo.dotキューも作成する"
   },
   "fileManager": {
     "dialogs": {

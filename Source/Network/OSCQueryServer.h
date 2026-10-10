@@ -51,6 +51,15 @@ public:
     /** Call after applying the incoming OSC write */
     void endIncomingOSC();
 
+    /** The snapshot names /wfs/input/snapshot/load and /store offer as VALS,
+        which Go.dot turns into a menu. Set by the host; called on the
+        message thread while the tree is built. */
+    std::function<juce::StringArray()> snapshotNames;
+
+    /** The snapshot list changed: /wfs/input changed shape for a client that
+        reads the VALS (PATH_CHANGED, coalesced on the 30 ms flush). */
+    void snapshotsChanged() { queueStructureChange ("/wfs/input"); }
+
 
 private:
     // --- HTTP Request Handler (SimpleWebSocketServerBase::RequestHandler) ---
@@ -100,6 +109,19 @@ private:
     juce::DynamicObject* buildOutputChannelJson(int channelIndex);
     juce::DynamicObject* buildReverbChannelJson(int channelIndex);
     juce::DynamicObject* buildConfigJson();
+
+    // Nodes added for Go.dot's menus (its docs/godot-authoring-protocol-0.1.md
+    // §7.1): what a Go.dot cue aimed at WFS-DIY may address.
+    juce::DynamicObject* buildEffectChannelJson(int effectIndex);
+    juce::DynamicObject* buildClusterJson(int clusterId);
+    juce::DynamicObject* buildSnapshotJson();
+
+    /** A command node: write only (ACCESS 2), no VALUE. `vals` become the
+        first RANGE's VALS, the values a menu offers. */
+    static juce::DynamicObject* makeEventNode(const juce::String& fullPath,
+                                               const juce::String& type,
+                                               const juce::Array<juce::var>& vals,
+                                               const juce::String& description);
 
     static juce::DynamicObject* makeParamNode(const juce::String& fullPath,
                                                const juce::String& type,
