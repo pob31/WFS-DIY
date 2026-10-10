@@ -2,6 +2,16 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
+## v1.0.0beta55 — 2026-10-10
+
+### Added
+- **Go.dot as a network client.** The Network tab's protocol menu offers **Go.dot**, beside QLab: Go.dot's address and port (8010), Rx and Tx on. Everything WFS-DIY writes to QLab it then also writes to Go.dot, in Go.dot's own protocol: a snapshot (Write to Go.dot), a snapshot load cue, a sampler set (Q) and a cluster LFO preset (Q). Where QLab gets one network cue per parameter in a playlist group, Go.dot gets **one cue holding every message**, sent in one datagram (or a few, for a large snapshot) instead of hundreds of round trips. **Storing or updating a snapshot again updates the same Go.dot cue** instead of adding another: the snapshot file keeps the cue's identifier. Go.dot answers each cue, and the status line says whether it was created, updated or refused, and why. With a QLab and a Go.dot target both set, the Snapshot Scope window reads "Write to QLab and Go.dot" and both get the cues. Translated in the eight languages.
+- **WFS-DIY declares itself to Go.dot**, on connecting, when OSC Query starts and whenever the snapshots change, so Go.dot lists WFS-DIY as a device and reads its OSC Query description to offer its parameters as menus.
+- **The OSC Query description lists more of what WFS-DIY accepts**: the snapshot load and store commands with the snapshot names, every effect parameter (`/wfs/effect/<ID>/<name>`), and each cluster's LFO preset recall (`/wfs/cluster/<n>/lfoPresetRecall <preset>`, a new form of `/wfs/cluster/lfoPresetRecall <cluster> <preset>`).
+
+### Changed
+- **Input parameters in the OSC Query description are typed by the parameter**: a parameter with no numeric range (a name, a mute list) is always a string. It depended on whether the value had been changed since the project was opened.
+
 ## v1.0.0beta54 — 2026-10-07
 
 ### Added
