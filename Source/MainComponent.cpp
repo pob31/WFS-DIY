@@ -4488,6 +4488,12 @@ void MainComponent::runInputMutesPersistSelfTest()
     };
     auto tokensOf = [](const juce::String& list) { juce::StringArray t; t.addTokens(list, ",", ""); return t; };
 
+    // Writes only ever widen a per-output row (WFSValueTreeState.h, "A PER-OUTPUT
+    // ROW IS NEVER CUT BACK"), so a row this session already widened would stay
+    // wide through every whole-list compare below. Start both from the live width.
+    setRaw(0, listWith({}));
+    setRaw(1, listWith({}));
+
     // --- M1: the list format
     check(WFSValueTreeState::normaliseMuteList("0,1,0", 5) == "0,1,0,0,0", "M1: a short list is padded with unmuted outputs");
     check(WFSValueTreeState::normaliseMuteList("1,1,1,1,1,1", 4) == "1,1,1,1", "M1: a long list is cut to the output count");
@@ -4510,8 +4516,14 @@ void MainComponent::runInputMutesPersistSelfTest()
         for (int i = 0; i < WFSParameterDefaults::maxOutputChannels; ++i)
             grid.add(i % 2 == 0 ? "1" : "0");
         vts.setInputParameter(0, inputMutes, grid.joinIntoString(","));
-        check(tokensOf(mutesOf(0)).size() == numOutputs, "M2: a 128-entry list from the old grid is cut to the "
-                                                         + juce::String(numOutputs) + " outputs");
+        check(mutesOf(0) == grid.joinIntoString(","),
+              "M2: a 128-entry list is kept whole - a per-output row is never cut back (M8 covers the count change)");
+        vts.setInputParameter(0, inputMutes, listWith({}));
+        const auto merged = tokensOf(mutesOf(0));
+        check(merged.size() == WFSParameterDefaults::maxOutputChannels
+                  && mutesOf(0).startsWith(listWith({})) && merged[numOutputs] == grid[numOutputs],
+              "M2: a live-width write speaks only for its " + juce::String(numOutputs) + " columns and keeps the rest");
+        setRaw(0, listWith({}));   // writes only ever widen a row: give M3-M5 a live-width one
     }
 
     // --- M3: one output at a time
