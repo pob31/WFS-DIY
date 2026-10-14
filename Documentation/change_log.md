@@ -2,7 +2,7 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
-## Unreleased
+## v1.0.0beta56 — 2026-10-14
 
 ### Fixed
 - **Typed numbers read a comma as a decimal point, and a field with no number keeps its value.** In the position, offset, AutomOtion, distance, parallax, reverb, sampler, tracking, ADM mapping, System Config, array helper and gradient map fields, "-2,5" was read as -2, or as -25 m where the field dropped the comma as it was typed. An emptied field, a lone "-" or a stray letter wrote 0: the origin for a position, 0 dB for the master level, a port of 0, a tracking scale that collapsed every tracked source onto the origin. The stored value is now put back instead, and a field clicked into and out of writes nothing. Ports and tracking offsets and scales are written when the field closes, not at each keystroke (typing 5000 bound ports 5, 50 and 500 on the way). The array helper outlines a field with no number in red and does not apply. The DAW plugins' Track value boxes and the Master's ADM widths read numbers the same way.
