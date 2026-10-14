@@ -94,6 +94,10 @@ target_link_libraries(WFSPluginShared PUBLIC
 target_compile_definitions(WFSPluginShared PUBLIC
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
+    # Opus audio and WebP images are on by default since JUCE 9.0.3; nothing
+    # here reads either, and they add ~100k lines of C to every build.
+    JUCE_USE_OPUS=0
+    JUCE_USE_WEBP=0
     JUCE_VST3_CAN_REPLACE_VST2=0
     # Disable juce_simpleweb's TLS/SSL paths — the WFS-DIY app speaks plain
     # HTTP/WebSocket (http://, ws://) so we don't need OpenSSL. Leaving this
@@ -151,6 +155,8 @@ function(wfs_add_plugin TARGET_NAME PLUGIN_NAME PLUGIN_CODE IS_SYNTH MAIN_SOURCE
     target_compile_definitions(${TARGET_NAME} PRIVATE
         JUCE_WEB_BROWSER=0
         JUCE_USE_CURL=0
+        JUCE_USE_OPUS=0
+        JUCE_USE_WEBP=0
         JUCE_VST3_CAN_REPLACE_VST2=0)
 endfunction()
 

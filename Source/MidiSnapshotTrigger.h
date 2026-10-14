@@ -253,9 +253,9 @@ private:
         endpoint list differs, which is exactly what a fast replug does not
         do.
 
-        Elsewhere JUCE's ump::EndpointsListener is still the raw feed. It can
-        never be detached: ump::Endpoints::removeListener() calls addListener()
-        (juce_UMPEndpoints.cpp:186, still so in 9.0.3). */
+        Elsewhere JUCE's ump::EndpointsListener is still the raw feed. It is
+        never detached; before JUCE 9.0.4 it could not be, because
+        ump::Endpoints::removeListener() called addListener() (JUCE #1757). */
     struct RawMidiDeviceChangeFlag final
        #if ! JUCE_WINDOWS
         : private juce::ump::EndpointsListener

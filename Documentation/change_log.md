@@ -2,6 +2,11 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
+## Unreleased
+
+### Chore / Internal
+- **JUCE 9.0.4.** A patch bump of the vendored JUCE, from 9.0.2: the projects are resaved with its Projucer, and spatcore is re-pinned so its minimal app builds against the same JUCE. 9.0.3 was skipped because closing a Windows MIDI input whose device had been unplugged froze the app for about seven seconds. We reported it upstream with two other MIDI issues (JUCE #1756, #1757, #1758), and 9.0.4 carries the fixes. The snapshot MIDI input keeps its own Windows device notifications, since JUCE cannot report a quick unplug and replug on the classic Windows MIDI system. JUCE now builds Opus audio and WebP image support into every app by default; nothing here uses them, so both are switched off in the app and the DAW plugins, which keeps builds shorter and the app the same size. Verified with app Debug and Release, the plugin suite, spatcore's standalone tests, bit-exact offline renders on the CPU, effects and GPU paths, and all eight control-replay drivers, including the MIDI unplug and fast-replug cases.
+
 ## v1.0.0beta55 — 2026-10-10
 
 ### Added
