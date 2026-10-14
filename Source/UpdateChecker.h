@@ -7,6 +7,7 @@
 #include <memory>
 #include "AppSettings.h"
 #include "WFSLogger.h"
+#include "../spatcore/control/osc/NetworkJson.h"
 
 /**
  * UpdateChecker - background check for a newer GitHub release.
@@ -45,6 +46,32 @@ public:
         std::thread ([aliveToken, cb]() { runCheck (aliveToken, cb); }).detach();
     }
 
+    /** A releases/latest reply is 10-40 KB; GitHub caps a release body at
+        125,000 characters. 1 MiB is far above anything real. */
+    static constexpr int maxReplyBytes = 1 << 20;
+
+    /** The reply as JSON, or a void var when it is larger than maxReplyBytes
+        or nests deeper than spatcore's network JSON limit. The read stops at
+        the cap, and the depth scan keeps the parse off the worker thread's
+        stack limit. Public for the self-test. */
+    static juce::var readReleaseReply (juce::InputStream& in)
+    {
+        if (in.getTotalLength() > maxReplyBytes)   // -1 when the length is unknown
+            return {};
+
+        juce::MemoryOutputStream reply;
+        if (reply.writeFromInputStream (in, maxReplyBytes + 1) > maxReplyBytes)
+            return {};
+
+        return spatcore::control::osc::parseNetworkJson (reply.toString());
+    }
+
+    /** Only our own release pages are offered as a link. */
+    static bool isOwnReleaseUrl (const juce::String& url)
+    {
+        return url.startsWith ("https://github.com/pob31/WFS-DIY/");
+    }
+
 private:
     using AliveToken = std::shared_ptr<std::atomic<bool>>;
 
@@ -66,19 +93,15 @@ private:
             return;
         }
 
-        auto responseText = stream->readEntireStreamAsString();
+        auto json = readReleaseReply (*stream);
 
-        if (! alive->load() || responseText.isEmpty())
-            return;
-
-        auto json = juce::JSON::parse (responseText);
-        if (! json.isObject())
+        if (! alive->load() || ! json.isObject())
             return;
 
         auto tagName  = json.getProperty ("tag_name", "").toString();
         auto htmlUrl  = json.getProperty ("html_url", "").toString();
 
-        if (tagName.isEmpty() || htmlUrl.isEmpty())
+        if (tagName.isEmpty() || ! isOwnReleaseUrl (htmlUrl))
             return;
 
         auto remoteVersion = stripLeadingV (tagName);

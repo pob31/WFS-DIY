@@ -5,6 +5,7 @@
 #include "Parameters/VarCoercion.h"
 #include "gui/ChannelIdentityGate.h"
 #include "AppSettings.h"
+#include "UpdateChecker.h"
 #include "Parameters/WFSParameterIDs.h"
 #include "Parameters/EffectsSnapshotScope.h"
 #include "Localization/LocalizationManager.h"
@@ -3899,6 +3900,51 @@ void MainComponent::runValueGatesSelfTest()
         {
             logLine ("SELF-TEST SKIP G9 B1: this session has no cluster 1");
         }
+    }
+
+    // G11: re-audit 2026-09-29, B6. The update checker read the whole reply
+    // and parsed it with plain JSON::parse: no size cap, no depth limit.
+    {
+        // A stream that does not know its length, like a chunked HTTP reply.
+        struct UnknownLength final : juce::InputStream
+        {
+            explicit UnknownLength (const juce::String& s) : inner (s.toRawUTF8(), s.getNumBytesAsUTF8(), true) {}
+            juce::int64 getTotalLength() override              { return -1; }
+            bool isExhausted() override                        { return inner.isExhausted(); }
+            int read (void* dest, int n) override              { return inner.read (dest, n); }
+            juce::int64 getPosition() override                 { return inner.getPosition(); }
+            bool setPosition (juce::int64 p) override          { return inner.setPosition (p); }
+            juce::MemoryInputStream inner;
+        };
+
+        const auto reply = [] (const juce::String& text, bool knownLength)
+        {
+            if (knownLength)
+            {
+                juce::MemoryInputStream in (text.toRawUTF8(), text.getNumBytesAsUTF8(), true);
+                return UpdateChecker::readReleaseReply (in);
+            }
+            UnknownLength in (text);
+            return UpdateChecker::readReleaseReply (in);
+        };
+
+        const juce::String release = R"({"tag_name":"v1.0.0beta99","html_url":"https://github.com/pob31/WFS-DIY/releases/tag/v1.0.0beta99"})";
+        check (reply (release, true).isObject(), "G11 B6: a GitHub release reply still reads");
+
+        const auto padded = release + juce::String::repeatedString (" ", UpdateChecker::maxReplyBytes + 1 - release.length());
+        check (reply (padded, true).isVoid(),  "G11 B6: a reply over 1 MiB is refused when its length is known");
+        check (reply (padded, false).isVoid(), "G11 B6: ...and when it is not (the read stops at the cap)");
+
+        const auto deep = juce::String (R"({"tag_name":"v9","x":)")
+                        + juce::String::repeatedString ("[", 65) + juce::String::repeatedString ("]", 65) + "}";
+        check (reply (deep, true).isVoid(), "G11 B6: a reply nested 65 deep is refused (JSON::parse took it)");
+        check (reply (juce::String::repeatedString ("[", 900000), true).isVoid(),
+               "G11 B6: 900 KB of '[' is refused without overflowing the stack");
+
+        check (! UpdateChecker::isOwnReleaseUrl ("https://example.com/WFS-DIY/releases"),
+               "G11 B6: a release link elsewhere than our GitHub page is not offered");
+        check (UpdateChecker::isOwnReleaseUrl ("https://github.com/pob31/WFS-DIY/releases/tag/v1.0.0beta99"),
+               "G11 B6: ...and ours is");
     }
 
     logLine(failures == 0 ? "SELF-TEST RESULT: ALL PASS"
