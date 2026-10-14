@@ -1,9 +1,27 @@
 #include "WFSCalculationEngine.h"
+#include "../WFSLogger.h"
 #include "../../spatcore/dsp/NumericGuards.h"
 #include "../../spatcore/wfs/RenderSourceMap.h"
 #include "../../spatcore/effects/EffectsTypes.h"
 #include <array>
 #include <limits>
+
+namespace
+{
+    /** Every non-finite entry becomes 0 - silent, no delay, no shelf.
+        Returns how many there were. */
+    size_t zeroNonFinite (std::vector<float>& values)
+    {
+        size_t replaced = 0;
+        for (auto& v : values)
+            if (! std::isfinite (v))
+            {
+                v = 0.0f;
+                ++replaced;
+            }
+        return replaced;
+    }
+}
 
 // The slot allocator lives in spatcore (which may not include app headers), so
 // the source-budget constants exist twice. Fail the build the moment they drift.
@@ -4039,6 +4057,24 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
     else
     {
         effectCycleMask.store (0);
+    }
+
+    // Nothing non-finite is published. One NaN level - a Live Source Tamer
+    // radius of 0 with a source on a speaker gave one - was a NaN speaker
+    // feed on the GPU renderers, and the CPU path dropped that speaker
+    // (re-audit F10). Reported once until the matrices are clean again.
+    {
+        size_t replaced = 0;
+        for (auto* matrix : { &newDelays, &newLevels, &newHF, &newFRDelays, &newFRLevels, &newFRHF,
+                              &newInputReverbDelays, &newInputReverbLevels, &newInputReverbHF,
+                              &newReverbOutputDelays, &newReverbOutputLevels, &newReverbOutputHF,
+                              &newInputEffectDelays, &newInputEffectLevels, &newInputEffectHF })
+            replaced += zeroNonFinite (*matrix);
+
+        if (replaced > 0 && ! nonFiniteMatrixReported)
+            WFSLogger::getInstance().logWarning ("Calculation engine: " + juce::String ((int) replaced)
+                                                 + " non-finite matrix entries replaced by 0 (silent)");
+        nonFiniteMatrixReported = replaced > 0;
     }
 
     // Update all matrices under lock

@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "../Parameters/WFSValueTreeState.h"
 #include "../Parameters/WFSParameterIDs.h"
+#include "../Parameters/VarCoercion.h"
 #include "WFSCalculationEngine.h"
 #include <vector>
 #include <cmath>
@@ -113,9 +114,19 @@ public:
             }
 
             // Get LS parameters
-            float radius = lsSection.getProperty(inputLSradius, 2.0f);
+            const float radius = WFSVar::toFloat (lsSection.getProperty (inputLSradius), 2.0f);
             int shape = lsSection.getProperty(inputLSshape, 0);
-            float fixedAttenDb = lsSection.getProperty(inputLSattenuation, -6.0f);
+            const float fixedAttenDb = WFSVar::toFloat (lsSection.getProperty (inputLSattenuation), -6.0f);
+
+            // A radius of 0 has no area to act in: no reduction. It was a
+            // division by zero, and 0/0 = NaN for a source exactly on a
+            // speaker - a NaN level in the matrix (re-audit F10).
+            if (! (radius > 0.0f) || ! std::isfinite (radius) || ! std::isfinite (fixedAttenDb))
+            {
+                for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
+                    lsGains[static_cast<size_t>(inIdx * numOutputs + outIdx)] = 1.0f;
+                continue;
+            }
 
             // Convert fixed attenuation from dB to linear
             float fixedAttenLinear = std::pow(10.0f, fixedAttenDb / 20.0f);
@@ -182,7 +193,7 @@ public:
                 // Apply enable ramp: lerp from 1.0 to targetGain over 500ms
                 float lsGain = 1.0f + ramp * (targetGain - 1.0f);
 
-                lsGains[matrixIdx] = lsGain;
+                lsGains[matrixIdx] = std::isfinite (lsGain) ? lsGain : 1.0f;
             }
         }
     }

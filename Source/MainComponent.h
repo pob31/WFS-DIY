@@ -365,6 +365,7 @@ private:
     // (WFS_TEST_ENGINE_RECONFIG), which proves the gate from both sides.
     std::atomic<uint32_t> audioBlocksProcessed { 0 };
     std::atomic<uint32_t> audioBlocksHeldOut { 0 };
+    std::atomic<uint32_t> audioStructureScopesEntered { 0 };   // every scope, for the same self-test
 
     /** What the render-source map is built from. Comparing two of these says
         whether a rebuild would change the map, without touching it: a load

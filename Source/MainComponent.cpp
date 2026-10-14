@@ -4419,6 +4419,57 @@ void MainComponent::runValueGatesSelfTest()
         }
     }
 
+    // G15: re-audit F10. A Live Source Tamer radius of 0 with a source exactly
+    // on a speaker was 0/0 = NaN in the level matrix.
+    if (calculationEngine != nullptr && lsTamerEngine != nullptr)
+    {
+        auto lsSection = vts.getInputLiveSourceSection (0);
+        const auto savedLS = lsSection.createCopy();
+        const auto savedOutX = vts.getParameter (outputPositionX, 0);
+        const auto savedOutY = vts.getParameter (outputPositionY, 0);
+        const auto savedOutZ = vts.getParameter (outputPositionZ, 0);
+
+        // Output 1 put exactly where input 1 is heard.
+        const auto source = calculationEngine->getCompositeInputPosition (0);
+        vts.setParameter (outputPositionX, source.x, 0);
+        vts.setParameter (outputPositionY, source.y, 0);
+        vts.setParameter (outputPositionZ, source.z, 0);
+        const auto speaker = calculationEngine->getSpeakerPosition (0);
+        check (speaker.x == source.x && speaker.y == source.y && speaker.z == source.z,
+               "G15 F10: (set-up) output 1 sits exactly on input 1");
+
+        lsSection.setProperty (inputLSactive, 1, nullptr);
+        lsSection.setProperty (inputLSradius, 0.0, nullptr);
+        lsTamerEngine->process ({}, {});
+        const float gain = lsTamerEngine->getLSGain (0, 0);
+        check (gain == 1.0f, "G15 F10: a tamer radius of 0 reduces nothing (it was 0/0 = NaN), gain "
+                                 + juce::String (gain));
+
+        // The publish, fed a NaN gain directly.
+        const size_t cells = static_cast<size_t> (calculationEngine->getNumInputs() * calculationEngine->getNumOutputs());
+        std::vector<float> gains (cells, 1.0f);
+        calculationEngine->markAllInputsDirty();
+        calculationEngine->recalculateMatrix (gains.data());
+        const float live = calculationEngine->getLevel (0, 0);
+        gains[0] = std::numeric_limits<float>::quiet_NaN();
+        calculationEngine->markAllInputsDirty();
+        calculationEngine->recalculateMatrix (gains.data());
+        const float published = calculationEngine->getLevel (0, 0);
+        check (live > 0.0f, "G15 F10: (set-up) input 1 reaches output 1");
+        check (published == 0.0f && calculationEngine->hadNonFiniteMatrix(),
+               "G15 F10: a NaN reaching the matrix is published as silence, not NaN (got "
+                   + juce::String (published) + ")");
+
+        lsSection.copyPropertiesAndChildrenFrom (savedLS, nullptr);
+        vts.setParameter (outputPositionX, savedOutX, 0);
+        vts.setParameter (outputPositionY, savedOutY, 0);
+        vts.setParameter (outputPositionZ, savedOutZ, 0);
+        lsTamerEngine->process ({}, {});
+        calculationEngine->markAllInputsDirty();
+        calculationEngine->recalculateMatrix (lsTamerEngine->getLSGains());
+        check (! calculationEngine->hadNonFiniteMatrix(), "G15 F10: ...and the next clean recalculation clears the report");
+    }
+
     // G14: re-audit A1. A sampler switched on or a set chosen by OSC, MCP, a
     // QLab or Go.dot cue or a recall changed the tree alone: nothing told the
     // engine, so the cue was not heard. Needs the sampler engines, which an
@@ -4698,6 +4749,36 @@ void MainComponent::runEngineReconfigSelfTest()
     check (isProcessingActive() && numOutputChannels == originalOutputs && shapeHolds()
                && blocksDuring (300).processed > 0,
            "E9: back to " + juce::String (originalOutputs) + " outputs with processing running");
+
+    // --- E10: binaural switched on mid-show keeps the PA playing (R2) --------
+    if (binauralProcessor != nullptr && binauralCalcEngine != nullptr)
+    {
+        const bool binauralBefore = vts.getBinauralEnabled();
+        const int binauralChannelBefore = vts.getBinauralOutputChannel();
+
+        // Off first, so that the next sync takes the enable path.
+        vts.setBinauralEnabled (false);
+        for (int tick = 0; tick < 8 && binauralProcessor->isEnabled(); ++tick)
+            timerCallback();
+
+        vts.setBinauralOutputChannel (0);
+        vts.setBinauralEnabled (true);
+        const uint32_t scopesBefore = audioStructureScopesEntered.load();
+        const uint32_t heldBefore = audioBlocksHeldOut.load();
+        for (int tick = 0; tick < 8 && ! binauralProcessor->isEnabled(); ++tick)
+            timerCallback();
+        const auto flow = blocksDuring (300);
+        check (isProcessingActive() && binauralProcessor->isEnabled() && binauralProcessor->isThreadRunning(),
+               "E10: binaural switched on while processing runs");
+        check (audioStructureScopesEntered.load() == scopesBefore && audioBlocksHeldOut.load() == heldBefore,
+               "E10: ...held no block out (its re-prepare silenced the whole PA)");
+        check (flow.processed > 0 && flow.heldOut == 0 && shapeHolds(), "E10: ...and blocks flow");
+
+        vts.setBinauralEnabled (binauralBefore);
+        vts.setBinauralOutputChannel (binauralChannelBefore);
+        for (int tick = 0; tick < 8 && binauralProcessor->isEnabled() != binauralBefore; ++tick)
+            timerCallback();
+    }
 
     // Left stopped, so the session can quit without the "processing is
     // running" prompt - and so the harness's graceful close also proves the
@@ -12727,6 +12808,7 @@ MainComponent::ScopedAudioStructureChange::ScopedAudioStructureChange (MainCompo
     // finishes before the count goes up, and every block after reads it.
     const juce::ScopedLock sl (owner.deviceManager.getAudioCallbackLock());
     owner.audioStructureChanges.fetch_add (1, std::memory_order_acq_rel);
+    owner.audioStructureScopesEntered.fetch_add (1, std::memory_order_relaxed);
 }
 
 MainComponent::ScopedAudioStructureChange::~ScopedAudioStructureChange()
@@ -16417,6 +16499,19 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
                 delayTimesMs[i] += (targetDelayTimesMs[i] - delayTimesMs[i]) * delaySmoothingFactor;
                 levels[i] += (targetLevels[i] - levels[i]) * levelSmoothingFactor;
                 frLevels[i] += (targetFRLevels[i] - frLevels[i]) * levelSmoothingFactor;
+
+                // A value gone non-finite never came back: the ramp from a
+                // NaN stays NaN. The calculation engine no longer publishes
+                // one (re-audit F10); this heals one that got in before.
+                if (! std::isfinite (delayTimesMs[i] + levels[i] + frLevels[i]))
+                {
+                    if (! std::isfinite (delayTimesMs[i]))
+                        delayTimesMs[i] = std::isfinite (targetDelayTimesMs[i]) ? targetDelayTimesMs[i] : 0.0f;
+                    if (! std::isfinite (levels[i]))
+                        levels[i] = 0.0f;
+                    if (! std::isfinite (frLevels[i]))
+                        frLevels[i] = 0.0f;
+                }
             }
         }
 
@@ -17546,10 +17641,14 @@ void MainComponent::timerCallback()
                     binauralNoDeviceWarned = false;
 
                     // The re-prepare frees the buffers the callback's binaural
-                    // branches use. Disabled is not enough to keep it out: a
-                    // block that read "enabled" before the last disable can
-                    // still be in there.
-                    const ScopedAudioStructureChange structureChange (*this);
+                    // branches use. Each of them is gated on isEnabled(), off
+                    // here, so the callback keeps running: the barrier only
+                    // waits out a block that read "enabled" before the last
+                    // disable and may still be in there. Holding every block
+                    // out for the whole prepare (about 166 MB at 64 sources /
+                    // 96 kHz) silenced the PA for 15-100 ms each time binaural
+                    // was switched on mid-show (re-audit R2).
+                    { const juce::ScopedLock barrier (deviceManager.getAudioCallbackLock()); }
                     binauralProcessor->stopProcessing();   // quiesce before reconfiguring
                     binauralProcessor->prepareToPlay(device->getCurrentSampleRate(),
                                                      device->getCurrentBufferSizeSamples(),

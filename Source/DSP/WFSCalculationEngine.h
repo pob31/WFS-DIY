@@ -192,6 +192,9 @@ public:
 
     /** Get matrix dimensions */
     int getNumInputs() const { return numInputs; }
+
+    /** True while the last recalculation had to zero non-finite entries. */
+    bool hadNonFiniteMatrix() const noexcept { return nonFiniteMatrixReported; }
     int getNumOutputs() const { return numOutputs; }
     int getNumReverbs() const { return numReverbs; }
 
@@ -514,6 +517,7 @@ private:
 
     // Dirty flags for lazy recalculation
     std::atomic<bool> matrixDirty { true };           // Any change requiring full recalc
+    std::atomic<bool> nonFiniteMatrixReported { false };   // last publish zeroed non-finite entries
     std::atomic<bool> outputsDirty { true };          // Output positions changed (affects all inputs)
     std::atomic<bool> reverbsDirty { true };          // Reverb positions changed
     std::vector<bool> inputDirtyFlags;                // Per-input dirty flags (protected by positionLock)
