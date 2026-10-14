@@ -508,6 +508,64 @@ def main() -> int:
             hard_failures.append(f"a refused sample path was stored: {cell_ok}")
         app.tool("input_sampler_set_cell_file", {"input_id": 1, "cell_id": 0, "value": ""})
 
+        # ---- sampler sets: numbering, undo (re-audit section 5, A3, A4) ----
+        # Sets are numbered from 1 on the wire. The nudge passed the number
+        # as the index, so "set 1" nudged set 2. Undo of any sampler, gradient
+        # or ADM sub-tree write reported success and changed nothing: the
+        # generic reversal looked for the variable on the channel. Kept out of
+        # the transcript so the golden does not move; the sets are deleted
+        # again at the end.
+        def set_x_before(set_id: int, value: float):
+            """Writes set `set_id`'s X and returns what it held before."""
+            _, env = app.tool_confirmed("input_sampler_set_set_pos_x",
+                                        {"input_id": 4, "set_id": set_id, "value": value})
+            payload = common.tool_payload(env)
+            if common.envelope_result(env).get("isError") or not isinstance(payload, dict):
+                hard_failures.append(f"input_sampler_set_set_pos_x set {set_id} failed: {payload}")
+                return None
+            return float(payload.get("before"))
+
+        created_sets = 0
+        for _ in range(2):
+            _, made = app.tool_confirmed("input_sampler_create_set", {"input_id": 4})
+            if common.envelope_result(made).get("isError"):
+                hard_failures.append(f"input_sampler_create_set failed: {common.tool_payload(made)}")
+            else:
+                created_sets += 1
+        if created_sets == 2:
+            set_x_before(1, 3.0)
+            set_x_before(2, -4.0)
+
+            _, nudged = app.tool_confirmed("input_sampler_nudge_set_pos_x",
+                                           {"input_id": 4, "set_id": 1,
+                                            "direction": "inc", "amount": 0.5})
+            n = common.tool_payload(nudged)
+            if not (isinstance(n, dict) and float(n.get("before", 0)) == 3.0
+                    and float(n.get("after", 0)) == 3.5):
+                hard_failures.append(f"nudging sampler set 1 did not move set 1 from 3.0 to 3.5: {n}")
+
+            undone = app.tool("mcp_undo_last_ai_change", {})
+            if common.envelope_result(undone).get("isError"):
+                hard_failures.append(f"undo of a sampler set nudge failed: {common.tool_payload(undone)}")
+            if set_x_before(1, 3.0) != 3.0:
+                hard_failures.append("undo of a sampler set nudge left the set's value changed")
+
+            set_x_before(2, -6.0)
+            app.tool("mcp_undo_last_ai_change", {})
+            if set_x_before(2, -4.0) != -4.0:
+                hard_failures.append("undo of a sampler set write left the set's value changed")
+
+            # The active set is a set number like any other, not text.
+            _, chosen = app.tool_confirmed("input_sampler_set_active_set",
+                                           {"input_id": 4, "value": 2})
+            if common.envelope_result(chosen).get("isError"):
+                hard_failures.append(
+                    f"input_sampler_set_active_set refused set number 2: {common.tool_payload(chosen)}")
+            app.tool_confirmed("input_sampler_set_active_set", {"input_id": 4, "value": 1})
+
+        for set_id in range(created_sets, 0, -1):
+            app.tool_confirmed("input_sampler_delete_set", {"input_id": 4, "set_id": set_id})
+
         # ---- effect sends: one cell of an effect's packed send rows --------
         # No generated tool reaches effectSendLevels / effectSendOns (the
         # codegen reads no effects CSV, and a row is a string the generic

@@ -1,5 +1,6 @@
 #include "MCPUndoEngine.h"
 #include "MCPParameterRegistry.h"
+#include "MCPGenericDispatch.h"
 #include "../OSCProtocolTypes.h"
 #include "../../Parameters/WFSValueTreeState.h"
 #include <optional>
@@ -740,6 +741,13 @@ juce::String MCPUndoEngine::writePayloadHere (const ChangeRecord& record,
         auto* payloadObj = payload.isObject() ? payload.getDynamicObject() : nullptr;
         if (payloadObj == nullptr)
             return "Record's payload (before/after state) is not an object";
+
+        // A sub-tree tool's write goes back to its own node (re-audit A4).
+        {
+            juce::String replayError;
+            if (Tools::Generated::replaySubTreeWrite (state, record.toolName, record.arguments, payload, replayError))
+                return replayError;
+        }
 
         const int recordChannelId = record.affectedGroups.empty()
                                       ? 0

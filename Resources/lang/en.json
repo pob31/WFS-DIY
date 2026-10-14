@@ -2885,6 +2885,7 @@
     "importTitle": "Import Sampler Config",
     "exportTitle": "Export Sampler Config",
     "exportFailed": "The sampler config could not be written to {path}.",
+    "importFailed": "{file} could not be copied into the project's samples folder.",
     "grid": {
       "help": "Click = select\nShift = multi\nCtrl = set toggle\nDblClick = load"
     },

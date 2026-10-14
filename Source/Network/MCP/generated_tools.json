@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "input_hash": "f328272a09e25255077d0f612b0698bd81f6abe0922276fc11b35085096aa612",
+  "input_hash": "87b588c8d1e67d461975529a41c9cbb2bdd95935f7c881c3e4fb582d45337f9f",
   "source_csvs": [
     "WFS-UI_config.csv",
     "WFS-UI_input.csv",
@@ -4722,7 +4722,7 @@
     },
     {
       "name": "input_sampler_set_active_set",
-      "description": "Select the active Sampler Set for this input. Enum: Which of the input's sampler sets is active. ONE-BASED, matching the Sampler tab dropdown, the OSC /wfs/input/samplerSet address and QLab cues; stored zero-based internally. (dynamic: list of user-created sets). Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Select the active Sampler Set for this input. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -4733,13 +4733,11 @@
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
-            "type": "string",
-            "enum": [
-              "WhichoftheinputssamplersetsisactiveONEBASEDmatchingtheSamplertabdropdowntheOSCwfsinputsamplerSetaddressandQLabcues",
-              "storedzerobasedinternallydynamiclistofusercreatedsets"
-            ],
-            "description": "Active Set (enum).",
-            "default": "storedzerobasedinternallydynamiclistofusercreatedsets"
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16,
+            "description": "Active Set.",
+            "default": 1
           }
         },
         "required": [

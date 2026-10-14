@@ -1072,6 +1072,7 @@
   },
   "sampler": {
     "exportFailed": "La configuration du sampler n'a pas pu être écrite dans {path}.",
+    "importFailed": "{file} n'a pas pu être copié dans le dossier samples du projet.",
     "grid": {
       "help": "Clic = sélection\nMaj = multi\nCtrl = basculer le set\nDblClic = charger"
     },

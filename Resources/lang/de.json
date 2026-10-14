@@ -1150,6 +1150,7 @@
   "sampler": {
     "placeholder": "Sampler — demnächst verfügbar",
     "exportFailed": "Die Sampler-Konfiguration konnte nicht nach {path} geschrieben werden.",
+    "importFailed": "{file} konnte nicht in den Samples-Ordner des Projekts kopiert werden.",
     "grid": {
       "help": "Klick=Auswahl | Shift=Mehrfach | Strg=Set umschalten | Doppelklick=Laden"
     },

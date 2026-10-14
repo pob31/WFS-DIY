@@ -70,28 +70,30 @@ public:
 
     /**
      * Copy an external audio file into the project samples/ folder.
-     * Returns the relative path (filename only) within the samples folder,
-     * or empty string on failure.
+     * Returns the file name within the samples folder, or an empty string
+     * when it could not be copied. A file already in that folder is used
+     * where it is; a name already taken gets _1, _2 ... _999. Past that the
+     * import fails: the loop used to stop on _999 and copy over it, replacing
+     * a sample other cells play, and the copy's result was not checked
+     * (re-audit F11).
      */
-    juce::String importSampleToProject (const juce::File& sourceFile,
-                                         const juce::File& samplesFolder)
+    static juce::String importSampleToProject (const juce::File& sourceFile,
+                                               const juce::File& samplesFolder)
     {
         if (! sourceFile.existsAsFile() || ! samplesFolder.isDirectory())
             return {};
 
-        juce::File destFile = samplesFolder.getChildFile (sourceFile.getFileName());
+        if (sourceFile.getParentDirectory() == samplesFolder)
+            return sourceFile.getFileName();
 
-        // Handle name collision: append _1, _2, etc.
-        if (destFile.existsAsFile())
+        auto destFile = samplesFolder.getChildFile (sourceFile.getFileName());
+        for (int counter = 1; destFile.exists(); ++counter)
         {
-            auto baseName = sourceFile.getFileNameWithoutExtension();
-            auto extension = sourceFile.getFileExtension();
-            int counter = 1;
-            do
-            {
-                destFile = samplesFolder.getChildFile (baseName + "_" + juce::String (counter) + extension);
-                counter++;
-            } while (destFile.existsAsFile() && counter < 1000);
+            if (counter >= 1000)
+                return {};
+            destFile = samplesFolder.getChildFile (sourceFile.getFileNameWithoutExtension()
+                                                   + "_" + juce::String (counter)
+                                                   + sourceFile.getFileExtension());
         }
 
         if (! sourceFile.copyFileTo (destFile))

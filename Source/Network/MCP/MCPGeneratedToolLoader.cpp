@@ -114,6 +114,124 @@ namespace
         state.markChannelNumbersUserOwned ("MCP tool addressing an input by number");
         return state.getSlotForChannelNumber (displayId);
     }
+
+    /** The node a sub-tree tool writes and the property on it - for the
+        setter, and for the undo replay of what it wrote. An error when the
+        indices name nothing (a caller error, not an app defect: a fresh
+        gradient layer genuinely has no shapes until someone draws one).
+        None leaves `node` invalid. */
+    ToolResult resolveSubTreeNode (WFSValueTreeState& state, const ToolBinding& binding,
+                                   int channelIndex, int subA, int subB,
+                                   juce::ValueTree& node, juce::Identifier& property)
+    {
+        property = juce::Identifier (binding.internalVariable);
+
+        switch (binding.subTree)
+        {
+        case ToolBinding::SubTree::GradientLayer:
+            node = state.getInputGradientLayer (channelIndex, subA);
+            if (! node.isValid())
+                return ToolResult::error ("invalid_args",
+                                          "No gradient-map layer " + juce::String (subA)
+                                            + " on that input (layers are 0-2).");
+            break;
+
+        case ToolBinding::SubTree::GradientShape:
+            node = state.getInputGradientShape (channelIndex, subA, subB);
+            if (! node.isValid())
+                return ToolResult::error ("invalid_args",
+                                          "No shape " + juce::String (subB) + " on gradient-map layer "
+                                            + juce::String (subA)
+                                            + ". A layer starts with no shapes; they are created in "
+                                              "the gradient-map editor.");
+            break;
+
+        case ToolBinding::SubTree::GradientAlias:
+            // gmLayer0Enabled and friends are routing tokens, not stored
+            // properties: the layer is in the name and the property written
+            // is gmLayerEnabled. OSC ingress has done this translation by
+            // hand since the aliases were introduced; this is the same
+            // translation, in the place every other surface goes through.
+            node = state.getInputGradientLayer (channelIndex, binding.aliasIndex);
+            property = binding.aliasProperty;
+            if (! node.isValid())
+                return ToolResult::error ("invalid_args",
+                                          "No gradient-map layer " + juce::String (binding.aliasIndex)
+                                            + " on that input.");
+            break;
+
+        case ToolBinding::SubTree::AdmCartAxis:
+            node = state.getADMCartAxis (subA, subB);
+            if (! node.isValid())
+                return ToolResult::error ("invalid_args",
+                                          "No ADM Cartesian mapping " + juce::String (subA)
+                                            + " axis " + juce::String (subB)
+                                            + " (mappings are 0-3, axes 0=X 1=Y 2=Z).");
+            break;
+
+        case ToolBinding::SubTree::AdmPolarMapping:
+            node = state.getADMPolarMapping (subA);
+            if (! node.isValid())
+                return ToolResult::error ("invalid_args",
+                                          "No ADM Polar mapping " + juce::String (subA)
+                                            + " (mappings are 0-3).");
+            break;
+
+        case ToolBinding::SubTree::SamplerCell:
+            node = state.getInputSamplerCell (channelIndex, subA);
+            if (! node.isValid())
+                return ToolResult::error ("invalid_args",
+                                          "No sampler cell " + juce::String (subA)
+                                            + " on that input (cells are 0-35).");
+            break;
+
+        case ToolBinding::SubTree::SamplerSet:
+            // set_id is ONE-based on the wire, matching the Sampler tab
+            // dropdown, the OSC samplerSet address and QLab cues; the tree
+            // stores sets from 0. MCP was the only surface counting from
+            // zero, which made "set 1" mean different things depending on
+            // which door you came through.
+            node = state.getInputSamplerSet (channelIndex, subA - 1);
+            if (! node.isValid())
+                return ToolResult::error ("invalid_args",
+                                          "No sampler set " + juce::String (subA)
+                                            + " on that input (sets are numbered from 1). An "
+                                              "input starts with no sets; they are created in "
+                                              "the Sampler tab.");
+            break;
+
+        case ToolBinding::SubTree::NetworkTarget:
+            // Slots are 1-6 as the Network tab numbers them; the tree stores
+            // them as children from 0.
+            node = state.getNetworkTargetState (subA - 1);
+            if (! node.isValid())
+                return ToolResult::error ("invalid_args",
+                                          "No network target " + juce::String (subA)
+                                            + " (slots are 1-6, and only configured ones exist).");
+            break;
+
+        case ToolBinding::SubTree::None:
+        default:
+            break;
+                }
+
+        return ToolResult::ok ({});
+    }
+
+    /** Sub-tree tools by name, for the undo replay: their binding, and the
+        app hooks a write to them runs (re-audit A4). */
+    struct SubTreeTool
+    {
+        ToolBinding binding;
+        const std::function<void (int)>* onSamplerChanged = nullptr;
+        const std::function<void (int)>* onGradientMapChanged = nullptr;
+    };
+
+    std::map<juce::String, SubTreeTool>& subTreeTools()
+    {
+        static std::map<juce::String, SubTreeTool> tools;
+        return tools;
+    }
 }  // anonymous namespace
 
 // ---------------------------------------------------------------------------
@@ -242,94 +360,11 @@ namespace Detail
         // gradient layer genuinely has no shapes until someone draws one.
         juce::ValueTree subTreeNode;
         juce::Identifier subTreeProperty (binding.internalVariable);
-
-        switch (binding.subTree)
         {
-            case ToolBinding::SubTree::GradientLayer:
-                subTreeNode = state.getInputGradientLayer (channelIndex, subA);
-                if (! subTreeNode.isValid())
-                    return ToolResult::error ("invalid_args",
-                                              "No gradient-map layer " + juce::String (subA)
-                                                + " on that input (layers are 0-2).");
-                break;
-
-            case ToolBinding::SubTree::GradientShape:
-                subTreeNode = state.getInputGradientShape (channelIndex, subA, subB);
-                if (! subTreeNode.isValid())
-                    return ToolResult::error ("invalid_args",
-                                              "No shape " + juce::String (subB) + " on gradient-map layer "
-                                                + juce::String (subA)
-                                                + ". A layer starts with no shapes; they are created in "
-                                                  "the gradient-map editor.");
-                break;
-
-            case ToolBinding::SubTree::GradientAlias:
-                // gmLayer0Enabled and friends are routing tokens, not stored
-                // properties: the layer is in the name and the property written
-                // is gmLayerEnabled. OSC ingress has done this translation by
-                // hand since the aliases were introduced; this is the same
-                // translation, in the place every other surface goes through.
-                subTreeNode = state.getInputGradientLayer (channelIndex, binding.aliasIndex);
-                subTreeProperty = binding.aliasProperty;
-                if (! subTreeNode.isValid())
-                    return ToolResult::error ("invalid_args",
-                                              "No gradient-map layer " + juce::String (binding.aliasIndex)
-                                                + " on that input.");
-                break;
-
-            case ToolBinding::SubTree::AdmCartAxis:
-                subTreeNode = state.getADMCartAxis (subA, subB);
-                if (! subTreeNode.isValid())
-                    return ToolResult::error ("invalid_args",
-                                              "No ADM Cartesian mapping " + juce::String (subA)
-                                                + " axis " + juce::String (subB)
-                                                + " (mappings are 0-3, axes 0=X 1=Y 2=Z).");
-                break;
-
-            case ToolBinding::SubTree::AdmPolarMapping:
-                subTreeNode = state.getADMPolarMapping (subA);
-                if (! subTreeNode.isValid())
-                    return ToolResult::error ("invalid_args",
-                                              "No ADM Polar mapping " + juce::String (subA)
-                                                + " (mappings are 0-3).");
-                break;
-
-            case ToolBinding::SubTree::SamplerCell:
-                subTreeNode = state.getInputSamplerCell (channelIndex, subA);
-                if (! subTreeNode.isValid())
-                    return ToolResult::error ("invalid_args",
-                                              "No sampler cell " + juce::String (subA)
-                                                + " on that input (cells are 0-35).");
-                break;
-
-            case ToolBinding::SubTree::SamplerSet:
-                // set_id is ONE-based on the wire, matching the Sampler tab
-                // dropdown, the OSC samplerSet address and QLab cues; the tree
-                // stores sets from 0. MCP was the only surface counting from
-                // zero, which made "set 1" mean different things depending on
-                // which door you came through.
-                subTreeNode = state.getInputSamplerSet (channelIndex, subA - 1);
-                if (! subTreeNode.isValid())
-                    return ToolResult::error ("invalid_args",
-                                              "No sampler set " + juce::String (subA)
-                                                + " on that input (sets are numbered from 1). An "
-                                                  "input starts with no sets; they are created in "
-                                                  "the Sampler tab.");
-                break;
-
-            case ToolBinding::SubTree::NetworkTarget:
-                // Slots are 1-6 as the Network tab numbers them; the tree stores
-                // them as children from 0.
-                subTreeNode = state.getNetworkTargetState (subA - 1);
-                if (! subTreeNode.isValid())
-                    return ToolResult::error ("invalid_args",
-                                              "No network target " + juce::String (subA)
-                                                + " (slots are 1-6, and only configured ones exist).");
-                break;
-
-            case ToolBinding::SubTree::None:
-            default:
-                break;
+            auto resolved = resolveSubTreeNode (state, binding, channelIndex, subA, subB,
+                                                subTreeNode, subTreeProperty);
+            if (! resolved.success)
+                return resolved;
         }
 
         const bool writesSubTree = subTreeNode.isValid();
@@ -540,7 +575,9 @@ namespace Detail
         }
         else if (writesSubTree)
         {
-            subTreeNode.setProperty (subTreeProperty, value, state.getActiveUndoManager());
+            // Through the store's write gate (bounds, NaN refusal), like every
+            // other MCP write (re-audit section 5).
+            state.writeSubTreeProperty (subTreeNode, subTreeProperty, value, state.getActiveUndoManager());
         }
         else
         {
@@ -632,6 +669,27 @@ namespace
         return true;
     }
 
+    /** Tell the app a sampler cell or set changed on the channel `args` names:
+        SamplerManager keeps its own copy, and the audio thread reads that, not
+        the tree. The setters did this; the nudges did not, so a nudged sampler
+        value never reached the audio (re-audit section 5). */
+    void notifySamplerChange (WFSValueTreeState& state, const ToolBinding& binding, const juce::var& args,
+                              const std::function<void (int)>* onSamplerChanged)
+    {
+        if (onSamplerChanged == nullptr || ! *onSamplerChanged)
+            return;
+
+        if (auto* argsObj = args.getDynamicObject())
+            if (argsObj->hasProperty (binding.channelArgName))
+            {
+                const int slot = resolveChannelSlot (
+                    state, binding.channelArgName,
+                    static_cast<int> (argsObj->getProperty (binding.channelArgName)));
+                if (slot >= 0)
+                    (*onSamplerChanged) (slot);
+            }
+    }
+
 }  // anonymous namespace
 
 namespace Detail
@@ -716,15 +774,18 @@ namespace Detail
                 return ToolResult::error ("invalid_args",
                                           "Missing required arg: " + binding.subIndexArgA);
             const int subIdx = static_cast<int> (argsObj->getProperty (binding.subIndexArgA));
-            nudgeNode = (binding.subTree == ToolBinding::SubTree::SamplerCell)
-                          ? state.getInputSamplerCell (channelIndex, subIdx)
-                          : state.getInputSamplerSet  (channelIndex, subIdx);
+            const bool isCell = binding.subTree == ToolBinding::SubTree::SamplerCell;
+            // Sets are ONE-based on the wire, as in the setter above: the nudge
+            // passed the raw id, so "set 1" nudged set 2 and the last set was
+            // "not on that input" (re-audit section 5).
+            nudgeNode = isCell ? state.getInputSamplerCell (channelIndex, subIdx)
+                               : state.getInputSamplerSet  (channelIndex, subIdx - 1);
             if (! nudgeNode.isValid())
                 return ToolResult::error ("invalid_args",
-                                          "No sampler " + juce::String (
-                                              binding.subTree == ToolBinding::SubTree::SamplerCell
-                                                  ? "cell " : "set ")
-                                            + juce::String (subIdx) + " on that input.");
+                                          isCell ? "No sampler cell " + juce::String (subIdx)
+                                                     + " on that input (cells are 0-35)."
+                                                 : "No sampler set " + juce::String (subIdx)
+                                                     + " on that input (sets are numbered from 1).");
         }
         else if (binding.subTree != ToolBinding::SubTree::None)
         {
@@ -749,6 +810,10 @@ namespace Detail
         const auto beforeVar = nudgeNode.isValid() ? nudgeNode.getProperty (paramId)
                                                    : state.getParameter (paramId, channelIndex);
         const double beforeValue = static_cast<double> (beforeVar);
+        if (! std::isfinite (beforeValue))
+            return ToolResult::error ("invalid_state",
+                                      "'" + binding.internalVariable + "' does not hold a number "
+                                        "to adjust; set it with the matching set tool first.");
 
         // Apply delta, clamp if range known.
         double newValue = beforeValue + signedDelta;
@@ -763,7 +828,7 @@ namespace Detail
             writeValue = juce::var (newValue);
 
         if (nudgeNode.isValid())
-            nudgeNode.setProperty (paramId, writeValue, state.getActiveUndoManager());
+            state.writeSubTreeProperty (nudgeNode, paramId, writeValue, state.getActiveUndoManager());
         else
             state.setParameter (paramId, writeValue, channelIndex);
 
@@ -1052,6 +1117,9 @@ LoadStats loadGeneratedTools (MCPToolRegistry& registry,
             || binding.internalVariable == WFSParameterIDs::outputChannels.toString()
             || binding.internalVariable == WFSParameterIDs::reverbChannels.toString();
 
+        if (binding.subTree != ToolBinding::SubTree::None)
+            subTreeTools()[binding.name] = { binding, onSamplerChanged, onGradientMapChanged };
+
         d.handler = [&state, binding, isChannelCount, isGradientWrite, isSamplerWrite,
                      onTopologyChanged, onGradientMapChanged, onSamplerChanged]
                     (const juce::var& args, ChangeRecord* record) -> ToolResult
@@ -1081,19 +1149,8 @@ LoadStats loadGeneratedTools (MCPToolRegistry& registry,
                 record->operatorDescription += " (structural change - not undoable)";
             }
 
-            if (result.success && isSamplerWrite
-                && onSamplerChanged != nullptr && *onSamplerChanged)
-            {
-                if (auto* argsObj = args.getDynamicObject())
-                    if (argsObj->hasProperty (binding.channelArgName))
-                    {
-                        const int slot = resolveChannelSlot (
-                            state, binding.channelArgName,
-                            static_cast<int> (argsObj->getProperty (binding.channelArgName)));
-                        if (slot >= 0)
-                            (*onSamplerChanged) (slot);
-                    }
-            }
+            if (result.success && isSamplerWrite)
+                notifySamplerChange (state, binding, args, onSamplerChanged);
 
             if (result.success && isGradientWrite
                 && onGradientMapChanged != nullptr && *onGradientMapChanged)
@@ -1161,9 +1218,18 @@ LoadStats loadGeneratedTools (MCPToolRegistry& registry,
             if (toolObj->hasProperty ("tier"))
                 d.tier = juce::jlimit (1, 3, static_cast<int> (toolObj->getProperty ("tier")));
             d.listable = shouldListGeneratedTool (d.tier);
-            d.handler = [&state, binding] (const juce::var& args, ChangeRecord* record) -> ToolResult
+            const bool isSamplerNudge =
+                   binding.subTree == ToolBinding::SubTree::SamplerCell
+                || binding.subTree == ToolBinding::SubTree::SamplerSet;
+            if (binding.subTree != ToolBinding::SubTree::None)
+                subTreeTools()[binding.name] = { static_cast<const ToolBinding&> (binding), onSamplerChanged, nullptr };
+            d.handler = [&state, binding, isSamplerNudge, onSamplerChanged]
+                        (const juce::var& args, ChangeRecord* record) -> ToolResult
             {
-                return dispatchGenericNudge (state, binding, args, record);
+                auto result = dispatchGenericNudge (state, binding, args, record);
+                if (result.success && isSamplerNudge)
+                    notifySamplerChange (state, binding, args, onSamplerChanged);
+                return result;
             };
 
             registry.registerTool (std::move (d));
@@ -1177,6 +1243,74 @@ LoadStats loadGeneratedTools (MCPToolRegistry& registry,
                        + " skipped - see DBG output for variable-name mismatches)");
 
     return stats;
+}
+
+bool replaySubTreeWrite (WFSValueTreeState& state, const juce::String& toolName,
+                         const juce::var& arguments, const juce::var& payload, juce::String& error)
+{
+    const auto it = subTreeTools().find (toolName);
+    if (it == subTreeTools().end())
+        return false;   // not a sub-tree tool: the caller's generic path applies
+
+    const auto& tool = it->second;
+    const auto& binding = tool.binding;
+    auto* argsObj = arguments.getDynamicObject();
+    auto* payloadObj = payload.getDynamicObject();
+    if (argsObj == nullptr || payloadObj == nullptr)
+    {
+        error = "Record's arguments or payload are not objects";
+        return true;
+    }
+
+    int channelIndex = -1;
+    if (binding.channelArgName.isNotEmpty())
+    {
+        channelIndex = resolveChannelSlot (state, binding.channelArgName,
+                                           static_cast<int> (argsObj->getProperty (binding.channelArgName)));
+        if (channelIndex < 0)
+        {
+            error = binding.channelArgName + " " + argsObj->getProperty (binding.channelArgName).toString()
+                    + " is no longer live";
+            return true;
+        }
+    }
+
+    const int subA = binding.subIndexArgA.isNotEmpty() ? static_cast<int> (argsObj->getProperty (binding.subIndexArgA)) : -1;
+    const int subB = binding.subIndexArgB.isNotEmpty() ? static_cast<int> (argsObj->getProperty (binding.subIndexArgB)) : -1;
+
+    juce::ValueTree node;
+    juce::Identifier property;
+    const auto resolved = resolveSubTreeNode (state, binding, channelIndex, subA, subB, node, property);
+    if (! resolved.success || ! node.isValid())
+    {
+        error = resolved.success ? juce::String ("the node this change wrote no longer exists")
+                                 : resolved.errorMessage;
+        return true;
+    }
+
+    // The record keys the value by the tool's variable; an alias writes a
+    // different property on the node.
+    const auto& props = payloadObj->getProperties();
+    for (int i = 0; i < props.size(); ++i)
+    {
+        const auto key = props.getName (i);
+        state.writeSubTreeProperty (node, key.toString() == binding.internalVariable ? property : key,
+                                    props.getValueAt (i), state.getActiveUndoManager());
+    }
+
+    // The same hooks the write ran: SamplerManager and the gradient raster
+    // keep their own copies of what changed.
+    const bool isSampler = binding.subTree == ToolBinding::SubTree::SamplerCell
+                        || binding.subTree == ToolBinding::SubTree::SamplerSet;
+    const bool isGradient = binding.subTree == ToolBinding::SubTree::GradientLayer
+                         || binding.subTree == ToolBinding::SubTree::GradientShape
+                         || binding.subTree == ToolBinding::SubTree::GradientAlias;
+    if (isSampler)
+        notifySamplerChange (state, binding, arguments, tool.onSamplerChanged);
+    else if (isGradient && channelIndex >= 0 && tool.onGradientMapChanged != nullptr && *tool.onGradientMapChanged)
+        (*tool.onGradientMapChanged) (channelIndex);
+
+    return true;
 }
 
 } // namespace WFSNetwork::Tools::Generated

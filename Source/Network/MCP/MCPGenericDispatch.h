@@ -109,3 +109,20 @@ ToolResult dispatchGenericNudge (WFSValueTreeState& state,
                                  ChangeRecord* record);
 
 } // namespace WFSNetwork::Tools::Generated::Detail
+
+namespace WFSNetwork::Tools::Generated
+{
+/** Undo or redo of a generated sub-tree tool's write - a sampler cell or set,
+    a gradient layer or shape, an ADM mapping, a network target - from its
+    change record: the node is found again from the record's tool name and
+    arguments, `payload` ({variable: value}) is written there through the
+    store's gate, and the app hook the write ran (sampler reload, gradient
+    rebuild) runs again. The generic reversal wrote these with setParameter,
+    which cannot find those nodes, so the undo did nothing and reported
+    success (re-audit 2026-09-29, A4).
+
+    Returns false when `toolName` is not a sub-tree tool, and the caller's
+    generic path applies; true otherwise, with `error` empty on success. */
+bool replaySubTreeWrite (WFSValueTreeState& state, const juce::String& toolName,
+                         const juce::var& arguments, const juce::var& payload, juce::String& error);
+}

@@ -2,6 +2,8 @@
 
 #include <JuceHeader.h>
 #include <map>
+#include <set>
+#include <array>
 #include "../spatcore/wfs/InputBufferAlgorithm.h"
 #if WFS_GPU_NATIVE
 #include "../spatcore/wfs/NativeGpuWfsAlgorithm.h"
@@ -846,6 +848,35 @@ private:
     void handleGpuDepthChange(int depthBlocks);
     void handleConfigReloaded();
     void applySamplerSetPosition (int channelIndex, const juce::ValueTree& samplerNode, int setIndex);
+
+    /** applySamplerSetPosition, skipped when that set's position is what was
+        last applied to the input: a write to a cell or to another set
+        property used to snap the input back to the set's base (re-audit A5). */
+    void applySamplerSetPositionIfChanged (int channelIndex, const juce::ValueTree& samplerNode, int setIndex);
+
+    /** Brings SamplerManager in line with an input's STORED sampler state:
+        active or not, and the stored active set loaded and its position
+        applied. `reloadCells` reads the cells' audio again (a load, a device
+        restart); otherwise only a channel becoming active does. */
+    void syncSamplerChannel (int slot, bool reloadCells);
+
+    /** Syncs every input samplerSyncPending holds (the timer, and the self-test). */
+    void drainSamplerSync();
+
+    /** Inputs whose stored samplerActive or active set changed - by OSC, MCP,
+        a QLab or Go.dot cue, a recall - waiting for the timer to sync them.
+        Those writes changed the tree alone: nothing told SamplerManager, so a
+        set cue was not heard (re-audit A1). Coalesced so a load that writes
+        many inputs syncs each once. */
+    struct SamplerStateWatcher final : juce::ValueTree::Listener
+    {
+        explicit SamplerStateWatcher (MainComponent& o) : owner (o) {}
+        void valueTreePropertyChanged (juce::ValueTree& node, const juce::Identifier& property) override;
+        MainComponent& owner;
+    };
+    std::unique_ptr<SamplerStateWatcher> samplerStateWatcher;
+    std::set<int> samplerSyncPending;
+    std::map<int, std::array<float, 4>> lastAppliedSamplerSetPosition;   // slot -> {set, x, y, z}
     void applySamplerControllerMode (int mode);
     std::map<int, int> buildZoneToInputMap() const;
 

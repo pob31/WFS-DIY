@@ -93,6 +93,17 @@ public:
         LFO section has never had any. */
     void setClusterLFOParameter (int clusterIndex, const juce::Identifier& paramId, const juce::var& value);
 
+    /** A property of a node inside the store that no per-channel setter
+        reaches - a sampler cell or set - written through the store's write
+        gate: a bounded parameter is clamped, NaN, infinity and non-numeric
+        text are refused (re-audit 2026-09-29, section 5). The Sampler tab
+        and MCP wrote these nodes with a bare setProperty. */
+    void writeSubTreeProperty (juce::ValueTree node, const juce::Identifier& property,
+                               const juce::var& value, juce::UndoManager* undoManager = nullptr)
+    {
+        writeProperty (node, property, value, undoManager);
+    }
+
     juce::ValueTree getClusterLFOPresetsSection();
     juce::ValueTree ensureClusterLFOPreset (int presetIndex);
 

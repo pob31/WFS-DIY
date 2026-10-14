@@ -1043,7 +1043,16 @@ MainComponent::MainComponent()
         // not the one the Sampler tab happens to be showing. samplerCellFile is
         // the one that matters most - without loadChannelCells running again the
         // audio file named by the write is never actually read.
-        if (samplerManager == nullptr || slot < 0)
+        if (slot < 0)
+            return;
+
+        // The Sampler tab keeps its own copy of the cells and sets: show the
+        // write if it is showing this input (re-audit section 5).
+        if (inputsTab != nullptr
+            && parameters.getValueTreeState().getSlotForChannelNumber (inputsTab->getCurrentChannel()) == slot)
+            inputsTab->getSamplerSubTab().loadFromValueTree();
+
+        if (samplerManager == nullptr)
             return;
         auto samplerTree = parameters.getValueTreeState().getInputSamplerSection (slot);
         if (! samplerTree.isValid())
@@ -1052,8 +1061,14 @@ MainComponent::MainComponent()
         samplerManager->loadChannelCells (slot, samplerTree, samplesFolder);
         const int setIdx = WFSVar::toInt (samplerTree.getProperty (WFSParameterIDs::inputSamplerActiveSet), 0);
         samplerManager->loadChannelSetFromTree (slot, samplerTree, setIdx);
-        applySamplerSetPosition (slot, samplerTree, setIdx);
+        applySamplerSetPositionIfChanged (slot, samplerTree, setIdx);
     });
+
+    // OSC, MCP, cues and recalls change an input's stored sampler state
+    // without the Sampler tab: watch the two properties that decide what the
+    // engine plays (re-audit A1). Synced from the timer.
+    samplerStateWatcher = std::make_unique<SamplerStateWatcher> (*this);
+    parameters.getValueTreeState().addListener (samplerStateWatcher.get());
 
     mcpServer->setGradientMapChangedCallback ([this] (int slot)
     {
@@ -4127,6 +4142,341 @@ void MainComponent::runValueGatesSelfTest()
                "G11 B6: a release link elsewhere than our GitHub page is not offered");
         check (UpdateChecker::isOwnReleaseUrl ("https://github.com/pob31/WFS-DIY/releases/tag/v1.0.0beta99"),
                "G11 B6: ...and ours is");
+    }
+
+    //--------------------------------------------------------------------------
+    // G13: re-audit 2026-09-29, the sampler (F4, F5, F9, F11, section 5), on
+    // engines built here: no device needed. A cell of DC at 1.0, so what comes
+    // out IS the gain the engine applied.
+    {
+        static constexpr double sr = 48000.0;
+        static constexpr int block = 480;
+        using Touch = SamplerEngine::TouchEvent;
+
+        const auto makeCell = [] (int numSamples, float inMs, float outMs, float ox, float oy, float oz)
+        {
+            SamplerData::SampleCell cell;
+            cell.audioBuffer = std::make_shared<juce::AudioBuffer<float>> (1, numSamples);
+            juce::FloatVectorOperations::fill (cell.audioBuffer->getWritePointer (0), 1.0f, numSamples);
+            cell.numSamples = numSamples;
+            cell.sampleRate = sr;
+            cell.relativeFilePath = "dc.wav";
+            cell.inTime = inMs;
+            cell.outTime = outMs;
+            cell.offsetX = ox;
+            cell.offsetY = oy;
+            cell.offsetZ = oz;
+            return cell;
+        };
+        const auto touch = [] (Touch::Type type, float pressure = 1.0f, float dx = 0.0f, float dy = 0.0f)
+        {
+            Touch t;
+            t.type = type;
+            t.cellIndex = 0;
+            t.pressure = pressure;
+            t.deltaX = dx;
+            t.deltaY = dy;
+            return t;
+        };
+        const auto makeEngine = [] (const SamplerData::SampleCell& cell, const SamplerData::SamplerSet& set)
+        {
+            auto e = std::make_unique<SamplerEngine>();
+            e->prepare (sr, block);
+            e->loadCells ({ cell });
+            e->loadSet (set);
+            return e;
+        };
+
+        std::vector<float> out (static_cast<size_t> (block));
+        struct Peak { float peak = 0.0f; bool finite = true; };
+        const auto run = [&out] (SamplerEngine& e, int blocks)
+        {
+            Peak p;
+            for (int b = 0; b < blocks; ++b)
+            {
+                e.processBlock (out.data(), block);
+                for (float s : out)
+                {
+                    p.finite = p.finite && std::isfinite (s);
+                    p.peak = juce::jmax (p.peak, std::abs (s));
+                }
+            }
+            return p;
+        };
+        const auto nearly = [] (float a, float b) { return std::abs (a - b) < 1.0e-4f; };
+
+        const SamplerData::SamplerSet plainSet;
+        const int longSample = static_cast<int> (sr) * 3;
+
+        // F4: the cell's offset holds the input only while the note does.
+        {
+            auto e = makeEngine (makeCell (1000, 0.0f, 20.0f, 1.0f, 2.0f, 0.0f), plainSet);
+            e->pushEvent (touch (Touch::NoteOn));
+            run (*e, 1);
+            check (e->isPlaying() && e->hasPositionOverride() && nearly (e->getPositionX(), 1.0f),
+                   "G13 F4: a playing cell moves the input by its offset");
+            run (*e, 2);
+            check (! e->isPlaying() && ! e->hasPositionOverride(),
+                   "G13 F4: ...and lets it go when the sample runs out (a preview held it for good)");
+        }
+        {
+            auto e = makeEngine (makeCell (longSample, 0.0f, 20.0f, 1.0f, 2.0f, 0.0f), plainSet);
+            e->pushEvent (touch (Touch::NoteOn));
+            e->pushEvent (touch (Touch::NoteOff));
+            run (*e, 4);
+            check (! e->isPlaying() && ! e->hasPositionOverride(),
+                   "G13 F4: a tap shorter than one block releases the input");
+        }
+        {
+            auto e = makeEngine (makeCell (longSample, 0.0f, 40.0f, 1.0f, 2.0f, 0.0f), plainSet);
+            e->pushEvent (touch (Touch::NoteOn));
+            run (*e, 1);
+            e->pushEvent (touch (Touch::NoteOff));
+            e->pushEvent (touch (Touch::XYMove, 1.0f, 0.5f, 0.5f));
+            run (*e, 1);
+            check (nearly (e->getPositionX(), 1.0f), "G13 F4: a move after the finger lifted does not move the input");
+            run (*e, 6);
+            e->pushEvent (touch (Touch::XYMove, 1.0f, 0.5f, 0.5f));
+            run (*e, 1);
+            check (! e->isPlaying() && ! e->hasPositionOverride(),
+                   "G13 F4: ...nor bring the override back once the note has ended");
+        }
+        {
+            SamplerManager manager;
+            manager.prepare (sr, block, 1);
+            manager.getEngine (0)->loadCells ({ makeCell (longSample, 0.0f, 20.0f, 1.0f, 2.0f, 0.0f) });
+            juce::AudioBuffer<float> buffer (1, block);
+            float x = 0.0f, y = 0.0f, z = 0.0f;
+            manager.setChannelActive (0, true);
+            manager.pushTouchEvent (0, touch (Touch::NoteOn));
+            manager.processChannel (0, buffer, 0, block);
+            check (manager.isChannelPlaying (0) && manager.getPositionOverride (0, x, y, z),
+                   "G13 F4: a sampler channel's note holds its input");
+            manager.setChannelActive (0, false);
+            check (! manager.isChannelPlaying (0) && ! manager.getPositionOverride (0, x, y, z),
+                   "G13 F4: ...and a channel switched off mid-note neither plays nor holds it");
+            manager.setChannelActive (0, true);
+            manager.processChannel (0, buffer, 0, block);
+            check (! manager.isChannelPlaying (0) && ! manager.getPositionOverride (0, x, y, z)
+                       && buffer.getMagnitude (0, 0, block) == 0.0f,
+                   "G13 F4: ...nor does the frozen note play on when it comes back on");
+        }
+
+        // F5: the release fades from where the envelope got to.
+        {
+            auto e = makeEngine (makeCell (longSample, 500.0f, 500.0f, 0.0f, 0.0f, 0.0f), plainSet);
+            e->pushEvent (touch (Touch::NoteOn));
+            const auto rising = run (*e, 1);
+            e->pushEvent (touch (Touch::NoteOff));
+            const auto release = run (*e, 60);
+            check (rising.peak < 0.03f && release.peak <= rising.peak + 1.0e-4f && ! e->isPlaying(),
+                   "G13 F5: releasing during a long fade-in fades from that level (it burst out at full level), peak "
+                       + juce::String (release.peak, 4));
+        }
+        {
+            auto e = makeEngine (makeCell (longSample, 500.0f, 500.0f, 0.0f, 0.0f, 0.0f), plainSet);
+            e->pushEvent (touch (Touch::NoteOn));
+            e->pushEvent (touch (Touch::NoteOff));
+            const auto tap = run (*e, 60);
+            check (tap.peak == 0.0f && ! e->isPlaying(), "G13 F5: ...and a tap within one block stays silent");
+        }
+        {
+            auto e = makeEngine (makeCell (longSample, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f), plainSet);
+            e->pushEvent (touch (Touch::NoteOn));
+            run (*e, 1);
+            e->pushEvent (touch (Touch::NoteOff));
+            e->processBlock (out.data(), block);
+            const float afterFade = juce::FloatVectorOperations::findMaximum (out.data() + 48, block - 48);
+            check (out[0] > 0.9f && afterFade == 0.0f && ! e->isPlaying(),
+                   "G13 F5: the block where a 1 ms fade-out ends is silent after it (it went on at full level)");
+        }
+
+        // F9: Height scales the cell's Z offset with pressure; the set's XY
+        // scale multiplies the global sensitivity.
+        {
+            auto set = plainSet;
+            set.pressZ = { true, 0, 0.5f };
+            auto e = makeEngine (makeCell (longSample, 0.0f, 20.0f, 0.0f, 0.0f, 4.0f), set);
+            e->pushEvent (touch (Touch::NoteOn, 0.5f));
+            run (*e, 1);
+            const float half = e->getPositionZ();
+            e->pushEvent (touch (Touch::Pressure, 1.0f));
+            run (*e, 1);
+            check (nearly (half, 2.0f) && nearly (e->getPositionZ(), 4.0f),
+                   "G13 F9: Height scales the cell's Z offset with pressure (2 then 4 m, got "
+                       + juce::String (half, 3) + " then " + juce::String (e->getPositionZ(), 3) + ")");
+
+            auto noHeight = makeEngine (makeCell (longSample, 0.0f, 20.0f, 0.0f, 0.0f, 4.0f), plainSet);
+            noHeight->pushEvent (touch (Touch::NoteOn, 0.5f));
+            run (*noHeight, 1);
+            check (nearly (noHeight->getPositionZ(), 4.0f), "G13 F9: ...and with Height off the offset is the cell's");
+        }
+        {
+            const auto movedX = [&] (float scale)
+            {
+                auto set = plainSet;
+                set.pressXYEnabled = true;
+                set.pressXYScale = scale;
+                auto e = makeEngine (makeCell (longSample, 0.0f, 20.0f, 1.0f, 0.0f, 0.0f), set);
+                e->pushEvent (touch (Touch::NoteOn));
+                e->pushEvent (touch (Touch::XYMove, 1.0f, 0.05f, 0.0f));
+                run (*e, 1);
+                return e->getPositionX();
+            };
+            const float atDefault = movedX (WFSParameterDefaults::samplerSetPressXYScaleDefault);
+            const float doubled = movedX (2.0f * WFSParameterDefaults::samplerSetPressXYScaleDefault);
+            check (nearly (atDefault, 1.05f) && nearly (doubled, 1.10f),
+                   "G13 F9: a set's XY scale multiplies the move (1.05 and 1.10 m, got "
+                       + juce::String (atDefault, 3) + " and " + juce::String (doubled, 3) + ")");
+        }
+
+        // Section 5: what reaches the engine is bounded, whatever was stored.
+        {
+            juce::ValueTree cellNode (SamplerCell);
+            cellNode.setProperty (samplerCellAttenuation, "12", nullptr);
+            cellNode.setProperty (samplerCellOutTime, "nan", nullptr);
+            cellNode.setProperty (samplerCellInTime, 1.0e9, nullptr);
+            cellNode.setProperty (samplerCellOffsetX, "abc", nullptr);
+            cellNode.setProperty (samplerCellOffsetY, -1000.0, nullptr);
+            SamplerData::SampleCell cell;
+            cell.loadFromValueTree (cellNode);
+            check (cell.attenuation == 0.0f && cell.outTime == WFSParameterDefaults::samplerCellOutTimeDefault
+                       && cell.inTime == WFSParameterDefaults::samplerCellInTimeMax && cell.offsetX == 0.0f
+                       && cell.offsetY == WFSParameterDefaults::samplerCellOffsetMin,
+                   "G13 bounds: a cell's stored values reach the engine held to their ranges (a gain, NaN, junk)");
+
+            juce::ValueTree setNode (SamplerSet);
+            setNode.setProperty (samplerSetLevel, 40.0, nullptr);
+            setNode.setProperty (samplerSetPressLevelCurve, "inf", nullptr);
+            setNode.setProperty (samplerSetPressXYScale, 100.0, nullptr);
+            setNode.setProperty (samplerSetPosX, -1000.0, nullptr);
+            setNode.setProperty (samplerSetPressZEnabled, 7, nullptr);
+            setNode.setProperty (samplerSetPressZDir, 5, nullptr);
+            SamplerData::SamplerSet set;
+            set.loadFromValueTree (setNode);
+            check (set.level == 0.0f && set.pressLevel.curve == WFSParameterDefaults::samplerSetPressCurveDefault
+                       && set.pressXYScale == WFSParameterDefaults::samplerSetPressXYScaleMax
+                       && set.posX == WFSParameterDefaults::samplerSetPosMin
+                       && set.pressZ.enabled && set.pressZ.direction == 1,
+                   "G13 bounds: ...and a set's");
+
+            auto nanSet = plainSet;
+            nanSet.level = std::numeric_limits<float>::quiet_NaN();
+            nanSet.pressLevel.curve = std::numeric_limits<float>::quiet_NaN();
+            auto e = makeEngine (makeCell (longSample, 0.0f, 20.0f, 0.0f, 0.0f, 0.0f), nanSet);
+            e->pushEvent (touch (Touch::NoteOn));
+            const auto nanRun = run (*e, 2);
+            auto loudSet = plainSet;
+            loudSet.level = 40.0f;
+            auto loud = makeEngine (makeCell (longSample, 0.0f, 20.0f, 0.0f, 0.0f, 0.0f), loudSet);
+            loud->pushEvent (touch (Touch::NoteOn));
+            const auto loudRun = run (*loud, 2);
+            check (nanRun.finite && nanRun.peak == 0.0f && loudRun.finite && loudRun.peak <= 1.0f,
+                   "G13 bounds: the engine's last stop: a NaN level is silence, +40 dB is unity");
+        }
+
+        // Section 5: the store's gate covers the sampler nodes it writes.
+        if (auto cellNode = vts.getInputSamplerCell (0, 0); cellNode.isValid())
+        {
+            const auto saved = cellNode.getProperty (samplerCellAttenuation);
+            vts.writeSubTreeProperty (cellNode, samplerCellAttenuation, 20.0);
+            const float clamped = WFSVar::toFloat (cellNode.getProperty (samplerCellAttenuation), 99.0f);
+            vts.writeSubTreeProperty (cellNode, samplerCellAttenuation, -6.0);
+            vts.writeSubTreeProperty (cellNode, samplerCellAttenuation, std::numeric_limits<double>::quiet_NaN());
+            const float afterNaN = WFSVar::toFloat (cellNode.getProperty (samplerCellAttenuation), 99.0f);
+            cellNode.setProperty (samplerCellAttenuation, saved, nullptr);
+            check (clamped == 0.0f && afterNaN == -6.0f,
+                   "G13 bounds: a cell attenuation written as +20 dB stores 0, a NaN is refused");
+        }
+        else
+        {
+            check (false, "G13 bounds: input 1 has no sampler cell 0 to write");
+        }
+
+        // F11: an import never overwrites a sample already in the folder.
+        {
+            const auto root = juce::File::getSpecialLocation (juce::File::tempDirectory)
+                                  .getChildFile ("wfs-g13-import-" + juce::String (juce::Time::currentTimeMillis()));
+            const auto samples = root.getChildFile ("samples");
+            samples.createDirectory();
+            const auto source = root.getChildFile ("kick.wav");
+            source.replaceWithText ("new");
+            samples.getChildFile ("kick.wav").replaceWithText ("old");
+            for (int i = 1; i < 1000; ++i)
+                samples.getChildFile ("kick_" + juce::String (i) + ".wav").replaceWithText ("old");
+
+            const auto full = SamplerFileOps::importSampleToProject (source, samples);
+            check (full.isEmpty() && samples.getChildFile ("kick_999.wav").loadFileAsString() == "old",
+                   "G13 F11: with kick.wav to kick_999.wav taken the import fails (it overwrote kick_999.wav)");
+
+            samples.getChildFile ("kick_500.wav").deleteFile();
+            const auto copied = SamplerFileOps::importSampleToProject (source, samples);
+            check (copied == "kick_500.wav" && samples.getChildFile (copied).loadFileAsString() == "new",
+                   "G13 F11: ...and takes the first free name");
+            check (SamplerFileOps::importSampleToProject (samples.getChildFile ("kick_7.wav"), samples) == "kick_7.wav",
+                   "G13 F11: a file already in the samples folder is used where it is");
+            root.deleteRecursively();
+        }
+    }
+
+    // G14: re-audit A1. A sampler switched on or a set chosen by OSC, MCP, a
+    // QLab or Go.dot cue or a recall changed the tree alone: nothing told the
+    // engine, so the cue was not heard. Needs the sampler engines, which an
+    // open audio device creates.
+    if (samplerManager == nullptr || samplerManager->getNumChannels() < 1)
+    {
+        logLine ("SELF-TEST SKIP G14: no sampler engines (open an audio device: run_selftest.py --device)");
+    }
+    else
+    {
+        const int slot = 0;
+        const auto savedActive = vts.getParameter (inputSamplerActive, slot);
+        const auto savedSet = vts.getParameter (inputSamplerActiveSet, slot);
+        const auto savedX = vts.getParameter (inputPositionX, slot);
+        const int firstNew = vts.getNumInputSamplerSets (slot);
+        const auto positionX = [&] { return WFSVar::toFloat (vts.getParameter (inputPositionX, slot), 999.0f); };
+
+        auto setA = vts.addInputSamplerSet (slot, "G14 A");
+        auto setB = vts.addInputSamplerSet (slot, "G14 B");
+        if (! setA.isValid() || ! setB.isValid())
+        {
+            check (false, "G14 A1: two sets could not be added to input 1");
+        }
+        else
+        {
+            vts.writeSubTreeProperty (setA, samplerSetPosX, 3.0);
+            vts.writeSubTreeProperty (setA, samplerSetCells, "2");
+            vts.writeSubTreeProperty (setB, samplerSetPosX, -4.0);
+            vts.writeSubTreeProperty (setB, samplerSetCells, "3");
+            vts.setParameter (inputSamplerActive, 0, slot);
+            vts.setParameter (inputSamplerActiveSet, firstNew, slot);
+            drainSamplerSync();
+
+            auto* engine = samplerManager->getEngine (slot);
+            vts.setParameter (inputSamplerActive, 1, slot);
+            check (samplerSyncPending.count (slot) == 1, "G14 A1: switching the sampler on through the store queues the input");
+            drainSamplerSync();
+            check (samplerManager->isChannelActive (slot) && engine != nullptr && engine->getNextCellFromSet() == 2
+                       && std::abs (positionX() - 3.0f) < 1.0e-4f,
+                   "G14 A1: ...and the engine comes on with the stored set, at its position");
+
+            vts.setParameter (inputSamplerActiveSet, firstNew + 1, slot);
+            drainSamplerSync();
+            check (engine != nullptr && engine->getNextCellFromSet() == 3 && std::abs (positionX() + 4.0f) < 1.0e-4f,
+                   "G14 A1: a set cue through the store loads that set and moves the input to it (got x = "
+                       + juce::String (positionX(), 3) + ")");
+
+            vts.setParameter (inputSamplerActive, 0, slot);
+            drainSamplerSync();
+            check (! samplerManager->isChannelActive (slot), "G14 A1: switching it off through the store stops the engine");
+        }
+
+        vts.removeInputSamplerSet (slot, firstNew + 1);
+        vts.removeInputSamplerSet (slot, firstNew);
+        vts.setParameter (inputSamplerActiveSet, savedSet, slot);
+        vts.setParameter (inputSamplerActive, savedActive, slot);
+        vts.setParameter (inputPositionX, savedX, slot);
+        drainSamplerSync();
     }
 
     logLine(failures == 0 ? "SELF-TEST RESULT: ALL PASS"
@@ -11937,6 +12287,9 @@ MainComponent::~MainComponent()
 {
     WFSLogger::getInstance().logInfo ("Session ending - saving settings");
 
+    if (samplerStateWatcher != nullptr)
+        parameters.getValueTreeState().removeListener (samplerStateWatcher.get());
+
     // Invalidate in-flight SOFA loader callbacks (they capture this).
     *sofaLoadAlive = false;
 
@@ -12464,6 +12817,78 @@ void MainComponent::stopProcessingForConfigurationChange()
         binauralProcessor->startProcessing();
 }
 
+void MainComponent::syncSamplerChannel (int slot, bool reloadCells)
+{
+    if (samplerManager == nullptr)
+        return;
+
+    auto samplerTree = parameters.getValueTreeState().getInputSamplerSection (slot);
+    const bool active = WFSVar::toInt (parameters.getInputParam (slot, "inputSamplerActive"), 0) != 0;
+    const bool wasActive = samplerManager->isChannelActive (slot);
+    samplerManager->setChannelActive (slot, active);
+
+    if (! active || ! samplerTree.isValid())
+        return;
+
+    if (reloadCells || ! wasActive)
+        samplerManager->loadChannelCells (slot, samplerTree, parameters.getFileManager().getSamplesFolder());
+
+    const int setIdx = WFSVar::toInt (samplerTree.getProperty (WFSParameterIDs::inputSamplerActiveSet), 0);
+    samplerManager->loadChannelSetFromTree (slot, samplerTree, setIdx);
+    applySamplerSetPosition (slot, samplerTree, setIdx);
+}
+
+void MainComponent::drainSamplerSync()
+{
+    if (samplerSyncPending.empty())
+        return;
+
+    const auto pending = std::exchange (samplerSyncPending, {});
+    for (int slot : pending)
+        syncSamplerChannel (slot, false);
+}
+
+void MainComponent::SamplerStateWatcher::valueTreePropertyChanged (juce::ValueTree& node, const juce::Identifier& property)
+{
+    if (property != WFSParameterIDs::inputSamplerActive && property != WFSParameterIDs::inputSamplerActiveSet)
+        return;
+
+    // Up to the input this node belongs to; its index is the slot.
+    auto inputs = owner.parameters.getValueTreeState().getInputsState();
+    for (auto n = node; n.isValid(); n = n.getParent())
+        if (n.getParent() == inputs)
+        {
+            owner.samplerSyncPending.insert (inputs.indexOf (n));
+            return;
+        }
+}
+
+void MainComponent::applySamplerSetPositionIfChanged (int channelIndex, const juce::ValueTree& samplerNode, int setIndex)
+{
+    using namespace WFSParameterIDs;
+    using namespace WFSParameterDefaults;
+
+    int setCount = 0;
+    for (int i = 0; i < samplerNode.getNumChildren(); ++i)
+    {
+        auto child = samplerNode.getChild (i);
+        if (! child.hasType (SamplerSet))
+            continue;
+        if (setCount++ != setIndex)
+            continue;
+
+        const std::array<float, 4> position { static_cast<float> (setIndex),
+            WFSVar::toFloat (child.getProperty (samplerSetPosX), samplerSetPosDefault),
+            WFSVar::toFloat (child.getProperty (samplerSetPosY), samplerSetPosDefault),
+            WFSVar::toFloat (child.getProperty (samplerSetPosZ), samplerSetPosDefault) };
+
+        const auto it = lastAppliedSamplerSetPosition.find (channelIndex);
+        if (it == lastAppliedSamplerSetPosition.end() || it->second != position)
+            applySamplerSetPosition (channelIndex, samplerNode, setIndex);
+        return;
+    }
+}
+
 void MainComponent::applySamplerSetPosition (int channelIndex, const juce::ValueTree& samplerNode, int setIndex)
 {
     using namespace WFSParameterIDs;
@@ -12477,12 +12902,13 @@ void MainComponent::applySamplerSetPosition (int channelIndex, const juce::Value
         {
             if (setCount == setIndex)
             {
-                float px = static_cast<float> (child.getProperty (samplerSetPosX, samplerSetPosDefault));
-                float py = static_cast<float> (child.getProperty (samplerSetPosY, samplerSetPosDefault));
-                float pz = static_cast<float> (child.getProperty (samplerSetPosZ, samplerSetPosDefault));
+                float px = WFSVar::toFloat (child.getProperty (samplerSetPosX), samplerSetPosDefault);
+                float py = WFSVar::toFloat (child.getProperty (samplerSetPosY), samplerSetPosDefault);
+                float pz = WFSVar::toFloat (child.getProperty (samplerSetPosZ), samplerSetPosDefault);
                 parameters.setInputParam (channelIndex, "inputPositionX", px);
                 parameters.setInputParam (channelIndex, "inputPositionY", py);
                 parameters.setInputParam (channelIndex, "inputPositionZ", pz);
+                lastAppliedSamplerSetPosition[channelIndex] = { static_cast<float> (setIndex), px, py, pz };
                 return;
             }
             ++setCount;
@@ -14322,26 +14748,14 @@ void MainComponent::handleConfigReloaded()
             }
         }
 
-        // Re-activate sampler engines for channels with sampler enabled
+        // Re-activate sampler engines for channels with sampler enabled, on
+        // their STORED active set: this loaded set 0 whatever the project or
+        // recall said (re-audit A2).
         if (samplerManager != nullptr)
         {
             for (int ch = 0; ch < numInputChannels; ++ch)
-            {
-                auto val = parameters.getInputParam (ch, "inputSamplerActive");
-                bool active = ! val.isVoid() && static_cast<int> (val) != 0;
-                samplerManager->setChannelActive (ch, active);
-                if (active)
-                {
-                    auto samplerTree = parameters.getValueTreeState().getInputSamplerSection (ch);
-                    if (samplerTree.isValid())
-                    {
-                        auto samplesFolder = parameters.getFileManager().getSamplesFolder();
-                        samplerManager->loadChannelCells (ch, samplerTree, samplesFolder);
-                        samplerManager->loadChannelSetFromTree (ch, samplerTree, 0);
-                        applySamplerSetPosition (ch, samplerTree, 0);
-                    }
-                }
-            }
+                syncSamplerChannel (ch, true);
+            samplerSyncPending.clear();   // just synced, every one
         }
     }
 
@@ -15796,24 +16210,10 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
         samplerManager = std::make_unique<SamplerManager>();
     samplerManager->prepare (sampleRate, samplesPerBlockExpected, numInputChannels);
 
-    // Activate sampler channels that are already enabled and load their data
+    // Activate sampler channels that are already enabled and load their data,
+    // on their stored active set (it loaded set 0, re-audit A2)
     for (int ch = 0; ch < numInputChannels; ++ch)
-    {
-        auto val = parameters.getInputParam (ch, "inputSamplerActive");
-        bool active = ! val.isVoid() && static_cast<int> (val) != 0;
-        samplerManager->setChannelActive (ch, active);
-        if (active)
-        {
-            auto samplerTree = parameters.getValueTreeState().getInputSamplerSection (ch);
-            if (samplerTree.isValid())
-            {
-                auto samplesFolder = parameters.getFileManager().getSamplesFolder();
-                samplerManager->loadChannelCells (ch, samplerTree, samplesFolder);
-                samplerManager->loadChannelSetFromTree (ch, samplerTree, 0);
-                applySamplerSetPosition (ch, samplerTree, 0);
-            }
-        }
-    }
+        syncSamplerChannel (ch, true);
 
     // Load audio patch matrices
     loadAudioPatches();
@@ -16466,6 +16866,10 @@ void MainComponent::saveSettings()
 
 void MainComponent::timerCallback()
 {
+    // Inputs whose stored sampler state changed outside the Sampler tab
+    // (OSC, MCP, cues, recalls): bring SamplerManager in line (re-audit A1).
+    drainSamplerSync();
+
     // MIDI-triggered recall. The MIDI thread only parked a packed (ch<<8)|note;
     // the recall itself (XML read + whole-ValueTree write + handleConfigReloaded)
     // runs here, on the message thread. One slot = latest-wins coalescing at

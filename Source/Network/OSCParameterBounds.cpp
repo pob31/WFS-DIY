@@ -290,6 +290,36 @@ namespace
             // store from 0, so one range cannot gate both. Its OSC handler
             // checks the set it resolves to.
 
+            // The cell and set numbers (re-audit 2026-09-29, section 5). They
+            // have no OSC address, but MCP, the tab and file loads write them,
+            // and nothing bounded them: "+40" was +40 dB, a NaN curve a NaN
+            // output. The engine's loaders hold them to the same ranges.
+            BIND_F    (samplerCellInTime);
+            BIND_F    (samplerCellOutTime);
+            BIND_F_AS (samplerCellOffsetX, samplerCellOffset);
+            BIND_F_AS (samplerCellOffsetY, samplerCellOffset);
+            BIND_F_AS (samplerCellOffsetZ, samplerCellOffset);
+            BIND_F    (samplerCellAttenuation);
+            BIND_F_AS (samplerSetPosX, samplerSetPos);
+            BIND_F_AS (samplerSetPosY, samplerSetPos);
+            BIND_F_AS (samplerSetPosZ, samplerSetPos);
+            BIND_F    (samplerSetLevel);
+            BIND_F_AS (samplerSetPressLevelCurve, samplerSetPressCurve);
+            BIND_F_AS (samplerSetPressZCurve, samplerSetPressCurve);
+            BIND_F_AS (samplerSetPressHFCurve, samplerSetPressCurve);
+            BIND_F    (samplerSetPressXYScale);
+            BIND_BOOL (samplerSetPlayMode);
+            BIND_BOOL (samplerSetPressLevelEnabled);
+            BIND_BOOL (samplerSetPressZEnabled);
+            BIND_BOOL (samplerSetPressHFEnabled);
+            BIND_BOOL (samplerSetPressXYEnabled);
+            BIND_BOOL (samplerSetPressLevelDir);
+            BIND_BOOL (samplerSetPressZDir);
+            BIND_BOOL (samplerSetPressHFDir);
+            m[WFSParameterIDs::samplerMidiZoneQuadrant] = { 0.0, 4.0, true };
+            m[WFSParameterIDs::samplerControllerMode]   = { 0.0, 2.0, true };
+            BIND_F    (lightpadSensitivity);
+
             //------------------------------------------------------------------
             // Input / Mutes + Gradient map layers
             //------------------------------------------------------------------

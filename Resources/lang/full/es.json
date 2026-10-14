@@ -2565,6 +2565,7 @@
     "importTitle": "Importar configuración de sampler",
     "exportTitle": "Exportar configuración de sampler",
     "exportFailed": "No se pudo escribir la configuración del sampler en {path}.",
+    "importFailed": "No se pudo copiar {file} en la carpeta de samples del proyecto.",
     "grid": {
       "help": "Clic=seleccionar | Shift=multi | Ctrl=alternar set | DblClic=cargar"
     },

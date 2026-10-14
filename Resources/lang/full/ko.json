@@ -2574,6 +2574,7 @@
     "importTitle": "샘플러 설정 가져오기",
     "exportTitle": "샘플러 설정 내보내기",
     "exportFailed": "{path}에 Sampler 설정을 쓸 수 없습니다.",
+    "importFailed": "{file}을(를) 프로젝트의 samples 폴더에 복사할 수 없습니다.",
     "grid": {
       "help": "클릭=선택 | Shift=다중 | Ctrl=세트 전환 | 더블클릭=로드"
     },

@@ -1122,6 +1122,7 @@
   },
   "sampler": {
     "exportFailed": "サンプラー設定を {path} に書き込めませんでした。",
+    "importFailed": "{file} をプロジェクトの samples フォルダーにコピーできませんでした。",
     "grid": {
       "help": "クリック=選択 | Shift=複数 | Ctrl=セット切替 | ダブルクリック=読込"
     },

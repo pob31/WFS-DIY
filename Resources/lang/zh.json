@@ -1149,6 +1149,7 @@
   },
   "sampler": {
     "exportFailed": "无法将采样器配置写入 {path}。",
+    "importFailed": "无法将 {file} 复制到项目的 samples 文件夹。",
     "grid": {
       "help": "单击=选择 | Shift=多选 | Ctrl=切换集合 | 双击=加载"
     },

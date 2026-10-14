@@ -1152,6 +1152,7 @@
   "sampler": {
     "placeholder": "Sampler — em breve",
     "exportFailed": "Não foi possível escrever a configuração do sampler em {path}.",
+    "importFailed": "Não foi possível copiar {file} para a pasta samples do projeto.",
     "grid": {
       "help": "Clique=selecionar | Shift=multi | Ctrl=alternar set | DblClique=carregar"
     },

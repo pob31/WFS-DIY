@@ -90,8 +90,12 @@ public:
         }
 
         if (channelActive[idx] != active)
+        {
             WFSLogger::getInstance().logInfo ("Sampler: input " + juce::String (channelIndex + 1)
                                               + (active ? " activated" : " deactivated"));
+            if (active && engines[idx] != nullptr)
+                engines[idx]->requestReset();
+        }
         channelActive[idx] = active;
     }
 
@@ -276,11 +280,14 @@ public:
         if (idx >= engines.size() || engines[idx] == nullptr)
             return false;
 
+        // The engine clears the position override itself when the note's
+        // fade-out ends (re-audit F4). Clearing it here, on the message
+        // thread, raced the audio thread, and a tap shorter than one block
+        // was cleared before its NoteOn was even drained - which then set it
+        // again for good.
         SamplerEngine::TouchEvent event;
         event.type = SamplerEngine::TouchEvent::NoteOff;
-        bool ok = engines[idx]->pushEvent (event);
-        engines[idx]->releasePositionOverride();
-        return ok;
+        return engines[idx]->pushEvent (event);
     }
 
     /** Push a touch event for a channel (called from BLOCKS/MIDI thread) */
@@ -293,12 +300,19 @@ public:
         return engines[idx]->pushEvent (event);
     }
 
-    /** Update XY position delta for a channel (from Lightpad/remote movement, pre-scaled) */
+    /** Update XY position delta for a channel (from Lightpad/remote movement,
+        pre-scaled). Queued for the audio thread, which owns the accumulator. */
     void updatePosition (int channelIndex, float scaledDx, float scaledDy)
     {
         auto idx = static_cast<size_t> (channelIndex);
         if (idx < engines.size() && engines[idx] != nullptr)
-            engines[idx]->updatePosition (scaledDx, scaledDy);
+        {
+            SamplerEngine::TouchEvent event;
+            event.type = SamplerEngine::TouchEvent::XYMove;
+            event.deltaX = scaledDx;
+            event.deltaY = scaledDy;
+            engines[idx]->pushEvent (event);
+        }
     }
 
     //==========================================================================
@@ -307,6 +321,11 @@ public:
     {
         auto idx = static_cast<size_t> (channelIndex);
         if (idx >= engines.size() || engines[idx] == nullptr)
+            return false;
+
+        // A deactivated channel is no longer processed, so its engine never
+        // ends the note: its override must not hold the input.
+        if (idx >= channelActive.size() || ! channelActive[idx])
             return false;
 
         if (! engines[idx]->hasPositionOverride())
@@ -318,11 +337,12 @@ public:
         return true;
     }
 
-    /** Check if a channel's engine is currently playing audio */
+    /** Check if a channel's engine is currently playing audio. An inactive
+        channel plays nothing, whatever its idle engine still holds. */
     bool isChannelPlaying (int channelIndex) const
     {
         auto idx = static_cast<size_t> (channelIndex);
-        if (idx >= engines.size() || engines[idx] == nullptr)
+        if (idx >= engines.size() || engines[idx] == nullptr || ! isChannelActive (channelIndex))
             return false;
         return engines[idx]->isPlaying();
     }
@@ -333,7 +353,7 @@ public:
         auto idx = static_cast<size_t> (channelIndex);
         if (idx >= engines.size() || engines[idx] == nullptr)
             return -1;
-        return engines[idx]->isPlaying() ? engines[idx]->getCurrentCellIndex() : -1;
+        return isChannelPlaying (channelIndex) ? engines[idx]->getCurrentCellIndex() : -1;
     }
 
     /** Check if any channel has an active sampler */

@@ -3,9 +3,49 @@
 #include <JuceHeader.h>
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
+#include "../Parameters/VarCoercion.h"
+#include <cmath>
 
 namespace SamplerData
 {
+
+/** A sampler number on its way to the engine: absent, or not a finite number,
+    reads as the default; anything else is held to its range. Every path to
+    the engine - the tab, MCP, a project or snapshot load, an imported
+    sampler file - goes through the two loaders below, and none of them was
+    bounded: "+40" was +40 dB, "inf" an infinite gain, a NaN curve a NaN
+    output (re-audit 2026-09-29, section 5). */
+inline float readBounded (const juce::ValueTree& node, const juce::Identifier& id,
+                          float defaultValue, float minValue, float maxValue)
+{
+    const auto v = node.getProperty (id);
+    if (v.isVoid())
+        return defaultValue;
+
+    double d = 0.0;
+    if (v.isString())
+    {
+        const auto parsed = WFSVar::parseFiniteNumber (v.toString());
+        if (! parsed)
+            return defaultValue;
+        d = *parsed;
+    }
+    else
+    {
+        d = static_cast<double> (v);
+    }
+
+    if (! std::isfinite (d))
+        return defaultValue;
+
+    return juce::jlimit (minValue, maxValue, static_cast<float> (d));
+}
+
+/** 0 or 1, whatever was stored. */
+inline int readFlag (const juce::ValueTree& node, const juce::Identifier& id, int defaultValue)
+{
+    return WFSVar::toInt (node.getProperty (id), defaultValue) != 0 ? 1 : 0;
+}
 
 /**
  * Represents a single sample cell in the 6x6 grid.
@@ -36,14 +76,16 @@ struct SampleCell
         using namespace WFSParameterIDs;
         if (! node.isValid()) return;
 
+        using namespace WFSParameterDefaults;
         name             = node.getProperty (samplerCellName, "").toString();
         relativeFilePath = node.getProperty (samplerCellFile, "").toString();
-        inTime           = static_cast<float> (node.getProperty (samplerCellInTime, 0.0f));
-        outTime          = static_cast<float> (node.getProperty (samplerCellOutTime, 20.0f));
-        offsetX          = static_cast<float> (node.getProperty (samplerCellOffsetX, 0.0f));
-        offsetY          = static_cast<float> (node.getProperty (samplerCellOffsetY, 0.0f));
-        offsetZ          = static_cast<float> (node.getProperty (samplerCellOffsetZ, 0.0f));
-        attenuation      = static_cast<float> (node.getProperty (samplerCellAttenuation, 0.0f));
+        inTime      = readBounded (node, samplerCellInTime, samplerCellInTimeDefault, samplerCellInTimeMin, samplerCellInTimeMax);
+        outTime     = readBounded (node, samplerCellOutTime, samplerCellOutTimeDefault, samplerCellOutTimeMin, samplerCellOutTimeMax);
+        offsetX     = readBounded (node, samplerCellOffsetX, samplerCellOffsetDefault, samplerCellOffsetMin, samplerCellOffsetMax);
+        offsetY     = readBounded (node, samplerCellOffsetY, samplerCellOffsetDefault, samplerCellOffsetMin, samplerCellOffsetMax);
+        offsetZ     = readBounded (node, samplerCellOffsetZ, samplerCellOffsetDefault, samplerCellOffsetMin, samplerCellOffsetMax);
+        attenuation = readBounded (node, samplerCellAttenuation, samplerCellAttenuationDefault,
+                                   samplerCellAttenuationMin, samplerCellAttenuationMax);
     }
 };
 
@@ -64,8 +106,12 @@ struct PressureMapping
         // Power curve: curve < 0.5 = concave (sensitive at low pressure)
         //              curve > 0.5 = convex (sensitive at high pressure)
         //              curve = 0.5 = linear
-        float exponent = (curve < 0.01f) ? 0.01f : (curve > 0.99f ? 100.0f : curve / (1.0f - curve));
-        float result = std::pow (juce::jlimit (0.0f, 1.0f, normalizedPressure), exponent);
+        // A non-finite curve or pressure reads as linear / none: jlimit lets
+        // NaN through, and a NaN here was a NaN output.
+        const float c = std::isfinite (curve) ? curve : 0.5f;
+        const float p = std::isfinite (normalizedPressure) ? juce::jlimit (0.0f, 1.0f, normalizedPressure) : 0.0f;
+        float exponent = (c < 0.01f) ? 0.01f : (c > 0.99f ? 100.0f : c / (1.0f - c));
+        float result = std::pow (p, exponent);
 
         return direction == 0 ? result : (1.0f - result);
     }
@@ -129,28 +175,34 @@ struct SamplerSet
         if (! node.isValid()) return;
 
         name        = node.getProperty (samplerSetName, "").toString();
-        playMode    = static_cast<int> (node.getProperty (samplerSetPlayMode, samplerSetPlayModeDefault));
+        playMode    = readFlag (node, samplerSetPlayMode, samplerSetPlayModeDefault);
         cellIndices = parseCellIndices (node.getProperty (samplerSetCells, "").toString());
 
-        posX  = static_cast<float> (node.getProperty (samplerSetPosX, samplerSetPosDefault));
-        posY  = static_cast<float> (node.getProperty (samplerSetPosY, samplerSetPosDefault));
-        posZ  = static_cast<float> (node.getProperty (samplerSetPosZ, samplerSetPosDefault));
-        level = static_cast<float> (node.getProperty (samplerSetLevel, samplerSetLevelDefault));
+        posX  = readBounded (node, samplerSetPosX, samplerSetPosDefault, samplerSetPosMin, samplerSetPosMax);
+        posY  = readBounded (node, samplerSetPosY, samplerSetPosDefault, samplerSetPosMin, samplerSetPosMax);
+        posZ  = readBounded (node, samplerSetPosZ, samplerSetPosDefault, samplerSetPosMin, samplerSetPosMax);
+        level = readBounded (node, samplerSetLevel, samplerSetLevelDefault, samplerSetLevelMin, samplerSetLevelMax);
 
-        pressLevel.enabled   = static_cast<int> (node.getProperty (samplerSetPressLevelEnabled, samplerSetPressLevelEnabledDefault)) != 0;
-        pressLevel.direction = static_cast<int> (node.getProperty (samplerSetPressLevelDir, samplerSetPressDirDefault));
-        pressLevel.curve     = static_cast<float> (node.getProperty (samplerSetPressLevelCurve, samplerSetPressCurveDefault));
+        const auto curveOf = [&node] (const juce::Identifier& property)
+        {
+            return readBounded (node, property, samplerSetPressCurveDefault, samplerSetPressCurveMin, samplerSetPressCurveMax);
+        };
 
-        pressZ.enabled   = static_cast<int> (node.getProperty (samplerSetPressZEnabled, samplerSetPressEnabledDefault)) != 0;
-        pressZ.direction = static_cast<int> (node.getProperty (samplerSetPressZDir, samplerSetPressDirDefault));
-        pressZ.curve     = static_cast<float> (node.getProperty (samplerSetPressZCurve, samplerSetPressCurveDefault));
+        pressLevel.enabled   = readFlag (node, samplerSetPressLevelEnabled, samplerSetPressLevelEnabledDefault) != 0;
+        pressLevel.direction = readFlag (node, samplerSetPressLevelDir, samplerSetPressDirDefault);
+        pressLevel.curve     = curveOf (samplerSetPressLevelCurve);
 
-        pressHF.enabled   = static_cast<int> (node.getProperty (samplerSetPressHFEnabled, samplerSetPressEnabledDefault)) != 0;
-        pressHF.direction = static_cast<int> (node.getProperty (samplerSetPressHFDir, samplerSetPressDirDefault));
-        pressHF.curve     = static_cast<float> (node.getProperty (samplerSetPressHFCurve, samplerSetPressCurveDefault));
+        pressZ.enabled   = readFlag (node, samplerSetPressZEnabled, samplerSetPressEnabledDefault) != 0;
+        pressZ.direction = readFlag (node, samplerSetPressZDir, samplerSetPressDirDefault);
+        pressZ.curve     = curveOf (samplerSetPressZCurve);
 
-        pressXYEnabled = static_cast<int> (node.getProperty (samplerSetPressXYEnabled, samplerSetPressXYEnabledDefault)) != 0;
-        pressXYScale   = static_cast<float> (node.getProperty (samplerSetPressXYScale, samplerSetPressXYScaleDefault));
+        pressHF.enabled   = readFlag (node, samplerSetPressHFEnabled, samplerSetPressEnabledDefault) != 0;
+        pressHF.direction = readFlag (node, samplerSetPressHFDir, samplerSetPressDirDefault);
+        pressHF.curve     = curveOf (samplerSetPressHFCurve);
+
+        pressXYEnabled = readFlag (node, samplerSetPressXYEnabled, samplerSetPressXYEnabledDefault) != 0;
+        pressXYScale   = readBounded (node, samplerSetPressXYScale, samplerSetPressXYScaleDefault,
+                                      samplerSetPressXYScaleMin, samplerSetPressXYScaleMax);
 
         // Reset playback state
         currentIndex = 0;

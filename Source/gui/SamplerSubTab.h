@@ -5,6 +5,7 @@
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
 #include "../Sampler/SamplerData.h"
+#include "../Sampler/SamplerFileOps.h"
 #include "../Localization/LocalizationManager.h"
 #include "../Helpers/TypedValue.h"
 #include "TypedTextField.h"
@@ -88,8 +89,11 @@ public:
         inOutRangeSlider->setValueFormatter ([] (float v) { return juce::String ((int) v); });
         inOutRangeSlider->onValuesChanged = [this] (float minV, float maxV)
         {
+            // The slider reaches 0 on both thumbs; an out time is 1 ms at
+            // least. The store clamps it, but the tab's copy kept the 0.
             onCellParamChanged (WFSParameterIDs::samplerCellInTime, minV);
-            onCellParamChanged (WFSParameterIDs::samplerCellOutTime, maxV);
+            onCellParamChanged (WFSParameterIDs::samplerCellOutTime,
+                                juce::jmax (WFSParameterDefaults::samplerCellOutTimeMin, maxV));
         };
         addChildComponent (*inOutRangeSlider);
 
@@ -1218,25 +1222,23 @@ private:
                 if (! samplesFolder.isDirectory())
                     samplesFolder.createDirectory();
 
-                juce::String relPath = result.getFileName();
-
-                // Copy file if not already in samples folder
-                if (result.getParentDirectory() != samplesFolder)
+                // Copied in unless it is already there. A failed copy - a
+                // full disk, a read-only folder, every _N name taken - left
+                // the cells naming a file that was never written (re-audit F11).
+                const auto relPath = SamplerFileOps::importSampleToProject (result, samplesFolder);
+                if (relPath.isEmpty())
                 {
-                    auto dest = samplesFolder.getChildFile (result.getFileName());
-                    if (! dest.existsAsFile())
-                        result.copyFileTo (dest);
-                    else if (dest != result)
-                    {
-                        // Name collision — append counter
-                        auto base = result.getFileNameWithoutExtension();
-                        auto ext = result.getFileExtension();
-                        int counter = 1;
-                        do { dest = samplesFolder.getChildFile (base + "_" + juce::String (counter++) + ext); }
-                        while (dest.existsAsFile() && counter < 1000);
-                        result.copyFileTo (dest);
-                        relPath = dest.getFileName();
-                    }
+                    WFSLogger::getInstance().logWarning ("Sampler: copying " + result.getFullPathName()
+                                                         + " into " + samplesFolder.getFullPathName() + " failed");
+                    juce::AlertWindow::showAsync (juce::MessageBoxOptions()
+                                                      .withIconType (juce::MessageBoxIconType::WarningIcon)
+                                                      .withTitle (LOC ("sampler.cell.loadTitle"))
+                                                      .withMessage (LOC ("sampler.importFailed")
+                                                                        .replace ("{file}", result.getFileName()))
+                                                      .withButton (LOC ("common.ok"))
+                                                      .withAssociatedComponent (this),
+                                                  nullptr);
+                    return;
                 }
 
                 // Apply to all cells that were selected when Load was clicked
@@ -1705,7 +1707,8 @@ private:
             if (child.hasType (WFSParameterIDs::SamplerCell)
                 && static_cast<int> (child.getProperty ("id", -1)) == cellIndex)
             {
-                child.setProperty (propId, value, nullptr);
+                // Through the store's write gate: bounds, no NaN (re-audit section 5)
+                parameters.getValueTreeState().writeSubTreeProperty (child, propId, value);
                 return;
             }
         }
@@ -1738,7 +1741,7 @@ private:
             {
                 if (setCount == activeSetIndex)
                 {
-                    child.setProperty (propId, value, nullptr);
+                    parameters.getValueTreeState().writeSubTreeProperty (child, propId, value);
                     notifyDataChanged();
                     return;
                 }
