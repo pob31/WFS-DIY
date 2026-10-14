@@ -16,6 +16,7 @@
 #include "../Helpers/CoordinateConverter.h"
 #include "../Localization/LocalizationManager.h"
 #include "../Helpers/TypedValue.h"
+#include "TypedTextField.h"
 #include "buttons/LongPressButton.h"
 #include "buttons/EQBandToggle.h"
 #include "ColumnFocusTraverser.h"
@@ -347,6 +348,18 @@ public:
 
     /** Get the currently selected channel (1-based) */
     int getCurrentChannel() const { return currentChannel; }
+    juce::TextEditor& getHParallaxEditorForTest() { return hParallaxEditor; }
+
+    // Typed-field self-test (re-audit F8): keys and focus cannot be injected
+    // from a test shell, so it types and closes fields through these.
+    void typeIntoForTest (juce::TextEditor& editor, const juce::String& text)
+    {
+        editor.setText ({}, false);
+        editor.insertTextAtCaret (text);   // applies the input filter, as typing does
+        typedEdits.markEditedForTest (editor);
+    }
+    void closeFieldForTest (juce::TextEditor& editor)  { textEditorFocusLost (editor); }
+    void escapeFieldForTest (juce::TextEditor& editor) { textEditorEscapeKeyPressed (editor); }
 
     /** Select a specific channel (1-based). Triggers UI update.
      *  Uses programmatic selection to prevent keyboard Enter from triggering overlay.
@@ -1212,8 +1225,11 @@ private:
 
     void setupNumericEditor(juce::TextEditor& editor, bool /*allowNegative*/, bool /*allowDecimal*/)
     {
-        // No input restrictions - allow free typing, validate on commit (Enter/focus lost)
+        // No input restrictions - allow free typing, read on commit (Enter/focus
+        // lost) through TypedTextField: a comma is a decimal point, text with no
+        // number puts the stored value back, an untouched field writes nothing.
         editor.addListener(this);
+        typedEdits.watch(editor);
     }
 
     void setupEditableValueLabel(juce::Label& label)
@@ -2168,7 +2184,9 @@ private:
 
     void textEditorEscapeKeyPressed(juce::TextEditor& editor) override
     {
-        // Revert to stored value and release focus
+        // Revert to stored value and release focus. The edit is forgotten
+        // first, so the focus loss that follows writes nothing.
+        typedEdits.forget(editor);
         if (&editor == &nameEditor)
             editor.setText(parameters.getOutputParam(currentChannel - 1, "outputName").toString(), false);
         else if (&editor == &posXEditor || &editor == &posYEditor || &editor == &posZEditor)
@@ -2191,15 +2209,29 @@ private:
             saveOutputParam(WFSParameterIDs::outputName, nameEditor.getText());
         else if (&editor == &posXEditor || &editor == &posYEditor || &editor == &posZEditor)
         {
-            // Get all three values from editors
-            float v1 = posXEditor.getText().getFloatValue();
-            float v2 = posYEditor.getText().getFloatValue();
-            float v3 = posZEditor.getText().getFloatValue();
+            if (! typedEdits.take(editor))
+                return;   // clicked in and out: nothing typed, nothing rounded through the display
 
-            // Get coordinate mode and convert to Cartesian
-            int mode = static_cast<int>(parameters.getOutputParam(currentChannel - 1, "outputCoordinateMode"));
+            // The stored position in this mode's display terms, with the one
+            // axis typed into replaced (re-audit F8).
+            const int slot = currentChannel - 1;
+            int mode = static_cast<int>(parameters.getOutputParam(slot, "outputCoordinateMode"));
             auto coordMode = static_cast<WFSCoordinates::Mode>(mode);
-            auto cart = WFSCoordinates::displayToCartesian(coordMode, v1, v2, v3);
+            float v[3];
+            WFSCoordinates::cartesianToDisplay(coordMode,
+                static_cast<float>(parameters.getOutputParam(slot, "outputPositionX")),
+                static_cast<float>(parameters.getOutputParam(slot, "outputPositionY")),
+                static_cast<float>(parameters.getOutputParam(slot, "outputPositionZ")),
+                v[0], v[1], v[2]);
+
+            const auto typed = TypedTextField::parse(editor.getText());
+            if (! typed)
+            {
+                updatePositionLabelsAndValues();   // no number: show the stored position again
+                return;
+            }
+            v[&editor == &posXEditor ? 0 : (&editor == &posYEditor ? 1 : 2)] = *typed;
+            auto cart = WFSCoordinates::displayToCartesian(coordMode, v[0], v[1], v[2]);
 
             // Save Cartesian values
             saveOutputParam(WFSParameterIDs::outputPositionX, cart.x);
@@ -2209,10 +2241,23 @@ private:
             // Update display with values (converted back to display coords)
             updatePositionLabelsAndValues();
         }
-        else if (&editor == &hParallaxEditor)
-            saveOutputParam(WFSParameterIDs::outputHparallax, hParallaxEditor.getText().getFloatValue());
-        else if (&editor == &vParallaxEditor)
-            saveOutputParam(WFSParameterIDs::outputVparallax, vParallaxEditor.getText().getFloatValue());
+        else if (&editor == &hParallaxEditor || &editor == &vParallaxEditor)
+        {
+            if (! typedEdits.take(editor))
+                return;
+
+            const bool isH = &editor == &hParallaxEditor;
+            const float stored = static_cast<float>(parameters.getOutputParam(currentChannel - 1,
+                                                                             isH ? "outputHparallax" : "outputVparallax"));
+            const auto typed = TypedTextField::read(editor, juce::String(stored, 2));
+            if (! typed)
+                return;
+
+            const float value = isH ? juce::jlimit(WFSParameterDefaults::outputHparallaxMin, WFSParameterDefaults::outputHparallaxMax, *typed)
+                                    : juce::jlimit(WFSParameterDefaults::outputVparallaxMin, WFSParameterDefaults::outputVparallaxMax, *typed);
+            saveOutputParam(isH ? WFSParameterIDs::outputHparallax : WFSParameterIDs::outputVparallax, value);
+            editor.setText(juce::String(value, 2), false);
+        }
     }
 
     // ==================== LABEL LISTENER ====================
@@ -2693,6 +2738,10 @@ private:
 
     /** Scale a reference pixel value by layoutScale with a 65% minimum floor */
     int scaled(int ref) const { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * layoutScale)); }
+
+    // Which numeric fields were typed into (re-audit F8). Declared before the
+    // editors it listens to, so it outlives them.
+    TypedTextField::EditTracker typedEdits;
 
     // Header components
     ChannelSelectorButton channelSelector { "Output" };

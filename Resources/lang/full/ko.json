@@ -1197,6 +1197,7 @@
     "errors": {
       "speakerCountZero": "스피커 수는 0보다 커야 합니다",
       "noPositions": "적용할 위치가 없습니다. 기하 매개변수를 확인하세요.",
+      "fieldNotNumber": "빨간색으로 표시된 칸에 숫자가 없습니다.",
       "notEnoughOutputs": "출력 채널이 부족합니다! {start}부터 {count}개가 필요합니다",
       "prefix": "오류: "
     }

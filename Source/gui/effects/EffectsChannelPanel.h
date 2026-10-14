@@ -1226,7 +1226,7 @@ private:
     void setupNumberBox (juce::TextEditor& editor)
     {
         editor.setMultiLine (false);
-        editor.setInputRestrictions (10, "-0123456789.");
+        editor.setInputRestrictions (10, "-0123456789.,");   // a comma is a decimal point (re-audit F8)
         editor.addListener (this);
         addAndMakeVisible (editor);
     }

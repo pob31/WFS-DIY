@@ -1250,6 +1250,7 @@
     "errors": {
       "speakerCountZero": "Number of speakers must be greater than 0",
       "noPositions": "No positions to apply. Check geometry parameters.",
+      "fieldNotNumber": "A field outlined in red holds no number.",
       "notEnoughOutputs": "Not enough output channels! Need {count} starting from {start}",
       "prefix": "Error: "
     }

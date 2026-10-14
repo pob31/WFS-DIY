@@ -7,6 +7,7 @@
 #include "../Sampler/SamplerData.h"
 #include "../Localization/LocalizationManager.h"
 #include "../Helpers/TypedValue.h"
+#include "TypedTextField.h"
 #include "../AppSettings.h"
 #include "../WFSLogger.h"
 #include "ColorScheme.h"
@@ -98,11 +99,13 @@ public:
             for (int i = 0; i < 3; ++i)
             {
                 cellOffsetEditors[i].setJustification (juce::Justification::centred);
-                cellOffsetEditors[i].setInputRestrictions (8, "-.0123456789");
+                TypedTextField::restrictDecimal (cellOffsetEditors[i], 8, true);   // a comma is a decimal point (re-audit F8)
+                typedEdits.watch (cellOffsetEditors[i]);
                 cellOffsetEditors[i].setTextToShowWhenEmpty (placeholders[i], juce::Colours::grey);
                 cellOffsetEditors[i].onReturnKey = [this, i] { onOffsetEditorChanged (i); cellOffsetEditors[i].giveAwayKeyboardFocus(); };
                 cellOffsetEditors[i].onFocusLost = [this, i] { onOffsetEditorChanged (i); };
                 cellOffsetEditors[i].onEscapeKey = [this, i] {
+                    typedEdits.forget (cellOffsetEditors[i]);
                     if (! selectedCells.empty()) {
                         int idx = selectedCells[0];
                         if (idx >= 0 && idx < static_cast<int> (cells.size())) {
@@ -180,11 +183,13 @@ public:
             for (int i = 0; i < 3; ++i)
             {
                 setPosEditors[i].setJustification (juce::Justification::centred);
-                setPosEditors[i].setInputRestrictions (8, "-.0123456789");
+                TypedTextField::restrictDecimal (setPosEditors[i], 8, true);
+                typedEdits.watch (setPosEditors[i]);
                 setPosEditors[i].setTextToShowWhenEmpty (placeholders[i], juce::Colours::grey);
                 setPosEditors[i].onReturnKey = [this, i] { onSetPosEditorChanged (i); setPosEditors[i].giveAwayKeyboardFocus(); };
                 setPosEditors[i].onFocusLost = [this, i] { onSetPosEditorChanged (i); };
                 setPosEditors[i].onEscapeKey = [this, i] {
+                    typedEdits.forget (setPosEditors[i]);
                     if (activeSetIndex >= 0 && activeSetIndex < static_cast<int> (sets.size())) {
                         const auto& set = sets[static_cast<size_t> (activeSetIndex)];
                         const float vals[3] = { set.posX, set.posY, set.posZ };
@@ -1096,10 +1101,23 @@ private:
 
     void onOffsetEditorChanged (int axis)
     {
-        if (isLoadingData || selectedCells.empty()) return;
-        float val = cellOffsetEditors[axis].getText().getFloatValue();
-        val = juce::jlimit (WFSParameterDefaults::samplerCellOffsetMin,
-                            WFSParameterDefaults::samplerCellOffsetMax, val);
+        // Written only if typed into: an untouched focus loss used to copy the
+        // first selected cell's rounded value to every selected cell, and empty
+        // text wrote 0 to all of them (re-audit F8).
+        if (isLoadingData || selectedCells.empty() || ! typedEdits.take (cellOffsetEditors[axis])) return;
+
+        juce::String storedText;
+        if (const int first = selectedCells[0]; first >= 0 && first < static_cast<int> (cells.size()))
+        {
+            const auto& cell = cells[static_cast<size_t> (first)];
+            const float vals[3] = { cell.offsetX, cell.offsetY, cell.offsetZ };
+            storedText = juce::String (vals[axis], 1);
+        }
+        const auto typed = TypedTextField::read (cellOffsetEditors[axis], storedText);
+        if (! typed) return;
+
+        float val = juce::jlimit (WFSParameterDefaults::samplerCellOffsetMin,
+                                  WFSParameterDefaults::samplerCellOffsetMax, *typed);
         cellOffsetEditors[axis].setText (juce::String (val, 1), false);
 
         static const juce::Identifier ids[3] = {
@@ -1112,10 +1130,16 @@ private:
 
     void onSetPosEditorChanged (int axis)
     {
-        if (isLoadingData || activeSetIndex < 0 || activeSetIndex >= static_cast<int> (sets.size())) return;
-        float val = setPosEditors[axis].getText().getFloatValue();
-        val = juce::jlimit (WFSParameterDefaults::samplerSetPosMin,
-                            WFSParameterDefaults::samplerSetPosMax, val);
+        if (isLoadingData || activeSetIndex < 0 || activeSetIndex >= static_cast<int> (sets.size())
+            || ! typedEdits.take (setPosEditors[axis])) return;
+
+        const auto& set = sets[static_cast<size_t> (activeSetIndex)];
+        const float stored[3] = { set.posX, set.posY, set.posZ };
+        const auto typed = TypedTextField::read (setPosEditors[axis], juce::String (stored[axis], 1));
+        if (! typed) return;
+
+        float val = juce::jlimit (WFSParameterDefaults::samplerSetPosMin,
+                                  WFSParameterDefaults::samplerSetPosMax, *typed);
         setPosEditors[axis].setText (juce::String (val, 1), false);
 
         static const juce::Identifier ids[3] = {
@@ -1827,6 +1851,9 @@ private:
     LongPressButton clearCellButton;
     juce::TextButton previewButton;
     std::unique_ptr<WfsRangeSlider> inOutRangeSlider;
+    // Which offset and set-position boxes were typed into (re-audit F8).
+    // Declared before the editors it listens to, so it outlives them.
+    TypedTextField::EditTracker typedEdits;
     juce::TextEditor cellOffsetEditors[3];  // X, Y, Z
     std::unique_ptr<WfsStandardSlider> cellAttenSlider;
 

@@ -521,7 +521,7 @@ void OutputArrayHelperContent::setupGeometrySection()
         // For Sub Bass preset, update distance attenuation based on speaker count
         if (currentPreset == ArrayPresetType::SubBass)
         {
-            int n = numSpeakersEditor.getText().getIntValue();
+            int n = fieldInt(numSpeakersEditor);
             distanceAttenEditor.setText(n <= 2 ? "50" : "100");
         }
         autoCalculatePreview();
@@ -1147,7 +1147,7 @@ void OutputArrayHelperContent::onPresetChanged()
     updateGeometryVisibility();
 
     // Update preview preset info before calculating
-    float radius = (currentPreset == ArrayPresetType::Circle) ? radiusEditor.getText().getFloatValue() : 5.0f;
+    float radius = (currentPreset == ArrayPresetType::Circle) ? fieldValue(radiusEditor) : 5.0f;
     preview->setPresetInfo(currentPreset, facingInwardRadio.getToggleState(), radius);
 
     autoCalculatePreview();  // Auto-calculate with new preset defaults
@@ -1262,16 +1262,17 @@ void OutputArrayHelperContent::autoCalculatePreview()
 {
     // Silently calculate and update preview without showing status
     auto& config = presetConfigs[static_cast<int>(currentPreset)];
+    firstUnreadable = nullptr;
 
-    int numSpeakers = numSpeakersEditor.getText().getIntValue();
+    int numSpeakers = fieldInt(numSpeakersEditor);
     if (numSpeakers <= 0)
     {
         preview->clearPositions();
         return;
     }
 
-    float z = zPositionEditor.getText().getFloatValue();
-    float orientation = orientationEditor.getText().getFloatValue();
+    float z = fieldValue(zPositionEditor);
+    float orientation = fieldValue(orientationEditor);
 
     std::vector<SpeakerPosition> positions;
 
@@ -1283,18 +1284,18 @@ void OutputArrayHelperContent::autoCalculatePreview()
         {
             if (centerSpacingRadio.getToggleState() && config.supportsCenterSpacing)
             {
-                float cx = centerXEditor.getText().getFloatValue();
-                float cy = centerYEditor.getText().getFloatValue();
-                float spacing = spacingEditor.getText().getFloatValue();
+                float cx = fieldValue(centerXEditor);
+                float cy = fieldValue(centerYEditor);
+                float spacing = fieldValue(spacingEditor);
                 positions = ArrayGeometry::calculateStraightFromCenter(
                     numSpeakers, cx, cy, z, spacing, orientation);
             }
             else
             {
-                float x1 = startXEditor.getText().getFloatValue();
-                float y1 = startYEditor.getText().getFloatValue();
-                float x2 = endXEditor.getText().getFloatValue();
-                float y2 = endYEditor.getText().getFloatValue();
+                float x1 = fieldValue(startXEditor);
+                float y1 = fieldValue(startYEditor);
+                float x2 = fieldValue(endXEditor);
+                float y2 = fieldValue(endYEditor);
                 positions = ArrayGeometry::calculateStraightFromEndpoints(
                     numSpeakers, x1, y1, x2, y2, z, orientation);
             }
@@ -1303,11 +1304,11 @@ void OutputArrayHelperContent::autoCalculatePreview()
 
         case ArrayPresetType::NearFieldCurved:
         {
-            float x1 = startXEditor.getText().getFloatValue();
-            float y1 = startYEditor.getText().getFloatValue();
-            float x2 = endXEditor.getText().getFloatValue();
-            float y2 = endYEditor.getText().getFloatValue();
-            float sag = sagEditor.getText().getFloatValue();
+            float x1 = fieldValue(startXEditor);
+            float y1 = fieldValue(startYEditor);
+            float x2 = fieldValue(endXEditor);
+            float y2 = fieldValue(endYEditor);
+            float sag = fieldValue(sagEditor);
             positions = ArrayGeometry::calculateCurvedArray(
                 numSpeakers, x1, y1, x2, y2, sag, z);
             break;
@@ -1315,18 +1316,18 @@ void OutputArrayHelperContent::autoCalculatePreview()
 
         case ArrayPresetType::DelayLine:
         {
-            float sag = sagEditor.getText().getFloatValue();
+            float sag = fieldValue(sagEditor);
             bool  backFacing = backFacingRadio.getToggleState();
             float delayOrientation = backFacing ? 180.0f : 0.0f;  // Front=audience (0°), Back=stage (180°)
             bool  useCenter = centerSpacingRadio.getToggleState() && config.supportsCenterSpacing;
 
-            float cx = centerXEditor.getText().getFloatValue();
-            float cy = centerYEditor.getText().getFloatValue();
-            float spacing = spacingEditor.getText().getFloatValue();
-            float x1 = startXEditor.getText().getFloatValue();
-            float y1 = startYEditor.getText().getFloatValue();
-            float x2 = endXEditor.getText().getFloatValue();
-            float y2 = endYEditor.getText().getFloatValue();
+            float cx = fieldValue(centerXEditor);
+            float cy = fieldValue(centerYEditor);
+            float spacing = fieldValue(spacingEditor);
+            float x1 = fieldValue(startXEditor);
+            float y1 = fieldValue(startYEditor);
+            float x2 = fieldValue(endXEditor);
+            float y2 = fieldValue(endYEditor);
 
             if (std::abs(sag) < 0.001f)
             {
@@ -1362,10 +1363,10 @@ void OutputArrayHelperContent::autoCalculatePreview()
 
         case ArrayPresetType::Circle:
         {
-            float cx = centerXEditor.getText().getFloatValue();
-            float cy = centerYEditor.getText().getFloatValue();
-            float radius = radiusEditor.getText().getFloatValue();
-            float startAngle = startAngleEditor.getText().getFloatValue();
+            float cx = fieldValue(centerXEditor);
+            float cy = fieldValue(centerYEditor);
+            float radius = fieldValue(radiusEditor);
+            float startAngle = fieldValue(startAngleEditor);
             bool inward = facingInwardRadio.getToggleState();
             positions = ArrayGeometry::calculateCircleArray(
                 numSpeakers, cx, cy, radius, startAngle, z, inward);
@@ -1375,10 +1376,10 @@ void OutputArrayHelperContent::autoCalculatePreview()
         case ArrayPresetType::Surround:
         {
             int numPairs = numSpeakers;
-            float cx = centerXEditor.getText().getFloatValue();
-            float width = widthEditor.getText().getFloatValue();
-            float yStart = yStartEditor.getText().getFloatValue();
-            float yEnd = yEndEditor.getText().getFloatValue();
+            float cx = fieldValue(centerXEditor);
+            float width = fieldValue(widthEditor);
+            float yStart = fieldValue(yStartEditor);
+            float yEnd = fieldValue(yEndEditor);
             positions = ArrayGeometry::calculateSurroundPairs(
                 numPairs, cx, width, yStart, yEnd, z);
             break;
@@ -1386,7 +1387,9 @@ void OutputArrayHelperContent::autoCalculatePreview()
     }
 
     // Update preview with positions and preset info
-    float radius = (currentPreset == ArrayPresetType::Circle) ? radiusEditor.getText().getFloatValue() : 5.0f;
+    float radius = (currentPreset == ArrayPresetType::Circle) ? fieldValue(radiusEditor) : 5.0f;
+    if (firstUnreadable != nullptr)
+        return;   // a field holds no number: keep the last preview rather than draw zeros
     preview->setPresetInfo(currentPreset, facingInwardRadio.getToggleState(), radius);
     preview->setPositions(positions);
 }
@@ -1394,10 +1397,11 @@ void OutputArrayHelperContent::autoCalculatePreview()
 void OutputArrayHelperContent::calculatePositions()
 {
     auto& config = presetConfigs[static_cast<int>(currentPreset)];
+    firstUnreadable = nullptr;
 
-    int numSpeakers = numSpeakersEditor.getText().getIntValue();
-    float z = zPositionEditor.getText().getFloatValue();
-    float orientation = orientationEditor.getText().getFloatValue();
+    int numSpeakers = fieldInt(numSpeakersEditor);
+    float z = fieldValue(zPositionEditor);
+    float orientation = fieldValue(orientationEditor);
 
     if (numSpeakers <= 0)
     {
@@ -1415,18 +1419,18 @@ void OutputArrayHelperContent::calculatePositions()
         {
             if (centerSpacingRadio.getToggleState() && config.supportsCenterSpacing)
             {
-                float cx = centerXEditor.getText().getFloatValue();
-                float cy = centerYEditor.getText().getFloatValue();
-                float spacing = spacingEditor.getText().getFloatValue();
+                float cx = fieldValue(centerXEditor);
+                float cy = fieldValue(centerYEditor);
+                float spacing = fieldValue(spacingEditor);
                 calculatedPositions = ArrayGeometry::calculateStraightFromCenter(
                     numSpeakers, cx, cy, z, spacing, orientation);
             }
             else
             {
-                float x1 = startXEditor.getText().getFloatValue();
-                float y1 = startYEditor.getText().getFloatValue();
-                float x2 = endXEditor.getText().getFloatValue();
-                float y2 = endYEditor.getText().getFloatValue();
+                float x1 = fieldValue(startXEditor);
+                float y1 = fieldValue(startYEditor);
+                float x2 = fieldValue(endXEditor);
+                float y2 = fieldValue(endYEditor);
                 calculatedPositions = ArrayGeometry::calculateStraightFromEndpoints(
                     numSpeakers, x1, y1, x2, y2, z, orientation);
             }
@@ -1435,11 +1439,11 @@ void OutputArrayHelperContent::calculatePositions()
 
         case ArrayPresetType::NearFieldCurved:
         {
-            float x1 = startXEditor.getText().getFloatValue();
-            float y1 = startYEditor.getText().getFloatValue();
-            float x2 = endXEditor.getText().getFloatValue();
-            float y2 = endYEditor.getText().getFloatValue();
-            float sag = sagEditor.getText().getFloatValue();
+            float x1 = fieldValue(startXEditor);
+            float y1 = fieldValue(startYEditor);
+            float x2 = fieldValue(endXEditor);
+            float y2 = fieldValue(endYEditor);
+            float sag = fieldValue(sagEditor);
             calculatedPositions = ArrayGeometry::calculateCurvedArray(
                 numSpeakers, x1, y1, x2, y2, sag, z);
             break;
@@ -1447,18 +1451,18 @@ void OutputArrayHelperContent::calculatePositions()
 
         case ArrayPresetType::DelayLine:
         {
-            float sag = sagEditor.getText().getFloatValue();
+            float sag = fieldValue(sagEditor);
             bool  backFacing = backFacingRadio.getToggleState();
             float delayOrientation = backFacing ? 180.0f : 0.0f;  // Front=audience (0°), Back=stage (180°)
             bool  useCenter = centerSpacingRadio.getToggleState() && config.supportsCenterSpacing;
 
-            float cx = centerXEditor.getText().getFloatValue();
-            float cy = centerYEditor.getText().getFloatValue();
-            float spacing = spacingEditor.getText().getFloatValue();
-            float x1 = startXEditor.getText().getFloatValue();
-            float y1 = startYEditor.getText().getFloatValue();
-            float x2 = endXEditor.getText().getFloatValue();
-            float y2 = endYEditor.getText().getFloatValue();
+            float cx = fieldValue(centerXEditor);
+            float cy = fieldValue(centerYEditor);
+            float spacing = fieldValue(spacingEditor);
+            float x1 = fieldValue(startXEditor);
+            float y1 = fieldValue(startYEditor);
+            float x2 = fieldValue(endXEditor);
+            float y2 = fieldValue(endYEditor);
 
             if (std::abs(sag) < 0.001f)
             {
@@ -1494,10 +1498,10 @@ void OutputArrayHelperContent::calculatePositions()
 
         case ArrayPresetType::Circle:
         {
-            float cx = centerXEditor.getText().getFloatValue();
-            float cy = centerYEditor.getText().getFloatValue();
-            float radius = radiusEditor.getText().getFloatValue();
-            float startAngle = startAngleEditor.getText().getFloatValue();
+            float cx = fieldValue(centerXEditor);
+            float cy = fieldValue(centerYEditor);
+            float radius = fieldValue(radiusEditor);
+            float startAngle = fieldValue(startAngleEditor);
             bool inward = facingInwardRadio.getToggleState();
             calculatedPositions = ArrayGeometry::calculateCircleArray(
                 numSpeakers, cx, cy, radius, startAngle, z, inward);
@@ -1508,10 +1512,10 @@ void OutputArrayHelperContent::calculatePositions()
         {
             // numSpeakers is actually number of pairs for surround
             int numPairs = numSpeakers;
-            float cx = centerXEditor.getText().getFloatValue();
-            float width = widthEditor.getText().getFloatValue();
-            float yStart = yStartEditor.getText().getFloatValue();
-            float yEnd = yEndEditor.getText().getFloatValue();
+            float cx = fieldValue(centerXEditor);
+            float width = fieldValue(widthEditor);
+            float yStart = fieldValue(yStartEditor);
+            float yEnd = fieldValue(yEndEditor);
             calculatedPositions = ArrayGeometry::calculateSurroundPairs(
                 numPairs, cx, width, yStart, yEnd, z);
             break;
@@ -1519,7 +1523,13 @@ void OutputArrayHelperContent::calculatePositions()
     }
 
     // Update preview with positions and preset info
-    float radius = (currentPreset == ArrayPresetType::Circle) ? radiusEditor.getText().getFloatValue() : 5.0f;
+    float radius = (currentPreset == ArrayPresetType::Circle) ? fieldValue(radiusEditor) : 5.0f;
+    if (firstUnreadable != nullptr)
+    {
+        calculatedPositions.clear();
+        showError(LOC("arrayHelper.errors.fieldNotNumber"));
+        return;
+    }
     preview->setPresetInfo(currentPreset, facingInwardRadio.getToggleState(), radius);
     preview->setPositions(calculatedPositions);
     showStatus(LOC("arrayHelper.status.calculated").replace("{count}", juce::String(calculatedPositions.size())));
@@ -1555,19 +1565,34 @@ void OutputArrayHelperContent::applyToOutputs()
     // Get acoustic settings from UI
     bool lsEnabled = lsEnableButton.getToggleState();
     bool frEnabled = frEnableButton.getToggleState();
-    float hfDamping = hfDampingEditor.getText().getFloatValue();
-    float hParallax = hParallaxEditor.getText().getFloatValue();
-    float vParallax = vParallaxEditor.getText().getFloatValue();
-    int distAtten = distanceAttenEditor.getText().getIntValue();
+    float hfDamping = fieldValue(hfDampingEditor);
+    float hParallax = fieldValue(hParallaxEditor);
+    float vParallax = fieldValue(vParallaxEditor);
+    int distAtten = fieldInt(distanceAttenEditor);
 
     // Sub bass special rule: 50% if N <= 2
     if (currentPreset == ArrayPresetType::SubBass && N <= 2)
         distAtten = 50;
 
     bool enableLowCut = lowCutEnableButton.getToggleState();
-    int lowCutFreq = lowCutFreqEditor.getText().getIntValue();
+    int lowCutFreq = fieldInt(lowCutFreqEditor);
     bool enableHighCut = highCutEnableButton.getToggleState();
-    int highCutFreq = highCutFreqEditor.getText().getIntValue();
+    int highCutFreq = fieldInt(highCutFreqEditor);
+
+    if (firstUnreadable != nullptr)
+    {
+        showError(LOC("arrayHelper.errors.fieldNotNumber"));
+        return;
+    }
+
+    // These are written straight into the output sections, past the store's
+    // bounds, so they are held to them here (re-audit F8).
+    hfDamping  = juce::jlimit(WFSParameterDefaults::outputHFdampingMin, WFSParameterDefaults::outputHFdampingMax, hfDamping);
+    hParallax  = juce::jlimit(WFSParameterDefaults::outputHparallaxMin, WFSParameterDefaults::outputHparallaxMax, hParallax);
+    vParallax  = juce::jlimit(WFSParameterDefaults::outputVparallaxMin, WFSParameterDefaults::outputVparallaxMax, vParallax);
+    distAtten  = juce::jlimit(WFSParameterDefaults::outputDistanceAttenPercentMin, WFSParameterDefaults::outputDistanceAttenPercentMax, distAtten);
+    lowCutFreq  = juce::jlimit((int) WFSParameterDefaults::eqFrequencyMin, (int) WFSParameterDefaults::eqFrequencyMax, lowCutFreq);
+    highCutFreq = juce::jlimit((int) WFSParameterDefaults::eqFrequencyMin, (int) WFSParameterDefaults::eqFrequencyMax, highCutFreq);
 
     // Begin undo transaction on the Output domain
     auto* um = vts.getUndoManagerForDomain(UndoDomain::Output);
@@ -1587,10 +1612,13 @@ void OutputArrayHelperContent::applyToOutputs()
             continue;
 
         // Position (in Position section)
-        posSection.setProperty(WFSParameterIDs::outputPositionX, pos.x, um);
-        posSection.setProperty(WFSParameterIDs::outputPositionY, pos.y, um);
-        posSection.setProperty(WFSParameterIDs::outputPositionZ, pos.z, um);
-        posSection.setProperty(WFSParameterIDs::outputOrientation, static_cast<int>(pos.orientation), um);
+        const auto inStage = [] (float v) { return juce::jlimit(WFSParameterDefaults::outputPositionMin, WFSParameterDefaults::outputPositionMax, v); };
+        posSection.setProperty(WFSParameterIDs::outputPositionX, inStage(pos.x), um);
+        posSection.setProperty(WFSParameterIDs::outputPositionY, inStage(pos.y), um);
+        posSection.setProperty(WFSParameterIDs::outputPositionZ, inStage(pos.z), um);
+        posSection.setProperty(WFSParameterIDs::outputOrientation,
+                               juce::jlimit(WFSParameterDefaults::outputOrientationMin, WFSParameterDefaults::outputOrientationMax,
+                                            juce::roundToInt(pos.orientation)), um);
         posSection.setProperty(WFSParameterIDs::outputHFdamping, hfDamping, um);
 
         // Array assignment (in Channel section)
@@ -1652,6 +1680,20 @@ void OutputArrayHelperContent::showStatus(const juce::String& message)
 {
     statusLabel.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
     statusLabel.setText(message, juce::dontSendNotification);
+}
+
+float OutputArrayHelperContent::fieldValue(juce::TextEditor& editor)
+{
+    if (const auto value = TypedTextField::parse(editor.getText()))
+    {
+        editor.removeColour(juce::TextEditor::outlineColourId);
+        return *value;
+    }
+
+    editor.setColour(juce::TextEditor::outlineColourId, juce::Colours::red);
+    if (firstUnreadable == nullptr)
+        firstUnreadable = &editor;
+    return 0.0f;
 }
 
 void OutputArrayHelperContent::showError(const juce::String& message)

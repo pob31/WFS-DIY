@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include <map>
 #include "../WfsParameters.h"
+#include "TypedTextField.h"
 #include "../Accessibility/TTSManager.h"
 #include "StatusBar.h"
 #include "../Network/OSCManager.h"
@@ -536,7 +537,12 @@ private:
         isEditingValue = false;
         valueEditor.setVisible (false);
 
-        float val = valueEditor.getText().getFloatValue();
+        // Read as typed (comma decimals); text with no number drops the edit
+        // and keeps the value (re-audit F8).
+        const auto typed = TypedTextField::parse (valueEditor.getText());
+        if (! typed)
+            return;
+        float val = *typed;
 
         if (editIsBreakpoint)
         {
@@ -1262,7 +1268,10 @@ private:
         isEditingValue = false;
         valueEditor.setVisible (false);
 
-        float val = valueEditor.getText().getFloatValue();
+        const auto typed = TypedTextField::parse (valueEditor.getText());
+        if (! typed)
+            return;
+        float val = *typed;
 
         constexpr float wMin = WFSParameterDefaults::admCartWidthMin;
         constexpr float wMax = WFSParameterDefaults::admCartWidthMax;
@@ -2668,6 +2677,10 @@ private:
     juce::Label headerProtocolLabel;
     juce::TextButton addTargetButton;
 
+    // Which numeric fields were typed into (re-audit F8). Declared before the
+    // target rows and editors it listens to, so it outlives them.
+    TypedTextField::EditTracker typedEdits;
+
     // 6 target rows
     NetworkTargetRow targetRows[maxTargets];
     int activeTargetCount = 0;
@@ -3324,8 +3337,8 @@ private:
 
         // Apply global config including IP filtering
         WFSNetwork::GlobalConfig globalConfig;
-        globalConfig.udpReceivePort = udpPortEditor.getText().getIntValue();
-        globalConfig.tcpReceivePort = tcpPortEditor.getText().getIntValue();
+        globalConfig.udpReceivePort = (int) parameters.getConfigParam(WFSParameterIDs::networkRxUDPport.toString());
+        globalConfig.tcpReceivePort = (int) parameters.getConfigParam(WFSParameterIDs::networkRxTCPport.toString());
         globalConfig.ipFilteringEnabled = oscSourceFilterButton.getToggleState();
         globalConfig.allowedIPs = allowedIPs;
         oscManager->applyGlobalConfig(globalConfig);
@@ -3552,7 +3565,6 @@ private:
             row.qlabPatchEditor.setText("1", false);
             row.qlabPatchEditor.setInputRestrictions(2, "0123456789");
             row.qlabPatchEditor.setJustification(juce::Justification::centred);
-            row.qlabPatchEditor.onTextChange = [this, i]() { saveTargetToValueTree(i); };
             row.qlabPatchEditor.addListener(this);
             row.qlabPatchEditor.setVisible(false);
 
@@ -3564,7 +3576,10 @@ private:
             // Add text change listeners
             row.nameEditor.onTextChange = [this, i]() { saveTargetToValueTree(i); };
             row.ipEditor.onTextChange = [this, i]() { saveTargetToValueTree(i); };
-            row.txPortEditor.onTextChange = [this, i]() { saveTargetToValueTree(i); };
+            // Port and QLab patch are written when they close (textEditorFocusLost):
+            // per keystroke, typing 9000 reconnected to 9, 90 and 900 on the way.
+            typedEdits.watch(row.txPortEditor);
+            typedEdits.watch(row.qlabPatchEditor);
 
             // Start with rows disabled - user must add them
             row.isActive = false;
@@ -4027,12 +4042,12 @@ private:
         bool isMqttProtocol = (protocolId == 5);  // MQTT = ID 5
 
         // Get transformation values (shared by all protocols)
-        float offsetX = trackingOffsetXEditor.getText().getFloatValue();
-        float offsetY = trackingOffsetYEditor.getText().getFloatValue();
-        float offsetZ = trackingOffsetZEditor.getText().getFloatValue();
-        float scaleX = trackingScaleXEditor.getText().getFloatValue();
-        float scaleY = trackingScaleYEditor.getText().getFloatValue();
-        float scaleZ = trackingScaleZEditor.getText().getFloatValue();
+        float offsetX = (float) parameters.getConfigParam("trackingOffsetX");
+        float offsetY = (float) parameters.getConfigParam("trackingOffsetY");
+        float offsetZ = (float) parameters.getConfigParam("trackingOffsetZ");
+        float scaleX = (float) parameters.getConfigParam("trackingScaleX");
+        float scaleY = (float) parameters.getConfigParam("trackingScaleY");
+        float scaleZ = (float) parameters.getConfigParam("trackingScaleZ");
         bool flipX = trackingFlipXButton.getToggleState();
         bool flipY = trackingFlipYButton.getToggleState();
         bool flipZ = trackingFlipZButton.getToggleState();
@@ -4063,7 +4078,7 @@ private:
         if (trackingEnabled && isOscProtocol)
         {
             // Get port and validate
-            int port = trackingPortEditor.getText().getIntValue();
+            int port = (int) parameters.getConfigParam("trackingPort");
             if (port <= 0 || port > 65535)
             {
                 oscManager->stopTrackingReceiver();
@@ -4108,7 +4123,7 @@ private:
         else if (trackingEnabled && isPsnProtocol)
         {
             // Get port and validate
-            int port = trackingPortEditor.getText().getIntValue();
+            int port = (int) parameters.getConfigParam("trackingPort");
             if (port <= 0 || port > 65535)
             {
                 oscManager->stopPSNReceiver();
@@ -4153,7 +4168,7 @@ private:
         else if (trackingEnabled && isRttrpProtocol)
         {
             // Get port and validate
-            int port = trackingPortEditor.getText().getIntValue();
+            int port = (int) parameters.getConfigParam("trackingPort");
             if (port <= 0 || port > 65535)
             {
                 oscManager->stopRTTrPReceiver();
@@ -4190,7 +4205,7 @@ private:
         {
             // Get host, port, and topic
             juce::String host = trackingMqttHostEditor.getText().trim();
-            int port = trackingPortEditor.getText().getIntValue();
+            int port = (int) parameters.getConfigParam("trackingPort");
             juce::String topic = trackingMqttTopicEditor.getText().trim();
 
             if (host.isEmpty() || port <= 0 || port > 65535 || topic.isEmpty())
@@ -4256,12 +4271,12 @@ private:
         if (!oscRunning && !psnRunning && !rttrpRunning && !mqttRunning)
             return;
 
-        float offsetX = trackingOffsetXEditor.getText().getFloatValue();
-        float offsetY = trackingOffsetYEditor.getText().getFloatValue();
-        float offsetZ = trackingOffsetZEditor.getText().getFloatValue();
-        float scaleX = trackingScaleXEditor.getText().getFloatValue();
-        float scaleY = trackingScaleYEditor.getText().getFloatValue();
-        float scaleZ = trackingScaleZEditor.getText().getFloatValue();
+        float offsetX = (float) parameters.getConfigParam("trackingOffsetX");
+        float offsetY = (float) parameters.getConfigParam("trackingOffsetY");
+        float offsetZ = (float) parameters.getConfigParam("trackingOffsetZ");
+        float scaleX = (float) parameters.getConfigParam("trackingScaleX");
+        float scaleY = (float) parameters.getConfigParam("trackingScaleY");
+        float scaleZ = (float) parameters.getConfigParam("trackingScaleZ");
         bool flipX = trackingFlipXButton.getToggleState();
         bool flipY = trackingFlipYButton.getToggleState();
         bool flipZ = trackingFlipZButton.getToggleState();
@@ -4432,12 +4447,20 @@ private:
 
         // ADM-OSC Polar editors
         // Tracking editors - floats (offset: -50 to 50, scale: 0.01 to 100)
-        trackingOffsetXEditor.setInputRestrictions(8, "-0123456789.");
-        trackingOffsetYEditor.setInputRestrictions(8, "-0123456789.");
-        trackingOffsetZEditor.setInputRestrictions(8, "-0123456789.");
-        trackingScaleXEditor.setInputRestrictions(8, "0123456789.");
-        trackingScaleYEditor.setInputRestrictions(8, "0123456789.");
-        trackingScaleZEditor.setInputRestrictions(8, "0123456789.");
+        TypedTextField::restrictDecimal(trackingOffsetXEditor, 8, true);   // a comma is a decimal point (re-audit F8)
+        TypedTextField::restrictDecimal(trackingOffsetYEditor, 8, true);
+        TypedTextField::restrictDecimal(trackingOffsetZEditor, 8, true);
+        TypedTextField::restrictDecimal(trackingScaleXEditor, 8, false);
+        TypedTextField::restrictDecimal(trackingScaleYEditor, 8, false);
+        TypedTextField::restrictDecimal(trackingScaleZEditor, 8, false);
+
+        // These are written when they close (Return, Tab, a click elsewhere),
+        // not on every keystroke: typing 5000 used to store and bind 5, 50 and
+        // 500 on the way, and a cleared box stored 0 (re-audit F8).
+        for (auto* editor : { &udpPortEditor, &tcpPortEditor, &trackingPortEditor, &oscQueryPortEditor,
+                              &trackingOffsetXEditor, &trackingOffsetYEditor, &trackingOffsetZEditor,
+                              &trackingScaleXEditor, &trackingScaleYEditor, &trackingScaleZEditor })
+            typedEdits.watch(*editor);
 
         trackingPortEditor.setText("5000", false);
         trackingOffsetXEditor.setText("0.0", false);
@@ -4560,22 +4583,172 @@ private:
 
     void textEditorTextChanged(juce::TextEditor& editor) override
     {
+        if (isCommitOnClose(editor))
+            return;   // written when the field closes (textEditorFocusLost)
         updateParameterFromEditor(&editor);
     }
 
     void textEditorReturnKeyPressed(juce::TextEditor& editor) override
     {
-        editor.giveAwayKeyboardFocus();
+        editor.giveAwayKeyboardFocus();   // the focus loss commits
         grabKeyboardFocus();
     }
 
     void textEditorEscapeKeyPressed(juce::TextEditor& editor) override
     {
+        if (isCommitOnClose(editor))
+        {
+            typedEdits.forget(editor);
+            restoreNumericEditor(editor);
+        }
         editor.giveAwayKeyboardFocus();
         grabKeyboardFocus();
     }
 
-    void textEditorFocusLost(juce::TextEditor&) override {}
+    void textEditorFocusLost(juce::TextEditor& editor) override
+    {
+        if (isCommitOnClose(editor) && typedEdits.take(editor))
+            commitNumericEditor(editor);
+    }
+
+    /** The numeric fields written when they close rather than per keystroke. */
+    bool isCommitOnClose(juce::TextEditor& editor) const
+    {
+        if (&editor == &udpPortEditor || &editor == &tcpPortEditor || &editor == &trackingPortEditor
+            || &editor == &oscQueryPortEditor
+            || &editor == &trackingOffsetXEditor || &editor == &trackingOffsetYEditor || &editor == &trackingOffsetZEditor
+            || &editor == &trackingScaleXEditor || &editor == &trackingScaleYEditor || &editor == &trackingScaleZEditor)
+            return true;
+
+        return targetRowIndexOf(editor) >= 0;
+    }
+
+    /** The target row whose port or QLab patch box `editor` is, or -1. */
+    int targetRowIndexOf(const juce::TextEditor& editor) const
+    {
+        for (int i = 0; i < maxTargets; ++i)
+            if (&editor == &targetRows[i].txPortEditor || &editor == &targetRows[i].qlabPatchEditor)
+                return i;
+        return -1;
+    }
+
+    static juce::String trackingConfigName(const juce::TextEditor& editor, const NetworkTab& tab)
+    {
+        if (&editor == &tab.trackingOffsetXEditor) return "trackingOffsetX";
+        if (&editor == &tab.trackingOffsetYEditor) return "trackingOffsetY";
+        if (&editor == &tab.trackingOffsetZEditor) return "trackingOffsetZ";
+        if (&editor == &tab.trackingScaleXEditor)  return "trackingScaleX";
+        if (&editor == &tab.trackingScaleYEditor)  return "trackingScaleY";
+        if (&editor == &tab.trackingScaleZEditor)  return "trackingScaleZ";
+        return {};
+    }
+
+    /** Show the stored value again. */
+    void restoreNumericEditor(juce::TextEditor& editor)
+    {
+        if (&editor == &udpPortEditor)
+            editor.setText(juce::String((int) parameters.getConfigParam(WFSParameterIDs::networkRxUDPport.toString())), false);
+        else if (&editor == &tcpPortEditor)
+            editor.setText(juce::String((int) parameters.getConfigParam(WFSParameterIDs::networkRxTCPport.toString())), false);
+        else if (&editor == &trackingPortEditor)
+            editor.setText(juce::String((int) parameters.getConfigParam("trackingPort")), false);
+        else if (&editor == &oscQueryPortEditor)
+            editor.setText(juce::String(storedOscQueryPort()), false);
+        else if (const auto name = trackingConfigName(editor, *this); name.isNotEmpty())
+            editor.setText(juce::String((float) parameters.getConfigParam(name)), false);
+        else if (const int row = targetRowIndexOf(editor); row >= 0)
+            restoreTargetRowNumbers(row);
+    }
+
+    /** Read a closed numeric field, write it, or put the stored value back. */
+    void commitNumericEditor(juce::TextEditor& editor)
+    {
+        const auto text = editor.getText();
+
+        if (&editor == &udpPortEditor || &editor == &tcpPortEditor || &editor == &trackingPortEditor
+            || &editor == &oscQueryPortEditor)
+        {
+            const auto port = TypedTextField::readInt(text, 1, 65535);
+            if (! port)
+            {
+                restoreNumericEditor(editor);
+                return;
+            }
+
+            if (&editor == &udpPortEditor)
+                parameters.setConfigParam(WFSParameterIDs::networkRxUDPport.toString(), *port);
+            else if (&editor == &tcpPortEditor)
+                parameters.setConfigParam(WFSParameterIDs::networkRxTCPport.toString(), *port);
+            else if (&editor == &trackingPortEditor)
+            {
+                parameters.setConfigParam("trackingPort", *port);
+                updateTrackingReceiver(true);  // Force restart receiver with new port
+            }
+            else
+            {
+                saveOscQueryToValueTree();
+            }
+            editor.setText(juce::String(*port), false);
+            return;
+        }
+
+        if (const auto name = trackingConfigName(editor, *this); name.isNotEmpty())
+        {
+            const auto typed = TypedTextField::parse(text);
+            if (! typed)
+            {
+                restoreNumericEditor(editor);
+                return;
+            }
+
+            const bool isScale = name.startsWith("trackingScale");
+            const float value = isScale ? juce::jlimit(0.01f, 100.0f, *typed) : juce::jlimit(-50.0f, 50.0f, *typed);
+            parameters.setConfigParam(name, value);
+            editor.setText(juce::String(value), false);
+            updateTrackingTransformations();
+            return;
+        }
+
+        if (const int row = targetRowIndexOf(editor); row >= 0)
+        {
+            const bool isPort = &editor == &targetRows[row].txPortEditor;
+            if (! TypedTextField::readInt(text, 1, isPort ? 65535 : 99))
+            {
+                restoreTargetRowNumbers(row);
+                return;
+            }
+            saveTargetToValueTree(row);
+        }
+    }
+
+    /** A target row's port and QLab patch boxes show their stored values again. */
+    void restoreTargetRowNumbers(int index)
+    {
+        auto& row = targetRows[index];
+        int port = 9000, patch = 1;
+
+        auto network = parameters.getConfigTree().getChildWithName(WFSParameterIDs::Network);
+        for (int i = 0; i < network.getNumChildren(); ++i)
+        {
+            auto child = network.getChild(i);
+            if (child.getType() == WFSParameterIDs::NetworkTarget
+                && (int) child.getProperty(WFSParameterIDs::id, -1) == index)
+            {
+                port  = (int) child.getProperty(WFSParameterIDs::networkTSport, port);
+                patch = (int) child.getProperty(WFSParameterIDs::networkTSqlabPatch, patch);
+                break;
+            }
+        }
+
+        row.txPortEditor.setText(juce::String(port), false);
+        row.qlabPatchEditor.setText(juce::String(patch), false);
+    }
+
+    int storedOscQueryPort() const
+    {
+        const int port = (int) parameters.getConfigParam(WFSParameterIDs::networkOscQueryPort.toString());
+        return port > 0 ? port : 5005;
+    }
 
     void mouseEnter(const juce::MouseEvent& e) override
     {
@@ -4750,79 +4923,13 @@ private:
 
     void updateParameterFromEditor(juce::TextEditor* editor)
     {
+        // Text fields written as they are typed. The numeric ones (ports,
+        // tracking offset and scale) are written when they close, through
+        // commitNumericEditor (re-audit F8).
         juce::String text = editor->getText();
 
-        if (editor == &udpPortEditor)
-        {
-            int value = text.getIntValue();
-            if (value >= 0 && value <= 65535)
-                parameters.setConfigParam(WFSParameterIDs::networkRxUDPport.toString(), value);
-        }
-        else if (editor == &tcpPortEditor)
-        {
-            int value = text.getIntValue();
-            if (value >= 0 && value <= 65535)
-                parameters.setConfigParam(WFSParameterIDs::networkRxTCPport.toString(), value);
-        }
-        // Tracking Port
-        else if (editor == &trackingPortEditor)
-        {
-            int value = text.getIntValue();
-            if (value >= 0 && value <= 65535)
-            {
-                parameters.setConfigParam("trackingPort", value);
-                updateTrackingReceiver(true);  // Force restart receiver with new port
-            }
-        }
-        // Tracking Offset parameters
-        else if (editor == &trackingOffsetXEditor)
-        {
-            float value = juce::jlimit(-50.0f, 50.0f, text.getFloatValue());
-            parameters.setConfigParam("trackingOffsetX", value);
-            updateTrackingTransformations();
-        }
-        else if (editor == &trackingOffsetYEditor)
-        {
-            float value = juce::jlimit(-50.0f, 50.0f, text.getFloatValue());
-            parameters.setConfigParam("trackingOffsetY", value);
-            updateTrackingTransformations();
-        }
-        else if (editor == &trackingOffsetZEditor)
-        {
-            float value = juce::jlimit(-50.0f, 50.0f, text.getFloatValue());
-            parameters.setConfigParam("trackingOffsetZ", value);
-            updateTrackingTransformations();
-        }
-        // Tracking Scale parameters
-        else if (editor == &trackingScaleXEditor)
-        {
-            float value = juce::jlimit(0.01f, 100.0f, text.getFloatValue());
-            parameters.setConfigParam("trackingScaleX", value);
-            updateTrackingTransformations();
-        }
-        else if (editor == &trackingScaleYEditor)
-        {
-            float value = juce::jlimit(0.01f, 100.0f, text.getFloatValue());
-            parameters.setConfigParam("trackingScaleY", value);
-            updateTrackingTransformations();
-        }
-        else if (editor == &trackingScaleZEditor)
-        {
-            float value = juce::jlimit(0.01f, 100.0f, text.getFloatValue());
-            parameters.setConfigParam("trackingScaleZ", value);
-            updateTrackingTransformations();
-        }
-        // OSC Query Port
-        else if (editor == &oscQueryPortEditor)
-        {
-            int value = text.getIntValue();
-            if (value >= 0 && value <= 65535)
-            {
-                saveOscQueryToValueTree();
-            }
-        }
         // Tracking OSC Path
-        else if (editor == &trackingOscPathEditor)
+        if (editor == &trackingOscPathEditor)
         {
             juce::String path = text.trim();
             if (isValidOscPath(path))
@@ -5634,11 +5741,16 @@ private:
         target.setProperty(WFSParameterIDs::networkTSname, row.nameEditor.getText(), nullptr);
         target.setProperty(WFSParameterIDs::networkTSdataMode, row.dataModeSelector.getSelectedId() - 1, nullptr);
         target.setProperty(WFSParameterIDs::networkTSip, row.ipEditor.getText(), nullptr);
-        target.setProperty(WFSParameterIDs::networkTSport, row.txPortEditor.getText().getIntValue(), nullptr);
+        // A port or patch box still being typed into keeps its stored value.
+        const int storedPort  = (int) target.getProperty(WFSParameterIDs::networkTSport, 9000);
+        const int storedPatch = (int) target.getProperty(WFSParameterIDs::networkTSqlabPatch, 1);
+        target.setProperty(WFSParameterIDs::networkTSport,
+                           TypedTextField::readInt(row.txPortEditor.getText(), 1, 65535).value_or(storedPort), nullptr);
         target.setProperty(WFSParameterIDs::networkTSrxEnable, row.rxEnableButton.getToggleState() ? 1 : 0, nullptr);
         target.setProperty(WFSParameterIDs::networkTStxEnable, row.txEnableButton.getToggleState() ? 1 : 0, nullptr);
         target.setProperty(WFSParameterIDs::networkTSProtocol, row.protocolSelector.getSelectedId() - 1, nullptr);
-        target.setProperty(WFSParameterIDs::networkTSqlabPatch, row.qlabPatchEditor.getText().getIntValue(), nullptr);
+        target.setProperty(WFSParameterIDs::networkTSqlabPatch,
+                           TypedTextField::readInt(row.qlabPatchEditor.getText(), 1, 99).value_or(storedPatch), nullptr);
 
         // Update OSCManager with new configuration
         updateOSCManagerConfig();
@@ -5677,9 +5789,9 @@ private:
 
     void saveOscQueryToValueTree()
     {
-        int port = oscQueryPortEditor.getText().getIntValue();
-        if (port < 0 || port > 65535)
-            port = 5005;
+        // The box's port when it holds a valid one, else the stored one: a
+        // toggle can arrive while a new port is still being typed.
+        const int port = TypedTextField::readInt(oscQueryPortEditor.getText(), 1, 65535).value_or(storedOscQueryPort());
 
         parameters.setConfigParam(WFSParameterIDs::networkOscQueryPort.toString(), port);
         parameters.setConfigParam(WFSParameterIDs::networkOscQueryEnabled.toString(),
@@ -5692,9 +5804,7 @@ private:
             return;
 
         bool enabled = oscQueryEnableButton.getToggleState();
-        int httpPort = oscQueryPortEditor.getText().getIntValue();
-        if (httpPort <= 0 || httpPort > 65535)
-            httpPort = 5005;
+        const int httpPort = storedOscQueryPort();
 
         if (enabled)
         {

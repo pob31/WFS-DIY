@@ -510,6 +510,7 @@
     "errors": {
       "speakerCountZero": "扬声器数量必须大于0",
       "noPositions": "没有可应用的位置。请检查几何参数。",
+      "fieldNotNumber": "红框标出的字段中没有数字。",
       "notEnoughOutputs": "输出通道不足! 从 {start} 开始需要 {count} 个",
       "prefix": "错误: "
     }

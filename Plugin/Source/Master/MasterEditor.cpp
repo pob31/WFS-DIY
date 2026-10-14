@@ -1,5 +1,6 @@
 #include "MasterEditor.h"
 #include "BinaryData.h"
+#include "../../../spatcore/ui/TypedValue.h"
 
 namespace wfs::plugin
 {
@@ -190,7 +191,11 @@ namespace wfs::plugin
             {
                 auto& adm  = processor.getProfileRegistry().get (TargetProfileRegistry::kIdAdmOsc);
                 auto& cust = processor.getProfileRegistry().get (TargetProfileRegistry::kIdCustom);
-                const float w = juce::jmax (0.01f, ed.getText().getFloatValue());
+                // Read as typed (comma decimals); text with no number changes nothing
+                const auto typed = spatcore::ui::typed::number (ed.getText());
+                if (! typed)
+                    return;
+                const float w = juce::jmax (0.01f, *typed);
                 for (auto* p : { &adm, &cust })
                 {
                     p->admCart.axes[axis].posInnerWidth = w;
@@ -208,7 +213,10 @@ namespace wfs::plugin
         {
             auto& adm  = processor.getProfileRegistry().get (TargetProfileRegistry::kIdAdmOsc);
             auto& cust = processor.getProfileRegistry().get (TargetProfileRegistry::kIdCustom);
-            const float d = juce::jmax (0.01f, admDistMaxEditor.getText().getFloatValue());
+            const auto typed = spatcore::ui::typed::number (admDistMaxEditor.getText());
+            if (! typed)
+                return;
+            const float d = juce::jmax (0.01f, *typed);
             for (auto* p : { &adm, &cust })
             {
                 p->admPolar.distInner = d * 0.5f;

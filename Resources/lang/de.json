@@ -509,6 +509,7 @@
     "errors": {
       "speakerCountZero": "Lautsprecheranzahl muss größer als 0 sein",
       "noPositions": "Keine Positionen anzuwenden. Überprüfen Sie die Geometrieparameter.",
+      "fieldNotNumber": "Ein rot umrandetes Feld enthält keine Zahl.",
       "notEnoughOutputs": "Nicht genug Ausgangskanäle! Benötigt {count} ab {start}"
     }
   },

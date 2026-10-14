@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "TypedTextField.h"
 #include "../WfsParameters.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Helpers/ArrayGeometryCalculator.h"
@@ -264,6 +265,14 @@ private:
 
     void showStatus(const juce::String& message);
     void showError(const juce::String& message);
+
+    /** The number in a field, read as typed (comma decimals, re-audit F8).
+        A field with no number reads as 0 and is outlined in red; the first
+        one is kept in firstUnreadable, and while one is the preview is not
+        redrawn and Apply refuses. */
+    float fieldValue(juce::TextEditor& editor);
+    int fieldInt(juce::TextEditor& editor) { return juce::roundToInt(fieldValue(editor)); }
+    juce::TextEditor* firstUnreadable = nullptr;
 
     // Layout helpers
     void layoutGeometrySection(juce::Rectangle<int>& area);

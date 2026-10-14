@@ -5763,6 +5763,9 @@
     <ClInclude Include="..\..\Source\gui\StatusBar.h">
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\gui\TypedTextField.h">
+      <Filter>WFS-DIY\Source\gui</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\gui\UpdateBanner.h">
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClInclude>

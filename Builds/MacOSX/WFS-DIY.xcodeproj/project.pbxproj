@@ -456,6 +456,7 @@
 		AFB9C921F3C63E79524F2A32 /* MetalWfsKernels.h */ /* MetalWfsKernels.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MetalWfsKernels.h; path = ../../spatcore/gpu/MetalWfsKernels.h; sourceTree = SOURCE_ROOT; };
 		B028DF103261CAED92414C4A /* CudaSdnBackend.cpp */ /* CudaSdnBackend.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = CudaSdnBackend.cpp; path = ../../spatcore/gpu/CudaSdnBackend.cpp; sourceTree = SOURCE_ROOT; };
 		B06893EFB59B82E33EBAE3D9 /* TrackingIngestQueue.h */ /* TrackingIngestQueue.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TrackingIngestQueue.h; path = ../../spatcore/control/osc/TrackingIngestQueue.h; sourceTree = SOURCE_ROOT; };
+		B257B03202284BF83E93E7E2 /* TypedTextField.h */ /* TypedTextField.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TypedTextField.h; path = ../../Source/gui/TypedTextField.h; sourceTree = SOURCE_ROOT; };
 		B2912CF93C62627CE40751BC /* include_juce_audio_formats_opusfile.c */ /* include_juce_audio_formats_opusfile.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = include_juce_audio_formats_opusfile.c; path = ../../JuceLibraryCode/include_juce_audio_formats_opusfile.c; sourceTree = SOURCE_ROOT; };
 		B2BC5E0B9FF2D160DBE8D131 /* include_juce_graphics_libjpg_1.c */ /* include_juce_graphics_libjpg_1.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = include_juce_graphics_libjpg_1.c; path = ../../JuceLibraryCode/include_juce_graphics_libjpg_1.c; sourceTree = SOURCE_ROOT; };
 		B2E5BB6DF397E59F6073DDFA /* WFSCalculationEngine.cpp */ /* WFSCalculationEngine.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = WFSCalculationEngine.cpp; path = ../../Source/DSP/WFSCalculationEngine.cpp; sourceTree = SOURCE_ROOT; };
@@ -920,6 +921,7 @@
 			isa = PBXGroup;
 			children = (
 				C13194A76B6B84669C156769,
+				B257B03202284BF83E93E7E2,
 				37A64E364B5651AEABDA9662,
 				A400E7223FA1004C445B4EC0,
 				00959BF07328BFC4DAE09086,

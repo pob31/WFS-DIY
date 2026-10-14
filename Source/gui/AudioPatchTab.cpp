@@ -1,6 +1,7 @@
 #include "AudioPatchTab.h"
 #include "ColorScheme.h"
 #include "WfsLookAndFeel.h"
+#include "../Helpers/TypedValue.h"
 #include <cmath>
 
 //==============================================================================
@@ -45,6 +46,13 @@ TestSignalControlPanel::TestSignalControlPanel(TestSignalGenerator* testSignalGe
     frequencySlider.setSkewFactorFromMidPoint(1000);
     frequencySlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 80, 20);
     frequencySlider.setTextValueSuffix(" Hz");
+    // Typed text is read like every value field ("1,2k" is 1200 Hz); text with
+    // no number keeps the current value. JUCE's default read "-2,5" as -2 and
+    // empty text as 0 (re-audit F8).
+    frequencySlider.valueFromTextFunction = [this] (const juce::String& text)
+    {
+        return static_cast<double> (TypedValue::number (text).value_or (static_cast<float> (frequencySlider.getValue())));
+    };
     frequencySlider.onValueChange = [this]() { applySettings(); };
 
     // Level slider
@@ -58,6 +66,11 @@ TestSignalControlPanel::TestSignalControlPanel(TestSignalGenerator* testSignalGe
     levelSlider.setValue(-40);  // Default: -40 dB
     levelSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 60, 20);
     levelSlider.setTextValueSuffix(" dB");
+    // An emptied level box used to read as 0 dB: a full-scale test tone.
+    levelSlider.valueFromTextFunction = [this] (const juce::String& text)
+    {
+        return static_cast<double> (TypedValue::number (text).value_or (static_cast<float> (levelSlider.getValue())));
+    };
     levelSlider.onValueChange = [this]() { applySettings(); };
 
     // Hold button

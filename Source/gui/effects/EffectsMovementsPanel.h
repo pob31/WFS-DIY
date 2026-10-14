@@ -626,7 +626,7 @@ private:
             addLabel (destLabels[axis], "", juce::Justification::centredRight);
             auto& ed = destEditors[axis];
             ed.setMultiLine (false);
-            ed.setInputRestrictions (10, "-0123456789.");
+            ed.setInputRestrictions (10, "-0123456789.,");   // a comma is a decimal point (re-audit F8)
             ed.setJustification (juce::Justification::centredRight);
             ed.setText ("0.00", false);
             ed.addListener (this);

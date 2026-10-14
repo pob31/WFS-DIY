@@ -7,6 +7,7 @@
 #include "AppSettings.h"
 #include "UpdateChecker.h"
 #include "Parameters/ProjectFileNames.h"
+#include "gui/TypedTextField.h"
 #include "Network/MCP/MCPParameterValidation.h"
 #include "Parameters/WFSParameterIDs.h"
 #include "Parameters/EffectsSnapshotScope.h"
@@ -3902,6 +3903,114 @@ void MainComponent::runValueGatesSelfTest()
         else
         {
             logLine ("SELF-TEST SKIP G9 B1: this session has no cluster 1");
+        }
+    }
+
+    // G12: re-audit 2026-09-29, F8. Typed number fields read a comma as a
+    // decimal point, write nothing when their text holds no number, and write
+    // only the field typed into. They read "-2,5" as -2 (getFloatValue) or,
+    // with a "-0123456789." filter, as -25; a cleared field wrote 0.
+    {
+        check (TypedTextField::parse ("-2,5") == -2.5f && ! TypedTextField::parse ("")
+                   && ! TypedTextField::parse ("-") && ! TypedTextField::parse ("abc"),
+               "G12 F8: the field reader takes a comma decimal and refuses text with no number");
+        check (TypedTextField::readInt ("9000", 1, 65535) == 9000 && ! TypedTextField::readInt ("", 1, 65535)
+                   && ! TypedTextField::readInt ("0", 1, 65535) && ! TypedTextField::readInt ("90a", 1, 65535),
+               "G12 F8: a port is digits in range, never 0 for an empty box");
+
+        if (inputsTab != nullptr && vts.getNumInputChannels() > 0)
+        {
+            const juce::Identifier ids[] = { inputPositionX, inputPositionY, inputPositionZ, inputOffsetX,
+                                             inputCoordinateMode, inputConstraintX, inputConstraintY, inputConstraintZ };
+            std::vector<juce::var> before;
+            for (const auto& param : ids) before.push_back (vts.getInputParameter (0, param));
+            const auto at = [&] (const juce::Identifier& param) { return static_cast<float> (vts.getInputParameter (0, param)); };
+
+            for (const auto& param : { inputConstraintX, inputConstraintY, inputConstraintZ })
+                vts.setInputParameter (0, param, 0);
+            vts.setInputParameter (0, inputCoordinateMode, 0);
+            vts.setInputParameter (0, inputPositionX, 3.0f);
+            vts.setInputParameter (0, inputPositionY, 1.234f);
+            vts.setInputParameter (0, inputPositionZ, 0.567f);
+            vts.setInputParameter (0, inputOffsetX, 0.0f);
+            inputsTab->selectChannel (vts.getInputChannelNumber (0));
+
+            auto& posX = inputsTab->getPositionEditorForTest (0);
+            inputsTab->typeIntoForTest (posX, "-2,5");
+            inputsTab->closeFieldForTest (posX);
+            check (at (inputPositionX) == -2.5f, "G12 F8: Inputs position X typed \"-2,5\" stores -2.5");
+            check (at (inputPositionY) == 1.234f && at (inputPositionZ) == 0.567f,
+                   "G12 F8: ...and Y and Z keep their exact values (they were re-read from 2-decimal text)");
+
+            for (const char* junk : { "", "abc", "-" })
+            {
+                inputsTab->typeIntoForTest (posX, junk);
+                inputsTab->closeFieldForTest (posX);
+                check (at (inputPositionX) == -2.5f,
+                       "G12 F8: Inputs position X typed " + juce::String (junk).quoted() + " writes nothing (it went to 0)");
+            }
+
+            inputsTab->closeFieldForTest (inputsTab->getPositionEditorForTest (1));
+            check (at (inputPositionY) == 1.234f, "G12 F8: closing an untouched field writes nothing");
+
+            auto& offX = inputsTab->getOffsetEditorForTest (0);
+            inputsTab->typeIntoForTest (offX, "-1,25");
+            inputsTab->closeFieldForTest (offX);
+            check (at (inputOffsetX) == -1.25f, "G12 F8: Inputs offset X typed \"-1,25\" stores -1.25");
+            inputsTab->typeIntoForTest (offX, "7");
+            inputsTab->escapeFieldForTest (offX);
+            inputsTab->closeFieldForTest (offX);
+            check (at (inputOffsetX) == -1.25f, "G12 F8: Esc then the focus loss writes nothing");
+
+            for (size_t i = 0; i < std::size (ids); ++i)
+                vts.setInputParameter (0, ids[i], before[i]);
+            inputsTab->selectChannel (vts.getInputChannelNumber (0));
+        }
+
+        if (reverbTab != nullptr && vts.getNumReverbChannels() > 0)
+        {
+            const auto before = vts.getReverbParameter (0, reverbReturnOffsetX);
+            reverbTab->selectChannel (1);
+            auto& offX = reverbTab->getReturnOffsetEditorForTest (0);
+            reverbTab->typeIntoForTest (offX, "1,5");
+            reverbTab->closeFieldForTest (offX);
+            check (static_cast<float> (vts.getReverbParameter (0, reverbReturnOffsetX)) == 1.5f,
+                   "G12 F8: a Reverb return offset typed \"1,5\" through its input filter stores 1.5 (it became 15)");
+            vts.setReverbParameter (0, reverbReturnOffsetX, before);
+            reverbTab->selectChannel (1);
+        }
+
+        if (outputsTab != nullptr && vts.getNumOutputChannels() > 0)
+        {
+            const auto before = vts.getOutputParameter (0, outputHparallax);
+            outputsTab->selectChannel (1);
+            auto& hPar = outputsTab->getHParallaxEditorForTest();
+            outputsTab->typeIntoForTest (hPar, "2,5");
+            outputsTab->closeFieldForTest (hPar);
+            check (static_cast<float> (vts.getOutputParameter (0, outputHparallax)) == 2.5f,
+                   "G12 F8: an Outputs parallax typed \"2,5\" stores 2.5");
+            outputsTab->typeIntoForTest (hPar, "");
+            outputsTab->closeFieldForTest (hPar);
+            check (static_cast<float> (vts.getOutputParameter (0, outputHparallax)) == 2.5f,
+                   "G12 F8: ...and an emptied one writes nothing");
+            vts.setOutputParameter (0, outputHparallax, before);
+            outputsTab->selectChannel (1);
+        }
+
+        if (systemConfigTab != nullptr)
+        {
+            const auto before = parameters.getConfigParam ("MasterLevel");
+            auto& master = systemConfigTab->getMasterLevelEditorForTest();
+            parameters.setConfigParam ("MasterLevel", -12.0f);
+            systemConfigTab->typeIntoForTest (master, "-");
+            systemConfigTab->closeFieldForTest (master);
+            check (static_cast<float> (parameters.getConfigParam ("MasterLevel")) == -12.0f,
+                   "G12 F8: a master level of just \"-\" changes nothing (it set 0 dB)");
+            systemConfigTab->typeIntoForTest (master, "-6,5");
+            systemConfigTab->closeFieldForTest (master);
+            check (static_cast<float> (parameters.getConfigParam ("MasterLevel")) == -6.5f,
+                   "G12 F8: a master level typed \"-6,5\" stores -6.5");
+            parameters.setConfigParam ("MasterLevel", before);
         }
     }
 

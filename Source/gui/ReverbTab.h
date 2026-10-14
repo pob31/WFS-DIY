@@ -9,6 +9,7 @@
 #include "../Accessibility/TTSManager.h"
 #include "../Localization/LocalizationManager.h"
 #include "../Helpers/TypedValue.h"
+#include "TypedTextField.h"
 #include "ChannelSelector.h"
 #include "ColorScheme.h"
 #include "SliderUIComponents.h"
@@ -209,6 +210,21 @@ public:
 
     /** The self-test types into these (TypedValue: a 1:X ratio, a kHz value). */
     juce::Label& getPostExpRatioLabelForTest()    { return postExpRatioValueLabel; }
+    juce::TextEditor& getReturnOffsetEditorForTest (int axis)
+    {
+        return axis == 0 ? returnOffsetXEditor : (axis == 1 ? returnOffsetYEditor : returnOffsetZEditor);
+    }
+
+    // Typed-field self-test (re-audit F8): keys and focus cannot be injected
+    // from a test shell, so it types and closes fields through these.
+    void typeIntoForTest (juce::TextEditor& editor, const juce::String& text)
+    {
+        editor.setText ({}, false);
+        editor.insertTextAtCaret (text);   // applies the input filter, as typing does
+        typedEdits.markEditedForTest (editor);
+    }
+    void closeFieldForTest (juce::TextEditor& editor)  { textEditorFocusLost (editor); }
+    void escapeFieldForTest (juce::TextEditor& editor) { textEditorEscapeKeyPressed (editor); }
     juce::Label& getEqFreqLabelForTest (int band) { return eqBandFreqValueLabel[juce::jlimit (0, numEqBands - 1, band)]; }
     int getCurrentSubTab() const { return subTabBar.getCurrentTabIndex(); }
 
@@ -791,8 +807,9 @@ private:
             posLabelPtrs[i]->setText (posLabels[i], juce::dontSendNotification);
 
             addAndMakeVisible (*posEditorPtrs[i]);
-            posEditorPtrs[i]->setInputRestrictions (10, "-0123456789.");
+            TypedTextField::restrictDecimal (*posEditorPtrs[i], 10, true);   // a comma is a decimal point (re-audit F8)
             posEditorPtrs[i]->addListener (this);
+            typedEdits.watch (*posEditorPtrs[i]);
 
             addAndMakeVisible (*posUnitPtrs[i]);
             posUnitPtrs[i]->setText ("m", juce::dontSendNotification);
@@ -811,8 +828,9 @@ private:
             offsetLabelPtrs[i]->setText (offsetLabels[i], juce::dontSendNotification);
 
             addAndMakeVisible (*offsetEditorPtrs[i]);
-            offsetEditorPtrs[i]->setInputRestrictions (10, "-0123456789.");
+            TypedTextField::restrictDecimal (*offsetEditorPtrs[i], 10, true);
             offsetEditorPtrs[i]->addListener (this);
+            typedEdits.watch (*offsetEditorPtrs[i]);
 
             addAndMakeVisible (*offsetUnitPtrs[i]);
             offsetUnitPtrs[i]->setText ("m", juce::dontSendNotification);
@@ -4771,7 +4789,9 @@ private:
 
     void textEditorEscapeKeyPressed (juce::TextEditor& editor) override
     {
-        // Revert to stored value and release focus
+        // Revert to stored value and release focus. The edit is forgotten
+        // first, so the focus loss that follows writes nothing.
+        typedEdits.forget (editor);
         if (&editor == &nameEditor)
             editor.setText(parameters.getReverbParam(currentChannel - 1, "reverbName").toString(), false);
         else if (&editor == &posXEditor || &editor == &posYEditor || &editor == &posZEditor)
@@ -4795,15 +4815,31 @@ private:
             saveReverbParam (WFSParameterIDs::reverbName, nameEditor.getText());
         else if (&editor == &posXEditor || &editor == &posYEditor || &editor == &posZEditor)
         {
-            // Get all three values from editors
-            float v1 = posXEditor.getText().getFloatValue();
-            float v2 = posYEditor.getText().getFloatValue();
-            float v3 = posZEditor.getText().getFloatValue();
+            // Written only if typed into (Return calls this, and the focus
+            // loss that follows finds nothing left to write).
+            if (! typedEdits.take (editor))
+                return;
 
-            // Get coordinate mode and convert to Cartesian
-            int mode = static_cast<int>(parameters.getReverbParam(currentChannel - 1, "reverbCoordinateMode"));
+            // The stored position in this mode's display terms, with the one
+            // axis typed into replaced (re-audit F8).
+            const int slot = currentChannel - 1;
+            int mode = static_cast<int>(parameters.getReverbParam(slot, "reverbCoordinateMode"));
             auto coordMode = static_cast<WFSCoordinates::Mode>(mode);
-            auto cart = WFSCoordinates::displayToCartesian(coordMode, v1, v2, v3);
+            float v[3];
+            WFSCoordinates::cartesianToDisplay(coordMode,
+                static_cast<float>(parameters.getReverbParam(slot, "reverbPositionX")),
+                static_cast<float>(parameters.getReverbParam(slot, "reverbPositionY")),
+                static_cast<float>(parameters.getReverbParam(slot, "reverbPositionZ")),
+                v[0], v[1], v[2]);
+
+            const auto typed = TypedTextField::parse (editor.getText());
+            if (! typed)
+            {
+                updatePositionLabelsAndValues();   // no number: show the stored position again
+                return;
+            }
+            v[&editor == &posXEditor ? 0 : (&editor == &posYEditor ? 1 : 2)] = *typed;
+            auto cart = WFSCoordinates::displayToCartesian(coordMode, v[0], v[1], v[2]);
 
             // Save Cartesian values
             saveReverbParam(WFSParameterIDs::reverbPositionX, cart.x);
@@ -4813,12 +4849,24 @@ private:
             // Update display with values (converted back to display coords)
             updatePositionLabelsAndValues();
         }
-        else if (&editor == &returnOffsetXEditor)
-            saveReverbParam (WFSParameterIDs::reverbReturnOffsetX, editor.getText().getFloatValue());
-        else if (&editor == &returnOffsetYEditor)
-            saveReverbParam (WFSParameterIDs::reverbReturnOffsetY, editor.getText().getFloatValue());
-        else if (&editor == &returnOffsetZEditor)
-            saveReverbParam (WFSParameterIDs::reverbReturnOffsetZ, editor.getText().getFloatValue());
+        else if (&editor == &returnOffsetXEditor || &editor == &returnOffsetYEditor || &editor == &returnOffsetZEditor)
+        {
+            if (! typedEdits.take (editor))
+                return;
+
+            const auto& offsetId = &editor == &returnOffsetXEditor ? WFSParameterIDs::reverbReturnOffsetX
+                           : &editor == &returnOffsetYEditor ? WFSParameterIDs::reverbReturnOffsetY
+                                                             : WFSParameterIDs::reverbReturnOffsetZ;
+            const float stored = static_cast<float> (parameters.getReverbParam (currentChannel - 1, offsetId.toString()));
+            const auto typed = TypedTextField::read (editor, juce::String (stored, 2));
+            if (! typed)
+                return;
+
+            const float value = juce::jlimit (WFSParameterDefaults::reverbReturnOffsetMin,
+                                              WFSParameterDefaults::reverbReturnOffsetMax, *typed);
+            saveReverbParam (offsetId, value);
+            editor.setText (juce::String (value, 2), false);
+        }
     }
 
     void editorShown (juce::Label* label, juce::TextEditor& editor) override
@@ -5585,6 +5633,10 @@ private:
     int scaled(int ref) const { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * layoutScale)); }
 
     // Header
+    // Which numeric fields were typed into (re-audit F8). Declared before the
+    // editors it listens to, so it outlives them.
+    TypedTextField::EditTracker typedEdits;
+
     ChannelSelectorButton channelSelector { "Reverb" };
     juce::Label nameLabel;
     juce::TextEditor nameEditor;

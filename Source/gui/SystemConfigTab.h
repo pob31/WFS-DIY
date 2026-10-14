@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include <set>
 #include "../WfsParameters.h"
+#include "TypedTextField.h"
 #include "../Accessibility/TTSManager.h"
 #include "../Localization/LocalizationManager.h"
 #include "StatusBar.h"
@@ -2507,6 +2508,17 @@ private:
     /** Scale a reference pixel value by layoutScale with a 65% minimum floor */
     int scaled(int ref) const { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * layoutScale)); }
 
+public:
+    // Typed-field self-test (re-audit F8)
+    juce::TextEditor& getMasterLevelEditorForTest() { return masterLevelEditor; }
+    void typeIntoForTest (juce::TextEditor& editor, const juce::String& text)
+    {
+        editor.setText ({}, false);
+        editor.insertTextAtCaret (text);   // applies the input filter, as typing does
+    }
+    void closeFieldForTest (juce::TextEditor& editor) { validateAndClampValue (editor); }
+
+private:
     //==============================================================================
     // Helper methods
 
@@ -2515,7 +2527,7 @@ private:
         auto setupNumericEditor = [](juce::TextEditor& editor, bool allowNegative, bool allowDecimal) {
             juce::String allowedChars = "0123456789";
             if (allowNegative) allowedChars += "-";
-            if (allowDecimal) allowedChars += ".";
+            if (allowDecimal) allowedChars += ".,";   // a comma is a decimal point (re-audit F8)
             editor.setInputFilter(new juce::TextEditor::LengthAndCharacterRestriction(10, allowedChars), true);
             editor.setPopupMenuEnabled(false);
             editor.setSelectAllWhenFocused(true);
@@ -2525,6 +2537,10 @@ private:
         setupNumericEditor(stageWidthEditor, false, true);  // 0.0 to 100.0
         setupNumericEditor(stageDepthEditor, false, true);  // 0.0 to 100.0
         setupNumericEditor(stageHeightEditor, false, true);  // 0.0 to 100.0
+
+        // Cylinder diameter and dome elevation had no filter at all
+        setupNumericEditor(stageDiameterEditor, false, true);   // 0.1 to 100.0
+        setupNumericEditor(domeElevationEditor, false, true);   // 1 to 360
 
         // Stage Origin - floats, allows negatives
         setupNumericEditor(stageOriginWidthEditor, true, true);  // -100.0 to 200.0
@@ -2551,7 +2567,7 @@ private:
 
         // Binaural Section
         setupNumericEditor(binauralDistanceEditor, false, true);  // 0.0 to 10.0
-        setupNumericEditor(binauralOrbitEditor, true, false);     // -180 to 180 (integer)
+        setupNumericEditor(binauralOrbitEditor, true, true);      // -180 to 180, rounded on commit
         setupNumericEditor(binauralAttenEditor, true, true);      // -40.0 to 0.0
         setupNumericEditor(binauralDelayEditor, false, true);     // 0.0 to 100.0
 
@@ -2562,9 +2578,11 @@ private:
         setupNumericEditor(binauralListenerXEditor, true, true);  // -10.0 to 10.0
         setupNumericEditor(binauralHeightEditor, false, true);    // 0.5 to 3.0
         setupNumericEditor(binauralHeadRadiusEditor, false, true);// 6.0 to 12.0 cm
-        setupNumericEditor(binauralYawEditor, true, false);       // -180 to 180
-        setupNumericEditor(binauralPitchEditor, true, false);     // -89 to 89
-        setupNumericEditor(binauralRollEditor, true, false);      // -90 to 90
+        // Whole degrees, but a decimal point is typed, not dropped: an integer
+        // filter turned "45.5" into "455", which clamped to a half-turn.
+        setupNumericEditor(binauralYawEditor, true, true);        // -180 to 180, rounded on commit
+        setupNumericEditor(binauralPitchEditor, true, true);      // -89 to 89
+        setupNumericEditor(binauralRollEditor, true, true);       // -90 to 90
     }
 
     //==============================================================================
@@ -3248,7 +3266,16 @@ private:
             return;
         }
 
-        float value = text.getFloatValue();
+        // Read as typed (comma decimals, units ignored); text with no number in
+        // it - "-", ".", a stray letter - restores like empty text, where it
+        // used to write 0 (a master level of 0 dB) (re-audit F8).
+        const auto typed = TypedTextField::parse(text);
+        if (! typed)
+        {
+            loadParametersToUI();
+            return;
+        }
+        float value = *typed;
 
         // Validate and clamp based on CSV specifications
         // Take absolute value for fields that don't allow negatives
@@ -3324,8 +3351,9 @@ private:
         {
             // A channel count is a whole number of channels. Left out of this
             // list an editor falls through to the two-decimal branch below and
-            // reads "3.00", which is not a count of anything.
-            editor.setText(juce::String((int)value), false);
+            // reads "3.00", which is not a count of anything. The orbit angle
+            // is rounded, not truncated.
+            editor.setText(juce::String(juce::roundToInt(value)), false);
         }
         else if (&editor == &binauralDistanceEditor || &editor == &binauralAttenEditor ||
                  &editor == &binauralDelayEditor)

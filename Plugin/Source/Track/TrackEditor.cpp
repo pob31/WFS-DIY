@@ -1,5 +1,6 @@
 #include "TrackEditor.h"
 #include "BinaryData.h"
+#include "../../../spatcore/ui/TypedValue.h"
 
 namespace wfs::plugin
 {
@@ -270,8 +271,17 @@ namespace wfs::plugin
             {
                 if (auto* param = processor.getState().getParameter (paramID))
                 {
-                    const auto numeric = label.getText().retainCharacters ("-0123456789.");
-                    const float parsed = numeric.getFloatValue();
+                    // Read as typed, like the app's value fields: a comma is a
+                    // decimal point and a typed minus sign counts. Text with no
+                    // number puts the current value back; it used to set 0 - an
+                    // attenuation of 0 dB (re-audit F8).
+                    const auto typed = spatcore::ui::typed::number (label.getText());
+                    if (! typed)
+                    {
+                        param->sendValueChangedMessageToListeners (param->getValue());
+                        return;
+                    }
+                    const float parsed = *typed;
                     const float norm   = juce::jlimit (0.0f, 1.0f,
                                                        param->convertTo0to1 (parsed));
                     param->beginChangeGesture();

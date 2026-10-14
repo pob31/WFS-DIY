@@ -1204,6 +1204,7 @@
     "errors": {
       "speakerCountZero": "Le nombre d'enceintes doit être supérieur à 0",
       "noPositions": "Aucune position à appliquer. Vérifiez les paramètres de géométrie.",
+      "fieldNotNumber": "Un champ entouré de rouge ne contient pas de nombre.",
       "notEnoughOutputs": "Pas assez de canaux de sortie ! Besoin de {count} à partir de {start}",
       "prefix": "Erreur : "
     }

@@ -1188,6 +1188,7 @@
     "errors": {
       "speakerCountZero": "Il numero di altoparlanti deve essere maggiore di 0",
       "noPositions": "Nessuna posizione da applicare. Verifica i parametri geometrici.",
+      "fieldNotNumber": "Un campo bordato di rosso non contiene un numero.",
       "notEnoughOutputs": "Canali di uscita insufficienti! Necessari {count} a partire da {start}",
       "prefix": "Errore: "
     }

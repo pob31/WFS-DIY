@@ -11,6 +11,7 @@
 #include "../gui/sliders/WfsBidirectionalSlider.h"
 #include "../Localization/LocalizationManager.h"
 #include "../gui/ColumnFocusTraverser.h"
+#include "../gui/TypedTextField.h"
 #include "../gui/buttons/LongPressButton.h"
 #include "../gui/HelpCard.h"
 
@@ -227,7 +228,10 @@ public:
         clearEditorFrame (curveValueEditor);
         curveValueEditor.onReturnKey = [this]
         {
-            curveSlider.setValue (curveValueEditor.getText().getFloatValue());
+            // Read as typed (comma decimals); no number keeps the value (re-audit F8)
+            curveSlider.setValue (TypedTextField::parse (curveValueEditor.getText())
+                                   .value_or (static_cast<float> (curveSlider.getValue())));
+            curveValueEditor.setText (juce::String (curveSlider.getValue(), 2), false);
             onLayerPropertyChanged();
             curveValueEditor.giveAwayKeyboardFocus();
         };
@@ -301,7 +305,10 @@ public:
         shapeFillValueEditor.setJustification (juce::Justification::centred);
         shapeFillValueEditor.onReturnKey = [this]
         {
-            shapeFillValueSlider.setValue (shapeFillValueEditor.getText().getFloatValue());
+            // Read as typed (comma decimals); no number keeps the value (re-audit F8)
+            shapeFillValueSlider.setValue (TypedTextField::parse (shapeFillValueEditor.getText())
+                                   .value_or (static_cast<float> (shapeFillValueSlider.getValue())));
+            shapeFillValueEditor.setText (juce::String (shapeFillValueSlider.getValue(), 2), false);
             onShapePropertyChanged();
             shapeFillValueEditor.giveAwayKeyboardFocus();
         };
@@ -339,7 +346,10 @@ public:
         shapeBlurEditor.setJustification (juce::Justification::centred);
         shapeBlurEditor.onReturnKey = [this]
         {
-            shapeBlurSlider.setValue (shapeBlurEditor.getText().getFloatValue());
+            // Read as typed (comma decimals); no number keeps the value (re-audit F8)
+            shapeBlurSlider.setValue (TypedTextField::parse (shapeBlurEditor.getText())
+                                   .value_or (static_cast<float> (shapeBlurSlider.getValue())));
+            shapeBlurEditor.setText (juce::String (shapeBlurSlider.getValue(), 2), false);
             onShapePropertyChanged();
             shapeBlurEditor.giveAwayKeyboardFocus();
         };
@@ -419,7 +429,10 @@ public:
         gradValue1Editor.setJustification (juce::Justification::centred);
         gradValue1Editor.onReturnKey = [this]
         {
-            gradValue1Slider.setValue (gradValue1Editor.getText().getFloatValue());
+            // Read as typed (comma decimals); no number keeps the value (re-audit F8)
+            gradValue1Slider.setValue (TypedTextField::parse (gradValue1Editor.getText())
+                                   .value_or (static_cast<float> (gradValue1Slider.getValue())));
+            gradValue1Editor.setText (juce::String (gradValue1Slider.getValue(), 2), false);
             onGradientValueChanged();
             gradValue1Editor.giveAwayKeyboardFocus();
         };
@@ -440,7 +453,10 @@ public:
         gradValue2Editor.setJustification (juce::Justification::centred);
         gradValue2Editor.onReturnKey = [this]
         {
-            gradValue2Slider.setValue (gradValue2Editor.getText().getFloatValue());
+            // Read as typed (comma decimals); no number keeps the value (re-audit F8)
+            gradValue2Slider.setValue (TypedTextField::parse (gradValue2Editor.getText())
+                                   .value_or (static_cast<float> (gradValue2Slider.getValue())));
+            gradValue2Editor.setText (juce::String (gradValue2Slider.getValue(), 2), false);
             onGradientValueChanged();
             gradValue2Editor.giveAwayKeyboardFocus();
         };
@@ -3142,10 +3158,13 @@ private:
         currentLayerData.param = static_cast<GradientMap::TargetParam> (activeLayer);
 
         auto bounds = getLayerBounds (activeLayer);
+        // Read as typed (comma decimals); a box with no number keeps the layer's
+        // value - an emptied white box on the attenuation layer used to read 0 dB,
+        // full level (re-audit F8).
         currentLayerData.whiteValue = juce::jlimit (bounds.min, bounds.max,
-                                                     whiteValueEditor.getText().getFloatValue());
+            TypedTextField::parse (whiteValueEditor.getText()).value_or (currentLayerData.whiteValue));
         currentLayerData.blackValue = juce::jlimit (bounds.min, bounds.max,
-                                                     blackValueEditor.getText().getFloatValue());
+            TypedTextField::parse (blackValueEditor.getText()).value_or (currentLayerData.blackValue));
         whiteValueEditor.setText (juce::String (currentLayerData.whiteValue, 2), false);
         blackValueEditor.setText (juce::String (currentLayerData.blackValue, 2), false);
 

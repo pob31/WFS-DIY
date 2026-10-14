@@ -1,5 +1,6 @@
 #include "TrackProcessor.h"
 #include "TrackEditor.h"
+#include "../../../spatcore/ui/TypedValue.h"
 
 namespace wfs::plugin
 {
@@ -93,6 +94,10 @@ namespace wfs::plugin
         {
             const juce::String unit = pos.unit;
 
+            // The parameter this text box reads into, so text with no number
+            // can keep its current value instead of reading as 0 (re-audit F8).
+            auto created = std::make_shared<AudioParameterFloat*> (nullptr);
+
             auto attrs = AudioParameterFloatAttributes()
                 .withStringFromValueFunction ([unit] (float v, int) -> juce::String
                 {
@@ -101,19 +106,23 @@ namespace wfs::plugin
                         s += " " + unit;
                     return s;
                 })
-                .withValueFromStringFunction ([] (const juce::String& text) -> float
+                .withValueFromStringFunction ([created] (const juce::String& text) -> float
                 {
-                    return text.retainCharacters ("-0123456789.").getFloatValue();
+                    if (const auto typed = spatcore::ui::typed::number (text))
+                        return *typed;
+                    return *created != nullptr ? (*created)->get() : 0.0f;
                 });
 
             // 0.01 unit interval — gives IncDec slider buttons a sensible step
             // (1 cm for metre positions, 0.01° for normalised ADM, etc.) and
             // matches the 2-decimal display precision of the text formatter.
-            layout.add (std::make_unique<AudioParameterFloat> (
+            auto param = std::make_unique<AudioParameterFloat> (
                 ParameterID (pos.paramID, 1), pos.label,
                 NormalisableRange<float> (pos.minValue, pos.maxValue, 0.01f),
                 pos.defaultValue,
-                attrs));
+                attrs);
+            *created = param.get();
+            layout.add (std::move (param));
         }
         return layout;
     }

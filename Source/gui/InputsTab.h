@@ -33,6 +33,7 @@
 #include "buttons/PadlockTextButton.h"
 #include "../Localization/LocalizationManager.h"
 #include "../Helpers/TypedValue.h"
+#include "TypedTextField.h"
 #include "ColumnFocusTraverser.h"
 #include "SamplerSubTab.h"
 #include "InputEffectSendsSubTab.h"
@@ -621,6 +622,19 @@ public:
 
     /** The self-test checks that a drag of either opens an undo step. */
     WfsJoystickComponent& getPositionJoystickForTest() { return positionJoystick; }
+    juce::TextEditor& getPositionEditorForTest (int axis) { return axis == 0 ? posXEditor : (axis == 1 ? posYEditor : posZEditor); }
+    juce::TextEditor& getOffsetEditorForTest (int axis)   { return axis == 0 ? offsetXEditor : (axis == 1 ? offsetYEditor : offsetZEditor); }
+
+    // Typed-field self-test (re-audit F8): keys and focus cannot be injected
+    // from a test shell, so it types and closes fields through these.
+    void typeIntoForTest (juce::TextEditor& editor, const juce::String& text)
+    {
+        editor.setText ({}, false);
+        editor.insertTextAtCaret (text);   // applies the input filter, as typing does
+        typedEdits.markEditedForTest (editor);
+    }
+    void closeFieldForTest (juce::TextEditor& editor)  { textEditorFocusLost (editor); }
+    void escapeFieldForTest (juce::TextEditor& editor) { textEditorEscapeKeyPressed (editor); }
 
     /** The self-test types into these (TypedValue: a duration, the signed
         latency field, a word that must change nothing). */
@@ -1248,25 +1262,11 @@ private:
         distanceMinLabel.setText(LOC("inputs.labels.min"), juce::dontSendNotification);
         addAndMakeVisible(distanceMinEditor);
         distanceMinEditor.setText("0.00", juce::dontSendNotification);
-        distanceMinEditor.setInputRestrictions(6, "0123456789.-");
-        distanceMinEditor.onReturnKey = [this]() {
-            float val = distanceMinEditor.getText().getFloatValue();
-            val = juce::jlimit(0.0f, 50.0f, val);
-            distanceRangeSlider.setValues(val, distanceRangeSlider.getThumb2Value());
-            saveInputParam(WFSParameterIDs::inputConstraintDistanceMin, distanceRangeSlider.getMinValue());
-            saveInputParam(WFSParameterIDs::inputConstraintDistanceMax, distanceRangeSlider.getMaxValue());
-            if (constraintDistanceButton.getToggleState())
-                applyDistanceConstraintSnap();
-        };
-        distanceMinEditor.onFocusLost = [this]() {
-            float val = distanceMinEditor.getText().getFloatValue();
-            val = juce::jlimit(0.0f, 50.0f, val);
-            distanceRangeSlider.setValues(val, distanceRangeSlider.getThumb2Value());
-            saveInputParam(WFSParameterIDs::inputConstraintDistanceMin, distanceRangeSlider.getMinValue());
-            saveInputParam(WFSParameterIDs::inputConstraintDistanceMax, distanceRangeSlider.getMaxValue());
-            if (constraintDistanceButton.getToggleState())
-                applyDistanceConstraintSnap();
-        };
+        TypedTextField::restrictDecimal(distanceMinEditor, 6, false);
+        typedEdits.watch(distanceMinEditor);
+        distanceMinEditor.onReturnKey = [this]() { commitDistanceEditor(distanceMinEditor, false); };
+        distanceMinEditor.onFocusLost = [this]() { commitDistanceEditor(distanceMinEditor, false); };
+        distanceMinEditor.onEscapeKey = [this]() { revertDistanceEditor(distanceMinEditor); };
         addAndMakeVisible(distanceMinUnitLabel);
         distanceMinUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
 
@@ -1275,25 +1275,11 @@ private:
         distanceMaxLabel.setText(LOC("inputs.labels.max"), juce::dontSendNotification);
         addAndMakeVisible(distanceMaxEditor);
         distanceMaxEditor.setText("50.00", juce::dontSendNotification);
-        distanceMaxEditor.setInputRestrictions(6, "0123456789.-");
-        distanceMaxEditor.onReturnKey = [this]() {
-            float val = distanceMaxEditor.getText().getFloatValue();
-            val = juce::jlimit(0.0f, 50.0f, val);
-            distanceRangeSlider.setValues(distanceRangeSlider.getThumb1Value(), val);
-            saveInputParam(WFSParameterIDs::inputConstraintDistanceMin, distanceRangeSlider.getMinValue());
-            saveInputParam(WFSParameterIDs::inputConstraintDistanceMax, distanceRangeSlider.getMaxValue());
-            if (constraintDistanceButton.getToggleState())
-                applyDistanceConstraintSnap();
-        };
-        distanceMaxEditor.onFocusLost = [this]() {
-            float val = distanceMaxEditor.getText().getFloatValue();
-            val = juce::jlimit(0.0f, 50.0f, val);
-            distanceRangeSlider.setValues(distanceRangeSlider.getThumb1Value(), val);
-            saveInputParam(WFSParameterIDs::inputConstraintDistanceMin, distanceRangeSlider.getMinValue());
-            saveInputParam(WFSParameterIDs::inputConstraintDistanceMax, distanceRangeSlider.getMaxValue());
-            if (constraintDistanceButton.getToggleState())
-                applyDistanceConstraintSnap();
-        };
+        TypedTextField::restrictDecimal(distanceMaxEditor, 6, false);
+        typedEdits.watch(distanceMaxEditor);
+        distanceMaxEditor.onReturnKey = [this]() { commitDistanceEditor(distanceMaxEditor, true); };
+        distanceMaxEditor.onFocusLost = [this]() { commitDistanceEditor(distanceMaxEditor, true); };
+        distanceMaxEditor.onEscapeKey = [this]() { revertDistanceEditor(distanceMaxEditor); };
         addAndMakeVisible(distanceMaxUnitLabel);
         distanceMaxUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
 
@@ -1518,8 +1504,8 @@ private:
             if (useOffset)
             {
                 // Update Offset X/Y when tracking is fully active
-                float currentOffsetX = offsetXEditor.getText().getFloatValue();
-                float currentOffsetY = offsetYEditor.getText().getFloatValue();
+                float currentOffsetX = static_cast<float>(parameters.getInputParam(channelSlot(), "inputOffsetX"));
+                float currentOffsetY = static_cast<float>(parameters.getInputParam(channelSlot(), "inputOffsetY"));
                 float newOffsetX = currentOffsetX + deltaX;
                 float newOffsetY = currentOffsetY + deltaY;
 
@@ -1660,7 +1646,7 @@ private:
             if (useOffset)
             {
                 // Update Offset Z when tracking is fully active
-                float currentOffsetZ = offsetZEditor.getText().getFloatValue();
+                float currentOffsetZ = static_cast<float>(parameters.getInputParam(channelSlot(), "inputOffsetZ"));
                 float newOffsetZ = currentOffsetZ + deltaZ;
 
                 if (useDistanceConstraint)
@@ -1670,8 +1656,8 @@ private:
                     float posX = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionX"));
                     float posY = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionY"));
                     float posZ = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionZ"));
-                    float offsetX = offsetXEditor.getText().getFloatValue();
-                    float offsetY = offsetYEditor.getText().getFloatValue();
+                    float offsetX = static_cast<float>(parameters.getInputParam(channelSlot(), "inputOffsetX"));
+                    float offsetY = static_cast<float>(parameters.getInputParam(channelSlot(), "inputOffsetY"));
                     float totalX = posX + offsetX;
                     float totalY = posY + offsetY;
                     float totalZ = posZ + newOffsetZ;
@@ -3277,8 +3263,46 @@ private:
 
     void setupNumericEditor(juce::TextEditor& editor, bool /*allowNegative*/, bool /*allowDecimal*/)
     {
-        // No input restrictions - allow free typing, validate on commit (Enter/focus lost)
+        // No input restrictions - allow free typing, read on commit (Enter/focus
+        // lost) through TypedTextField: a comma is a decimal point, text with no
+        // number puts the stored value back, an untouched field writes nothing.
         editor.addListener(this);
+        typedEdits.watch(editor);
+    }
+
+    /** A distance-constraint box: written only if typed into, read as a typed
+        number, the stored range shown again when it holds none (re-audit F8). */
+    void commitDistanceEditor(juce::TextEditor& editor, bool isMax)
+    {
+        if (! typedEdits.take(editor))
+            return;
+
+        const double stored = isMax ? distanceRangeSlider.getMaxValue() : distanceRangeSlider.getMinValue();
+        const auto typed = TypedTextField::read(editor, juce::String(stored, 2));
+        if (! typed)
+            return;
+
+        const float val = juce::jlimit(0.0f, 50.0f, *typed);
+        if (isMax)
+            distanceRangeSlider.setValues(distanceRangeSlider.getThumb1Value(), val);
+        else
+            distanceRangeSlider.setValues(val, distanceRangeSlider.getThumb2Value());
+
+        saveInputParam(WFSParameterIDs::inputConstraintDistanceMin, distanceRangeSlider.getMinValue());
+        saveInputParam(WFSParameterIDs::inputConstraintDistanceMax, distanceRangeSlider.getMaxValue());
+        distanceMinEditor.setText(juce::String(distanceRangeSlider.getMinValue(), 2), juce::dontSendNotification);
+        distanceMaxEditor.setText(juce::String(distanceRangeSlider.getMaxValue(), 2), juce::dontSendNotification);
+        if (constraintDistanceButton.getToggleState())
+            applyDistanceConstraintSnap();
+    }
+
+    void revertDistanceEditor(juce::TextEditor& editor)
+    {
+        typedEdits.forget(editor);
+        const bool isMax = &editor == &distanceMaxEditor;
+        editor.setText(juce::String(isMax ? distanceRangeSlider.getMaxValue() : distanceRangeSlider.getMinValue(), 2), false);
+        editor.giveAwayKeyboardFocus();
+        grabKeyboardFocus();
     }
 
     void setupEditableValueLabel(juce::Label& label)
@@ -6092,7 +6116,9 @@ private:
 
     void textEditorEscapeKeyPressed(juce::TextEditor& editor) override
     {
-        // Revert to stored value and release focus
+        // Revert to stored value and release focus. The edit is forgotten
+        // first, so the focus loss that follows writes nothing.
+        typedEdits.forget(editor);
         if (&editor == &nameEditor)
             editor.setText(parameters.getInputParam(channelSlot(), "inputName").toString(), false);
         else if (&editor == &posXEditor || &editor == &posYEditor || &editor == &posZEditor)
@@ -6122,15 +6148,29 @@ private:
         // Position tab - Position editors with coordinate conversion and constraint support
         else if (&editor == &posXEditor || &editor == &posYEditor || &editor == &posZEditor)
         {
-            // Get all three values from editors
-            float v1 = posXEditor.getText().getFloatValue();
-            float v2 = posYEditor.getText().getFloatValue();
-            float v3 = posZEditor.getText().getFloatValue();
+            if (! typedEdits.take(editor))
+                return;   // clicked in and out: nothing typed, nothing rounded through the display
 
-            // Get coordinate mode and convert to Cartesian
+            // Start from the stored position in this mode's display terms and
+            // replace the one axis typed into (re-audit F8).
             int mode = static_cast<int>(parameters.getInputParam(channelSlot(), "inputCoordinateMode"));
             auto coordMode = static_cast<WFSCoordinates::Mode>(mode);
-            auto cart = WFSCoordinates::displayToCartesian(coordMode, v1, v2, v3);
+            float v[3];
+            WFSCoordinates::cartesianToDisplay(coordMode,
+                static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionX")),
+                static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionY")),
+                static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionZ")),
+                v[0], v[1], v[2]);
+
+            const int axis = &editor == &posXEditor ? 0 : (&editor == &posYEditor ? 1 : 2);
+            const auto typed = TypedTextField::parse(editor.getText());
+            if (! typed)
+            {
+                updatePositionLabelsAndValues();   // no number: show the stored position again
+                return;
+            }
+            v[axis] = *typed;
+            auto cart = WFSCoordinates::displayToCartesian(coordMode, v[0], v[1], v[2]);
 
             // Apply constraints (shared utility reads constraint flags from parameters)
             WFSConstraints::constrainPosition (parameters.getValueTreeState(), channelSlot(),
@@ -6147,10 +6187,18 @@ private:
         // Offset editors - also apply constraints (position + offset must be within bounds)
         else if (&editor == &offsetXEditor || &editor == &offsetYEditor || &editor == &offsetZEditor)
         {
-            // Get all offset values
-            float offsetX = offsetXEditor.getText().getFloatValue();
-            float offsetY = offsetYEditor.getText().getFloatValue();
-            float offsetZ = offsetZEditor.getText().getFloatValue();
+            if (! typedEdits.take(editor))
+                return;
+
+            // Stored offsets, with the one typed into replaced (re-audit F8)
+            float offsetX = static_cast<float>(parameters.getInputParam(channelSlot(), "inputOffsetX"));
+            float offsetY = static_cast<float>(parameters.getInputParam(channelSlot(), "inputOffsetY"));
+            float offsetZ = static_cast<float>(parameters.getInputParam(channelSlot(), "inputOffsetZ"));
+            float& typedAxis = &editor == &offsetXEditor ? offsetX : (&editor == &offsetYEditor ? offsetY : offsetZ);
+            const auto typed = TypedTextField::read(editor, juce::String(typedAxis, 2));
+            if (! typed)
+                return;
+            typedAxis = *typed;
 
             // Apply constraints (shared utility reads position and constraint flags from parameters)
             WFSConstraints::constrainOffset (parameters.getValueTreeState(), channelSlot(),
@@ -6167,13 +6215,25 @@ private:
         // AutomOtion tab - Destination editors with coordinate mode support
         else if (&editor == &otomoDestXEditor || &editor == &otomoDestYEditor || &editor == &otomoDestZEditor)
         {
-            // Get all three values from editors
-            float v1 = otomoDestXEditor.getText().getFloatValue();
-            float v2 = otomoDestYEditor.getText().getFloatValue();
-            float v3 = otomoDestZEditor.getText().getFloatValue();
+            if (! typedEdits.take(editor))
+                return;
 
             // Get coordinate mode from AutomOtion selector
             int mode = otomoCoordModeSelector.getSelectedId() - 1;  // 0=Cartesian, 1=Cylindrical, 2=Spherical
+
+            // The stored destination in that mode, with the one axis typed into
+            // replaced (re-audit F8): text with no number writes nothing.
+            const int slot = channelSlot();
+            float v1 = static_cast<float>(parameters.getInputParam(slot, mode == 0 ? "inputOtomoX" : (mode == 1 ? "inputOtomoR" : "inputOtomoRsph")));
+            float v2 = static_cast<float>(parameters.getInputParam(slot, mode == 0 ? "inputOtomoY" : "inputOtomoTheta"));
+            float v3 = static_cast<float>(parameters.getInputParam(slot, mode == 2 ? "inputOtomoPhi" : "inputOtomoZ"));
+            const auto typed = TypedTextField::parse(editor.getText());
+            if (! typed)
+            {
+                updateOtomoDestinationEditors();
+                return;
+            }
+            (&editor == &otomoDestXEditor ? v1 : (&editor == &otomoDestYEditor ? v2 : v3)) = *typed;
 
             // Apply bounds and save based on coordinate mode
             if (mode == 0)  // Cartesian
@@ -8163,6 +8223,10 @@ private:
 
     /** Scale a reference pixel value by layoutScale with a 65% minimum floor */
     int scaled(int ref) const { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * layoutScale)); }
+
+    // Which numeric fields were typed into (re-audit F8). Declared before the
+    // editors it listens to, so it outlives them.
+    TypedTextField::EditTracker typedEdits;
 
     // Header components
     ChannelSelectorButton channelSelector { "Input" };

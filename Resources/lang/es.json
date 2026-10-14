@@ -500,6 +500,7 @@
     "errors": {
       "speakerCountZero": "El número de altavoces debe ser mayor que 0",
       "noPositions": "No hay posiciones para aplicar. Verifique los parámetros de geometría.",
+      "fieldNotNumber": "Un campo marcado en rojo no contiene ningún número.",
       "notEnoughOutputs": "¡No hay suficientes canales de salida! Se necesitan {count} desde {start}",
       "prefix": "Error: "
     }

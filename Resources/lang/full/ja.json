@@ -1197,6 +1197,7 @@
     "errors": {
       "speakerCountZero": "スピーカー数は0より大きくする必要があります",
       "noPositions": "適用する位置がありません。ジオメトリパラメータを確認してください。",
+      "fieldNotNumber": "赤枠の欄に数値が入っていません。",
       "notEnoughOutputs": "出力チャンネルが足りません！{start}から{count}個必要です",
       "prefix": "エラー: "
     }
