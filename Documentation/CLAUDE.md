@@ -2699,7 +2699,7 @@ git submodule update --init --recursive
 ```
 
 **Dependencies (via submodules in `ThirdParty/`):**
-- **JUCE 9.0.2** — `ThirdParty/JUCE` (pinned to tag 9.0.2; ASIO SDK is bundled with JUCE since 8.0.11). The submodule builds unpatched: JUCE 9's native XInput2 multitouch replaced the old Linux canUseTouch patch + evdev touch backend (Windows windows opt back into raw multi-touch via `WindowUtils::enableRawMultiTouch`). Linux builds need `libxi-dev`; `juce_opengl` was dropped from the project (unused) so EGL is not required.
+- **JUCE 9.0.4** — `ThirdParty/JUCE` (pinned to tag 9.0.4; ASIO SDK is bundled with JUCE since 8.0.11). 9.0.3 was skipped: closing a Windows MIDI input whose device had gone blocked ~7 s (JUCE #1756, fixed in 9.0.4). Opus and WebP support, on by default since 9.0.3, are switched off (`JUCE_USE_OPUS=0`, `JUCE_USE_WEBP=0` in the .jucer and `Plugin/CMakeLists.txt`) because nothing uses them. The submodule builds unpatched: JUCE 9's native XInput2 multitouch replaced the old Linux canUseTouch patch + evdev touch backend (Windows windows opt back into raw multi-touch via `WindowUtils::enableRawMultiTouch`). Linux builds need `libxi-dev`; `juce_opengl` was dropped from the project (unused) so EGL is not required.
 
 - Project file: WFS-DIY.jucer (open in Projucer to re-export build files)
 - Builds: Visual Studio 2026 (v145 toolset; the `Builds/VisualStudio2022` folder
