@@ -721,7 +721,7 @@ inline StreamDeckPage createMovementsPage (WFSValueTreeState& state, EffectParam
         const float maxs2[] = { effectOtomoMax, effectOtomoMax, effectOtomoPhiMax };
         const bool angular1 = coordMode != 0, angular2 = coordMode == 2;
 
-        auto dest = [&] (int d, const juce::Identifier& pid, float mn, float mx, bool angular, const juce::String& name)
+        auto dest = [&] (int d, const juce::Identifier& pid, float mn, float mx, bool angular, const juce::String& title)
         {
             DialBinding dial;
             dial.type = DialBinding::Float;
@@ -731,7 +731,7 @@ inline StreamDeckPage createMovementsPage (WFSValueTreeState& state, EffectParam
             dial.fineStep = angular ? 1.0f : 0.1f;
             dial.decimalPlaces = angular ? 1 : 2;
             dial.paramUnit = angular ? LOC ("units.degrees") : LOC ("units.meters");
-            dial.paramName = name;
+            dial.paramName = title;
             dial.getValue = [&state, ch, pid]() { return static_cast<float> (state.getEffectParameter (ch, pid)); };
             dial.setValue = [&edit, ch, pid] (float v) { edit.write (ch, pid, v); };
             dial.barColour = juce::Colour (0xFF4CAF50);
@@ -843,40 +843,40 @@ inline StreamDeckPage createSettingsPage (WFSValueTreeState& state, const Effect
     StreamDeckPage page ("Effects > Settings");
     const auto grey = juce::Colour (0xFF3A3A3A);
 
-    auto readGlobal = [&state] (const juce::Identifier& id, float fallback)
+    auto readGlobal = [&state] (const juce::Identifier& globalId, float fallback)
     {
-        const auto v = state.getEffectsGlobalSection().getProperty (id);
+        const auto v = state.getEffectsGlobalSection().getProperty (globalId);
         return v.isVoid() ? fallback : static_cast<float> (static_cast<double> (v));
     };
 
-    auto globalToggle = [&] (const juce::String& label, const juce::Identifier& id, int def, juce::Colour on)
+    auto globalToggle = [&] (const juce::String& label, const juce::Identifier& globalId, int def, juce::Colour on)
     {
         ButtonBinding btn;
         btn.label = label;
         btn.colour = grey;
         btn.activeColour = on;
         btn.type = ButtonBinding::Toggle;
-        btn.getState = [&state, id, def]() { return static_cast<int> (state.getEffectsGlobalSection().getProperty (id, def)) != 0; };
-        btn.onPress = [&state, id, def]()
+        btn.getState = [&state, globalId, def]() { return static_cast<int> (state.getEffectsGlobalSection().getProperty (globalId, def)) != 0; };
+        btn.onPress = [&state, globalId, def]()
         {
-            const int current = static_cast<int> (state.getEffectsGlobalSection().getProperty (id, def));
-            state.setParameter (id, current != 0 ? 0 : 1);
+            const int current = static_cast<int> (state.getEffectsGlobalSection().getProperty (globalId, def));
+            state.setParameter (globalId, current != 0 ? 0 : 1);
         };
         return btn;
     };
 
-    auto globalIntDial = [&] (const juce::String& name, const juce::String& unit, int mn, int mx, const juce::Identifier& id, int def)
+    auto globalIntDial = [&] (const juce::String& title, const juce::String& unit, int mn, int mx, const juce::Identifier& globalId, int def)
     {
         DialBinding dial;
-        dial.paramName = name;
+        dial.paramName = title;
         dial.paramUnit = unit;
         dial.minValue = static_cast<float> (mn);
         dial.maxValue = static_cast<float> (mx);
         dial.step = 1.0f;
         dial.fineStep = 1.0f;
         dial.type = DialBinding::Int;
-        dial.getValue = [readGlobal, id, def]() { return readGlobal (id, static_cast<float> (def)); };
-        dial.setValue = [&state, id] (float v) { state.setParameter (id, juce::roundToInt (v)); };
+        dial.getValue = [readGlobal, globalId, def]() { return readGlobal (globalId, static_cast<float> (def)); };
+        dial.setValue = [&state, globalId] (float v) { state.setParameter (globalId, juce::roundToInt (v)); };
         return dial;
     };
 
