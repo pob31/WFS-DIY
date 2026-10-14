@@ -461,11 +461,13 @@ public:
                 state.targetPhi = state.startPhi + targetPhi;        // Additive elevation for spirals!
             }
 
-            // Convert final target to Cartesian (for UI display and offset calculation)
+            // Convert final target to Cartesian (for UI display and offset
+            // calculation). Elevation is not clamped, as on the way there
+            // (calculatePolarPosition): past 90 the source goes over the pole.
             auto targetCart = WFSCoordinates::sphericalToCartesian ({
                 state.targetRsph,
                 WFSCoordinates::normalizeAngle (state.targetTheta),
-                WFSCoordinates::clampElevation (state.targetPhi) });
+                WFSCoordinates::normalizeAngle (state.targetPhi) });
             state.targetX = targetCart.x;
             state.targetY = targetCart.y;
             state.targetZ = targetCart.z;
@@ -494,11 +496,23 @@ public:
             }
         }
 
-        // Check if movement is meaningful (target differs from start)
+        // Check if movement is meaningful: the path, not its end points. A
+        // polar movement of whole turns (theta +360, the range allows +-3600
+        // for that) ends where it starts and was refused as "(0, 0, 0)"
+        // (re-audit F7). A source at the origin turning in place still is.
         constexpr float epsilon = 0.01f;
-        if (std::abs (state.targetX - baseX) < epsilon &&
-            std::abs (state.targetY - baseY) < epsilon &&
-            std::abs (state.targetZ - baseZ) < epsilon)
+        bool travels = std::abs (state.targetX - baseX) >= epsilon
+                    || std::abs (state.targetY - baseY) >= epsilon
+                    || std::abs (state.targetZ - baseZ) >= epsilon;
+        if (! travels && coordMode == 1)
+            travels = juce::jmax (state.startR, state.targetR)
+                        * juce::degreesToRadians (std::abs (state.targetTheta - state.startTheta)) >= epsilon;
+        else if (! travels && coordMode == 2)
+            travels = juce::jmax (state.startRsph, state.targetRsph)
+                        * juce::degreesToRadians (std::abs (state.targetTheta - state.startTheta)
+                                                  + std::abs (state.targetPhi - state.startPhi)) >= epsilon;
+
+        if (! travels)
         {
             DBG ("AutomOtion: No meaningful movement on slot " << inputIndex << " - already at destination");
             if (onMotionBlocked && ! suppressBlockedFeedback)
@@ -1184,12 +1198,12 @@ private:
             float theta = state.startTheta + (state.targetTheta - state.startTheta) * progress;
             float phi = state.startPhi + (state.targetPhi - state.startPhi) * progress;
             r = std::max (0.0f, r);
-            float normalizedPhi = std::fmod (phi, 360.0f);
-            if (normalizedPhi > 180.0f) normalizedPhi -= 360.0f;
-            if (normalizedPhi < -180.0f) normalizedPhi += 360.0f;
-            normalizedPhi = WFSCoordinates::clampElevation (normalizedPhi);
+            // Elevation wrapped, not clamped: cos(phi) < 0 carries the source
+            // over the pole. Clamped, a phi running 0 -> 360 parked it on the
+            // top pole from 90 to 180, then jumped it to the bottom pole - 2r
+            // in one tick (re-audit F7b).
             auto cart = WFSCoordinates::sphericalToCartesian ({
-                r, WFSCoordinates::normalizeAngle (theta), normalizedPhi });
+                r, WFSCoordinates::normalizeAngle (theta), WFSCoordinates::normalizeAngle (phi) });
 
             state.currentX = cart.x;
             state.currentY = cart.y;

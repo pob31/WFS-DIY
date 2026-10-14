@@ -5,6 +5,7 @@
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
 #include "../../spatcore/dsp/LFOWaveforms.h"
+#include "LFOAxis.h"
 
 /**
  * Cluster LFO Processor
@@ -20,6 +21,10 @@
  * Outputs are delta-based: each tick reports the change from the previous tick,
  * so the caller can apply incremental transforms. This enables transient offsets
  * that smoothly fade back to zero when the LFO is deactivated.
+ *
+ * No change makes an axis jump (LFOAxis, re-audit F6): Off fades out the shape
+ * it replaces, and a shape, amplitude or phase change is bridged over a second.
+ * Rotation is bridged in degrees, scale in its logarithm so it stays positive.
  */
 class ClusterLFOProcessor
 {
@@ -33,43 +38,17 @@ public:
     {
         float ramp = 0.0f;              // Main ramp 0->1 (for progress UI)
 
-        // Per-axis ramps
-        float rampX = 0.0f;
-        float rampY = 0.0f;
-        float rampZ = 0.0f;
-        float rampRot = 0.0f;
-        float rampScale = 0.0f;
-
         float fadeLevel = 0.0f;         // 0->1 for 500ms fade in/out
         bool wasActive = false;
 
-        // Per-axis amplitude fades (1-second ramp when shape changes from OFF)
-        float fadeX = 0.0f;
-        float fadeY = 0.0f;
-        float fadeZ = 0.0f;
-        float fadeRot = 0.0f;
-        float fadeScale = 0.0f;
+        // Per-axis ramp, fade, Random targets and continuity (LFOAxis).
+        // Scale's output is the logarithm of the factor.
+        LFOAxis x, y, z, rot, scale;
 
-        // Previous shape values for detecting OFF->ON transitions
-        int prevShapeX = 0;
-        int prevShapeY = 0;
-        int prevShapeZ = 0;
-        int prevShapeRot = 0;
-        int prevShapeScale = 0;
-
-        // Random shape state — per axis
-        float randomTargetX = 0.0f, lastRandomX = 0.0f;
-        float randomTargetY = 0.0f, lastRandomY = 0.0f;
-        float randomTargetZ = 0.0f, lastRandomZ = 0.0f;
-        float randomTargetRot = 0.0f, lastRandomRot = 0.0f;
-        float randomTargetScale = 0.0f, lastRandomScale = 0.0f;
-
-        // Per-axis ramp tracking for random wrap detection
-        float prevRampX = 0.0f;
-        float prevRampY = 0.0f;
-        float prevRampZ = 0.0f;
-        float prevRampRot = 0.0f;
-        float prevRampScale = 0.0f;
+        bool bridging() const noexcept
+        {
+            return x.bridging() || y.bridging() || z.bridging() || rot.bridging() || scale.bridging();
+        }
 
         // Cached normalized outputs (-1 to +1) for UI display
         float normalizedX = 0.0f;
@@ -120,13 +99,11 @@ public:
     void process (float deltaTimeSeconds)
     {
         constexpr float fadeTimeSeconds = 0.5f;
-        constexpr float axisFadeTimeSeconds = 1.0f;
         const float fadeIncrement = deltaTimeSeconds / fadeTimeSeconds;
-        const float axisFadeIncrement = deltaTimeSeconds / axisFadeTimeSeconds;
 
         for (int c = 0; c < maxClusters; ++c)
         {
-            processCluster (c, deltaTimeSeconds, fadeIncrement, axisFadeIncrement);
+            processCluster (c, deltaTimeSeconds, fadeIncrement);
         }
     }
 
@@ -166,11 +143,11 @@ public:
     /** Get ramp progress (0->1) for progress indicator */
     float getRampProgress (int clusterIndex) const { return getState (clusterIndex).ramp; }
 
-    /** Check if LFO is active (or fading) for a cluster */
+    /** Check if LFO is active (or fading, or still releasing a step) for a cluster */
     bool isActive (int clusterIndex) const
     {
         auto& s = getState (clusterIndex);
-        return s.wasActive || s.fadeLevel > 0.0f;
+        return s.wasActive || s.fadeLevel > 0.0f || s.bridging();
     }
 
 private:
@@ -189,7 +166,7 @@ private:
     //==========================================================================
     // Per-Cluster Processing
     //==========================================================================
-    void processCluster (int idx, float deltaTime, float fadeIncrement, float axisFadeIncrement)
+    void processCluster (int idx, float deltaTime, float fadeIncrement)
     {
         using namespace WFSParameterIDs;
         using namespace WFSParameterDefaults;
@@ -241,50 +218,43 @@ private:
         state.prevOffsetScale = state.offsetScale;
 
         // Update global fade level (500ms fade in/out)
+        const bool wasSilent = state.fadeLevel <= 0.0f;
         if (active && state.fadeLevel < 1.0f)
             state.fadeLevel = juce::jmin (1.0f, state.fadeLevel + fadeIncrement);
         else if (!active && state.fadeLevel > 0.0f)
             state.fadeLevel = juce::jmax (0.0f, state.fadeLevel - fadeIncrement);
 
-        // Detect activation
-        bool justActivated = active && !state.wasActive;
-
-        // Reset ramps on activation
-        if (justActivated)
+        // Reset ramps on activation - from silence only: switched back on
+        // during its fade-out, the LFO carries on where it is (re-audit F6)
+        if (active && !state.wasActive && wasSilent)
         {
             state.ramp = 0.0f;
-            state.rampX = state.rampY = state.rampZ = state.rampRot = state.rampScale = 0.0f;
+            state.x.restart (shapeX);
+            state.y.restart (shapeY);
+            state.z.restart (shapeZ);
+            state.rot.restart (shapeRot);
+            state.scale.restart (shapeScale);
         }
 
-        // Per-axis fade: reset when shape transitions OFF->ON, on activation, or shape change
-        auto updateAxisFade = [&](int prevShape, int curShape, float& fade, bool justAct) {
-            if ((prevShape == LFOWaveforms::Off && curShape != LFOWaveforms::Off) ||
-                (justAct && curShape != LFOWaveforms::Off && fade >= 1.0f))
-                fade = 0.0f;
+        // Per-axis fade: 1 s in while a shape is chosen, 1 s out at OFF. A
+        // change between two shapes is bridged; it used to dip the fade to 0,
+        // dropping the axis to about 0 in one tick.
+        state.x.updateFade (shapeX, deltaTime);
+        state.y.updateFade (shapeY, deltaTime);
+        state.z.updateFade (shapeZ, deltaTime);
+        state.rot.updateFade (shapeRot, deltaTime);
+        state.scale.updateFade (shapeScale, deltaTime);
 
-            // Dip fade when switching between two non-Off shapes (smooth crossfade)
-            if (prevShape != LFOWaveforms::Off && curShape != LFOWaveforms::Off && prevShape != curShape)
-                fade = 0.0f;
+        const float phaseCyclesX     = (globalPhase + phaseX) / 360.0f;
+        const float phaseCyclesY     = (globalPhase + phaseY) / 360.0f;
+        const float phaseCyclesZ     = (globalPhase + phaseZ) / 360.0f;
+        const float phaseCyclesRot   = (globalPhase + phaseRot) / 360.0f;
+        const float phaseCyclesScale = (globalPhase + phaseScale) / 360.0f;
 
-            if (curShape != LFOWaveforms::Off && fade < 1.0f)
-                fade = juce::jmin (1.0f, fade + axisFadeIncrement);
-            else if (curShape == LFOWaveforms::Off && fade > 0.0f)
-                fade = juce::jmax (0.0f, fade - axisFadeIncrement);
-        };
+        // Scale is bridged in its logarithm: pow (ampScale, p) = exp (p * ln ampScale)
+        const float logAmpScale = std::log (juce::jmax (1.0e-6f, ampScale));
 
-        updateAxisFade (state.prevShapeX,     shapeX,     state.fadeX,     justActivated);
-        updateAxisFade (state.prevShapeY,     shapeY,     state.fadeY,     justActivated);
-        updateAxisFade (state.prevShapeZ,     shapeZ,     state.fadeZ,     justActivated);
-        updateAxisFade (state.prevShapeRot,   shapeRot,   state.fadeRot,   justActivated);
-        updateAxisFade (state.prevShapeScale, shapeScale, state.fadeScale, justActivated);
-
-        state.prevShapeX     = shapeX;
-        state.prevShapeY     = shapeY;
-        state.prevShapeZ     = shapeZ;
-        state.prevShapeRot   = shapeRot;
-        state.prevShapeScale = shapeScale;
-
-        if (state.fadeLevel > 0.0f || active)
+        if (state.fadeLevel > 0.0f || active || state.bridging())
         {
             float rampInc = deltaTime / juce::jmax (0.01f, period);
 
@@ -293,60 +263,31 @@ private:
             if (state.ramp >= 1.0f) state.ramp = std::fmod (state.ramp, 1.0f);
 
             // Per-axis ramps with rate multipliers
-            state.rampX     += rampInc * rateX;     if (state.rampX >= 1.0f)     state.rampX = std::fmod (state.rampX, 1.0f);
-            state.rampY     += rampInc * rateY;     if (state.rampY >= 1.0f)     state.rampY = std::fmod (state.rampY, 1.0f);
-            state.rampZ     += rampInc * rateZ;     if (state.rampZ >= 1.0f)     state.rampZ = std::fmod (state.rampZ, 1.0f);
-            state.rampRot   += rampInc * rateRot;   if (state.rampRot >= 1.0f)   state.rampRot = std::fmod (state.rampRot, 1.0f);
-            state.rampScale += rampInc * rateScale;  if (state.rampScale >= 1.0f) state.rampScale = std::fmod (state.rampScale, 1.0f);
+            state.x.advance (rampInc * rateX);
+            state.y.advance (rampInc * rateY);
+            state.z.advance (rampInc * rateZ);
+            state.rot.advance (rampInc * rateRot);
+            state.scale.advance (rampInc * rateScale);
 
-            // Phase-adjusted ramps
-            float adjRampX     = std::fmod (state.rampX     + (globalPhase + phaseX) / 360.0f     + 10.0f, 1.0f);
-            float adjRampY     = std::fmod (state.rampY     + (globalPhase + phaseY) / 360.0f     + 10.0f, 1.0f);
-            float adjRampZ     = std::fmod (state.rampZ     + (globalPhase + phaseZ) / 360.0f     + 10.0f, 1.0f);
-            float adjRampRot   = std::fmod (state.rampRot   + (globalPhase + phaseRot) / 360.0f   + 10.0f, 1.0f);
-            float adjRampScale = std::fmod (state.rampScale + (globalPhase + phaseScale) / 360.0f + 10.0f, 1.0f);
-
-            // Random target generation on ramp wrap
-            auto updateRandom = [&](int shape, float adjRamp, float& prevRamp, float& lastRand, float& targetRand) {
-                if (shape == LFOWaveforms::Random && adjRamp < prevRamp)
-                {
-                    lastRand = targetRand;
-                    targetRand = random.nextFloat() * 2.0f - 1.0f;
-                }
-                prevRamp = adjRamp;
-            };
-
-            updateRandom (shapeX,     adjRampX,     state.prevRampX,     state.lastRandomX,     state.randomTargetX);
-            updateRandom (shapeY,     adjRampY,     state.prevRampY,     state.lastRandomY,     state.randomTargetY);
-            updateRandom (shapeZ,     adjRampZ,     state.prevRampZ,     state.lastRandomZ,     state.randomTargetZ);
-            updateRandom (shapeRot,   adjRampRot,   state.prevRampRot,   state.lastRandomRot,   state.randomTargetRot);
-            updateRandom (shapeScale, adjRampScale, state.prevRampScale, state.lastRandomScale, state.randomTargetScale);
-
-            // Waveform generation
-            state.normalizedX     = LFOWaveforms::applyWaveform (shapeX,     adjRampX,     state.lastRandomX,     state.randomTargetX);
-            state.normalizedY     = LFOWaveforms::applyWaveform (shapeY,     adjRampY,     state.lastRandomY,     state.randomTargetY);
-            state.normalizedZ     = LFOWaveforms::applyWaveform (shapeZ,     adjRampZ,     state.lastRandomZ,     state.randomTargetZ);
-            state.normalizedRot   = LFOWaveforms::applyWaveform (shapeRot,   adjRampRot,   state.lastRandomRot,   state.randomTargetRot);
-            state.normalizedScale = LFOWaveforms::applyWaveform (shapeScale, adjRampScale, state.lastRandomScale, state.randomTargetScale);
-
-            // Compute absolute offsets
             // X, Y, Z: direct amplitude * waveform * fades
-            state.offsetX = state.normalizedX * ampX * state.fadeLevel * state.fadeX;
-            state.offsetY = state.normalizedY * ampY * state.fadeLevel * state.fadeY;
-            state.offsetZ = state.normalizedZ * ampZ * state.fadeLevel * state.fadeZ;
+            state.offsetX = state.x.evaluate (shapeX, ampX, phaseCyclesX, state.fadeLevel, deltaTime, random);
+            state.offsetY = state.y.evaluate (shapeY, ampY, phaseCyclesY, state.fadeLevel, deltaTime, random);
+            state.offsetZ = state.z.evaluate (shapeZ, ampZ, phaseCyclesZ, state.fadeLevel, deltaTime, random);
 
-            // Rotation: unipolar 0° to ampRot (remap -1..+1 to 0..1)
-            float uniRot = (state.normalizedRot + 1.0f) * 0.5f;
-            state.offsetRotDeg = uniRot * ampRot * state.fadeLevel * state.fadeRot;
+            // Rotation: unipolar 0° to ampRot (waveform -1..+1 mapped to 0..1)
+            state.offsetRotDeg = state.rot.evaluate (shapeRot, ampRot, phaseCyclesRot, state.fadeLevel,
+                                                     deltaTime, random, true);
 
-            // Scale: unipolar 1.0x to ampScale (remap -1..+1 to 0..1)
-            // pow(ampScale, uniScale * fadeLevel * fadeScale)
+            // Scale: unipolar 1.0x to ampScale, pow (ampScale, uni * fades).
             // When ampScale=1.0 (default), result is always 1.0 (no modulation)
-            // When ampScale=2.0 and uniScale=1, result=2.0x
-            // When ampScale=2.0 and uniScale=0, result=1.0x (no change)
-            float uniScale = (state.normalizedScale + 1.0f) * 0.5f;
-            float scalePower = uniScale * state.fadeLevel * state.fadeScale;
-            state.offsetScale = std::pow (ampScale, scalePower);
+            state.offsetScale = std::exp (state.scale.evaluate (shapeScale, logAmpScale, phaseCyclesScale,
+                                                                state.fadeLevel, deltaTime, random, true));
+
+            state.normalizedX     = state.x.normalized;
+            state.normalizedY     = state.y.normalized;
+            state.normalizedZ     = state.z.normalized;
+            state.normalizedRot   = state.rot.normalized;
+            state.normalizedScale = state.scale.normalized;
         }
         else
         {
@@ -356,6 +297,11 @@ private:
             state.offsetX = state.offsetY = state.offsetZ = 0.0f;
             state.offsetRotDeg = 0.0f;
             state.offsetScale = 1.0f;
+            state.x.rest (shapeX, ampX, phaseCyclesX);
+            state.y.rest (shapeY, ampY, phaseCyclesY);
+            state.z.rest (shapeZ, ampZ, phaseCyclesZ);
+            state.rot.rest (shapeRot, ampRot, phaseCyclesRot);
+            state.scale.rest (shapeScale, logAmpScale, phaseCyclesScale);
         }
 
         state.wasActive = active;

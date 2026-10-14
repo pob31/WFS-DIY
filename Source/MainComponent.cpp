@@ -11442,6 +11442,221 @@ void MainComponent::runChannelListSelfTest()
                 }
             }
 
+
+            // O8: re-audit F6. No LFO change makes the offset jump: it lands
+            // after the speed limiter, so a step was a delay step in one tick.
+            // A sine of 2 m over 1 s moves at most 0.25 m a tick. Each case
+            // makes its change at the sine's peak.
+            if (auto* lfo = effectLfoProcessor.get())
+            {
+                calc->setEffectLFOOffset(0, 0.0f, 0.0f, 0.0f);
+                auto tick = [lfo](int n) { for (int t = 0; t < n; ++t) lfo->process(0.02f); };
+                auto largestStep = [lfo](int ticks)
+                {
+                    float last = lfo->getOffsetX(0), largest = 0.0f;
+                    for (int t = 0; t < ticks; ++t)
+                    {
+                        lfo->process(0.02f);
+                        largest = juce::jmax(largest, std::abs(lfo->getOffsetX(0) - last));
+                        last = lfo->getOffsetX(0);
+                    }
+                    return largest;
+                };
+                auto atPeak = [&]
+                {
+                    vts.setEffectParameter(0, P::effectLFOshapeX, 1);       // sine
+                    vts.setEffectParameter(0, P::effectLFOamplitudeX, 2.0f);
+                    vts.setEffectParameter(0, P::effectLFOrateX, 1.0f);
+                    vts.setEffectParameter(0, P::effectLFOperiod, 1.0f);
+                    vts.setEffectParameter(0, P::effectLFOphase, 0);
+                    vts.setEffectParameter(0, P::effectLFOphaseX, 0);
+                    vts.setEffectParameter(0, P::effectLFOactive, 1);
+                    tick(75);
+                    for (int t = 0; t < 60 && lfo->getNormalizedX(0) <= 0.95f; ++t)
+                        tick(1);
+                };
+                auto metres = [](float v) { return juce::String(v, 3) + " m"; };
+
+                atPeak();
+                vts.setEffectParameter(0, P::effectLFOshapeX, 0);
+                const float offStep = largestStep(60);
+                check(offStep < 0.35f && lfo->getOffsetX(0) == 0.0f,
+                      "O8: an axis switched Off at its peak fades out, then rests at 0 (largest step "
+                          + metres(offStep) + "; it dropped 2 m)");
+
+                atPeak();
+                vts.setEffectParameter(0, P::effectLFOphaseX, 180);
+                const float phaseStep = largestStep(60);
+                check(phaseStep < 0.35f, "O8: a phase change of 180 at the peak glides (largest step "
+                                             + metres(phaseStep) + "; it jumped 4 m)");
+
+                atPeak();
+                vts.setEffectParameter(0, P::effectLFOshapeX, 3);       // sawtooth, before it wraps
+                const float shapeStep = largestStep(10);
+                check(shapeStep < 0.35f, "O8: sine to sawtooth at the peak glides (largest step "
+                                             + metres(shapeStep) + "; it jumped 2 m)");
+
+                atPeak();
+                vts.setEffectParameter(0, P::effectLFOamplitudeX, 10.0f);
+                vts.setEffectParameter(0, P::effectLFOperiod, 4.0f);
+                const float ampStep = largestStep(60);
+                check(ampStep < 0.6f, "O8: amplitude 2 to 10 m at the peak glides (largest step "
+                                          + metres(ampStep) + "; it jumped 8 m)");
+
+                atPeak();
+                vts.setEffectParameter(0, P::effectLFOshapeX, 0);
+                float backStep = largestStep(15);
+                vts.setEffectParameter(0, P::effectLFOshapeX, 1);
+                backStep = juce::jmax(backStep, largestStep(60));
+                check(backStep < 0.35f, "O8: Off and back to the sine within 0.3 s carries on (largest step "
+                                            + metres(backStep) + ")");
+
+                atPeak();
+                vts.setEffectParameter(0, P::effectLFOactive, 0);
+                float againStep = largestStep(10);
+                vts.setEffectParameter(0, P::effectLFOactive, 1);
+                againStep = juce::jmax(againStep, largestStep(60));
+                check(againStep < 0.35f, "O8: switched off and on within 0.2 s, the LFO carries on (largest step "
+                                             + metres(againStep) + "; its phase restarted)");
+
+                vts.setEffectParameter(0, P::effectLFOactive, 0);
+                vts.setEffectParameter(0, P::effectLFOshapeX, 0);
+                vts.setEffectParameter(0, P::effectLFOperiod, 1.0f);
+                tick(150);
+                check(lfo->getOffsetX(0) == 0.0f, "O8: ...and once off it rests at exactly 0");
+            }
+
+            // O8, the cluster LFO, on a cluster with no members: rotation
+            // switched Off at its trough jumped to half its amplitude, and a
+            // shape change dipped the axis to 0.
+            {
+                const int c = 10;
+                auto section = vts.getClusterLFOSection(c);
+                check(section.isValid(), "O8: (set-up) cluster 10 has an LFO section");
+                if (section.isValid())
+                {
+                    const auto saved = section.createCopy();
+                    ClusterLFOProcessor clp (vts);
+                    auto set = [&](const juce::Identifier& id, const juce::var& v) { vts.setClusterLFOParameter(c, id, v); };
+                    set(P::clusterLFOperiod, 1.0f);
+                    set(P::clusterLFOphase, 0);
+                    set(P::clusterLFOshapeRot, 1);
+                    set(P::clusterLFOamplitudeRot, 90);
+                    set(P::clusterLFOrateRot, 1.0f);
+                    set(P::clusterLFOphaseRot, 0);
+                    set(P::clusterLFOshapeX, 1);
+                    set(P::clusterLFOamplitudeX, 2.0f);
+                    set(P::clusterLFOrateX, 1.0f);
+                    set(P::clusterLFOphaseX, 0);
+                    set(P::clusterLFOactive, 1);
+
+                    for (int t = 0; t < 75; ++t) clp.process(0.02f);
+                    for (int t = 0; t < 60 && clp.getNormalizedRot(c) >= -0.95f; ++t) clp.process(0.02f);
+                    set(P::clusterLFOshapeRot, 0);
+                    float last = clp.getOffsetRotDeg(c), rotStep = 0.0f;
+                    for (int t = 0; t < 60; ++t)
+                    {
+                        clp.process(0.02f);
+                        rotStep = juce::jmax(rotStep, std::abs(clp.getOffsetRotDeg(c) - last));
+                        last = clp.getOffsetRotDeg(c);
+                    }
+                    check(rotStep < 10.0f, "O8: a cluster rotation switched Off at its trough fades out (largest step "
+                                               + juce::String(rotStep, 2) + " deg; it jumped 45)");
+
+                    for (int t = 0; t < 60 && clp.getNormalizedX(c) <= 0.95f; ++t) clp.process(0.02f);
+                    set(P::clusterLFOshapeX, 4);                        // triangle
+                    last = clp.getOffsetX(c);
+                    float xStep = 0.0f;
+                    for (int t = 0; t < 60; ++t)
+                    {
+                        clp.process(0.02f);
+                        xStep = juce::jmax(xStep, std::abs(clp.getOffsetX(c) - last));
+                        last = clp.getOffsetX(c);
+                    }
+                    check(xStep < 0.35f, "O8: a cluster axis changed from sine to triangle at its peak glides (largest step "
+                                             + juce::String(xStep, 3) + " m; it dipped 2 m)");
+
+                    section.copyPropertiesAndChildrenFrom(saved, nullptr);
+                }
+            }
+
+            // O9: re-audit F7. A polar movement of whole turns ends where it
+            // starts, and the end-point check refused it as "(0, 0, 0)". The
+            // return sits at (0, 40, 3): a turn round the origin crosses 80 m.
+            {
+                otomo->stopMotion(0);
+                calc->setEffectOtomoOffset(0, 0.0f, 0.0f, 0.0f);
+
+                auto runToEnd = [&]
+                {
+                    float peak = 0.0f;
+                    for (int tick = 0; tick < 30; ++tick)
+                    {
+                        otomo->process(0.02f);
+                        peak = juce::jmax(peak, std::hypot(otomo->getOffsetX(0), otomo->getOffsetY(0), otomo->getOffsetZ(0)));
+                    }
+                    return peak;
+                };
+                auto polar = [&](int mode, bool relative, float r, float theta, float zOrPhi)
+                {
+                    otomo->stopMotion(0);
+                    vts.setEffectParameter(0, P::effectOtomoCoordinateMode, mode);
+                    vts.setEffectParameter(0, P::effectOtomoAbsoluteRelative, relative ? 1 : 0);
+                    vts.setEffectParameter(0, mode == 1 ? P::effectOtomoR : P::effectOtomoRsph, r);
+                    vts.setEffectParameter(0, P::effectOtomoTheta, theta);
+                    vts.setEffectParameter(0, mode == 1 ? P::effectOtomoZ : P::effectOtomoPhi, zOrPhi);
+                    vts.setEffectParameter(0, P::effectOtomoDuration, 0.2f);
+                };
+
+                polar(1, true, 0.0f, 360.0f, 0.0f);
+                const bool turnStarts = otomo->startMotion(0);
+                const float turnPeak = runToEnd();
+                check(turnStarts, "O9: a relative cylindrical turn of 360 starts (it was refused as (0, 0, 0))");
+                check(turnPeak > 40.0f, "O9: ...and travels round the origin (peak offset "
+                                        + juce::String(turnPeak, 1) + " m)");
+
+                polar(1, false, 40.0f, 360.0f, 3.0f);
+                check(otomo->startMotion(0), "O9: an absolute target of the start plus a turn starts");
+                runToEnd();
+
+                polar(2, true, 0.0f, 360.0f, 0.0f);
+                check(otomo->startMotion(0), "O9: a relative spherical turn of 360 starts");
+                runToEnd();
+
+                polar(1, true, 0.0f, 0.0f, 0.0f);
+                check(! otomo->startMotion(0), "O9: a relative movement of nothing is still refused");
+
+                // O10: re-audit F7b. Elevation running 0 -> 360 parked the
+                // return on the top pole, then jumped it to the bottom one:
+                // 2r in one tick. 2 s at r = 40: about 2.5 m a tick.
+                polar(2, true, 0.0f, 0.0f, 360.0f);
+                vts.setEffectParameter(0, P::effectOtomoDuration, 2.0f);
+                const bool overStarts = otomo->startMotion(0);
+                float lastX = otomo->getOffsetX(0), lastY = otomo->getOffsetY(0), lastZ = otomo->getOffsetZ(0);
+                float maxStep = 0.0f;
+                for (int tick = 0; tick < 110; ++tick)
+                {
+                    otomo->process(0.02f);
+                    const float x = otomo->getOffsetX(0), y = otomo->getOffsetY(0), z = otomo->getOffsetZ(0);
+                    if (otomo->isActive(0))
+                        maxStep = juce::jmax(maxStep, std::hypot(x - lastX, y - lastY, z - lastZ));
+                    lastX = x; lastY = y; lastZ = z;
+                }
+                check(overStarts && maxStep < 8.0f,
+                      "O10: an elevation turn goes over the poles without a jump (largest step "
+                          + juce::String(maxStep, 2) + " m)");
+
+                otomo->stopMotion(0);
+                vts.setEffectParameter(0, P::effectOtomoCoordinateMode, 0);
+                vts.setEffectParameter(0, P::effectOtomoAbsoluteRelative, 0);
+                vts.setEffectParameter(0, P::effectOtomoR, 0.0f);
+                vts.setEffectParameter(0, P::effectOtomoRsph, 0.0f);
+                vts.setEffectParameter(0, P::effectOtomoTheta, 0.0f);
+                vts.setEffectParameter(0, P::effectOtomoPhi, 0.0f);
+                vts.setEffectParameter(0, P::effectOtomoZ, 0.0f);
+                vts.setEffectParameter(0, P::effectOtomoDuration, 0.2f);
+            }
+
             // Leave nothing behind
             otomo->stopMotion(0);
             calc->setEffectOtomoOffset(0, 0.0f, 0.0f, 0.0f);

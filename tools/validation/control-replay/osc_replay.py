@@ -767,6 +767,31 @@ def run_stopped_pass(exe: Path, keep_temp: bool, failures: list[str]) -> dict:
                     failures.append("after /wfs/input/positionTheta 1 1e10 an ordinary "
                                     f"write did not land (stage width {width}, expected "
                                     "[16.0]): the message thread is stuck (re-audit F1)")
+
+        # RE-AUDIT 2026-09-29, F7c: a polar AutomOtion destination is stored
+        # as sent. It was converted into the Cartesian destination, which the
+        # polar modes never read, so a whole turn could not be set over OSC.
+        # After the save, and put back, so nothing read above moves.
+        if app.alive():
+            def otomo_theta():
+                payload = common.tool_payload(app.tool(
+                    "wfs_get_parameter", {"variable": "inputOtomoTheta", "channel_id": 1}))
+                return payload.get("value") if isinstance(payload, dict) else payload
+
+            before = otomo_theta()
+            polar = common.OSCSender(delay=0.5)
+            polar.send("/wfs/input/otomoTheta", [("i", 1), ("f", 720.0)])
+            polar.close()
+            time.sleep(1.0)
+            theta = otomo_theta()
+            if not isinstance(theta, (int, float)) or abs(float(theta) - 720.0) > 1e-3:
+                failures.append(f"/wfs/input/otomoTheta 1 720 stored {theta!r}, "
+                                "not 720 (re-audit F7c)")
+            restore = common.OSCSender(delay=0.5)
+            restore.send("/wfs/input/otomoTheta",
+                         [("i", 1), ("f", float(before) if isinstance(before, (int, float)) else 0.0)])
+            restore.close()
+            time.sleep(0.5)
     finally:
         app.close()
 

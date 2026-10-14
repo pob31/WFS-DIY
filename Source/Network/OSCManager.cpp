@@ -2625,98 +2625,11 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
         }
     }
 
-    //==========================================================================
-    // AutomOtion cylindrical/spherical coordinate OSC handling
-    // These convert to Cartesian internally before storage
-    //==========================================================================
-    if (address.startsWith("/wfs/input/otomo"))
-    {
-        juce::String paramName = OSCMessageRouter::extractParamName(address);
-        bool isPolarCoord = (paramName == "otomoR" || paramName == "otomoTheta" ||
-                             paramName == "otomoRsph" || paramName == "otomoPhi");
-
-        if (isPolarCoord && message.size() >= 2)
-        {
-            int channelId = OSCMessageRouter::extractInt(message[0]);
-            float newValue = OSCMessageRouter::extractFloat(message[1]);
-            // channelId is a permanent channel NUMBER; the list may have gaps
-            // after deletions, so resolve through the state (never id - 1).
-            int channelIndex = resolveExternalInputSlot(channelId);
-
-            if (channelIndex >= 0)
-            {
-                juce::MessageManager::callAsync([this, paramName, channelIndex, newValue, senderIP]()
-                {
-                    ScopedIncomingProtocol incomingGuard (*this, Protocol::OSC);
-                    if (oscQueryServer) oscQueryServer->beginIncomingOSC(senderIP);
-                    WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
-                    state.beginUndoTransaction ("OSC Input");
-
-                    // Get current Cartesian destination
-                    juce::var xVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputOtomoX);
-                    juce::var yVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputOtomoY);
-                    juce::var zVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputOtomoZ);
-
-                    float x = varToFloat(xVar);
-                    float y = varToFloat(yVar);
-                    float z = varToFloat(zVar);
-
-                    // Handle cylindrical coordinates (R, theta in XY plane, Z unchanged)
-                    if (paramName == "otomoR")
-                    {
-                        // Convert current to cylindrical, update R, convert back
-                        auto cyl = WFSCoordinates::cartesianToCylindrical({x, y, z});
-                        cyl.r = juce::jlimit(0.0f, 50.0f, std::abs(newValue));  // Radius 0-50m
-                        auto cart = WFSCoordinates::cylindricalToCartesian(cyl);
-                        x = cart.x;
-                        y = cart.y;
-                        // z unchanged
-                    }
-                    else if (paramName == "otomoTheta")
-                    {
-                        // Convert current to cylindrical, update theta, convert back
-                        // Note: don't normalize - allow >360 for path rotations
-                        auto cyl = WFSCoordinates::cartesianToCylindrical({x, y, z});
-                        cyl.theta = newValue;  // Allow any angle for path rotations
-                        auto cart = WFSCoordinates::cylindricalToCartesian(cyl);
-                        x = cart.x;
-                        y = cart.y;
-                        // z unchanged
-                    }
-                    // Handle spherical coordinates (R, theta, phi in 3D)
-                    else if (paramName == "otomoRsph")
-                    {
-                        // Convert current to spherical, update R, convert back
-                        auto sph = WFSCoordinates::cartesianToSpherical({x, y, z});
-                        sph.r = juce::jlimit(0.0f, 50.0f, std::abs(newValue));  // Radius 0-50m
-                        auto cart = WFSCoordinates::sphericalToCartesian(sph);
-                        x = cart.x;
-                        y = cart.y;
-                        z = cart.z;
-                    }
-                    else if (paramName == "otomoPhi")
-                    {
-                        // Convert current to spherical, update phi (elevation), convert back
-                        // Note: don't clamp - allow any angle for path rotations
-                        auto sph = WFSCoordinates::cartesianToSpherical({x, y, z});
-                        sph.phi = newValue;  // Allow any angle for path rotations
-                        auto cart = WFSCoordinates::sphericalToCartesian(sph);
-                        x = cart.x;
-                        y = cart.y;
-                        z = cart.z;
-                    }
-
-                    // Save all three values
-                    state.setInputParameter(channelIndex, WFSParameterIDs::inputOtomoX, x);
-                    state.setInputParameter(channelIndex, WFSParameterIDs::inputOtomoY, y);
-                    state.setInputParameter(channelIndex, WFSParameterIDs::inputOtomoZ, z);
-
-                    if (oscQueryServer) oscQueryServer->endIncomingOSC();
-                });
-            }
-            return;  // Handled - don't fall through to normal processing
-        }
-    }
+    // /wfs/input/otomoR, otomoTheta, otomoRsph and otomoPhi are stored as they
+    // are, by the router below, as the Inputs tab, MCP and the effect returns
+    // store them. They were converted here into the Cartesian destination,
+    // which AutomOtion's polar modes never read: a polar movement - a whole
+    // turn above all - could not be programmed over OSC (re-audit F7c).
 
     if (OSCMessageRouter::isInputAddress(address))
     {
