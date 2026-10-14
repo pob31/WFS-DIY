@@ -25,6 +25,8 @@
               file="Source/Parameters/WFSParameterIDs.h"/>
         <FILE id="wfsVarCoerce" name="VarCoercion.h" compile="0" resource="0"
               file="Source/Parameters/VarCoercion.h"/>
+        <FILE id="wfsProjFileNames" name="ProjectFileNames.h" compile="0" resource="0"
+              file="Source/Parameters/ProjectFileNames.h"/>
         <FILE id="wfsChIdent" name="InputChannelIdentity.h" compile="0" resource="0"
               file="Source/Parameters/InputChannelIdentity.h"/>
         <FILE id="wfsChDescr" name="InputChannelDescription.h" compile="0" resource="0"
@@ -471,6 +473,8 @@
       <FILE id="wfsLogCpp" name="WFSLogger.cpp" compile="1" resource="0"
             file="Source/WFSLogger.cpp"/>
       <GROUP id="{DSPGROUP}" name="DSP">
+        <FILE id="wfsRevIRLoader" name="ReverbIRLoader.h" compile="0" resource="0"
+              file="Source/DSP/ReverbIRLoader.h"/>
         <FILE id="wfsCalcH" name="WFSCalculationEngine.h" compile="0" resource="0"
               file="Source/DSP/WFSCalculationEngine.h"/>
         <FILE id="wfsCalcCpp" name="WFSCalculationEngine.cpp" compile="1" resource="0"

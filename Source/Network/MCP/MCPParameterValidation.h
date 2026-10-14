@@ -31,6 +31,7 @@
 #include "MCPCompat.h"
 #include "MCPParameterRegistry.h"
 #include "../../Parameters/VarCoercion.h"
+#include "../../Parameters/ProjectFileNames.h"
 
 namespace WFSNetwork::MCPValidation
 {
@@ -233,6 +234,33 @@ inline ToolResult validateInputMuteList (const juce::String& variable, const juc
         if (token.trim() != "0" && token.trim() != "1")
             return ToolResult::error ("invalid_args",
                                       "inputMutes entry " + token.trim().quoted() + " is not 0 or 1" + expected);
+
+    return ToolResult::ok ({});
+}
+
+/** reverbIRfile and samplerCellFile name a file inside the project's ir/ or
+    samples/ folder. MCP may set a plain file name, or clear one with "",
+    never a path: an absolute, a ".." or a UNC path made the app open whatever
+    it pointed at, and a UNC one hands the share the Windows credentials
+    (re-audit 2026-09-29, B4). A leading '~' is refused too: on macOS and
+    Linux the sampler reads it as a home directory. ok() for every other
+    variable. */
+inline ToolResult validateProjectFileName (const juce::String& variable, const juce::var& value)
+{
+    const bool isIR = variable == "reverbIRfile";
+    if (! isIR && variable != "samplerCellFile")
+        return ToolResult::ok ({});
+
+    const juce::String folder = isIR ? "ir/" : "samples/";
+    if (! value.isString())
+        return ToolResult::error ("invalid_args", variable + " takes a file name inside the project's "
+                                                      + folder + " folder, as a string");
+
+    const auto name = value.toString();
+    if (name.isNotEmpty() && (! ProjectFileNames::isPlainFileName (name) || name.startsWithChar ('~')))
+        return ToolResult::error ("invalid_args", variable + " " + name.quoted()
+                                                      + " is not a file name: give a file name inside the project's "
+                                                      + folder + " folder, not a path");
 
     return ToolResult::ok ({});
 }

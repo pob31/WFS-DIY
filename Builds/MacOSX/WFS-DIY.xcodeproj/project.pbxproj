@@ -470,6 +470,7 @@
 		BB82A82512AA6BA87F20C35B /* ControllerDevice.h */ /* ControllerDevice.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ControllerDevice.h; path = ../../spatcore/controllers/ControllerDevice.h; sourceTree = SOURCE_ROOT; };
 		BB85096D700BC19EC7EEF516 /* WFSValueTreeState.cpp */ /* WFSValueTreeState.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = WFSValueTreeState.cpp; path = ../../Source/Parameters/WFSValueTreeState.cpp; sourceTree = SOURCE_ROOT; };
 		BB988ACB6CA5DBAAB5D3F273 /* DiscRecording.framework */ /* DiscRecording.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = DiscRecording.framework; path = System/Library/Frameworks/DiscRecording.framework; sourceTree = SDKROOT; };
+		BBCE6FE53575C290011FB514 /* ProjectFileNames.h */ /* ProjectFileNames.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ProjectFileNames.h; path = ../../Source/Parameters/ProjectFileNames.h; sourceTree = SOURCE_ROOT; };
 		BD0CF3F30674568E30CA3E41 /* GpuBackendFactory.h */ /* GpuBackendFactory.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GpuBackendFactory.h; path = ../../spatcore/gpu/GpuBackendFactory.h; sourceTree = SOURCE_ROOT; };
 		BD7E15DFFD2FAD4BCED493B6 /* spherical.c */ /* spherical.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = spherical.c; path = ../../ThirdParty/libmysofa/src/hrtf/spherical.c; sourceTree = SOURCE_ROOT; };
 		BDF7F88668C6E2AFA837664B /* AudioPatchTab.cpp */ /* AudioPatchTab.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioPatchTab.cpp; path = ../../Source/gui/AudioPatchTab.cpp; sourceTree = SOURCE_ROOT; };
@@ -520,6 +521,7 @@
 		D66F14AF4EFB90CB4068CAEB /* CudaIrBackend.h */ /* CudaIrBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CudaIrBackend.h; path = ../../spatcore/gpu/CudaIrBackend.h; sourceTree = SOURCE_ROOT; };
 		D72FC10880D0962577B1DE1E /* include_juce_audio_formats_flac_1.c */ /* include_juce_audio_formats_flac_1.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = include_juce_audio_formats_flac_1.c; path = ../../JuceLibraryCode/include_juce_audio_formats_flac_1.c; sourceTree = SOURCE_ROOT; };
 		D7C4755CB02AB2A87557F96A /* OSCRateLimiter.cpp */ /* OSCRateLimiter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCRateLimiter.cpp; path = ../../spatcore/control/osc/OSCRateLimiter.cpp; sourceTree = SOURCE_ROOT; };
+		D7D6EA277D386B1CEFF06D51 /* ReverbIRLoader.h */ /* ReverbIRLoader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ReverbIRLoader.h; path = ../../Source/DSP/ReverbIRLoader.h; sourceTree = SOURCE_ROOT; };
 		D82AC3F6B9C66CD74406D81B /* HidApiPlatform.c */ /* HidApiPlatform.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = HidApiPlatform.c; path = ../../ThirdParty/hidapi/HidApiPlatform.c; sourceTree = SOURCE_ROOT; };
 		D9C073EA67E27B225C5FC122 /* SendMatrixConfig.h */ /* SendMatrixConfig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SendMatrixConfig.h; path = ../../spatcore/ui/sends/SendMatrixConfig.h; sourceTree = SOURCE_ROOT; };
 		DAF0A8D52DEC4B51BA171B78 /* OSCQueryServer.h */ /* OSCQueryServer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCQueryServer.h; path = ../../Source/Network/OSCQueryServer.h; sourceTree = SOURCE_ROOT; };
@@ -989,6 +991,7 @@
 		C20B0002C1C15F0BCBF6FFE9 /* DSP */ = {
 			isa = PBXGroup;
 			children = (
+				D7D6EA277D386B1CEFF06D51,
 				227E033B18F6304BAF888B94,
 				B2E5BB6DF397E59F6073DDFA,
 				C8A9B2AE6E06248A092E14C1,
@@ -1210,6 +1213,7 @@
 				78499000C7DBA493077EBC37,
 				D2F96573DB7A8C68446E361C,
 				4C9492EFADED32085FE9ECF8,
+				BBCE6FE53575C290011FB514,
 				E2E68A30C508D09CAE19BE7C,
 				70B4C8C7CC9933187C8F2500,
 				A96E05E0B144008AE500DBAE,

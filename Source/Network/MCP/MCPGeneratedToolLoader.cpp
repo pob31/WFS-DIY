@@ -348,6 +348,10 @@ namespace Detail
                                                                    state.getNumOutputChannels());
             if (! muteCheck.success)
                 return muteCheck;
+
+            auto fileCheck = MCPValidation::validateProjectFileName (binding.internalVariable, value);
+            if (! fileCheck.success)
+                return fileCheck;
         }
 
         // Enum validation. After coerceValue (above) has tried both

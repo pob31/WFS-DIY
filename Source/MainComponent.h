@@ -24,6 +24,7 @@
 #include "DSP/EffectsHost.h"
 #include "MidiSnapshotTrigger.h"
 #include "../spatcore/reverb/ReverbEngine.h"
+#include "DSP/ReverbIRLoader.h"
 #include "../spatcore/reverb/ReverbFeedThread.h"
 #include "../spatcore/reverb/ReverbReturnProcessor.h"
 #include "../spatcore/dsp/OutputEQProcessor.h"
@@ -470,6 +471,10 @@ private:
 
     // Reverb engine (thread-based DSP processing)
     std::unique_ptr<ReverbEngine> reverbEngine;
+
+    // Reads the IR file off the message thread (re-audit B4). Declared after
+    // reverbEngine, which it feeds, so it is destroyed first.
+    std::unique_ptr<ReverbIRLoader> reverbIRLoader;
 
     // The effects engine host (spatcore's EffectsEngine plus the cook, the pop
     // and the config). Declared AFTER the calculation engine and the shared

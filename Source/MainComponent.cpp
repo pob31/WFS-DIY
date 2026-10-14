@@ -6,6 +6,8 @@
 #include "gui/ChannelIdentityGate.h"
 #include "AppSettings.h"
 #include "UpdateChecker.h"
+#include "Parameters/ProjectFileNames.h"
+#include "Network/MCP/MCPParameterValidation.h"
 #include "Parameters/WFSParameterIDs.h"
 #include "Parameters/EffectsSnapshotScope.h"
 #include "Localization/LocalizationManager.h"
@@ -2269,6 +2271,7 @@ MainComponent::MainComponent()
     // Initialize Reverb Engine
     reverbEngine = std::make_unique<ReverbEngine>();
     reverbEngine->setWorkgroupCoordinator(&workgroupCoordinator);
+    reverbIRLoader = std::make_unique<ReverbIRLoader>(*reverbEngine);
 
     // The effects engine host. Prepared by setupSharedInputFeed once the rings
     // exist and effect channels do (an empty session runs no engine), released
@@ -3900,6 +3903,76 @@ void MainComponent::runValueGatesSelfTest()
         {
             logLine ("SELF-TEST SKIP G9 B1: this session has no cluster 1");
         }
+    }
+
+    // G10: re-audit 2026-09-29, B4. reverbIRfile and samplerCellFile are file
+    // names inside the project, never paths; the IR header is checked before
+    // a sample is read (the MCP half is in mcp_replay.py).
+    {
+        using namespace ProjectFileNames;
+        for (const char* bad : { "C:\\Windows\\Media\\tada.wav", "C:/Windows/Media/tada.wav", "\\\\127.0.0.1\\share\\ir.wav",
+                                 "//127.0.0.1/share/ir.wav", "../reverbs.xml", "..\\reverbs.xml", "..", ".", "sub/ir.wav",
+                                 "/etc/hosts", "C:ir.wav", "ir.wav:stream", "" })
+            check (! isPlainFileName (bad), "G10 B4: " + juce::String (bad).quoted() + " is not a plain file name");
+        check (isPlainFileName ("Hall 2.4s.wav") && isPlainFileName ("~hall.wav"), "G10 B4: ordinary names are");
+
+        const auto folder = juce::File::getSpecialLocation (juce::File::tempDirectory)
+                                .getChildFile ("wfs-selftest-b4").getChildFile ("ir");
+        folder.createDirectory();
+        check (childFileByName (folder, "~hall.wav") == folder.getChildFile ("./~hall.wav"),
+               "G10 B4: a name starting with ~ stays in the folder (no home-directory expansion)");
+        check (childFileByName (folder, "../x.wav") == juce::File() && childFileByName ({}, "hall.wav") == juce::File(),
+               "G10 B4: a traversing name, or no folder, resolves to nothing");
+
+        using WFSNetwork::MCPValidation::validateProjectFileName;
+        check (! validateProjectFileName ("reverbIRfile", "\\\\127.0.0.1\\share\\ir.wav").success
+                   && ! validateProjectFileName ("samplerCellFile", "../kick.wav").success
+                   && ! validateProjectFileName ("samplerCellFile", "~kick.wav").success
+                   && ! validateProjectFileName ("reverbIRfile", 3).success,
+               "G10 B4: MCP refuses a path, a ~ name or a non-string for the two file variables");
+        check (validateProjectFileName ("reverbIRfile", "hall.wav").success
+                   && validateProjectFileName ("samplerCellFile", "").success
+                   && validateProjectFileName ("inputName", "../x").success,
+               "G10 B4: ...and takes a plain name, an empty one, and leaves other variables alone");
+
+        const auto writeWav = [&] (const juce::String& fileName, double seconds)
+        {
+            const auto file = folder.getChildFile (fileName);
+            file.deleteFile();
+            std::unique_ptr<juce::OutputStream> out (file.createOutputStream());
+            if (out == nullptr)
+                return file;
+
+            juce::WavAudioFormat wav;
+            const auto options = juce::AudioFormatWriterOptions{}.withSampleRate (8000.0)
+                                                                 .withNumChannels (1)
+                                                                 .withBitsPerSample (16);
+            if (auto writer = wav.createWriterFor (out, options))
+            {
+                juce::AudioBuffer<float> silence (1, juce::roundToInt (seconds * 8000.0));
+                silence.clear();
+                writer->writeFromAudioSampleBuffer (silence, 0, silence.getNumSamples());
+            }
+            return file;
+        };
+        check (ReverbIRLoader::whyUnusable (writeWav ("ir59.wav", 59.0)).isEmpty(), "G10 B4: a 59 s IR is read");
+        check (ReverbIRLoader::whyUnusable (writeWav ("ir61.wav", 61.0)).isNotEmpty(), "G10 B4: a 61 s IR is refused");
+
+        // A 44-byte WAV whose data chunk claims 0xFFFFFFF0 bytes: the engine
+        // made an int of that length and allocated it on the message thread.
+        {
+            juce::MemoryOutputStream header;
+            header.write ("RIFF", 4);  header.writeInt (36);  header.write ("WAVEfmt ", 8);
+            header.writeInt (16);      header.writeShort (1); header.writeShort (1);
+            header.writeInt (8000);    header.writeInt (16000); header.writeShort (2); header.writeShort (16);
+            header.write ("data", 4);  header.writeInt ((int) 0xFFFFFFF0u);
+            const auto liar = folder.getChildFile ("liar.wav");
+            liar.replaceWithData (header.getData(), header.getDataSize());
+            check (ReverbIRLoader::whyUnusable (liar).isNotEmpty(), "G10 B4: a WAV header claiming 4 GB of samples is refused");
+        }
+        check (ReverbIRLoader::whyUnusable (folder.getChildFile ("missing.wav")).isNotEmpty(), "G10 B4: a missing file is refused");
+
+        folder.getParentDirectory().deleteRecursively();
     }
 
     // G11: re-audit 2026-09-29, B6. The update checker read the whole reply
@@ -11819,6 +11892,10 @@ MainComponent::~MainComponent()
     // Stop timer
     stopTimer();
 
+    // No more IR reads: the timer was the only one asking for them.
+    if (reverbIRLoader != nullptr)
+        reverbIRLoader->stop();
+
     // Save settings before shutdown (while device is still available)
     saveSettings();
 
@@ -17392,8 +17469,17 @@ void MainComponent::timerCallback()
 
                     if (irFilePath.isNotEmpty() && irFilePath != lastPushedIRFile)
                     {
-                        auto irFile = parameters.getFileManager().getIRFolder().getChildFile(irFilePath);
-                        reverbEngine->loadIRFile(irFile);
+                        // A file name inside the project's ir/ folder and nothing
+                        // else: a path from a project file someone else wrote, or
+                        // from an older MCP client, is refused (re-audit B4). The
+                        // read runs on the loader's thread.
+                        const auto irFile = ProjectFileNames::childFileByName(
+                            parameters.getFileManager().getIRFolder(), irFilePath);
+                        if (irFile == juce::File())
+                            WFSLogger::getInstance().logWarning("Reverb IR " + irFilePath.quoted()
+                                + " not loaded: it is not a file name inside the project's ir/ folder");
+                        else
+                            reverbIRLoader->request(irFile);
                         lastPushedIRFile = irFilePath;
                     }
 

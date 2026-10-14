@@ -296,6 +296,10 @@ inline ToolResult batch (WFSValueTreeState& state, const juce::var& args, Change
             auto muteCheck = MCPValidation::validateInputMuteList (w.variable, w.value, state.getNumOutputChannels());
             if (! muteCheck.success)
                 return fail (muteCheck.errorCode, i, muteCheck.errorMessage);
+
+            auto fileCheck = MCPValidation::validateProjectFileName (w.variable, w.value);
+            if (! fileCheck.success)
+                return fail (fileCheck.errorCode, i, fileCheck.errorMessage);
         }
 
         // Enum string -> int coercion (mirrors SetParameterTool). Run

@@ -137,6 +137,10 @@ inline ToolResult set (WFSValueTreeState& state, const juce::var& args, ChangeRe
         auto muteCheck = MCPValidation::validateInputMuteList (variable, value, state.getNumOutputChannels());
         if (! muteCheck.success)
             return muteCheck;
+
+        auto fileCheck = MCPValidation::validateProjectFileName (variable, value);
+        if (! fileCheck.success)
+            return fileCheck;
     }
 
     // Enum string -> int coercion. The registry surfaces enum_values for

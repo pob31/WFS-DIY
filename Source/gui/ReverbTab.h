@@ -4,6 +4,7 @@
 #include "../WfsParameters.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/VarCoercion.h"
+#include "../Parameters/ProjectFileNames.h"
 #include "../Parameters/WFSParameterDefaults.h"
 #include "../Accessibility/TTSManager.h"
 #include "../Localization/LocalizationManager.h"
@@ -4358,7 +4359,8 @@ private:
         if (! fm.hasValidProjectFolder())
             return;
 
-        auto irFile = fm.getIRFolder().getChildFile (irFileName);
+        // A file name inside ir/ only: the same rule as the load (re-audit B4).
+        const auto irFile = ProjectFileNames::childFileByName (fm.getIRFolder(), irFileName);
         if (! irFile.existsAsFile())
             return;
 

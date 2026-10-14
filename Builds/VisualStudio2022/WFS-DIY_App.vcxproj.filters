@@ -5733,6 +5733,9 @@
     <ClInclude Include="..\..\Source\Parameters\VarCoercion.h">
       <Filter>WFS-DIY\Source\Parameters</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\Parameters\ProjectFileNames.h">
+      <Filter>WFS-DIY\Source\Parameters</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\Parameters\InputChannelIdentity.h">
       <Filter>WFS-DIY\Source\Parameters</Filter>
     </ClInclude>
@@ -6158,6 +6161,9 @@
     </ClInclude>
     <ClInclude Include="..\..\Source\UpdateChecker.h">
       <Filter>WFS-DIY\Source</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\DSP\ReverbIRLoader.h">
+      <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\DSP\WFSCalculationEngine.h">
       <Filter>WFS-DIY\Source\DSP</Filter>

@@ -475,6 +475,39 @@ def main() -> int:
         if get_level(10, 3) != 0.0:
             hard_failures.append("undo did not revert the inputArrayAtten10 write")
 
+        # ---- file names, never paths (re-audit B4) -------------------------
+        # reverbIRfile and samplerCellFile are read from the project's ir/
+        # and samples/ folders. A path made the app open whatever it named,
+        # and a UNC one makes Windows hand the share the user's credentials.
+        # 127.0.0.1 only: an unreachable host would stall a pre-fix exe for
+        # the SMB timeout.
+        bad_names = ["C:\\Windows\\Media\\tada.wav", "C:/Windows/Media/tada.wav",
+                     "\\\\127.0.0.1\\nosuch\\ir.wav", "//127.0.0.1/nosuch/ir.wav",
+                     "../reverbs.xml", "..\\reverbs.xml", "..", "sub/ir.wav",
+                     "/etc/hosts", "C:ir.wav"]
+        for bad in bad_names:
+            for tool, call_args in (
+                    ("reverb_algorithm_set_i_rfile", {"reverb_id": 1, "value": bad}),
+                    ("input_sampler_set_cell_file",
+                     {"input_id": 1, "cell_id": 0, "value": bad}),
+                    ("wfs_set_parameter",
+                     {"variable": "reverbIRfile", "channel_id": 1, "value": bad}),
+                    ("wfs_set_parameter_batch", {"writes": [
+                        {"variable": "reverbIRfile", "channel_id": 1, "value": bad}]})):
+                _, refused = app.tool_confirmed(tool, call_args)
+                if not common.envelope_result(refused).get("isError"):
+                    hard_failures.append(f"{tool} accepted the path {bad!r}")
+        ir_now = common.tool_payload(app.tool(
+            "wfs_get_parameter", {"variable": "reverbIRfile", "channel_id": 1}))
+        if not (isinstance(ir_now, dict) and ir_now.get("value", None) == ""):
+            hard_failures.append(f"a refused IR path was stored: {ir_now}")
+        cell_ok = common.tool_payload(app.tool(
+            "input_sampler_set_cell_file",
+            {"input_id": 1, "cell_id": 0, "value": "kick.wav"}))
+        if not (isinstance(cell_ok, dict) and cell_ok.get("before", None) == ""):
+            hard_failures.append(f"a refused sample path was stored: {cell_ok}")
+        app.tool("input_sampler_set_cell_file", {"input_id": 1, "cell_id": 0, "value": ""})
+
         # ---- effect sends: one cell of an effect's packed send rows --------
         # No generated tool reaches effectSendLevels / effectSendOns (the
         # codegen reads no effects CSV, and a row is a string the generic

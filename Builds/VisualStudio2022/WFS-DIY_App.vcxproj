@@ -4279,6 +4279,7 @@
     <ClInclude Include="..\..\spatcore\control\state\XmlPersistence.h"/>
     <ClInclude Include="..\..\Source\Parameters\WFSParameterIDs.h"/>
     <ClInclude Include="..\..\Source\Parameters\VarCoercion.h"/>
+    <ClInclude Include="..\..\Source\Parameters\ProjectFileNames.h"/>
     <ClInclude Include="..\..\Source\Parameters\InputChannelIdentity.h"/>
     <ClInclude Include="..\..\Source\Parameters\InputChannelDescription.h"/>
     <ClInclude Include="..\..\Source\Parameters\WFSParameterDefaults.h"/>
@@ -4421,6 +4422,7 @@
     <ClInclude Include="..\..\Source\WfsParameters.h"/>
     <ClInclude Include="..\..\Source\WFSLogger.h"/>
     <ClInclude Include="..\..\Source\UpdateChecker.h"/>
+    <ClInclude Include="..\..\Source\DSP\ReverbIRLoader.h"/>
     <ClInclude Include="..\..\Source\DSP\WFSCalculationEngine.h"/>
     <ClInclude Include="..\..\spatcore\dsp\WFSHighShelfFilter.h"/>
     <ClInclude Include="..\..\spatcore\wfs\InputBufferProcessor.h"/>
