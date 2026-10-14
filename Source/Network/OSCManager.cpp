@@ -316,14 +316,11 @@ bool OSCManager::startListening()
 
     // Create and configure UDP receiver (custom implementation with sender IP)
     udpReceiver = std::make_unique<OSCReceiverWithSenderIP>();
-    if (!udpReceiver->connect(globalConfig.udpReceivePort))
-    {
-        DBG("Failed to bind UDP receiver to port " << globalConfig.udpReceivePort);
-        udpReceiver.reset();
-        return false;
-    }
     // Route raw bytes through the ingest queue so we coalesce per-
     // (address, channel) under flood and bound the MM-thread queue.
+    // Set BEFORE connect: the receiving thread reads the callback with no
+    // lock, and a datagram that finds none takes the receiver's callAsync
+    // path, which holds a raw pointer to it.
     {
         auto* queuePtr = ingestQueue.get();
         const int udpPort = globalConfig.udpReceivePort;
@@ -335,16 +332,17 @@ bool OSCManager::startListening()
         });
     }
     udpReceiver->addListener(&udpListener);
+    if (!udpReceiver->connect(globalConfig.udpReceivePort))
+    {
+        DBG("Failed to bind UDP receiver to port " << globalConfig.udpReceivePort);
+        udpReceiver.reset();
+        return false;
+    }
 
     // Create and configure TCP receiver
     tcpReceiver = std::make_unique<OSCTCPReceiver>();
-    if (!tcpReceiver->connect(globalConfig.tcpReceivePort))
     {
-        DBG("Failed to bind TCP receiver to port " << globalConfig.tcpReceivePort);
-        // TCP failure is not fatal - UDP is the primary protocol
-    }
-    else
-    {
+        // Before connect, as for UDP above.
         auto* queuePtr = ingestQueue.get();
         const int tcpPort = globalConfig.tcpReceivePort;
         tcpReceiver->setRawDataCallback([queuePtr, tcpPort]
@@ -354,6 +352,11 @@ bool OSCManager::startListening()
                            tcpPort, ConnectionMode::TCP);
         });
         tcpReceiver->addListener(&tcpListener);
+    }
+    if (!tcpReceiver->connect(globalConfig.tcpReceivePort))
+    {
+        DBG("Failed to bind TCP receiver to port " << globalConfig.tcpReceivePort);
+        // TCP failure is not fatal - UDP is the primary protocol
     }
 
     listening = true;
@@ -372,19 +375,22 @@ void OSCManager::stopListening()
     if (!listening)
         return;
 
+    // Disconnect first: it joins the receiving threads. Clearing the raw
+    // callback while they still ran sent a datagram arriving in between down
+    // the receiver's callAsync path, which ran after the receiver was freed.
     if (udpReceiver)
     {
+        udpReceiver->disconnect();
         udpReceiver->setRawDataCallback (nullptr);
         udpReceiver->removeListener(&udpListener);
-        udpReceiver->disconnect();
         udpReceiver.reset();
     }
 
     if (tcpReceiver)
     {
+        tcpReceiver->disconnect();
         tcpReceiver->setRawDataCallback (nullptr);
         tcpReceiver->removeListener(&tcpListener);
-        tcpReceiver->disconnect();
         tcpReceiver.reset();
     }
 
@@ -6481,17 +6487,26 @@ void OSCManager::sendToQLab (const QLabCueSequence& sequence,
         juce::CriticalSection replyLock;
         juce::WaitableEvent replyEvent;
 
-        // Listener for QLab replies (fires on OSCReceiver's network thread)
-        struct ReplyListener : public juce::OSCReceiver::Listener<juce::OSCReceiver::RealtimeCallback>
+        // QLab replies arrive on the receiver's own thread. juce::OSCReceiver
+        // parsed every datagram on this port with no limit on bundle nesting,
+        // so one deep bundle could overflow its thread's stack (re-audit B3).
+        // QLab replies are plain messages: anything else is dropped unread,
+        // and a message is read by spatcore's OSCParser. Declared after the
+        // three locals the callback uses; its destructor joins the thread.
+        OSCReceiverWithSenderIP replyReceiver;
+        replyReceiver.setRawDataCallback ([&replyUID, &replyLock, &replyEvent]
+            (juce::MemoryBlock data, juce::String /*senderIP*/, int /*senderPort*/)
         {
-            juce::String* uid;
-            juce::CriticalSection* lock;
-            juce::WaitableEvent* event;
+            const auto* bytes = static_cast<const char*> (data.getData());
+            const int size = static_cast<int> (data.getSize());
+            if (size < 4 || bytes[0] != '/')
+                return;
 
-            void oscMessageReceived (const juce::OSCMessage& msg) override
+            try
             {
-                auto address = msg.getAddressPattern().toString();
-                if (address.contains ("uniqueID") && msg.size() > 0 && msg[0].isString())
+                int pos = 0;
+                const auto msg = spatcore::control::osc::OSCParser::parseMessage (bytes, size, pos);
+                if (msg.getAddressPattern().toString().contains ("uniqueID") && msg.size() > 0 && msg[0].isString())
                 {
                     auto json = spatcore::control::osc::parseNetworkJson (msg[0].getString());
                     if (json.isObject())
@@ -6499,22 +6514,15 @@ void OSCManager::sendToQLab (const QLabCueSequence& sequence,
                         auto status = json.getProperty (juce::Identifier ("status"), "").toString();
                         if (status == "ok")
                         {
-                            const juce::ScopedLock sl (*lock);
-                            *uid = json.getProperty (juce::Identifier ("data"), "").toString();
+                            const juce::ScopedLock sl (replyLock);
+                            replyUID = json.getProperty (juce::Identifier ("data"), "").toString();
                         }
                     }
-                    event->signal();
+                    replyEvent.signal();
                 }
             }
-        };
-
-        ReplyListener listener;
-        listener.uid = &replyUID;
-        listener.lock = &replyLock;
-        listener.event = &replyEvent;
-
-        juce::OSCReceiver replyReceiver;
-        replyReceiver.addListener (&listener);
+            catch (const juce::OSCFormatError&) {}
+        });
 
         if (!replyReceiver.connect (DEFAULT_QLAB_REPLY_PORT))
         {
@@ -7075,11 +7083,10 @@ void OSCManager::updateADMOSCListeners()
         el.receiver = std::make_unique<OSCReceiverWithSenderIP>();
         el.listener = std::make_unique<UDPListener> (*this);
 
-        if (el.receiver->connect (port))
+        // Same routing as the main UDP receiver — push into the shared
+        // ingest queue so ADM-OSC traffic also benefits from coalesce +
+        // bounded FIFO. Set before connect, as for the main receiver.
         {
-            // Same routing as the main UDP receiver — push into the
-            // shared ingest queue so ADM-OSC traffic also benefits
-            // from coalesce + bounded FIFO.
             auto* queuePtr = ingestQueue.get();
             const int admPort = port;
             el.receiver->setRawDataCallback ([queuePtr, admPort]
@@ -7089,6 +7096,10 @@ void OSCManager::updateADMOSCListeners()
                                 admPort, ConnectionMode::UDP);
             });
             el.receiver->addListener (el.listener.get());
+        }
+
+        if (el.receiver->connect (port))
+        {
             logger.logText ("ADM-OSC: listening on extra port " + juce::String (port));
             admExtraListeners.push_back (std::move (el));
         }

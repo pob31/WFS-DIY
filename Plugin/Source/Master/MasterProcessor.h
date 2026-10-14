@@ -10,11 +10,11 @@
 #include "../Shared/RateLimiter.h"
 #include "../Shared/DiagnosticLog.h"
 #include "../Shared/TargetProfile.h"
+#include "AdmOscReceiver.h"
 
 namespace wfs::plugin
 {
-    class MasterProcessor  : public juce::AudioProcessor,
-                             private juce::OSCReceiver::Listener<juce::OSCReceiver::MessageLoopCallback>
+    class MasterProcessor  : public juce::AudioProcessor
     {
     public:
         MasterProcessor();
@@ -62,7 +62,6 @@ namespace wfs::plugin
         static void bridgeOutbound3fCallback (void* user, const char* oscPath, double v1, double v2, double v3);
         static void bridgeLifecycleCallback  (void* user, int inputId, const char* variantTag, int isRegister);
 
-        void oscMessageReceived (const juce::OSCMessage& message) override;
         void dispatchAdmInbound (const juce::OSCMessage& msg);
 
         void onQueryOscPush (const juce::String& oscPath, float value);
@@ -113,7 +112,7 @@ namespace wfs::plugin
         OscTransport    transport;
         OscQueryClient  query;
         RateLimiter     rateLimiter;
-        juce::OSCReceiver admReceiver;
+        AdmOscReceiver    admReceiver;
         bool              admReceiverOpen = false;
         WfsBridgeMasterHandle* bridgeHandle = nullptr;
 

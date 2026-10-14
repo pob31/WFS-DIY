@@ -128,6 +128,7 @@ namespace wfs::plugin
                               .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
           state (*this, nullptr, "MasterState", buildLayout())
     {
+        admReceiver.onMessage = [this] (const juce::OSCMessage& message) { dispatchAdmInbound (message); };
         rateLimiter.setSendFunction ([this] (const juce::String& path, int chan, float value)
         {
             transport.sendFloat (path, chan, value);
@@ -259,13 +260,11 @@ namespace wfs::plugin
         {
             if (admReceiverOpen)
             {
-                admReceiver.removeListener (this);
                 admReceiver.disconnect();
                 admReceiverOpen = false;
             }
             if (admReceiver.connect (admRxPort))
             {
-                admReceiver.addListener (this);
                 admReceiverOpen = true;
                 diagLog.add ("ADM-OSC listening on port " + juce::String (admRxPort));
             }
@@ -296,7 +295,6 @@ namespace wfs::plugin
     {
         if (admReceiverOpen)
         {
-            admReceiver.removeListener (this);
             admReceiver.disconnect();
             admReceiverOpen = false;
         }
@@ -547,11 +545,6 @@ namespace wfs::plugin
     {
         translator.clearVariantTag (inputId);
         unsubscribeInput (inputId);
-    }
-
-    void MasterProcessor::oscMessageReceived (const juce::OSCMessage& message)
-    {
-        dispatchAdmInbound (message);
     }
 
     void MasterProcessor::dispatchAdmInbound (const juce::OSCMessage& msg)

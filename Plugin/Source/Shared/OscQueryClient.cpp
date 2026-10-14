@@ -1,4 +1,5 @@
 #include "OscQueryClient.h"
+#include "../../../spatcore/control/osc/NetworkJson.h"
 
 namespace wfs::plugin
 {
@@ -56,6 +57,10 @@ namespace wfs::plugin
         if (socket.write (utf8, reqLen) != reqLen)
             return false;
 
+        // The app's whole OSCQuery tree is about 750 kB; a reply past 8 MB
+        // is not one of ours and is dropped rather than buffered.
+        constexpr size_t maxReplyBytes = 8u * 1024u * 1024u;
+
         juce::MemoryBlock raw;
         char buffer[4096];
         const juce::uint32 deadline = juce::Time::getMillisecondCounter() + 3000;
@@ -67,6 +72,11 @@ namespace wfs::plugin
             const int n = socket.read (buffer, sizeof (buffer), false);
             if (n <= 0) break;
             raw.append (buffer, static_cast<size_t> (n));
+            if (raw.getSize() > maxReplyBytes)
+            {
+                socket.close();
+                return false;
+            }
         }
         socket.close();
 
@@ -186,7 +196,7 @@ namespace wfs::plugin
         if (! httpGet (oscPath + "?VALUE", body))
             return false;
 
-        const auto parsed = juce::JSON::parse (body);
+        const auto parsed = spatcore::control::osc::parseNetworkJson (body);
         if (! parsed.isObject())
             return false;
 
@@ -211,7 +221,7 @@ namespace wfs::plugin
         if (! httpGet (oscPath, body))
             return false;
 
-        outJson = juce::JSON::parse (body);
+        outJson = spatcore::control::osc::parseNetworkJson (body);
         return outJson.isObject();
     }
 
@@ -237,7 +247,7 @@ namespace wfs::plugin
     {
         // The only JSON command the server sends us is PATH_CHANGED. Anything
         // else on this socket is status chatter and is ignored, as it always was.
-        const auto parsed = juce::JSON::parse (message);
+        const auto parsed = spatcore::control::osc::parseNetworkJson (message);
         if (! parsed.isObject())
             return;
 
