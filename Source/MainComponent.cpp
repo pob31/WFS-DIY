@@ -5453,7 +5453,8 @@ void MainComponent::runInputMutesPersistSelfTest()
                   + " messages parse back to their own parameter"
                   + (refused.isEmpty() ? juce::String() : "; refused: " + refused.joinIntoString(" | ")));
 
-        // Chunks: under the ceiling, the head on the first, `more` on the rest, every pair kept in order.
+        // Chunks: under the ceiling, each naming WFS-DIY's root first, the head on the first,
+        // `more` on the rest, every pair kept in order.
         cue.id = WFSNetwork::GoDot::newCueId();
         check(WFSNetwork::GoDot::isCueId(cue.id), "M6d: a drawn identifier is Crockford base32: " + cue.id);
         const auto chunks = WFSNetwork::GoDot::captureMessages("standby", {}, cue);
@@ -5462,11 +5463,12 @@ void MainComponent::runInputMutesPersistSelfTest()
         for (size_t c = 0; c < chunks.size(); ++c)
         {
             const auto& m = chunks[c];
-            shapes = shapes && m.size() >= 9 && (m.size() - 7) % 2 == 0
-                     && m[0].getString() == (c == 0 ? "standby" : "more")
-                     && m[2].getString() == cue.id
-                     && (c == 0 || m[1].getString() == cue.id);
-            for (int a = 7; a + 1 < m.size(); a += 2)
+            shapes = shapes && m.size() >= 10 && (m.size() - 8) % 2 == 0
+                     && m[0].getString() == WFSNetwork::GoDot::prefix
+                     && m[1].getString() == (c == 0 ? "standby" : "more")
+                     && m[3].getString() == cue.id
+                     && (c == 0 || m[2].getString() == cue.id);
+            for (int a = 8; a + 1 < m.size(); a += 2)
             {
                 const auto& [address, atoms] = cue.messages[static_cast<size_t>(pairs)];
                 shapes = shapes && m[a].getString() == address && m[a + 1].getString() == atoms;
@@ -5475,7 +5477,7 @@ void MainComponent::runInputMutesPersistSelfTest()
         }
         check(shapes && pairs == static_cast<int>(cue.messages.size()),
               "M6d: " + juce::String(static_cast<int>(chunks.size())) + " chunk(s) carry all "
-                  + juce::String(pairs) + " pairs in order, the head first and `more` after");
+                  + juce::String(pairs) + " pairs in order, each from /wfs, the head first and `more` after");
     }
 
     fm.setProjectFolder(previousFolder);

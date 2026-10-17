@@ -2,6 +2,14 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
+## v1.0.0beta57 — 2026-10-17
+
+### Fixed
+- **Go.dot's answer reaches WFS-DIY when another app shares the computer.** Every cue WFS-DIY writes into Go.dot now names WFS-DIY as its sender, `/wfs`, as the first argument of `/godot/cmd/cue/capture`, and Go.dot answers that device. With S21_HiJack declared in Go.dot from the same computer, one of the two could receive the other's answer, and WFS-DIY then said Go.dot had not answered although the cue was written. Needs a Go.dot from 2026-10-17 or later: an older one refuses these cues ("bad-value").
+
+### Chore / Internal
+- The M6d self-test checks the sender on every chunk of a capture, and `godot_mock.py` reads captures with and without it.
+
 ## v1.0.0beta56 — 2026-10-14 (also tagged plugins-v0.0.7)
 
 ### Fixed

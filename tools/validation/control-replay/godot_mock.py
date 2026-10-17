@@ -8,8 +8,11 @@ Go.dot's docs/godot-authoring-protocol-0.1.md says Go.dot answers them:
       -> fetches GET http://<sender>:<queryPort><prefix>, checks it is an OSCQuery
          tree rooted at the prefix, and answers
          /godot/described  ,sis  <device id> <node count> <problem>
-  /godot/cmd/cue/capture    ,sssssss[ss]...  where target id name number notes messageIds pairs
+  /godot/cmd/cue/capture    ,ssssssss[ss]...  from where target id name number notes messageIds pairs
       -> /godot/captured   ,ssss <id> created|updated|appended|<reason> <number> <name>
+         to the device whose prefix is `from`; a capture in the form before
+         2026-10-17 begins at `where` (no `from`) and is answered to the device
+         at the sender's host, as Go.dot then guesses
 
 Every captured address is checked against the description fetched at the last
 declare: it must be a node, and its atom count must match the node's TYPE (what
@@ -188,11 +191,14 @@ def main() -> int:
             continue
 
         if address == "/godot/cmd/cue/capture" and len(a) >= 7:
-            where, target, cue_id, name, number, notes, _ids = a[:7]
-            pairs = list(zip(a[7::2], a[8::2]))
-            dev = device_for(host)
+            # A root is empty or begins with a slash; `where` never does.
+            head = 1 if (not a[0] or a[0].startswith("/")) else 0
+            sender = a[0] if head else ""
+            where, target, cue_id, name, number, notes, _ids = a[head:head + 7]
+            pairs = list(zip(a[head + 7::2], a[head + 8::2]))
+            dev = devices.get(sender) or device_for(host)
             reason = args.refuse
-            if not reason and (len(a) - 7) % 2:
+            if not reason and (len(a) - head - 7) % 2:
                 reason = "bad-value"
             for addr, value in pairs:
                 if reason:
@@ -219,7 +225,7 @@ def main() -> int:
             reply_to = (host, dev["port"]) if dev else None
             if reply_to:
                 sock.sendto(osc_message("/godot/captured", cue_id, outcome, number, name), reply_to)
-            print(f"capture {where} {cue_id} {name!r}: {len(pairs)} pair(s) -> {outcome}"
+            print(f"capture from {sender or '(not named)'} {where} {cue_id} {name!r}: {len(pairs)} pair(s) -> {outcome}"
                   + ("" if reply_to else " (no declared device at that host: no answer)"))
             continue
 

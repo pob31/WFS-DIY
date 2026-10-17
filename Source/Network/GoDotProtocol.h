@@ -219,7 +219,13 @@ namespace WFSNetwork::GoDot
 
     /** The datagrams of one capture: the head and as many pairs as fit under
         the ceiling, then `more` chunks on the same identifier for the rest.
-        A pair too long to fit even alone still goes, alone, in its own chunk. */
+        A pair too long to fit even alone still goes, alone, in its own chunk.
+
+        Every chunk begins with WFS-DIY's root, `from`: Go.dot answers the
+        device holding it, so the answer reaches WFS-DIY even when another
+        processor that declared itself shares this computer's address. A
+        Go.dot older than 2026-10-17 reads `/wfs` as `where` and refuses
+        the capture (bad-value). */
     inline std::vector<juce::OSCMessage> captureMessages (const juce::String& where,
                                                           const juce::String& target,
                                                           const Cue& cue)
@@ -229,6 +235,7 @@ namespace WFSNetwork::GoDot
         auto startChunk = [&] (bool first)
         {
             juce::OSCMessage message (captureAddress);
+            message.addString (prefix);
             message.addString (first ? where : juce::String ("more"));
             message.addString (first ? target : cue.id);
             message.addString (cue.id);
