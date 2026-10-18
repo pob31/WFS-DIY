@@ -2,7 +2,7 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
-## Unreleased
+## v1.0.0beta59 — 2026-10-18
 
 ### Fixed
 - **Go.dot sends WFS-DIY's cues as bundles even when WFS-DIY was started first.** Started before Go.dot, WFS-DIY could end up telling Go.dot it does not read OSC bundles, and Go.dot then sent a snapshot cue one message per datagram: a 64-input recall took about 6 s instead of a fraction of a second. When Go.dot answers that shorter declaration, WFS-DIY now says once more that it reads bundles, and a Go.dot from 2026-10-18 or later switches the device's Bundles on. An older Go.dot does not answer, and WFS-DIY keeps to the shorter form.
