@@ -3,7 +3,7 @@
 Listens on Go.dot's OSC port and answers the two commands WFS-DIY sends, the way
 Go.dot's docs/godot-authoring-protocol-0.1.md says Go.dot answers them:
 
-  /godot/cmd/mount/declare  ,siis  prefix port queryPort name
+  /godot/cmd/mount/declare  ,siis[s[s[i]]]  prefix port queryPort name [id [host [bundles]]]
       -> /godot/declared   ,ss   <device id> created|updated
       -> fetches GET http://<sender>:<queryPort><prefix>, checks it is an OSCQuery
          tree rooted at the prefix, and answers
@@ -173,13 +173,15 @@ def main() -> int:
 
         if address == "/godot/cmd/mount/declare" and len(a) >= 4:
             prefix, port, query_port, name = a[0], a[1], a[2], a[3]
+            bundles = a[6] if len(a) > 6 else None   # Go.dot namespace draft 88: reads bundles
             existing = devices.get(prefix)
             outcome = "updated" if existing else "created"
             dev = existing or {"id": "MCK%05d" % len(devices), "nodes": {}}
             dev.update(host=host, port=port)
             devices[prefix] = dev
             sock.sendto(osc_message("/godot/declared", dev["id"], outcome), (host, port))
-            print(f"declare {prefix} from {host}:{port} query {query_port} name {name!r} -> {outcome}")
+            print(f"declare {prefix} from {host}:{port} query {query_port} name {name!r}"
+                  + ("" if bundles is None else f" bundles {bundles}") + f" -> {outcome}")
             if query_port:
                 try:
                     dev["nodes"] = fetch_description(host, query_port, prefix)
