@@ -737,6 +737,11 @@ private:
     juce::int64 goDotLastDeclareMs = 0;
     bool goDotDeclareAnswered = true;
 
+    /** Whether the next declare says WFS-DIY reads bundles (Go.dot namespace
+        draft 88). Turned over when a declare goes unanswered, since a Go.dot
+        older than that refuses the form in silence; kept once answered. */
+    bool goDotDeclareSaysBundles = true;
+
     //==========================================================================
     // ValueTree::Listener
     //==========================================================================

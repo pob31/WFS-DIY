@@ -2,6 +2,15 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
+## v1.0.0beta58 — 2026-10-18
+
+### Fixed
+- **A large Go.dot snapshot cue arrives whole.** Firing a Go.dot cue that holds a snapshot of many inputs (72 inputs is about 5,300 messages) lost most of it on the way in: WFS-DIY's network queue held 256 items and dropped the rest without a word. The queue now holds 4,096 items and empties more of them at a time without holding up the screen, the network socket asks the system for a 4 MB buffer, and a dropped message is written to the log at once (it was written only after a thousand). WFS-DIY now tells Go.dot that it reads OSC bundles when it declares itself, so Go.dot sends such a cue a few dozen messages to a datagram, at its own pace. An older Go.dot that does not know this is declared to as before.
+- **Exporting a large snapshot to Go.dot no longer loses part of the cue.** Its datagrams leave 5 ms apart, as WFS-DIY's other dumps do, instead of all at once.
+
+### Chore / Internal
+- spatcore (PR #25): OSCIngestQueue's FIFO cap and a time budget for each drain tick are settable, and a drop is reported at once and then once a second; OSCReceiverWithSenderIP asks for a 4 MB receive buffer. The tracking queue keeps its bounds.
+
 ## v1.0.0beta57 — 2026-10-17
 
 ### Fixed

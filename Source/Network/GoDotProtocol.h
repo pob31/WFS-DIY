@@ -53,6 +53,12 @@ namespace WFSNetwork::GoDot
     /** How long a capture waits for each answer it expects. */
     inline constexpr int answerTimeoutMs = 2000;
 
+    /** The gap between two chunks of a capture (Go.dot namespace draft 88):
+        a snapshot of seventy inputs is nearly two hundred datagrams, and back
+        to back they overran Go.dot's receive buffer on the way. The gap
+        WFS-DIY already leaves between its own bundles. */
+    inline constexpr int chunkGapMs = 5;
+
     //==========================================================================
     // Types
     //==========================================================================
@@ -200,14 +206,29 @@ namespace WFSNetwork::GoDot
         std::vector<std::pair<juce::String, juce::String>> messages;   // address, atoms
     };
 
-    /** /godot/cmd/mount/declare "/wfs" <port> <queryPort> "WFS-DIY" */
-    inline juce::OSCMessage declareMessage (int receivePort, int queryPort)
+    /** /godot/cmd/mount/declare "/wfs" <port> <queryPort> "WFS-DIY" ["" "" 1]
+
+        With `saysBundles` (Go.dot namespace draft 88): an empty id and host -
+        Go.dot draws the one and reads the other off the datagram - and 1:
+        WFS-DIY reads OSC bundles, so Go.dot makes the device with Bundles on
+        and sends a cue's messages a few dozen to a datagram. A Go.dot older
+        than that refuses a declare with a seventh argument and answers
+        nothing; OSCManager::declareToGoDot says it the other way then. */
+    inline juce::OSCMessage declareMessage (int receivePort, int queryPort, bool saysBundles = true)
     {
         juce::OSCMessage message (declareAddress);
         message.addString (prefix);
         message.addInt32 (receivePort);
         message.addInt32 (queryPort);
         message.addString ("WFS-DIY");
+
+        if (saysBundles)
+        {
+            message.addString ({});
+            message.addString ({});
+            message.addInt32 (1);
+        }
+
         return message;
     }
 

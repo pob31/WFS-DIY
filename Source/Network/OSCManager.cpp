@@ -136,16 +136,18 @@ OSCManager::OSCManager(WFSValueTreeState& valueTreeState)
     // One output of an input's mute list per message: two quick mutes on one
     // input (a QLab group firing its cues at once) are two edits, not a newer
     // value of one, so they must all arrive, in order. They share the ingest
-    // FIFO (256 pending) with bundles and handshakes: a burst beyond that drops
-    // the excess. QLab snapshot cues send one whole list per input, far below it;
-    // a surface changing many outputs at once should send the whole list too.
+    // FIFO (4096 pending since Go.dot's namespace draft 88 - a Go.dot snapshot
+    // cue is thousands of messages - and 256 before) with bundles and
+    // handshakes: a burst beyond that drops the excess, and says so at once.
+    // QLab snapshot cues send one whole list per input, far below it; a surface
+    // changing many outputs at once should send the whole list too.
     //
     // The four effects send CELLS are here for exactly that reason, restated
     // because the numbers are bigger. The ingest key is `address | first int32`
     // (spatcore/control/osc/OSCIngestQueue.cpp), and the first int32 of a cell
     // message is the EFFECT, not the cell - so a cue setting 64 sends of one
     // effect would collapse to ONE surviving message per 16 ms drain tick. Same
-    // FIFO, same 256-slot cost: a burst beyond that drops the excess, and a
+    // FIFO, same slot cost: a burst beyond it drops the excess, and a
     // surface changing many cells at once should send the whole ROW
     // (/wfs/effect/sendLevels and its three siblings), which is one message
     // whatever the width.
@@ -172,6 +174,16 @@ OSCManager::OSCManager(WFSValueTreeState& valueTreeState)
         "/wfs/effect/mapVisible"
     };
     ingestQueue = std::make_unique<OSCIngestQueue>(std::move(ingestClassifier));
+
+    // A WHOLE SNAPSHOT AT ONCE (Go.dot namespace draft 88): a cue Go.dot fires
+    // is up to thousands of messages, paced at twenty datagrams a tick and
+    // bundled a few dozen to one - a few hundred FIFO items arriving within a
+    // second. Room for them, and a drain that takes more a tick but never
+    // longer than 6 ms of the message thread's 16. The tracking queue keeps
+    // its own bound (TrackingOSCReceiver).
+    ingestQueue->setFifoCap(4096);
+    ingestQueue->setMaxItemsPerTick(512);
+    ingestQueue->setDrainBudgetMs(6.0);
     ingestQueue->setDispatch([this] (const juce::MemoryBlock& data,
                                      const juce::String& senderIP,
                                      int port,
@@ -6562,7 +6574,16 @@ void OSCManager::declareToGoDot()
 {
     const int queryPort = (oscQueryServer != nullptr && oscQueryServer->isRunning())
                               ? oscQueryServer->getHttpPort() : 0;
-    const auto message = GoDot::declareMessage (globalConfig.udpReceivePort, queryPort);
+
+    // A declare nobody answered is said the other way next time: a Go.dot
+    // older than its namespace draft 88 refuses the seventh argument (that
+    // WFS-DIY reads bundles) without a word, and one that knows it answers
+    // either. Whichever form is answered is kept.
+    if (! goDotDeclareAnswered && goDotLastDeclareMs > 0
+        && juce::Time::currentTimeMillis() - goDotLastDeclareMs > GoDot::answerTimeoutMs)
+        goDotDeclareSaysBundles = ! goDotDeclareSaysBundles;
+
+    const auto message = GoDot::declareMessage (globalConfig.udpReceivePort, queryPort, goDotDeclareSaysBundles);
     bool sent = false;
 
     for (int i = 0; i < MAX_TARGETS; ++i)
@@ -6619,15 +6640,42 @@ void OSCManager::sendToGoDot (const GoDot::Cue& cue, std::function<void (const G
 
     // A second send of the same cue before the first was answered replaces the
     // first's wait: the newer one is what the operator is looking at.
+    const auto datagrams = static_cast<int> (chunks.size() * targets.size());
+
     auto& pending = pendingGoDotCaptures[cue.id];
     pending = {};
-    pending.expected = static_cast<int> (chunks.size() * targets.size());
-    pending.deadline = juce::Time::currentTimeMillis() + GoDot::answerTimeoutMs;
+    pending.expected = datagrams;
+    pending.deadline = juce::Time::currentTimeMillis() + GoDot::answerTimeoutMs
+                       + static_cast<juce::int64> (datagrams) * GoDot::chunkGapMs;
     pending.onDone = std::move (onDone);
 
-    for (int target : targets)
-        for (const auto& chunk : chunks)
-            sendMessageDirect (target, chunk);
+    // SPACED (Go.dot namespace draft 88): a snapshot of seventy inputs is
+    // nearly two hundred chunks, and back to back they overran Go.dot's
+    // receive buffer on the way - a lost chunk is a few dozen messages
+    // missing from the cue with nothing said. On a detached thread, as the
+    // paced bundle dumps are, so the message thread never sleeps; a capture
+    // of one datagram goes at once.
+    if (datagrams == 1)
+    {
+        sendMessageDirect (targets.front(), chunks.front());
+    }
+    else
+    {
+        std::thread ([this, targets, chunks]()
+        {
+            bool first = true;
+
+            for (int target : targets)
+                for (const auto& chunk : chunks)
+                {
+                    if (! first)
+                        std::this_thread::sleep_for (std::chrono::milliseconds (GoDot::chunkGapMs));
+
+                    first = false;
+                    sendMessageDirect (target, chunk);
+                }
+        }).detach();
+    }
 
     logger.logText ("Go.dot: cue " + cue.id + " sent, " + juce::String (cue.messages.size())
                     + " message(s) in " + juce::String (chunks.size()) + " datagram(s) to "
