@@ -742,6 +742,14 @@ private:
         older than that refuses the form in silence; kept once answered. */
     bool goDotDeclareSaysBundles = true;
 
+    /** Whether the long form has been tried again since a short one was
+        answered (Go.dot namespace draft 88, AVE). A WFS-DIY started before
+        Go.dot turns the form over at every unanswered declare, so the short
+        form can be the one Go.dot happens to hear first; one more long
+        declare then tells an older Go.dot from a newer one. Cleared when a
+        Go.dot target connects. */
+    bool goDotDeclareProbed = false;
+
     //==========================================================================
     // ValueTree::Listener
     //==========================================================================

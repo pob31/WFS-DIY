@@ -488,9 +488,14 @@ bool OSCManager::connectTarget(int targetIndex)
                                " (" + config.ipAddress + ":" + juce::String(config.port) + ")");
                 DBG("OSCManager::connectTarget - target " << targetIndex << " CONNECTED (UDP)");
 
-                // A Go.dot target learns who WFS-DIY is the moment it is reachable.
+                // A Go.dot target learns who WFS-DIY is the moment it is reachable,
+                // in the long form first: the Go.dot now reachable may be another one.
                 if (config.protocol == Protocol::GoDot)
+                {
+                    goDotDeclareSaysBundles = true;
+                    goDotDeclareProbed = false;
                     declareToGoDot();
+                }
             }
         }
         else
@@ -6578,7 +6583,8 @@ void OSCManager::declareToGoDot()
     // A declare nobody answered is said the other way next time: a Go.dot
     // older than its namespace draft 88 refuses the seventh argument (that
     // WFS-DIY reads bundles) without a word, and one that knows it answers
-    // either. Whichever form is answered is kept.
+    // either. The long form answered is kept; the short one is tried against
+    // the long form once (handleGoDotAnswer) before it is.
     if (! goDotDeclareAnswered && goDotLastDeclareMs > 0
         && juce::Time::currentTimeMillis() - goDotLastDeclareMs > GoDot::answerTimeoutMs)
         goDotDeclareSaysBundles = ! goDotDeclareSaysBundles;
@@ -6695,6 +6701,18 @@ void OSCManager::handleGoDotAnswer (const juce::OSCMessage& message, const juce:
                         + (answer.isDescribed() ? " (" + juce::String (answer.nodeCount) + " nodes)" : juce::String()));
         if (onGoDotAnswer)
             onGoDotAnswer (answer);
+
+        // A SHORT DECLARE ANSWERED: Go.dot is up, and the short form may only
+        // be the one it heard first, WFS-DIY having started before it. The
+        // long form once more, at once: a Go.dot that reads it switches the
+        // device's Bundles on (its namespace draft 88, AVE); an older one
+        // leaves it unanswered, and the next declare is short for good.
+        if (answer.isDeclared() && ! goDotDeclareSaysBundles && ! goDotDeclareProbed)
+        {
+            goDotDeclareProbed = true;
+            goDotDeclareSaysBundles = true;
+            declareToGoDot();
+        }
         return;
     }
 

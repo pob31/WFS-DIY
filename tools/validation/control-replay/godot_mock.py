@@ -23,8 +23,14 @@ give. Answers go to the declared port, from this socket, as Go.dot does.
 Stdlib only (repo convention). Not part of run_selftest: it waits for a human
 to press "Write to Go.dot" in a running WFS-DIY.
 
+A device's Bundles follows Go.dot's rule (its namespace draft 88, AVE): switched
+on by any declare that says `bundles` 1, never off. With --old the mock is a
+Go.dot from before that draft, which answers no declare carrying the seventh
+argument: WFS-DIY then falls back to the short form, says the long form once
+more when the short one is answered, and keeps to the short form after that.
+
 Usage:
-  python godot_mock.py [--port 8010] [--refuse locked] [--seconds 0]
+  python godot_mock.py [--port 8010] [--refuse locked] [--seconds 0] [--old]
 Exit codes: 0 every capture matched the description, 1 a mismatch, 2 usage.
 """
 
@@ -142,6 +148,8 @@ def main() -> int:
     ap.add_argument("--port", type=int, default=8010)
     ap.add_argument("--refuse", default="", help="answer every capture with this reason (e.g. locked)")
     ap.add_argument("--seconds", type=float, default=0, help="stop after this long (0: never)")
+    ap.add_argument("--old", action="store_true",
+                    help="answer no declare that says bundles, as a Go.dot before its namespace draft 88")
     args = ap.parse_args()
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -174,14 +182,20 @@ def main() -> int:
         if address == "/godot/cmd/mount/declare" and len(a) >= 4:
             prefix, port, query_port, name = a[0], a[1], a[2], a[3]
             bundles = a[6] if len(a) > 6 else None   # Go.dot namespace draft 88: reads bundles
+            if args.old and bundles is not None:
+                print(f"declare {prefix} from {host}:{port} bundles {bundles} -> unanswered (--old)")
+                continue
             existing = devices.get(prefix)
             outcome = "updated" if existing else "created"
-            dev = existing or {"id": "MCK%05d" % len(devices), "nodes": {}}
+            dev = existing or {"id": "MCK%05d" % len(devices), "nodes": {}, "bundles": False}
             dev.update(host=host, port=port)
+            if bundles:
+                dev["bundles"] = True     # on by any declare that says so, never off (AVE)
             devices[prefix] = dev
             sock.sendto(osc_message("/godot/declared", dev["id"], outcome), (host, port))
             print(f"declare {prefix} from {host}:{port} query {query_port} name {name!r}"
-                  + ("" if bundles is None else f" bundles {bundles}") + f" -> {outcome}")
+                  + ("" if bundles is None else f" bundles {bundles}") + f" -> {outcome}"
+                  + f", Bundles {'on' if dev['bundles'] else 'off'}")
             if query_port:
                 try:
                     dev["nodes"] = fetch_description(host, query_port, prefix)
