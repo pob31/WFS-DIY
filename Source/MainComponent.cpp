@@ -3410,24 +3410,86 @@ void MainComponent::renderUiSnapshots (const juce::File& dir)
 
     // The Scope window, opened as the Effects tab's row opens it, then switched
     // to the inputs grid as the Inputs tab's row would switch it.
+    // Then once more with the project's first snapshot selected, if it has one:
+    // the title names it and carries the [X] that clears the selection.
     if (snapshotSession != nullptr)
     {
-        snapshotSession->editScope (WFSFileManager::SnapshotFamily::Effects);
-
-        for (int i = juce::Desktop::getInstance().getNumComponents(); --i >= 0;)
+        auto renderScope = [this, &save] (const juce::String& suffix)
         {
-            if (auto* window = dynamic_cast<SnapshotScopeWindow*> (juce::Desktop::getInstance().getComponent (i)))
+            snapshotSession->editScope (WFSFileManager::SnapshotFamily::Effects);
+
+            for (int i = juce::Desktop::getInstance().getNumComponents(); --i >= 0;)
             {
-                if (auto* content = window->getContentComponent())
+                if (auto* window = dynamic_cast<SnapshotScopeWindow*> (juce::Desktop::getInstance().getComponent (i)))
                 {
-                    save (*content, "scope-effects");
-                    snapshotSession->editScope (WFSFileManager::SnapshotFamily::Inputs);
-                    save (*content, "scope-inputs");
+                    if (window->isVisible())
+                    {
+                        if (auto* content = window->getContentComponent())
+                        {
+                            save (*content, "scope-effects" + suffix);
+                            snapshotSession->editScope (WFSFileManager::SnapshotFamily::Inputs);
+                            save (*content, "scope-inputs" + suffix);
+                        }
+                        window->closeButtonPressed();
+                        break;
+                    }
                 }
-                window->closeButtonPressed();
-                break;
             }
+        };
+
+        const auto selectedBefore = snapshotSession->getSelected();
+        snapshotSession->select ({});
+        renderScope ({});
+
+        const auto names = snapshotSession->getSnapshotNames();
+        if (! names.isEmpty())
+        {
+            snapshotSession->select (names[0]);
+            renderScope ("-selected");
+
+            // And the [X] by the name: the window reopens on the next snapshot's
+            // scope, carrying the grid it showed. Rendered once it has reopened.
+            snapshotSession->editScope (WFSFileManager::SnapshotFamily::Inputs);
+            for (int i = juce::Desktop::getInstance().getNumComponents(); --i >= 0;)
+                if (auto* window = dynamic_cast<SnapshotScopeWindow*> (juce::Desktop::getInstance().getComponent (i)))
+                    if (window->isVisible())
+                    {
+                        window->requestClearSelection();
+                        break;
+                    }
+
+            MainComponent* const self = this;
+            juce::Timer::callAfterDelay (1000, [safe = juce::Component::SafePointer<MainComponent> (self), dir, selectedBefore]
+            {
+                if (safe == nullptr)
+                    return;
+
+                for (int i = juce::Desktop::getInstance().getNumComponents(); --i >= 0;)
+                    if (auto* window = dynamic_cast<SnapshotScopeWindow*> (juce::Desktop::getInstance().getComponent (i)))
+                        if (window->isVisible())
+                        {
+                            if (auto* content = window->getContentComponent())
+                            {
+                                auto image = content->createComponentSnapshot (content->getLocalBounds(), true, 1.0f);
+                                auto file = dir.getChildFile ("scope-inputs-after-clear.png");
+                                file.deleteFile();
+                                juce::FileOutputStream out (file);
+                                if (out.openedOk() && juce::PNGImageFormat().writeImageToStream (image, out))
+                                    WFSLogger::getInstance().logInfo ("RENDER-UI wrote " + file.getFullPathName());
+                            }
+                            window->closeButtonPressed();
+                            break;
+                        }
+
+                WFSLogger::getInstance().logInfo ("RENDER-UI selection after clear: '"
+                                                  + safe->snapshotSession->getSelected() + "'");
+                safe->snapshotSession->select (selectedBefore);
+                WFSLogger::getInstance().logInfo ("RENDER-UI done");
+            });
+            return;
         }
+
+        snapshotSession->select (selectedBefore);
     }
 
     WFSLogger::getInstance().logInfo ("RENDER-UI done");

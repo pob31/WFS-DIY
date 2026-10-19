@@ -2271,6 +2271,7 @@
       "exportConfig": "Eingangskonfiguration in Datei exportieren (mit Datei-Explorer).",
       "storeSnapshot": "Neuen Snapshot aller Eingänge und Effekte speichern.",
       "snapshotSelector": "Snapshot auswählen, ohne ihn zu laden.",
+      "clearSnapshotSelection": "Snapshot-Auswahl aufheben. Ohne ausgewählten Snapshot legt Umfang bearbeiten den Filter des nächsten zu speichernden Snapshots fest.",
       "reloadSnapshot": "Ausgewählten Snapshot (Eingänge und Effekte) unter Berücksichtigung des Filters neu laden.",
       "reloadWithoutScope": "Ausgewählten Snapshot (Eingänge und Effekte) ohne Filter neu laden.",
       "updateSnapshot": "Ausgewählten Snapshot aktualisieren, Eingänge und Effekte (mit Sicherung).",
@@ -2409,7 +2410,9 @@
   },
   "snapshotScope": {
     "windowTitle": "Snapshot-Umfang",
-    "title": "Snapshot-Umfang: {name}",
+    "titleSelected": "Umfang des ausgewählten Snapshots: {name}",
+    "titleNext": "Umfang für den nächsten zu speichernden Snapshot",
+    "clearSelectionTooltip": "Snapshot-Auswahl aufheben: Dieses Raster wird, so wie es jetzt ist, zum Filter des nächsten gespeicherten Snapshots.",
     "applyScope": "Umfang anwenden:",
     "whenSaving": "Beim Speichern",
     "whenRecalling": "Beim Abrufen",

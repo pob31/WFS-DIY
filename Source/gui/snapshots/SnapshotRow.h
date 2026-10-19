@@ -11,7 +11,7 @@
 
 //==============================================================================
 /**
-    The snapshot row: selector, Store, Reload, Reload w/o Scope, Update, Edit
+    The snapshot row: selector (with an [X] that clears it), Store, Reload, Reload w/o Scope, Update, Edit
     Scope, Delete - the Inputs tab's footer row, now a component, so the Effects
     tab can show the same row over the same SnapshotSession (plan revision 8: one
     snapshot file carries both families).
@@ -50,6 +50,10 @@ public:
         };
         selector.onPopupAboutToShow = [this] { session.refreshList(); };
 
+        addAndMakeVisible (clearSelectionButton);
+        clearSelectionButton.setButtonText ("X");
+        clearSelectionButton.onLongPress = [this] { session.clearSelection(); };
+
         addAndMakeVisible (reloadButton);
         reloadButton.setButtonText (LOC ("inputs.buttons.reloadSnapshot"));
         reloadButton.setBaseColour (juce::Colour (0xFF669933));  // Yellow-green
@@ -77,6 +81,7 @@ public:
 
         helpText[&storeButton]              = LOC ("inputs.help.storeSnapshot");
         helpText[&selector]                 = LOC ("inputs.help.snapshotSelector");
+        helpText[&clearSelectionButton]     = LOC ("inputs.help.clearSnapshotSelection");
         helpText[&reloadButton]             = LOC ("inputs.help.reloadSnapshot");
         helpText[&reloadWithoutScopeButton] = LOC ("inputs.help.reloadWithoutScope");
         helpText[&updateButton]             = LOC ("inputs.help.updateSnapshot");
@@ -111,7 +116,16 @@ public:
 
         storeButton.setBounds (row.removeFromLeft (buttonWidth));
         row.removeFromLeft (spacing);
-        selector.setBounds (row.removeFromLeft (selectorWidth));
+
+        // The [X] is carved out of the selector's width, so nothing right of it moves.
+        {
+            auto selectorArea = row.removeFromLeft (selectorWidth);
+            // WfsLookAndFeel pads a text button 7 px on each side: +14 for a
+            // square face, and that padding is the gap to the selector.
+            const int clearWidth = juce::jmin (selectorArea.getHeight(), selectorArea.getWidth() / 4) + 14;
+            clearSelectionButton.setBounds (selectorArea.removeFromRight (clearWidth));
+            selector.setBounds (selectorArea);
+        }
         row.removeFromLeft (spacing);
         reloadButton.setBounds (row.removeFromLeft (buttonWidth));
         row.removeFromLeft (spacing);
@@ -159,6 +173,7 @@ private:
 
     LongPressButton storeButton;
     RefreshableComboBox selector;
+    LongPressButton clearSelectionButton { 1 };   // 1 ms = effectively a click
     LongPressButton reloadButton;
     LongPressButton reloadWithoutScopeButton;
     LongPressButton updateButton;
@@ -189,6 +204,7 @@ private:
             selector.setSelectedId (1, juce::dontSendNotification);
 
         const bool hasSelection = session.hasSelection();
+        clearSelectionButton.setEnabled (hasSelection);
         reloadButton.setEnabled (hasSelection);
         updateButton.setEnabled (hasSelection);
         deleteButton.setEnabled (hasSelection);

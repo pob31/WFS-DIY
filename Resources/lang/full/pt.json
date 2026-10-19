@@ -2220,6 +2220,7 @@
       "exportConfig": "Exportar a configuração de entrada para ficheiro (com explorador de ficheiros).",
       "storeSnapshot": "Guardar um novo snapshot de todas as entradas e efeitos.",
       "snapshotSelector": "Selecionar um snapshot sem carregar.",
+      "clearSnapshotSelection": "Desmarcar o snapshot. Sem snapshot selecionado, Editar Âmbito define o filtro do próximo snapshot a guardar.",
       "reloadSnapshot": "Recarregar o snapshot selecionado (entradas e efeitos) tendo em conta o filtro.",
       "reloadWithoutScope": "Recarregar o snapshot selecionado (entradas e efeitos) sem o filtro.",
       "updateSnapshot": "Atualizar o snapshot selecionado, entradas e efeitos (com cópia de segurança).",
@@ -2358,7 +2359,9 @@
   },
   "snapshotScope": {
     "windowTitle": "Âmbito do Snapshot",
-    "title": "Âmbito do Snapshot: {name}",
+    "titleSelected": "Âmbito do snapshot selecionado: {name}",
+    "titleNext": "Âmbito do próximo snapshot a guardar",
+    "clearSelectionTooltip": "Desmarcar o snapshot: esta grelha, tal como está, passa a ser o filtro do próximo snapshot a guardar.",
     "applyScope": "Aplicar âmbito:",
     "whenSaving": "Ao Guardar",
     "whenRecalling": "Ao Recuperar",

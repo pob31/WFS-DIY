@@ -918,6 +918,7 @@
       "exportConfig": "Exporter la configuration d'entrée vers un fichier (avec explorateur de fichiers).",
       "storeSnapshot": "Enregistrer un nouveau snapshot de toutes les entrées et de tous les effets.",
       "snapshotSelector": "Sélectionner un snapshot sans le charger.",
+      "clearSnapshotSelection": "Désélectionner le snapshot. Sans snapshot sélectionné, Edit Scope règle le filtre du prochain snapshot à enregistrer.",
       "reloadSnapshot": "Recharger le snapshot sélectionné (entrées et effets) en tenant compte du filtre.",
       "reloadWithoutScope": "Recharger le snapshot sélectionné (entrées et effets) sans le filtre.",
       "updateSnapshot": "Mettre à jour le snapshot sélectionné, entrées et effets (avec sauvegarde).",
@@ -1050,6 +1051,7 @@
       "conflict": "Utilisée par « {name} » (canal {ch}, note {note}) — choisissez une autre note pour enregistrer."
     },
     "noEffectChannels": "Cette session n'a aucun canal d'effet.",
+    "clearSelectionTooltip": "Désélectionner le snapshot : cette grille, telle quelle, devient le filtre du prochain snapshot enregistré.",
     "writeToQLabTooltip": "Exporter le scope vers QLab au lieu de sauvegarder dans un fichier",
     "writeSnapshotLoadCueTooltip": "Créer aussi un cue QLab pour charger ce snapshot via OSC",
     "templates": {

@@ -2520,6 +2520,7 @@
       "exportConfig": "Export Input Configuration to file (with file explorer window).",
       "storeSnapshot": "Store a new snapshot of all the inputs and effects.",
       "snapshotSelector": "Select a snapshot without loading it.",
+      "clearSnapshotSelection": "Clear the snapshot selection. With no snapshot selected, Edit Scope sets the scope of the next snapshot to be stored.",
       "reloadSnapshot": "Reload the selected snapshot (inputs and effects), taking the scope into account.",
       "reloadWithoutScope": "Reload the selected snapshot (inputs and effects) without the scope.",
       "updateSnapshot": "Update the selected snapshot, inputs and effects (with backup).",
@@ -2659,7 +2660,9 @@
 
   "snapshotScope": {
     "windowTitle": "Snapshot Scope",
-    "title": "Snapshot Scope: {name}",
+    "titleSelected": "Scope of the selected snapshot: {name}",
+    "titleNext": "Scope for the next snapshot to be stored",
+    "clearSelectionTooltip": "Clear the snapshot selection: this grid, as it is now, becomes the scope of the next snapshot you store.",
     "applyScope": "Apply scope:",
     "whenSaving": "When Saving",
     "whenRecalling": "When Recalling",

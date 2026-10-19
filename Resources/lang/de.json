@@ -948,6 +948,7 @@
       "exportConfig": "Eingangskonfiguration in Datei exportieren (mit Datei-Explorer).",
       "storeSnapshot": "Neuen Snapshot aller Eingänge und Effekte speichern.",
       "snapshotSelector": "Snapshot auswählen, ohne ihn zu laden.",
+      "clearSnapshotSelection": "Snapshot-Auswahl aufheben. Ohne ausgewählten Snapshot legt Edit Scope den Filter des nächsten zu speichernden Snapshots fest.",
       "reloadSnapshot": "Ausgewählten Snapshot (Eingänge und Effekte) unter Berücksichtigung des Filters neu laden.",
       "reloadWithoutScope": "Ausgewählten Snapshot (Eingänge und Effekte) ohne Filter neu laden.",
       "updateSnapshot": "Ausgewählten Snapshot aktualisieren, Eingänge und Effekte (mit Sicherung).",
@@ -1098,7 +1099,8 @@
     "writeToGoDotTooltip": "Snapshot speichern, dann seinen Scope als einen Cue nach Go.dot schreiben",
     "writeToBothTooltip": "Snapshot speichern, dann seinen Scope nach QLab und als einen Cue nach Go.dot schreiben",
     "writeSnapshotLoadCueGoDotTooltip": "Zusätzlich einen Go.dot-Cue zum Laden dieses Snapshots via OSC erstellen",
-    "writeSnapshotLoadCueBothTooltip": "Zusätzlich einen QLab-Cue und einen Go.dot-Cue zum Laden dieses Snapshots via OSC erstellen"
+    "writeSnapshotLoadCueBothTooltip": "Zusätzlich einen QLab-Cue und einen Go.dot-Cue zum Laden dieses Snapshots via OSC erstellen",
+    "clearSelectionTooltip": "Snapshot-Auswahl aufheben: Dieses Raster wird, so wie es jetzt ist, zum Filter des nächsten gespeicherten Snapshots."
   },
   "snapshot": {
     "qlabNoTarget": "Kein QLab-Ziel konfiguriert",

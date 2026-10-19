@@ -2205,6 +2205,7 @@
       "exportConfig": "Exportar la configuración de entrada a archivo (con explorador de archivos).",
       "storeSnapshot": "Guardar un nuevo snapshot de todas las entradas y efectos.",
       "snapshotSelector": "Seleccionar un snapshot sin cargarlo.",
+      "clearSnapshotSelection": "Quitar la selección del snapshot. Sin snapshot seleccionado, Editar alcance define el filtro del próximo snapshot que se guarde.",
       "reloadSnapshot": "Recargar el snapshot seleccionado (entradas y efectos) teniendo en cuenta el filtro.",
       "reloadWithoutScope": "Recargar el snapshot seleccionado (entradas y efectos) sin el filtro.",
       "updateSnapshot": "Actualizar el snapshot seleccionado, entradas y efectos (con copia de seguridad).",
@@ -2343,7 +2344,9 @@
   },
   "snapshotScope": {
     "windowTitle": "Alcance del Snapshot",
-    "title": "Alcance del Snapshot: {name}",
+    "titleSelected": "Alcance del snapshot seleccionado: {name}",
+    "titleNext": "Alcance para el próximo snapshot que se guarde",
+    "clearSelectionTooltip": "Quitar la selección del snapshot: esta cuadrícula, tal como está, pasa a ser el filtro del próximo snapshot que se guarde.",
     "applyScope": "Aplicar alcance:",
     "whenSaving": "Al guardar",
     "whenRecalling": "Al recuperar",

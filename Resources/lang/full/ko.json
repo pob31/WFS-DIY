@@ -2214,6 +2214,7 @@
       "exportConfig": "입력 구성을 파일로 내보냅니다 (파일 탐색기 사용).",
       "storeSnapshot": "모든 입력과 이펙트의 새 스냅샷을 저장합니다.",
       "snapshotSelector": "스냅샷을 불러오지 않고 선택합니다.",
+      "clearSnapshotSelection": "스냅샷 선택을 해제합니다. 선택된 스냅샷이 없으면 범위 편집에서 다음에 저장할 스냅샷의 필터를 설정합니다.",
       "reloadSnapshot": "필터를 고려하여 선택한 스냅샷(입력 및 이펙트)을 다시 불러옵니다.",
       "reloadWithoutScope": "필터 없이 선택한 스냅샷(입력 및 이펙트)을 다시 불러옵니다.",
       "updateSnapshot": "선택한 스냅샷의 입력과 이펙트를 업데이트합니다 (백업 포함).",
@@ -2352,7 +2353,9 @@
   },
   "snapshotScope": {
     "windowTitle": "스냅샷 범위",
-    "title": "스냅샷 범위: {name}",
+    "titleSelected": "선택한 스냅샷의 범위: {name}",
+    "titleNext": "다음에 저장할 스냅샷의 범위",
+    "clearSelectionTooltip": "스냅샷 선택을 해제합니다. 이 그리드가 현재 상태 그대로 다음에 저장할 스냅샷의 필터가 됩니다.",
     "applyScope": "범위 적용:",
     "whenSaving": "저장 시",
     "whenRecalling": "호출 시",

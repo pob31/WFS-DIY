@@ -937,6 +937,7 @@
       "exportConfig": "入力設定をファイルにエクスポートします（ファイルエクスプローラー使用）。",
       "storeSnapshot": "すべての入力とエフェクトの新しいスナップショットを保存します。",
       "snapshotSelector": "スナップショットを読み込まずに選択します。",
+      "clearSnapshotSelection": "スナップショットの選択を解除します。選択がないときは Edit Scope で、次に保存するスナップショットのフィルターを設定します。",
       "reloadSnapshot": "フィルターを考慮して、選択したスナップショット（入力とエフェクト）を再読み込みします。",
       "reloadWithoutScope": "フィルターなしで、選択したスナップショット（入力とエフェクト）を再読み込みします。",
       "updateSnapshot": "選択したスナップショットを入力とエフェクトごと更新します（バックアップ付き）。",
@@ -1082,7 +1083,8 @@
     "writeToGoDotTooltip": "スナップショットを保存し、そのスコープを1つのキューとしてGo.dotに書き出す",
     "writeToBothTooltip": "スナップショットを保存し、そのスコープをQLabに、また1つのキューとしてGo.dotに書き出す",
     "writeSnapshotLoadCueGoDotTooltip": "このスナップショットをOSCで読み込むGo.dotキューも作成する",
-    "writeSnapshotLoadCueBothTooltip": "このスナップショットをOSCで読み込むQLabキューとGo.dotキューも作成する"
+    "writeSnapshotLoadCueBothTooltip": "このスナップショットをOSCで読み込むQLabキューとGo.dotキューも作成する",
+    "clearSelectionTooltip": "スナップショットの選択を解除します。このグリッドが現在の状態のまま、次に保存するスナップショットのフィルターになります。"
   },
   "fileManager": {
     "dialogs": {

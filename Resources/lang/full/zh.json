@@ -2267,6 +2267,7 @@
       "exportConfig": "将输入配置导出到文件（打开文件浏览器窗口）。",
       "storeSnapshot": "将所有输入和效果的当前参数保存为新快照。",
       "snapshotSelector": "选择快照但不加载。",
+      "clearSnapshotSelection": "取消选择快照。未选择快照时，“编辑范围”设置下一个要存储的快照的范围过滤器。",
       "reloadSnapshot": "按范围过滤器重新加载选定的快照（输入和效果）。",
       "reloadWithoutScope": "重新加载选定的快照（输入和效果），忽略范围过滤器。",
       "updateSnapshot": "使用当前的输入和效果参数更新选定的快照（带备份）。",
@@ -2405,7 +2406,9 @@
   },
   "snapshotScope": {
     "windowTitle": "快照范围",
-    "title": "快照范围: {name}",
+    "titleSelected": "所选快照的范围: {name}",
+    "titleNext": "下一个要存储的快照的范围",
+    "clearSelectionTooltip": "取消选择快照：此网格按当前状态成为下一个存储的快照的范围过滤器。",
     "applyScope": "应用范围:",
     "whenSaving": "保存时",
     "whenRecalling": "调用时",

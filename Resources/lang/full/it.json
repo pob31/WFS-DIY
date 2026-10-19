@@ -2238,6 +2238,7 @@
       "exportConfig": "Esporta la configurazione di ingresso su file (con esplora file).",
       "storeSnapshot": "Salva un nuovo snapshot di tutti gli ingressi e gli effetti.",
       "snapshotSelector": "Seleziona uno snapshot senza caricarlo.",
+      "clearSnapshotSelection": "Deseleziona lo snapshot. Senza snapshot selezionato, Modifica Ambito imposta il filtro del prossimo snapshot da salvare.",
       "reloadSnapshot": "Ricarica lo snapshot selezionato (ingressi ed effetti) tenendo conto del filtro.",
       "reloadWithoutScope": "Ricarica lo snapshot selezionato (ingressi ed effetti) senza il filtro.",
       "updateSnapshot": "Aggiorna lo snapshot selezionato, ingressi ed effetti (con backup).",
@@ -2376,7 +2377,9 @@
   },
   "snapshotScope": {
     "windowTitle": "Ambito Snapshot",
-    "title": "Ambito Snapshot: {name}",
+    "titleSelected": "Ambito dello snapshot selezionato: {name}",
+    "titleNext": "Ambito per il prossimo snapshot da salvare",
+    "clearSelectionTooltip": "Deseleziona lo snapshot: questa griglia, così com'è, diventa il filtro del prossimo snapshot salvato.",
     "applyScope": "Applica ambito:",
     "whenSaving": "Al Salvataggio",
     "whenRecalling": "Al Richiamo",

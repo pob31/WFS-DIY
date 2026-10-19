@@ -934,6 +934,7 @@
       "exportConfig": "Exportar la configuración de entrada a archivo (con explorador de archivos).",
       "storeSnapshot": "Guardar un nuevo snapshot de todas las entradas y efectos.",
       "snapshotSelector": "Seleccionar un snapshot sin cargarlo.",
+      "clearSnapshotSelection": "Quitar la selección del snapshot. Sin snapshot seleccionado, Edit Scope define el filtro del próximo snapshot que se guarde.",
       "reloadSnapshot": "Recargar el snapshot seleccionado (entradas y efectos) teniendo en cuenta el filtro.",
       "reloadWithoutScope": "Recargar el snapshot seleccionado (entradas y efectos) sin el filtro.",
       "updateSnapshot": "Actualizar el snapshot seleccionado, entradas y efectos (con copia de seguridad).",
@@ -1084,7 +1085,8 @@
     "writeToGoDotTooltip": "Guardar el snapshot y escribir su scope en Go.dot como un solo cue",
     "writeToBothTooltip": "Guardar el snapshot y escribir su scope en QLab y, como un solo cue, en Go.dot",
     "writeSnapshotLoadCueGoDotTooltip": "También crear un cue de Go.dot para cargar este snapshot vía OSC",
-    "writeSnapshotLoadCueBothTooltip": "También crear un cue de QLab y un cue de Go.dot para cargar este snapshot vía OSC"
+    "writeSnapshotLoadCueBothTooltip": "También crear un cue de QLab y un cue de Go.dot para cargar este snapshot vía OSC",
+    "clearSelectionTooltip": "Quitar la selección del snapshot: esta cuadrícula, tal como está, pasa a ser el filtro del próximo snapshot que se guarde."
   },
   "fileManager": {
     "dialogs": {

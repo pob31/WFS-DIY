@@ -2,6 +2,8 @@
 
 #include <JuceHeader.h>
 #include <map>
+#include <optional>
+#include <utility>
 #include "../../WfsParameters.h"
 #include "../../Parameters/WFSFileManager.h"
 #include "../../Parameters/WFSParameterIDs.h"
@@ -129,9 +131,29 @@ public:
         if (selected == name)
             return;
 
+        // An open Scope window edits the selection's grid, so it follows the
+        // selection. Clearing it goes the way of the window's own [X] (the edits
+        // become the next snapshot's scope); picking another snapshot reopens
+        // the window on that one's saved grid, dropping edits made for the old.
+        if (scopeWindow != nullptr && scopeWindow->isVisible())
+        {
+            if (name.isEmpty())
+            {
+                scopeWindow->requestClearSelection();   // clears `selected` and notifies
+                return;
+            }
+
+            reopenScopeWindowOnceClosed();
+            scopeWindow->closeButtonPressed();          // Cancelled
+        }
+
         selected = name;
         notify();
     }
+
+    /** The rows' [X]: no snapshot selected, so Edit Scope edits the scope the
+        next Store takes. */
+    void clearSelection() { select ({}); }
 
     /** Re-read the snapshot folder. The selection survives if its snapshot still
         exists; otherwise it falls back to none, so a row is never left showing
@@ -397,7 +419,7 @@ public:
 
         // Determine which scope to edit
         Scope* scopePtr = nullptr;
-        juce::String windowTitle;
+        juce::String shownName;
 
         if (hasSelectedSnapshot)
         {
@@ -405,7 +427,7 @@ public:
             // write this scope and its MIDI binding back.
             scopes[name] = fileManager.getExtendedSnapshotScope (name);
             scopePtr = &scopes[name];
-            windowTitle = name;
+            shownName = name;
         }
         else
         {
@@ -416,7 +438,6 @@ public:
                 currentScopeInitialized = true;
             }
             scopePtr = &currentScope;
-            windowTitle = "(New Snapshot)";
         }
 
         if (scopeWindow != nullptr && scopeWindow->isVisible())
@@ -440,7 +461,7 @@ public:
         const int openedMidiChannel = scopePtr->midiChannel;
         const int openedMidiNote    = scopePtr->midiNote;
 
-        scopeWindow = std::make_unique<SnapshotScopeWindow> (parameters, windowTitle, *working, hasSelectedSnapshot,
+        scopeWindow = std::make_unique<SnapshotScopeWindow> (parameters, shownName, *working, hasSelectedSnapshot,
                                                              &parameters.getDirtyTracker(), family);
         scopeWindow->setCueingAvailable (isQLabAvailable ? isQLabAvailable() : false,
                                          isGoDotAvailable ? isGoDotAvailable() : false);
@@ -514,6 +535,21 @@ public:
                     status (LOC ("inputs.messages.error").replace ("{error}", fm.getLastError()));
                 }
             }
+            else if (result == CloseResult::SelectionCleared)
+            {
+                // The [X] by the name: the grid as edited becomes the session
+                // scope, exactly as OK makes it (binding dropped), the selection
+                // goes, and the window reopens on that scope - where it was, on
+                // the grid it showed.
+                currentScope = *working;
+                currentScope.clearMidiBinding();
+                currentScopeInitialized = true;
+
+                selected.clear();
+                notify();
+                reopenScopeWindowOnceClosed();
+                status (LOC ("inputs.messages.scopeConfigured"));
+            }
             // Cancel / X / any other close: do nothing — the working copy is
             // discarded together with this lambda when the window is destroyed.
             //
@@ -521,10 +557,25 @@ public:
             // inside the OK button's click handler stack. Destroying the window
             // synchronously here tears down the button while its click handler is
             // still executing, which corrupts subsequent scope-window sessions.
-            juce::MessageManager::callAsync ([weak = juce::WeakReference<SnapshotSession> (self)]
+            //
+            // Only THIS window: by the time the call runs, Edit Scope may have
+            // opened a newer one (which replaced, and so destroyed, this one),
+            // and that one is not to be closed, nor reopened over.
+            juce::MessageManager::callAsync ([weak = juce::WeakReference<SnapshotSession> (self),
+                                              closing = self->scopeWindow.get(),
+                                              reopen = std::exchange (self->pendingReopen, std::nullopt)]
             {
-                if (weak != nullptr)
-                    weak->scopeWindow.reset();
+                if (weak == nullptr || weak->scopeWindow.get() != closing)
+                    return;
+
+                weak->scopeWindow.reset();
+
+                if (reopen.has_value())
+                {
+                    weak->editScope (reopen->family);
+                    if (weak->scopeWindow != nullptr)
+                        weak->scopeWindow->setBounds (reopen->bounds);
+                }
             });
         };
     }
@@ -541,6 +592,21 @@ private:
     bool currentScopeInitialized = false;
     bool writeToQLabEnabled = false;             // the scope window's QLab radio
     bool writeSnapshotLoadCueEnabled = false;    // the scope window's QLab load-cue checkbox
+
+    /** Where the closing Scope window reopens, on its new target, once it is
+        destroyed (editScope's deferred reset). */
+    struct PendingReopen
+    {
+        Family family;
+        juce::Rectangle<int> bounds;
+    };
+    std::optional<PendingReopen> pendingReopen;
+
+    void reopenScopeWindowOnceClosed()
+    {
+        if (scopeWindow != nullptr)
+            pendingReopen = PendingReopen { scopeWindow->getShownFamily(), scopeWindow->getBounds() };
+    }
 
     void notify() { listeners.call ([] (Listener& l) { l.snapshotSessionChanged(); }); }
 

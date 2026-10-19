@@ -552,9 +552,23 @@ public:
 
         // Title label
         addAndMakeVisible (titleLabel);
-        titleLabel.setText (LOC("snapshotScope.title").replace("{name}", snapshotName), juce::dontSendNotification);
+        // Says which scope this is: the selected snapshot's (named), or the one
+        // the next Store takes. OK only keeps the latter, so an operator who
+        // edits a selected snapshot's grid and closes with OK must be able to
+        // see that it was not the next snapshot's.
+        titleLabel.setText (hasSelectedSnapshot ? LOC("snapshotScope.titleSelected").replace("{name}", snapshotName)
+                                                : LOC("snapshotScope.titleNext"),
+                            juce::dontSendNotification);
         titleLabel.setFont (juce::Font (juce::FontOptions (16.0f).withStyle ("Bold")));
         titleLabel.setJustificationType (juce::Justification::centred);
+
+        // [X] by the name: drop the selection and go on editing this grid as the
+        // next snapshot's scope (SnapshotSession carries the edits over).
+        addChildComponent (clearSelectionButton);
+        clearSelectionButton.setButtonText ("X");
+        clearSelectionButton.setTooltip (LOC("snapshotScope.clearSelectionTooltip"));
+        clearSelectionButton.setVisible (hasSelectedSnapshot);
+        clearSelectionButton.onClick = [this]() { requestClearSelection(); };
 
         // Apply mode radio buttons
         addAndMakeVisible (applyModeLabel);
@@ -930,6 +944,7 @@ public:
         const auto& colors = ColorScheme::get();
 
         titleLabel.setColour (juce::Label::textColourId, colors.textPrimary);
+        clearSelectionButton.setColour (juce::TextButton::textColourOffId, colors.textPrimary);
         applyModeLabel.setColour (juce::Label::textColourId, colors.textPrimary);
         templateLabel.setColour (juce::Label::textColourId, colors.textPrimary);
         storeTemplateButton.setColour (juce::TextButton::textColourOffId, colors.textPrimary);
@@ -982,8 +997,27 @@ public:
             scopeHelpCard.setBounds(cardX, cardY, cardW, cardH);
         }
 
-        // Title
-        titleLabel.setBounds (bounds.removeFromTop (sc(30)));
+        // Title, and the [X] just right of its centred text
+        {
+            auto titleRow = bounds.removeFromTop (sc(30));
+
+            if (clearSelectionButton.isVisible())
+            {
+                // WfsLookAndFeel pads a text button 7 px on each side (on purpose,
+                // to line it up with other controls), so a square face needs
+                // bounds 14 px wider than they are tall.
+                const int btnSize = sc(22);
+                const int btnWidth = btnSize + 14;
+                const int gap = sc(2);
+                titleRow.reduce (btnWidth + gap, 0);   // both sides, so the text stays centred
+
+                const int textWidth = juce::GlyphArrangement::getStringWidthInt (titleLabel.getFont(), titleLabel.getText());
+                const int x = juce::jmin (titleRow.getCentreX() + textWidth / 2, titleRow.getRight()) + gap;
+                clearSelectionButton.setBounds (x, titleRow.getCentreY() - btnSize / 2, btnWidth, btnSize);
+            }
+
+            titleLabel.setBounds (titleRow);
+        }
         bounds.removeFromTop (sc(5));
 
         // Apply mode row (save / recall / QLab — mutually exclusive)
@@ -1104,9 +1138,24 @@ public:
         noEffectsLabel.setVisible (effects && numEffects == 0);
     }
 
+    /** The grid on show. */
+    Family getShownFamily() const
+    {
+        return familyTabBar.getCurrentTabIndex() == 1 ? Family::Effects : Family::Inputs;
+    }
+
+    /** The [X] by the name, also reached from a row's [X] while this is open. */
+    void requestClearSelection()
+    {
+        if (onClearSelectionRequested)
+            onClearSelectionRequested (writeToQLabToggle.getToggleState(),
+                                       writeSnapshotLoadCueToggle.getToggleState());
+    }
+
     std::function<void()> onCloseRequested;
     std::function<void(bool writeToQLab, bool writeSnapshotLoadCue)> onSaveRequested;
     std::function<void(bool writeToQLab, bool writeSnapshotLoadCue)> onUpdateScopeRequested;
+    std::function<void(bool writeToQLab, bool writeSnapshotLoadCue)> onClearSelectionRequested;
 
     /** Enable/disable the QLab radio option based on whether a QLab target exists */
     void setQLabAvailable (bool available)
@@ -1150,6 +1199,7 @@ private:
     bool hasSelectedSnapshot = false;
 
     juce::Label titleLabel;
+    juce::TextButton clearSelectionButton;
     juce::Label applyModeLabel;
     juce::ToggleButton applySavingButton;
     juce::ToggleButton applyRecallingButton;
@@ -1462,8 +1512,11 @@ public:
 
     /** How the window was dismissed:
         Saved        = OK — keep the edited scope for the session (new snapshots).
-        ScopeUpdated = long-press — write the edited scope into the selected snapshot. */
-    enum class CloseResult { Cancelled, Saved, ScopeUpdated };
+        ScopeUpdated = long-press — write the edited scope into the selected snapshot.
+        SelectionCleared = the [X] by the name — drop the selection, keep the
+                       edited grid as the next snapshot's scope (as OK would) and
+                       reopen on it. */
+    enum class CloseResult { Cancelled, Saved, ScopeUpdated, SelectionCleared };
 
     using Family = WFSFileManager::SnapshotFamily;
 
@@ -1488,6 +1541,12 @@ public:
         };
         content->onUpdateScopeRequested = [this](bool writeQLab, bool writeLoadCue) {
             result = CloseResult::ScopeUpdated;
+            writeToQLab = writeQLab;
+            writeSnapshotLoadCue = writeLoadCue;
+            closeButtonPressed();
+        };
+        content->onClearSelectionRequested = [this](bool writeQLab, bool writeLoadCue) {
+            result = CloseResult::SelectionCleared;
             writeToQLab = writeQLab;
             writeSnapshotLoadCue = writeLoadCue;
             closeButtonPressed();
@@ -1555,6 +1614,21 @@ public:
     {
         if (auto* c = dynamic_cast<SnapshotScopeContent*> (getContentComponent()))
             c->showFamily (family);
+    }
+
+    /** The grid on show (pass through to content). */
+    Family getShownFamily() const
+    {
+        if (auto* c = dynamic_cast<SnapshotScopeContent*> (getContentComponent()))
+            return c->getShownFamily();
+        return Family::Inputs;
+    }
+
+    /** As the [X] by the name (pass through to content). */
+    void requestClearSelection()
+    {
+        if (auto* c = dynamic_cast<SnapshotScopeContent*> (getContentComponent()))
+            c->requestClearSelection();
     }
 
 private:
