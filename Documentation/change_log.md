@@ -2,6 +2,20 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
+## v1.0.0beta60 — 2026-10-19
+
+### Changed
+- **The Snapshot Scope window says whose scope it is.** With a snapshot selected, its title reads "Scope of the selected snapshot:" and names it; with none, "Scope for the next snapshot to be stored". OK keeps a scope only for the next snapshot, and a selected snapshot's window opens from its file each time, so a grid edited on a selected snapshot and closed with OK came back unchanged, with nothing on screen to say why.
+
+### Added
+- **An [X] clears the snapshot selection, in the Scope window and on the snapshot row.** In the window it sits beside the snapshot's name: the selection goes, and the window reopens in place as the next snapshot's scope, keeping the grid as edited (the MIDI note stays with the snapshot, as with OK). On the snapshot row of the Inputs and Effects tabs it sits right of the selector; with the Scope window open it does the same as the window's [X]. Picking another snapshot while the window is open reopens it on that snapshot's saved grid.
+
+### Fixed
+- **Closing the Scope window and opening it again at once no longer closes the new window.** The deferred teardown of the old window could destroy the one opened after it.
+
+### Chore / Internal
+- The `WFS_TEST_RENDER_UI` render also draws the Scope window with the project's first snapshot selected, then after its [X], and logs the selection that is left.
+
 ## v1.0.0beta59 — 2026-10-18
 
 ### Fixed
