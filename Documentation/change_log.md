@@ -2,6 +2,14 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
+## v1.0.0beta61 — 2026-10-29
+
+### Fixed
+- **WFS-DIY no longer freezes with the CPU reverb running.** The reverb's worker threads could lose track of a finished piece of work between two blocks, and the reverb thread then waited for it forever. The screen froze a second later, because the window checks a reverb statistic once a second and waited behind the stuck reverb thread; sound kept playing, so the app had to be force-quit. More inputs, stereo inputs and effects make this likelier, but any CPU reverb (SDN, FDN, IR) could hit it. The workers now keep their count straight, and the window no longer waits on the reverb thread.
+
+### Added
+- **The log says when the reverb stops.** If the reverb engine produces no audio block for 2 s while processing runs, the session log records it, and records when it starts again.
+
 ## v1.0.0beta60 — 2026-10-19
 
 ### Changed
