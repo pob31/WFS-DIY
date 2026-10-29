@@ -317,6 +317,9 @@ private:
     uint32_t gpuUnderrunsLogged = 0;      // last pipeline underrun total surfaced in the log
     uint32_t reverbGpuUnderrunsLogged = 0; // last reverb-pump underrun total surfaced in the log
 #endif
+    int reverbLivenessTick = 0;           // 5 ms timer ticks -> 1 s reverb-liveness cadence
+    uint32_t reverbLastBlockCount = 0;    // reverb engine block counter at the previous check
+    int reverbStalledSeconds = 0;         // consecutive checks without a new reverb block
     // Device layer. deviceManager comes from AudioAppComponent, but its
     // AudioSourcePlayer is bypassed entirely: that player caps the callback
     // buffer at 128 channels, which silently kills every hardware channel above

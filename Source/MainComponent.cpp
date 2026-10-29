@@ -17386,6 +17386,34 @@ void MainComponent::timerCallback()
         }
     }
 #endif
+
+    // Once per second: a reverb engine that stopped producing blocks. The
+    // 2026-10-29 freezes on the Mac were a reverb thread that never finished
+    // a block, and the log said nothing; only the wet path went quiet.
+    if (++reverbLivenessTick >= 200) // 5 ms timer
+    {
+        reverbLivenessTick = 0;
+        if (reverbEngine != nullptr && processingEnabled && reverbEngine->isActive())
+        {
+            const uint32_t blocks = reverbEngine->getEngineBlockCount();
+            if (blocks != reverbLastBlockCount)
+            {
+                if (reverbStalledSeconds >= 2)
+                    WFSLogger::getInstance().logInfo ("Reverb engine producing blocks again after "
+                                                      + juce::String (reverbStalledSeconds) + " s");
+                reverbStalledSeconds = 0;
+            }
+            else if (++reverbStalledSeconds == 2)
+            {
+                WFSLogger::getInstance().logWarning ("Reverb engine has produced no block for 2 s");
+            }
+            reverbLastBlockCount = blocks;
+        }
+        else
+        {
+            reverbStalledSeconds = 0;
+        }
+    }
     // Check once whether the window is visible — skip all repaints and
     // visual-only updates when minimized to avoid message-queue congestion
     // that can starve the audio thread's parameter updates.
