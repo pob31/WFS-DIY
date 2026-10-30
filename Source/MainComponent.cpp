@@ -1119,6 +1119,39 @@ MainComponent::MainComponent()
     macTouchManager = std::make_unique<spatcore::controllers::MacHidTouchManager> ("WFS-DIY");
     macTouchManager->onLog = [] (const juce::String& message) { WFSLogger::getInstance().logInfo (message); };
     macTouchManager->traceContacts = std::getenv ("WFS_TOUCH_TRACE") != nullptr;
+
+    systemConfigTab->onTouchScreensRequested = [this]
+    {
+        if (touchPanelsWindow == nullptr)
+            touchPanelsWindow = std::make_unique<MacTouchPanelsWindow> (*macTouchManager, [this] { startTouchIdentify(); });
+        touchPanelsWindow->setVisible (true);
+        touchPanelsWindow->toFront (true);
+    };
+
+    // A panel with nowhere to send its touches while two or more displays are
+    // connected: offer to identify it, once per panel and session, after the
+    // connection has settled (a panel can drop off USB and come back several
+    // times in a row).
+    macTouchManager->addChangeListener ([this]
+    {
+        juce::Timer::callAfterDelay (1500, [safe = juce::Component::SafePointer<MainComponent> (this)]
+        {
+            if (safe == nullptr || safe->macTouchManager == nullptr || safe->touchIdentify != nullptr)
+                return;
+            if (juce::Desktop::getInstance().getDisplays().displays.size() < 2)
+                return;
+
+            for (auto& p : safe->macTouchManager->getPanels())
+                if (p.connected && p.problem.isEmpty() && ! safe->macTouchManager->hasDisplay (p.settings)
+                    && safe->touchIdentifyOffered.insert (p.key).second)
+                {
+                    WFSLogger::getInstance().logInfo ("Touch panel: " + p.name + " [" + p.key
+                                                      + "] has no display - asking which screen it is");
+                    safe->startTouchIdentify();
+                    return;
+                }
+        });
+    });
    #endif
 
     // Initialize Stream Deck+ physical controller
@@ -3513,6 +3546,17 @@ void MainComponent::renderUiSnapshots (const juce::File& dir)
 
     WFSLogger::getInstance().logInfo ("RENDER-UI done");
 }
+
+#if JUCE_MAC
+void MainComponent::startTouchIdentify()
+{
+    if (macTouchManager == nullptr || touchIdentify != nullptr)
+        return;
+
+    touchIdentify = std::make_unique<TouchIdentifySession> (*macTouchManager,
+        [safe = juce::Component::SafePointer<MainComponent> (this)] { if (safe != nullptr) safe->touchIdentify.reset(); });
+}
+#endif
 
 void MainComponent::runTouchInjectionSelfTest()
 {
@@ -12815,7 +12859,10 @@ MainComponent::~MainComponent()
 
    #if JUCE_MAC
     // First: lifts any finger still down while the windows it was sent to
-    // exist, and closes the panels (releasing a seized one).
+    // exist, and closes the panels (releasing a seized one). The window and
+    // the identify overlays hold a reference to it, so they go before it.
+    touchIdentify.reset();
+    touchPanelsWindow.reset();
     macTouchManager.reset();
    #endif
 

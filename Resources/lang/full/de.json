@@ -147,7 +147,8 @@
       "positionControl": "Positionssteuerung:",
       "sampler": "Sampler:",
       "samplerController": "Controller:",
-      "translationTier": "Übersetzung:"
+      "translationTier": "Übersetzung:",
+      "touchScreens": "Touchscreens:"
     },
     "controller": {
       "off": "Aus",
@@ -192,7 +193,8 @@
       "exportLogs": "Protokolle exportieren",
       "openLogFolder": "Protokollordner öffnen",
       "copySystemInfo": "Systeminfo kopieren",
-      "reportIssue": "Problem melden"
+      "reportIssue": "Problem melden",
+      "touchScreensSetup": "Einrichten..."
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (Lesezeitverzögerungen)",
@@ -310,7 +312,8 @@
       "openLogFolder": "Log-Ordner der Anwendung im System-Dateibrowser öffnen.",
       "copySystemInfo": "Detaillierte Systeminformationen für Support-Anfragen in die Zwischenablage kopieren.",
       "reportIssue": "Die WFS-DIY GitHub-Issue-Seite im Standardbrowser öffnen.",
-      "translationTier": "Legen Sie fest, wie viel der Oberfläche übersetzt wird. 'Hilfe & Meldungen' belässt die Bedienelemente auf Englisch und übersetzt nur Hilfetexte, Meldungen und Dialoge; 'Alles' übersetzt die gesamte Oberfläche einschließlich der Beschriftungen. Wird nach einem Neustart vollständig wirksam."
+      "translationTier": "Legen Sie fest, wie viel der Oberfläche übersetzt wird. 'Hilfe & Meldungen' belässt die Bedienelemente auf Englisch und übersetzt nur Hilfetexte, Meldungen und Dialoge; 'Alles' übersetzt die gesamte Oberfläche einschließlich der Beschriftungen. Wird nach einem Neustart vollständig wirksam.",
+      "touchScreens": "Welches Display jeder USB-Touchscreen abdeckt. Bei einem Display ist nichts einzustellen; bei zwei oder mehr bittet WFS-DIY, jeden Bildschirm einmal zu berühren."
     },
     "messages": {
       "selectFolderFirst": "Bitte wählen Sie zuerst einen Projektordner aus.",
@@ -3297,5 +3300,21 @@
       "gate": "Destruktive KI-Aktionen erlauben (Änderung der Kanalanzahl, Port-Neukonfiguration, runDSP usw.) UND den Bestätigungs-Handshake pro Aufruf für weniger destruktive Tier-2-Aktionen überspringen, solange offen. Übergeordnet zum Tier-2-Auto-Confirm-Schalter. Die rote Füllung läuft über 5 Minuten ab, dann wird automatisch wieder gesperrt.",
       "aiToggle": "Hauptschalter für die gesamte MCP-Integration. Im AUS-Zustand wird jeder KI-Tool-Aufruf abgelehnt; im EIN-Zustand gilt die normale Tier-Behandlung (der Schalter für kritische Aktionen steuert destruktive Aufrufe weiterhin separat)."
     }
+  },
+  "touchScreens": {
+    "windowTitle": "Touchscreens",
+    "identify": "Bildschirme erkennen",
+    "identifyHint": "Zeigt auf jedem Display einen Kreis: Berühren Sie den Kreis auf jedem Touchscreen einmal, und jeder wird dem Display zugeordnet, das er abdeckt.",
+    "identifyPrompt": "Berühren Sie den Kreis auf diesem Bildschirm",
+    "identifyCancel": "Mit der Maus klicken oder Esc drücken, um abzubrechen",
+    "identifyAssigned": "Zugeordnet:",
+    "display": "Display:",
+    "automatic": "Automatisch (ein Display)",
+    "main": "Hauptdisplay",
+    "driveCursor": "Berührungen außerhalb von WFS-DIY bewegen den Zeiger",
+    "exclusive": "Exklusiv",
+    "noDisplay": "Kein Display: eines wählen oder die Bildschirme erkennen",
+    "reading": "Aktiv",
+    "empty": "Kein Touchscreen angeschlossen."
   }
 }

@@ -4318,6 +4318,7 @@
     <ClInclude Include="..\..\spatcore\ui\sends\SendMatrixComponent.h"/>
     <ClInclude Include="..\..\Source\gui\MapTab.h"/>
     <ClInclude Include="..\..\Source\gui\MapTabWindow.h"/>
+    <ClInclude Include="..\..\Source\gui\MacTouchPanelsWindow.h"/>
     <ClInclude Include="..\..\Source\gui\MapTabPlaceholder.h"/>
     <ClInclude Include="..\..\Source\gui\NetworkTab.h"/>
     <ClInclude Include="..\..\Source\gui\NetworkLogWindow.h"/>

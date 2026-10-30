@@ -147,7 +147,8 @@
       "positionControl": "Controlo de posição:",
       "sampler": "Sampler:",
       "samplerController": "Controlador:",
-      "translationTier": "Tradução:"
+      "translationTier": "Tradução:",
+      "touchScreens": "Ecrãs táteis:"
     },
     "buttons": {
       "audioPatch": "Interface de Áudio e Patch",
@@ -183,7 +184,8 @@
       "exportLogs": "Exportar logs",
       "openLogFolder": "Abrir pasta de logs",
       "copySystemInfo": "Copiar info do sistema",
-      "reportIssue": "Reportar problema"
+      "reportIssue": "Reportar problema",
+      "touchScreensSetup": "Configurar..."
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (atrasos de leitura)",
@@ -301,7 +303,8 @@
       "openLogFolder": "Abrir a pasta de registos da aplicação no explorador de ficheiros do sistema.",
       "copySystemInfo": "Copiar informações detalhadas do sistema para a área de transferência para pedidos de suporte.",
       "reportIssue": "Abrir a página de issues do WFS-DIY no GitHub no navegador predefinido.",
-      "translationTier": "Escolha quanto da interface é traduzido. 'Ajuda e mensagens' mantém os controlos em inglês e traduz apenas a ajuda, as mensagens e os diálogos; 'Tudo' traduz toda a interface, incluindo os rótulos. Tem efeito completo após reiniciar."
+      "translationTier": "Escolha quanto da interface é traduzido. 'Ajuda e mensagens' mantém os controlos em inglês e traduz apenas a ajuda, as mensagens e os diálogos; 'Tudo' traduz toda a interface, incluindo os rótulos. Tem efeito completo após reiniciar.",
+      "touchScreens": "Que ecrã cobre cada ecrã tátil USB. Com um só ecrã não há nada a definir; com dois ou mais, o WFS-DIY pede-lhe que toque em cada ecrã uma vez."
     },
     "messages": {
       "selectFolderFirst": "Por favor, selecione primeiro uma pasta de projeto.",
@@ -3266,5 +3269,21 @@
     "remoteLC": "con-",
     "control": "trolo",
     "speakerArrays": "Conjuntos de altifalantes"
+  },
+  "touchScreens": {
+    "windowTitle": "Ecrãs táteis",
+    "identify": "Identificar ecrãs",
+    "identifyHint": "Mostra um círculo em cada ecrã: toque uma vez no círculo em cada ecrã tátil e cada um é atribuído ao ecrã que cobre.",
+    "identifyPrompt": "Toque no círculo deste ecrã",
+    "identifyCancel": "Clique com o rato ou prima Esc para parar",
+    "identifyAssigned": "Atribuído:",
+    "display": "Ecrã:",
+    "automatic": "Automático (um só ecrã)",
+    "main": "principal",
+    "driveCursor": "Toques fora do WFS-DIY movem o cursor",
+    "exclusive": "Exclusivo",
+    "noDisplay": "Sem ecrã: escolha um ou identifique os ecrãs",
+    "reading": "Em funcionamento",
+    "empty": "Nenhum ecrã tátil ligado."
   }
 }

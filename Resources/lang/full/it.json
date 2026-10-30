@@ -147,7 +147,8 @@
       "positionControl": "Controllo di posizione:",
       "sampler": "Sampler:",
       "samplerController": "Controller:",
-      "translationTier": "Traduzione:"
+      "translationTier": "Traduzione:",
+      "touchScreens": "Schermi touch:"
     },
     "buttons": {
       "audioPatch": "Interfaccia Audio e Routing",
@@ -183,7 +184,8 @@
       "exportLogs": "Esporta log",
       "openLogFolder": "Apri cartella log",
       "copySystemInfo": "Copia info di sistema",
-      "reportIssue": "Segnala problema"
+      "reportIssue": "Segnala problema",
+      "touchScreensSetup": "Configura..."
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (ritardi in lettura)",
@@ -301,7 +303,8 @@
       "openLogFolder": "Apri la cartella dei log dell'applicazione nell'esploratore di file di sistema.",
       "copySystemInfo": "Copia informazioni di sistema dettagliate negli appunti per le richieste di supporto.",
       "reportIssue": "Apri la pagina degli issue GitHub di WFS-DIY nel browser predefinito.",
-      "translationTier": "Scegli quanta parte dell'interfaccia viene tradotta. 'Aiuto e messaggi' mantiene i controlli in inglese e traduce solo l'aiuto, i messaggi e le finestre di dialogo; 'Tutto' traduce l'intera interfaccia, comprese le etichette. Ha pieno effetto dopo il riavvio."
+      "translationTier": "Scegli quanta parte dell'interfaccia viene tradotta. 'Aiuto e messaggi' mantiene i controlli in inglese e traduce solo l'aiuto, i messaggi e le finestre di dialogo; 'Tutto' traduce l'intera interfaccia, comprese le etichette. Ha pieno effetto dopo il riavvio.",
+      "touchScreens": "Quale display copre ciascuno schermo touch USB. Con un solo display non c'è nulla da impostare; con due o più, WFS-DIY chiede di toccare ogni schermo una volta."
     },
     "messages": {
       "selectFolderFirst": "Seleziona prima una cartella progetto.",
@@ -3284,5 +3287,21 @@
     "remoteLC": "tele-",
     "control": "comando",
     "speakerArrays": "Array di altoparlanti"
+  },
+  "touchScreens": {
+    "windowTitle": "Schermi touch",
+    "identify": "Identifica schermi",
+    "identifyHint": "Mostra un cerchio su ogni display: tocca una volta il cerchio su ogni schermo touch e ciascuno viene assegnato al display che copre.",
+    "identifyPrompt": "Tocca il cerchio su questo schermo",
+    "identifyCancel": "Fai clic con il mouse o premi Esc per interrompere",
+    "identifyAssigned": "Assegnato:",
+    "display": "Display:",
+    "automatic": "Automatico (un solo display)",
+    "main": "principale",
+    "driveCursor": "I tocchi fuori da WFS-DIY muovono il cursore",
+    "exclusive": "Esclusivo",
+    "noDisplay": "Nessun display: scegline uno o identifica gli schermi",
+    "reading": "In funzione",
+    "empty": "Nessuno schermo touch collegato."
   }
 }

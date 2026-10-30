@@ -147,7 +147,8 @@
       "positionControl": "位置コントロール:",
       "sampler": "Sampler:",
       "samplerController": "コントローラー:",
-      "translationTier": "翻訳："
+      "translationTier": "翻訳：",
+      "touchScreens": "タッチスクリーン:"
     },
     "buttons": {
       "audioPatch": "オーディオインターフェースとパッチング",
@@ -183,7 +184,8 @@
       "exportLogs": "ログをエクスポート",
       "openLogFolder": "ログフォルダーを開く",
       "copySystemInfo": "システム情報をコピー",
-      "reportIssue": "問題を報告"
+      "reportIssue": "問題を報告",
+      "touchScreensSetup": "設定..."
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (読み取り時遅延)",
@@ -301,7 +303,8 @@
       "openLogFolder": "アプリケーションのログフォルダーをシステムファイルエクスプローラーで開きます。",
       "copySystemInfo": "サポートリクエスト用に詳細なシステム情報をクリップボードにコピー。",
       "reportIssue": "WFS-DIYのGitHub Issuesページをデフォルトブラウザーで開きます。",
-      "translationTier": "インターフェースをどこまで翻訳するかを選択します。「ヘルプとメッセージ」はコントロールを英語のままにし、ヘルプ・メッセージ・ダイアログのみを翻訳します。「すべて」はラベルを含むインターフェース全体を翻訳します。再起動後に完全に反映されます。"
+      "translationTier": "インターフェースをどこまで翻訳するかを選択します。「ヘルプとメッセージ」はコントロールを英語のままにし、ヘルプ・メッセージ・ダイアログのみを翻訳します。「すべて」はラベルを含むインターフェース全体を翻訳します。再起動後に完全に反映されます。",
+      "touchScreens": "各USBタッチスクリーンがどのディスプレイを覆っているか。ディスプレイが1台なら設定は不要です。2台以上の場合、WFS-DIYが各画面を1回タッチするよう求めます。"
     },
     "messages": {
       "selectFolderFirst": "最初にプロジェクトフォルダを選択してください。",
@@ -3260,5 +3263,21 @@
     "remoteLC": "リモート",
     "control": "コントロール",
     "speakerArrays": "スピーカーアレイ"
+  },
+  "touchScreens": {
+    "windowTitle": "タッチスクリーン",
+    "identify": "画面を識別",
+    "identifyHint": "各ディスプレイに円を表示します。各タッチスクリーンで円を1回タッチすると、それぞれが覆っているディスプレイに割り当てられます。",
+    "identifyPrompt": "この画面の円をタッチしてください",
+    "identifyCancel": "マウスでクリックするかEscキーで終了",
+    "identifyAssigned": "割り当て済み:",
+    "display": "ディスプレイ:",
+    "automatic": "自動（ディスプレイ1台）",
+    "main": "メイン",
+    "driveCursor": "WFS-DIY外のタッチでカーソルを動かす",
+    "exclusive": "排他",
+    "noDisplay": "ディスプレイなし：選択するか画面を識別してください",
+    "reading": "動作中",
+    "empty": "タッチスクリーンが接続されていません。"
   }
 }
