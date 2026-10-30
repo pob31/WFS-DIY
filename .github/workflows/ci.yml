@@ -45,6 +45,8 @@ jobs:
             deriveddata-${{ steps.subs.outputs.juce }}-${{ steps.subs.outputs.spatcore }}-
             deriveddata-${{ steps.subs.outputs.juce }}-
             deriveddata-
+      - name: Apply macOS JUCE patches
+        run: tools/apply-macos-juce-patches.sh
       - name: Build (Debug, unsigned)
         run: |
           xcodebuild \
