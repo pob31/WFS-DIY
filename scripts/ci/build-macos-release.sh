@@ -60,6 +60,7 @@ echo "    signing identity: $DEVELOPER_ID"
 APP="$BUILD_DIR/${APP_NAME}.app"
 if [ "${SKIP_BUILD:-0}" != "1" ]; then
     echo "==> Building Release"
+    tools/apply-macos-juce-patches.sh
     rm -rf "$APP"
     xcodebuild -project "$PROJECT" -scheme "$SCHEME" -configuration Release clean build
 fi

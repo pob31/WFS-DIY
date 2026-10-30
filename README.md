@@ -69,11 +69,15 @@ cd WFS-DIY
 5. Debug > Start Debugging (or press F5) to run
 
 **macOS:**
-1. Open `Builds/MacOSX/WFS-DIY.xcodeproj` in Xcode
-2. Select the **WFS-DIY** target and **My Mac** as destination
-3. Product > Build (or press Cmd+B)
-4. Product > Run (or press Cmd+R) to run
-5. macOS will ask for microphone permission on first run — click Allow (required for audio input)
+1. Apply the macOS JUCE patch (needed for USB touch panels; run it again after every JUCE submodule update):
+   ```bash
+   tools/apply-macos-juce-patches.sh
+   ```
+2. Open `Builds/MacOSX/WFS-DIY.xcodeproj` in Xcode
+3. Select the **WFS-DIY** target and **My Mac** as destination
+4. Product > Build (or press Cmd+B)
+5. Product > Run (or press Cmd+R) to run
+6. macOS will ask for microphone permission on first run — click Allow (required for audio input)
 
 **Linux:**
 1. Install build deps (Debian / Ubuntu):

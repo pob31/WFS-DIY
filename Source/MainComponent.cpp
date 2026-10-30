@@ -1113,6 +1113,14 @@ MainComponent::MainComponent()
     addAndMakeVisible(*mcpUndoOverlay);
     mcpUndoOverlay->toFront(false);
 
+   #if JUCE_MAC
+    // USB multitouch panels. "WFS-DIY" names the per-panel settings store, as
+    // the retired Linux reader did.
+    macTouchManager = std::make_unique<spatcore::controllers::MacHidTouchManager> ("WFS-DIY");
+    macTouchManager->onLog = [] (const juce::String& message) { WFSLogger::getInstance().logInfo (message); };
+    macTouchManager->traceContacts = std::getenv ("WFS_TOUCH_TRACE") != nullptr;
+   #endif
+
     // Initialize Stream Deck+ physical controller
     streamDeckManager = std::make_unique<StreamDeckManager>();
 
@@ -3223,6 +3231,17 @@ MainComponent::MainComponent()
         });
     }
 
+    // Hidden diagnostic: WFS_TEST_TOUCH_INJECT=1 drives two injected touch
+    // fingers across the Map, 8 s after launch so the window is on screen.
+    if (std::getenv("WFS_TEST_TOUCH_INJECT") != nullptr)
+    {
+        juce::Timer::callAfterDelay (8000, [safe = juce::Component::SafePointer<MainComponent> (this)]
+        {
+            if (safe != nullptr)
+                safe->runTouchInjectionSelfTest();
+        });
+    }
+
     // Hidden diagnostic: WFS_TEST_RENDER_UI=<folder> renders every main tab and
     // the Snapshot Scope window (both family grids) to PNG files in that folder,
     // 8 s after launch - after a project given on the command line has loaded.
@@ -3493,6 +3512,153 @@ void MainComponent::renderUiSnapshots (const juce::File& dir)
     }
 
     WFSLogger::getInstance().logInfo ("RENDER-UI done");
+}
+
+void MainComponent::runTouchInjectionSelfTest()
+{
+    int failures = 0;
+    auto logLine = [] (const juce::String& s) { WFSLogger::getInstance().logInfo (s); };
+    auto check = [&] (bool ok, const juce::String& what)
+    {
+        if (! ok) ++failures;
+        logLine (juce::String ("SELF-TEST ") + (ok ? "PASS " : "FAIL ") + what);
+    };
+    auto finish = [&]
+    {
+        logLine (juce::String ("SELF-TEST touch injection done: ")
+                 + (failures == 0 ? "ALL PASS" : juce::String (failures) + " FAIL"));
+    };
+
+    if (parameters.getNumInputChannels() < 2)
+    {
+        check (false, "touch: needs at least 2 inputs, session has "
+                      + juce::String (parameters.getNumInputChannels()));
+        return finish();
+    }
+
+    const int previousTab = tabbedComponent.getCurrentTabIndex();
+    if (mapTabWindow == nullptr)
+        tabbedComponent.setCurrentTabIndex (TabIndex::Map);
+
+    auto* peer = mapTab->getPeer();
+    if (peer == nullptr || ! mapTab->isShowing())
+    {
+        check (false, "touch: the Map has no peer on screen");
+        tabbedComponent.setCurrentTabIndex (previousTab);
+        return finish();
+    }
+
+    // Inputs 1 and 2 (indices 0 and 1) on either side of the origin, dragged
+    // two metres further apart. Everything they had is put back at the end.
+    static const char* const touchedParams[] = { "inputPositionX", "inputPositionY",
+                                                 "inputOffsetX", "inputOffsetY" };
+    std::vector<juce::var> saved;
+    for (int i = 0; i < 2; ++i)
+        for (auto* id : touchedParams)
+            saved.push_back (parameters.getInputParam (i, id));
+
+    const float startX[2] = { -2.0f, 2.0f };
+    const float endX[2]   = { -4.0f, 4.0f };
+    for (int i = 0; i < 2; ++i)
+    {
+        parameters.setInputParam (i, "inputPositionX", startX[i]);
+        parameters.setInputParam (i, "inputPositionY", 0.0f);
+    }
+
+    // Records what reaches the Map itself, not its overlay buttons.
+    struct Recorder : juce::MouseListener
+    {
+        juce::Component* target = nullptr;
+        juce::StringArray events;
+        std::set<int> touchIndices;
+        bool sawNonTouch = false;
+
+        void note (const char* kind, const juce::MouseEvent& e)
+        {
+            if (e.eventComponent != target) return;
+            if (e.source.isTouch()) touchIndices.insert (e.source.getIndex());
+            else                    sawNonTouch = true;
+            events.add (juce::String (kind) + (e.source.isTouch() ? " touch#" : " mouse#")
+                        + juce::String (e.source.getIndex()));
+        }
+        void mouseDown (const juce::MouseEvent& e) override { note ("down", e); }
+        void mouseDrag (const juce::MouseEvent& e) override { note ("drag", e); }
+        void mouseUp   (const juce::MouseEvent& e) override { note ("up", e); }
+    } recorder;
+    recorder.target = mapTab.get();
+    mapTab->addMouseListener (&recorder, false);
+
+    auto& peerComp = peer->getComponent();
+    auto toPeer = [&] (juce::Point<float> inMap) { return peerComp.getLocalPoint (mapTab.get(), inMap); };
+    auto send = [&] (int finger, juce::Point<float> posInPeer, juce::ModifierKeys mods)
+    {
+        peer->handleMouseEvent (juce::MouseInputSource::InputSourceType::touch, posInPeer, mods,
+                                juce::MouseInputSource::defaultPressure,
+                                juce::MouseInputSource::defaultOrientation,
+                                juce::Time::currentTimeMillis(), {}, finger);
+    };
+    const auto down = juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier);
+    const auto up   = juce::ModifierKeys();
+
+    const juce::Point<float> start[2] = { mapTab->getInputMarkerScreenPosition (0),
+                                          mapTab->getInputMarkerScreenPosition (1) };
+    const float pixelsPerMetre = (start[1].x - start[0].x) / (startX[1] - startX[0]);
+    const juce::Point<float> end[2] = { start[0].translated ((endX[0] - startX[0]) * pixelsPerMetre, 0.0f),
+                                        start[1].translated ((endX[1] - startX[1]) * pixelsPerMetre, 0.0f) };
+
+    logLine ("SELF-TEST touch markers at " + start[0].toString() + " and " + start[1].toString()
+             + " (map " + mapTab->getLocalBounds().toString() + ")");
+
+    // Both fingers land before either moves, as on a real panel.
+    for (int f = 0; f < 2; ++f)
+    {
+        send (f, toPeer (start[f]), up);    // enter, as JUCE's iOS peer does
+        send (f, toPeer (start[f]), down);
+    }
+
+    constexpr int steps = 10;
+    for (int s = 1; s <= steps; ++s)
+    {
+        const float t = (float) s / (float) steps;
+        for (int f = 0; f < 2; ++f)
+            send (f, toPeer (start[f] + (end[f] - start[f]) * t), down);
+    }
+
+    for (int f = 0; f < 2; ++f)
+    {
+        send (f, toPeer (end[f]), up);
+        send (f, juce::MouseInputSource::offscreenMousePos, up);
+    }
+
+    mapTab->removeMouseListener (&recorder);
+
+    logLine ("SELF-TEST touch events: " + recorder.events.joinIntoString (", "));
+    check (recorder.touchIndices == std::set<int> { 0, 1 },
+           "touch: the Map saw touch sources 0 and 1 (saw " + juce::String ((int) recorder.touchIndices.size()) + ")");
+    check (! recorder.sawNonTouch, "touch: no injected event arrived as a mouse");
+    check (recorder.events.size() == 2 * (1 + steps + 1),
+           "touch: 24 down/drag/up events (got " + juce::String (recorder.events.size()) + ")");
+
+    for (int i = 0; i < 2; ++i)
+    {
+        const float x = (float) parameters.getInputParam (i, "inputPositionX")
+                      + (float) parameters.getInputParam (i, "inputOffsetX");
+        const float y = (float) parameters.getInputParam (i, "inputPositionY")
+                      + (float) parameters.getInputParam (i, "inputOffsetY");
+        check (std::abs (x - endX[i]) < 0.1f && std::abs (y) < 0.1f,
+               "touch: input " + juce::String (i + 1) + " followed its finger to x="
+               + juce::String (endX[i], 1) + " (is " + juce::String (x, 2) + ", " + juce::String (y, 2) + ")");
+    }
+
+    size_t k = 0;
+    for (int i = 0; i < 2; ++i)
+        for (auto* id : touchedParams)
+            parameters.setInputParam (i, id, saved[k++]);
+
+    if (mapTabWindow == nullptr)
+        tabbedComponent.setCurrentTabIndex (previousTab);
+
+    finish();
 }
 
 void MainComponent::runLiveSourcePersistSelfTest()
@@ -12646,6 +12812,12 @@ void MainComponent::runStereoGeometrySelfTest()
 MainComponent::~MainComponent()
 {
     WFSLogger::getInstance().logInfo ("Session ending - saving settings");
+
+   #if JUCE_MAC
+    // First: lifts any finger still down while the windows it was sent to
+    // exist, and closes the panels (releasing a seized one).
+    macTouchManager.reset();
+   #endif
 
     if (samplerStateWatcher != nullptr)
         parameters.getValueTreeState().removeListener (samplerStateWatcher.get());

@@ -4017,6 +4017,7 @@ public:
         binauralOrbitEditor.setVisible(angleVisible);
         binauralOrbitUnitLabel.setVisible(angleVisible);
 
+
         if (panel)
         {
             // Draw the card above the section, and the controls above the card.
@@ -4033,6 +4034,21 @@ public:
                      &binauralYawValueLabel, &binauralYawUnitLabel })
                 c->toFront(false);
         }
+
+        // resized() measures every help card's text: tens of milliseconds.
+        // loadParametersToUI() ends here on every property change, so without
+        // this check each step of a dial drag (an Orbit write per touch report)
+        // paid for a relayout that changed nothing, and the tab fell behind the
+        // finger until it froze. Relayout when any control was shown or hidden
+        // - here or by the stage, GPU and Getting Started updates before it,
+        // which rely on this call to reflow.
+        std::vector<bool> visibility;
+        visibility.reserve((size_t) getNumChildComponents());
+        for (auto* c : getChildren())
+            visibility.push_back(c->isVisible());
+        if (visibility == lastLaidOutVisibility)
+            return;
+        lastLaidOutVisibility = std::move(visibility);
 
         resized();
     }
@@ -5310,6 +5326,7 @@ public:
     // Read-only while a tracker is active, where it mirrors the tracked yaw.
     juce::Label binauralYawLabel;
     WfsRotationDial binauralYawDial;
+    std::vector<bool> lastLaidOutVisibility;   // see updateBinauralModeControlsVisibility
     juce::Label binauralYawValueLabel;
     juce::Label binauralYawUnitLabel;
     juce::Label binauralAttenLabel;

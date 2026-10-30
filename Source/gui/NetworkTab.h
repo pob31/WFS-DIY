@@ -47,6 +47,14 @@
 
 /** Panel showing piecewise-linear ADM-OSC Cartesian mapping curves for all 3 axes,
     plus an XY rectangle overview.  Supports drag-editing of control points. */
+/** Grab radius for an ADM-OSC handle: 10 points for a mouse, a fingertip for
+    a touch (22 points at 1080p, following the UI scale like the Map's touch
+    tolerance) - 10 points is 3.5 mm on a 16-inch panel, well inside a finger. */
+inline float admHandleHitRadius (const juce::MouseEvent& e)
+{
+    return e.source.isTouch() ? juce::jmax (22.0f, 22.0f * WfsLookAndFeel::uiScale) : 10.0f;
+}
+
 class AdmMappingPanel : public juce::Component, private juce::Timer
 {
 public:
@@ -195,12 +203,14 @@ public:
             }
         }
 
-        // Hit-test drag dots
-        constexpr float hitRadius = 10.0f;
+        // Hit-test drag dots: the nearest within reach, so a finger-sized
+        // radius cannot take a neighbour of the dot it is on.
+        const float hitRadius = admHandleHitRadius (e);
+        float best = hitRadius;
         for (int a = 0; a < 3; ++a)
         {
             auto area = graphAreas[a].toFloat();
-            if (! area.contains (pos))
+            if (! area.expanded (hitRadius).contains (pos))
                 continue;
 
             auto ga = getGraphSubArea (area);
@@ -211,19 +221,20 @@ public:
             {
                 float v, m;
                 getPointVM (a, p, v, m);
-                float px = vToX (v, ga);
-                float py = mToY (m, minM, maxM, ga);
-                if (pos.getDistanceFrom ({ px, py }) <= hitRadius)
+                const float d = pos.getDistanceFrom ({ vToX (v, ga), mToY (m, minM, maxM, ga) });
+                if (d <= best)
                 {
+                    best = d;
                     dragAxis  = a;
                     dragPoint = p;
                     dragStartV = v;
                     dragStartM = m;
-                    setMouseCursor (juce::MouseCursor::DraggingHandCursor);
-                    return;
                 }
             }
         }
+
+        if (dragAxis >= 0)
+            setMouseCursor (juce::MouseCursor::DraggingHandCursor);
     }
 
     void mouseDrag (const juce::MouseEvent& e) override
@@ -1021,26 +1032,30 @@ public:
             return;
         }
 
-        // Check distance graph dots
-        constexpr float hitRadius = 10.0f;
+        // Check distance graph dots: the nearest within reach
+        const float hitRadius = admHandleHitRadius (e);
         auto ga = getDistGraphSubArea (distGraphArea.toFloat());
         float minM, maxM;
         getDistYRange (minM, maxM);
 
+        float best = hitRadius;
         for (int p = 0; p < 3; ++p)
         {
             float v, m;
             getDistPointVM (p, v, m);
-            float px = dToX (v, ga);
-            float py = dMToY (m, minM, maxM, ga);
-            if (pos.getDistanceFrom ({ px, py }) <= hitRadius)
+            const float d = pos.getDistanceFrom ({ dToX (v, ga), dMToY (m, minM, maxM, ga) });
+            if (d <= best)
             {
+                best = d;
                 dragTarget = (DragTarget) (DragDistP0 + p);
                 dragStartV = v;
                 dragStartM = m;
-                setMouseCursor (juce::MouseCursor::DraggingHandCursor);
-                return;
             }
+        }
+        if (dragTarget != DragNone)
+        {
+            setMouseCursor (juce::MouseCursor::DraggingHandCursor);
+            return;
         }
 
         // Check azimuth offset line drag (in circle area)
