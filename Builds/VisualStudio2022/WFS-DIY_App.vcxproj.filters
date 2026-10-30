@@ -5856,6 +5856,9 @@
     <ClInclude Include="..\..\Source\gui\MapTabWindow.h">
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\gui\MacTouchPanelsWindow.h">
+      <Filter>WFS-DIY\Source\gui</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\gui\MapTabPlaceholder.h">
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClInclude>

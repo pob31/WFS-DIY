@@ -43,6 +43,30 @@ namespace WindowUtils
     }
 
     /**
+     * Keeps a window's maximum size to the user area of the display it is on,
+     * keeping its minimum. Call from the window's moved(): the windows set
+     * their limits from the main display when they open, so on a taller
+     * second display (a 16:10 touch screen beside a 1080p main one) a zoomed
+     * window stopped short of the bottom - and a cap taken from the largest
+     * display would let a window on a smaller one spill past its edge.
+     * A window dragged onto a smaller display shrinks to fit it.
+     */
+    inline void fitResizeLimitsToDisplay(juce::ResizableWindow& window)
+    {
+        const auto* display = juce::Desktop::getInstance().getDisplays().getDisplayForRect(window.getScreenBounds());
+        auto* constrainer = window.getConstrainer();
+        if (display == nullptr || constrainer == nullptr)
+            return;
+
+        const auto area = display->userArea;
+        if (constrainer->getMaximumWidth() == area.getWidth() && constrainer->getMaximumHeight() == area.getHeight())
+            return;   // same display: nothing to do (and no re-constraining on every step of a drag)
+
+        window.setResizeLimits(constrainer->getMinimumWidth(), constrainer->getMinimumHeight(),
+                               area.getWidth(), area.getHeight());
+    }
+
+    /**
      * Preserve raw multi-touch on Windows under JUCE 9, which delivers OS
      * gestures (pinch → mouseMagnify) by default instead of per-finger events.
      * The app's hand-rolled pinch/multi-drag (EQDisplay, MapTab, PatchMatrix)

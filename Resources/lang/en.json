@@ -138,6 +138,7 @@
       "dialsAndButtons": "Dials and Buttons:",
       "positionControl": "Position Control:",
       "sampler": "Sampler:",
+      "touchScreens": "Touch Screens:",
       "samplerController": "Controller:"
     },
 
@@ -154,6 +155,7 @@
 
     "buttons": {
       "audioPatch": "Audio Interface and Patching Window",
+      "touchScreensSetup": "Set Up...",
       "levelMeter": "Level Meters",
       "clearSolo": "Clear Solo",
       "processingOff": "Processing: OFF",
@@ -294,6 +296,7 @@
       "colorScheme": "Select the color scheme: Default (dark gray), Black (pure black for OLED displays), or Light (daytime use).",
       "quickLongPress": "Long press duration. Instead of confirmation windows this software uses long presses.",
       "screenRendering": "Accelerated draws the windows on the graphics card. Compatible draws them on the CPU, so a video call that shares a single window (such as Zoom) shows them live, and opens menus inside the window. Compatible uses more CPU: go back to Accelerated for shows. Always Accelerated at launch.",
+      "touchScreens": "Which display each USB touch screen covers. With one display there is nothing to set; with two or more, WFS-DIY asks you to touch each screen once.",
       "screenReader": "Enable or disable screen reader announcements. When enabled, parameter names and values are announced on hover, and help text is read after a few seconds.",
       "selectProjectFolder": "Select the Location of the Current Project Folder where to store files.",
       "storeComplete": "Store Complete Configuration to files (with backup).",
@@ -3554,5 +3557,21 @@
   "updateBanner": {
     "available": "WFS-DIY v{version} is available!",
     "download": "Download"
+  },
+  "touchScreens": {
+    "windowTitle": "Touch Screens",
+    "identify": "Identify Screens",
+    "identifyHint": "Shows a circle on every display: touch the circle once on each touch screen, and each one is assigned to the display it covers.",
+    "identifyPrompt": "Touch the circle on this screen",
+    "identifyCancel": "Click with the mouse or press Escape to stop",
+    "identifyAssigned": "Assigned:",
+    "display": "Display:",
+    "automatic": "Automatic (single display)",
+    "main": "main",
+    "driveCursor": "Touches outside WFS-DIY move the cursor",
+    "exclusive": "Exclusive",
+    "noDisplay": "No display: choose one, or identify the screens",
+    "reading": "Working",
+    "empty": "No touch screen connected."
   }
 }

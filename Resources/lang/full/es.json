@@ -147,7 +147,8 @@
       "positionControl": "Control de posición:",
       "sampler": "Sampler:",
       "samplerController": "Controlador:",
-      "translationTier": "Traducción:"
+      "translationTier": "Traducción:",
+      "touchScreens": "Pantallas táctiles:"
     },
     "buttons": {
       "audioPatch": "Interfaz de audio y enrutamiento",
@@ -183,7 +184,8 @@
       "exportLogs": "Exportar registros",
       "openLogFolder": "Abrir carpeta de registros",
       "copySystemInfo": "Copiar info del sistema",
-      "reportIssue": "Reportar problema"
+      "reportIssue": "Reportar problema",
+      "touchScreensSetup": "Configurar..."
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (retardos en lectura)",
@@ -288,7 +290,8 @@
       "openLogFolder": "Abrir la carpeta de registros de la aplicación en el explorador de archivos del sistema.",
       "copySystemInfo": "Copiar información detallada del sistema al portapapeles para solicitudes de soporte.",
       "reportIssue": "Abrir la página de issues de WFS-DIY en GitHub en el navegador predeterminado.",
-      "translationTier": "Elija cuánta parte de la interfaz se traduce. 'Ayuda y mensajes' mantiene los controles en inglés y solo traduce la ayuda, los mensajes y los diálogos; 'Todo' traduce toda la interfaz, incluidas las etiquetas. Surte pleno efecto tras reiniciar."
+      "translationTier": "Elija cuánta parte de la interfaz se traduce. 'Ayuda y mensajes' mantiene los controles en inglés y solo traduce la ayuda, los mensajes y los diálogos; 'Todo' traduce toda la interfaz, incluidas las etiquetas. Surte pleno efecto tras reiniciar.",
+      "touchScreens": "Qué pantalla cubre cada pantalla táctil USB. Con una sola pantalla no hay nada que ajustar; con dos o más, WFS-DIY le pide que toque cada pantalla una vez."
     },
     "messages": {
       "selectFolderFirst": "Por favor, seleccione primero una carpeta de proyecto.",
@@ -3251,5 +3254,21 @@
     "remoteLC": "control",
     "control": "remoto",
     "speakerArrays": "Arrays de altavoces"
+  },
+  "touchScreens": {
+    "windowTitle": "Pantallas táctiles",
+    "identify": "Identificar pantallas",
+    "identifyHint": "Muestra un círculo en cada pantalla: toque el círculo una vez en cada pantalla táctil y cada una se asigna a la pantalla que cubre.",
+    "identifyPrompt": "Toque el círculo de esta pantalla",
+    "identifyCancel": "Haga clic con el ratón o pulse Esc para detener",
+    "identifyAssigned": "Asignada:",
+    "display": "Pantalla:",
+    "automatic": "Automática (una sola pantalla)",
+    "main": "principal",
+    "driveCursor": "Los toques fuera de WFS-DIY mueven el cursor",
+    "exclusive": "Exclusivo",
+    "noDisplay": "Sin pantalla: elija una o identifique las pantallas",
+    "reading": "En funcionamiento",
+    "empty": "No hay ninguna pantalla táctil conectada."
   }
 }

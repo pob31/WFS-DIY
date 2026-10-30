@@ -2,6 +2,19 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
+## Unreleased
+
+### Added
+- **Two or more touch screens on macOS, each on its own display.** With one display, a touch screen still needs no setup. With two or more, WFS-DIY shows a circle on every display, in a different place on each, the first time a touch screen has no display yet; touch the circle once on each touch screen, and each one is assigned to the display it covers. **System Config > Touch Screens: Set Up...**, in the UI section where Windows has its Screen Rendering row, lists the connected touch screens and lets you choose each one's display, run the identification again, turn off cursor moves from touches outside WFS-DIY, or open a screen exclusively. Assignments follow the display itself, not its place in the list, so they survive rearranging or reconnecting the displays. Tested with a 16" ILITEK and an iiyama touch screen side by side.
+
+### Changed
+- **On macOS, touch screens work as a mouse again after WFS-DIY quits.** WFS-DIY switches a touch screen to multitouch mode, in which macOS no longer uses it as a mouse; until now it stayed so until it was unplugged. On quit, WFS-DIY now resets it on USB, and it comes back as macOS's single-pointer touchscreen. Not after a crash or a force-quit: unplug it and plug it back in then. With two touch screens, macOS sends both to the main display; that is how macOS treats touch screens, and WFS-DIY's own handling of them applies only while it runs.
+
+### Fixed
+- **The mouse and touch take turns on the Map.** The mouse could take a marker from under a finger, or pan and zoom the view while a finger dragged a marker, which made the marker jump. While a finger is down on the Map, mouse clicks, drags and the scroll wheel do nothing there; while the mouse button is down on it, a finger is ignored. Each works again as soon as the other lets go.
+- **A tab no longer hides the Map in the middle of a drag.** Touching or clicking a tab while a marker was held on the Map switched tabs under the finger. While anything is pressed on the Map, the tabs wait; with the Map detached in its own window, they stay free.
+- **A detached window fills the display it is on.** The Map, Level Meters, Network Log, Output Array Helper and Audio Interface windows took their largest size from the main display, so on a taller second display (a 16:10 touch screen beside a 1080p main display) a zoomed window stopped short of the bottom. Their largest size now follows the display they are on, and a window dragged onto a smaller display shrinks to fit it.
+
 ## v1.0.0beta62 — 2026-10-30
 
 ### Added

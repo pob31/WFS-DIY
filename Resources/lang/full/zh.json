@@ -147,7 +147,8 @@
       "positionControl": "位置控制:",
       "sampler": "采样器:",
       "samplerController": "控制器:",
-      "translationTier": "翻译："
+      "translationTier": "翻译：",
+      "touchScreens": "触摸屏："
     },
     "buttons": {
       "audioPatch": "音频接口和路由窗口",
@@ -183,7 +184,8 @@
       "exportLogs": "导出日志",
       "openLogFolder": "打开日志文件夹",
       "copySystemInfo": "复制系统信息",
-      "reportIssue": "报告问题"
+      "reportIssue": "报告问题",
+      "touchScreensSetup": "设置..."
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (读取时延迟)",
@@ -301,7 +303,8 @@
       "openLogFolder": "在系统文件资源管理器中打开应用程序的日志文件夹。",
       "copySystemInfo": "将详细的系统信息复制到剪贴板以用于支持请求。",
       "reportIssue": "在默认浏览器中打开 WFS-DIY 的 GitHub 问题页面。",
-      "translationTier": "选择界面的翻译程度。“帮助和消息”保持控件为英文，仅翻译帮助、消息和对话框；“全部”翻译包括标签在内的整个界面。重启后完全生效。"
+      "translationTier": "选择界面的翻译程度。“帮助和消息”保持控件为英文，仅翻译帮助、消息和对话框；“全部”翻译包括标签在内的整个界面。重启后完全生效。",
+      "touchScreens": "每个 USB 触摸屏覆盖哪个显示器。只有一个显示器时无需设置；有两个或更多时，WFS-DIY 会请您在每个屏幕上触摸一次。"
     },
     "messages": {
       "selectFolderFirst": "请先选择项目文件夹。",
@@ -3313,5 +3316,21 @@
     "remoteLC": "远程",
     "control": "控制",
     "speakerArrays": "扬声器阵列"
+  },
+  "touchScreens": {
+    "windowTitle": "触摸屏",
+    "identify": "识别屏幕",
+    "identifyHint": "在每个显示器上显示一个圆圈：在每个触摸屏上触摸一次圆圈，每个触摸屏就会分配给它所覆盖的显示器。",
+    "identifyPrompt": "请触摸此屏幕上的圆圈",
+    "identifyCancel": "用鼠标点击或按 Esc 停止",
+    "identifyAssigned": "已分配：",
+    "display": "显示器：",
+    "automatic": "自动（单个显示器）",
+    "main": "主",
+    "driveCursor": "在 WFS-DIY 之外的触摸会移动光标",
+    "exclusive": "独占",
+    "noDisplay": "无显示器：请选择一个或识别屏幕",
+    "reading": "工作中",
+    "empty": "未连接触摸屏。"
   }
 }

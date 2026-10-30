@@ -1,3 +1,4 @@
+#include "../spatcore/controllers/touch/TouchInjector.h"
 #include "MainComponent.h"
 #include "../spatcore/wfs/RenderSourceMap.h"
 #include "../spatcore/effects/EffectPresets.h"
@@ -929,6 +930,16 @@ MainComponent::MainComponent()
     // Wire detach button on Map tab
     mapTab->onDetachRequested = [this]() { detachMapTab(); };
 
+    // While a finger or the mouse is pressed on the attached Map, the tab bar
+    // takes no clicks or touches: a second finger or the mouse on a tab used
+    // to switch tabs and hide the Map mid-drag. A detached Map stays on
+    // screen whatever the tab, so then the tabs stay free.
+    mapTab->onPressStateChanged = [this] (bool pressed)
+    {
+        const bool lock = pressed && mapTabWindow == nullptr;
+        tabbedComponent.getTabbedButtonBar().setInterceptsMouseClicks (! lock, ! lock);
+    };
+
     // Set up navigation callback from Map tab to other tabs via long-press gesture
     // Parameters: (tabType, index) where tabType is:
     //   0=Input, 1=Cluster, 2=Output, 3=Reverb, 4=Effect
@@ -1119,6 +1130,39 @@ MainComponent::MainComponent()
     macTouchManager = std::make_unique<spatcore::controllers::MacHidTouchManager> ("WFS-DIY");
     macTouchManager->onLog = [] (const juce::String& message) { WFSLogger::getInstance().logInfo (message); };
     macTouchManager->traceContacts = std::getenv ("WFS_TOUCH_TRACE") != nullptr;
+
+    systemConfigTab->onTouchScreensRequested = [this]
+    {
+        if (touchPanelsWindow == nullptr)
+            touchPanelsWindow = std::make_unique<MacTouchPanelsWindow> (*macTouchManager, [this] { startTouchIdentify(); });
+        touchPanelsWindow->setVisible (true);
+        touchPanelsWindow->toFront (true);
+    };
+
+    // A panel with nowhere to send its touches while two or more displays are
+    // connected: offer to identify it, once per panel and session, after the
+    // connection has settled (a panel can drop off USB and come back several
+    // times in a row).
+    macTouchManager->addChangeListener ([this]
+    {
+        juce::Timer::callAfterDelay (1500, [safe = juce::Component::SafePointer<MainComponent> (this)]
+        {
+            if (safe == nullptr || safe->macTouchManager == nullptr || safe->touchIdentify != nullptr)
+                return;
+            if (juce::Desktop::getInstance().getDisplays().displays.size() < 2)
+                return;
+
+            for (auto& p : safe->macTouchManager->getPanels())
+                if (p.connected && p.problem.isEmpty() && ! safe->macTouchManager->hasDisplay (p.settings)
+                    && safe->touchIdentifyOffered.insert (p.key).second)
+                {
+                    WFSLogger::getInstance().logInfo ("Touch panel: " + p.name + " [" + p.key
+                                                      + "] has no display - asking which screen it is");
+                    safe->startTouchIdentify();
+                    return;
+                }
+        });
+    });
    #endif
 
     // Initialize Stream Deck+ physical controller
@@ -3514,6 +3558,17 @@ void MainComponent::renderUiSnapshots (const juce::File& dir)
     WFSLogger::getInstance().logInfo ("RENDER-UI done");
 }
 
+#if JUCE_MAC
+void MainComponent::startTouchIdentify()
+{
+    if (macTouchManager == nullptr || touchIdentify != nullptr)
+        return;
+
+    touchIdentify = std::make_unique<TouchIdentifySession> (*macTouchManager,
+        [safe = juce::Component::SafePointer<MainComponent> (this)] { if (safe != nullptr) safe->touchIdentify.reset(); });
+}
+#endif
+
 void MainComponent::runTouchInjectionSelfTest()
 {
     int failures = 0;
@@ -3648,6 +3703,106 @@ void MainComponent::runTouchInjectionSelfTest()
         check (std::abs (x - endX[i]) < 0.1f && std::abs (y) < 0.1f,
                "touch: input " + juce::String (i + 1) + " followed its finger to x="
                + juce::String (endX[i], 1) + " (is " + juce::String (x, 2) + ", " + juce::String (y, 2) + ")");
+    }
+
+    // Phase 2, the way a panel really arrives: one finger through spatcore's
+    // TouchInjector on input 1, lifted - then the mouse must still drag that
+    // marker (bench, 2026-10-30: after a touch on a marker, mouse clicks no
+    // longer took any marker).
+    {
+        auto stageX = [this] (int i)
+        {
+            return (float) parameters.getInputParam (i, "inputPositionX")
+                 + (float) parameters.getInputParam (i, "inputOffsetX");
+        };
+
+        spatcore::controllers::TouchInjector injector;
+        const auto fingerStart = mapTab->localPointToGlobal (mapTab->getInputMarkerScreenPosition (0));
+        const auto fingerEnd   = fingerStart.translated (pixelsPerMetre, 0.0f);   // +1 m
+        injector.touchDown ("selftest", 0, fingerStart);
+        for (int s = 1; s <= steps; ++s)
+            injector.touchMove ("selftest", 0, fingerStart + (fingerEnd - fingerStart) * ((float) s / (float) steps));
+        injector.touchUp ("selftest", 0, fingerEnd);
+
+        const float afterTouch = stageX (0);
+        check (std::abs (afterTouch - (endX[0] + 1.0f)) < 0.1f,
+               "touch: the injector moved input 1 by 1 m (is " + juce::String (afterTouch, 2) + ")");
+        check (! juce::ModifierKeys::currentModifiers.isAnyMouseButtonDown(),
+               "touch: no mouse button left down after the lift");
+
+        // The mouse, as NSViewComponentPeer sends it: global modifiers first.
+        auto mouse = [&] (juce::Point<float> inMap, bool down)
+        {
+            const auto mods = down ? juce::ModifierKeys::currentModifiers.withoutMouseButtons()
+                                         .withFlags (juce::ModifierKeys::leftButtonModifier)
+                                   : juce::ModifierKeys::currentModifiers.withoutMouseButtons();
+            juce::ModifierKeys::currentModifiers = mods;
+            peer->handleMouseEvent (juce::MouseInputSource::InputSourceType::mouse, toPeer (inMap), mods,
+                                    juce::MouseInputSource::defaultPressure,
+                                    juce::MouseInputSource::defaultOrientation,
+                                    juce::Time::currentTimeMillis());
+        };
+
+        const auto mouseStart = mapTab->getInputMarkerScreenPosition (0);
+        const auto mouseEnd   = mouseStart.translated (pixelsPerMetre, 0.0f);   // another +1 m
+        mouse (mouseStart, false);   // hover onto it
+        mouse (mouseStart, true);
+        for (int s = 1; s <= steps; ++s)
+            mouse (mouseStart + (mouseEnd - mouseStart) * ((float) s / (float) steps), true);
+        mouse (mouseEnd, false);
+
+        const float afterMouse = stageX (0);
+        check (std::abs (afterMouse - (afterTouch + 1.0f)) < 0.1f,
+               "touch: after a touch, the mouse still drags input 1 by 1 m (from "
+               + juce::String (afterTouch, 2) + " to " + juce::String (afterMouse, 2) + ")");
+
+        // Phase 3: mouse and touch take turns on the Map.
+        // (a) A finger held on input 2: the mouse cannot drag input 1.
+        const auto finger2 = mapTab->localPointToGlobal (mapTab->getInputMarkerScreenPosition (1));
+        injector.touchDown ("selftest", 1, finger2);
+        {
+            const float before = stageX (0);
+            const auto from = mapTab->getInputMarkerScreenPosition (0);
+            mouse (from, false);
+            mouse (from, true);
+            for (int s = 1; s <= steps; ++s)
+                mouse (from.translated (pixelsPerMetre * (float) s / (float) steps, 0.0f), true);
+            mouse (from.translated (pixelsPerMetre, 0.0f), false);
+            check (std::abs (stageX (0) - before) < 0.01f,
+                   "touch: with a finger down, the mouse does not drag input 1 (moved "
+                   + juce::String (stageX (0) - before, 2) + " m)");
+        }
+        injector.touchUp ("selftest", 1, finger2);
+
+        // (b) The mouse held on input 1: a finger cannot drag input 2.
+        {
+            const float before = stageX (1);
+            const auto held = mapTab->getInputMarkerScreenPosition (0);
+            mouse (held, false);
+            mouse (held, true);
+            const auto f2 = mapTab->localPointToGlobal (mapTab->getInputMarkerScreenPosition (1));
+            injector.touchDown ("selftest", 1, f2);
+            for (int s = 1; s <= steps; ++s)
+                injector.touchMove ("selftest", 1, f2.translated (pixelsPerMetre * (float) s / (float) steps, 0.0f));
+            injector.touchUp ("selftest", 1, f2.translated (pixelsPerMetre, 0.0f));
+            mouse (held, false);
+            check (std::abs (stageX (1) - before) < 0.01f,
+                   "touch: with the mouse down, a finger does not drag input 2 (moved "
+                   + juce::String (stageX (1) - before, 2) + " m)");
+        }
+
+        // (c) Both let go: the finger works again.
+        {
+            const float before = stageX (1);
+            const auto f2 = mapTab->localPointToGlobal (mapTab->getInputMarkerScreenPosition (1));
+            injector.touchDown ("selftest", 1, f2);
+            for (int s = 1; s <= steps; ++s)
+                injector.touchMove ("selftest", 1, f2.translated (pixelsPerMetre * (float) s / (float) steps, 0.0f));
+            injector.touchUp ("selftest", 1, f2.translated (pixelsPerMetre, 0.0f));
+            check (std::abs (stageX (1) - (before + 1.0f)) < 0.1f,
+                   "touch: once the mouse is up, a finger drags input 2 again (moved "
+                   + juce::String (stageX (1) - before, 2) + " m)");
+        }
     }
 
     size_t k = 0;
@@ -12815,7 +12970,10 @@ MainComponent::~MainComponent()
 
    #if JUCE_MAC
     // First: lifts any finger still down while the windows it was sent to
-    // exist, and closes the panels (releasing a seized one).
+    // exist, and closes the panels (releasing a seized one). The window and
+    // the identify overlays hold a reference to it, so they go before it.
+    touchIdentify.reset();
+    touchPanelsWindow.reset();
     macTouchManager.reset();
    #endif
 
@@ -15706,6 +15864,8 @@ void MainComponent::setupPatchWindowStreamDeck (PatchWindowPages::PatchCallbacks
 
 void MainComponent::detachMapTab()
 {
+    tabbedComponent.getTabbedButtonBar().setInterceptsMouseClicks (true, true);   // see onPressStateChanged
+
     if (mapTabWindow != nullptr)
     {
         // Already detached — bring to front
@@ -15751,6 +15911,8 @@ void MainComponent::detachMapTab()
 
 void MainComponent::attachMapTab()
 {
+    tabbedComponent.getTabbedButtonBar().setInterceptsMouseClicks (true, true);   // see onPressStateChanged
+
     if (mapTabWindow == nullptr)
         return;
 

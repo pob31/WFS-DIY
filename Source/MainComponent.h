@@ -66,6 +66,7 @@
 #include "../spatcore/controllers/lightpad/LightpadManager.h"
 #if JUCE_MAC
  #include "../spatcore/controllers/touch/macos/MacHidTouchManager.h"
+ #include "gui/MacTouchPanelsWindow.h"
 #endif
 #include "GradientMap/GradientMapEvaluator.h"
 #include "GradientMap/GradientMapData.h"
@@ -433,6 +434,15 @@ private:
     // spatcore reads their HID reports and hands each finger to JUCE as a
     // touch source (needs the canUseTouch JUCE patch and Input Monitoring).
     std::unique_ptr<spatcore::controllers::MacHidTouchManager> macTouchManager;
+
+    // System Config > Touch Screens, and the "touch the circle" overlays that
+    // assign each panel to its display. The overlays come up by themselves,
+    // once per panel and session, when a panel has no display while two or
+    // more are connected.
+    std::unique_ptr<MacTouchPanelsWindow> touchPanelsWindow;
+    std::unique_ptr<TouchIdentifySession> touchIdentify;
+    std::set<juce::String> touchIdentifyOffered;
+    void startTouchIdentify();
    #endif
 
     // Input controllers (SpaceMouse, joystick, gamepad)

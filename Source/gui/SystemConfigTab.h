@@ -813,6 +813,19 @@ public:
         updateScreenRenderingText();
         screenRenderingLabel.setVisible(ScreenShareRendering::isSupported());
         screenRenderingToggle.setVisible(ScreenShareRendering::isSupported());
+
+       #if JUCE_MAC
+        // macOS takes the Windows-only Screen Rendering row for its USB touch
+        // screens: which display each one covers, set up in their own window.
+        addAndMakeVisible(touchScreensLabel);
+        touchScreensLabel.setText(LOC("systemConfig.labels.touchScreens"), juce::dontSendNotification);
+        addAndMakeVisible(touchScreensButton);
+        touchScreensButton.setButtonText(LOC("systemConfig.buttons.touchScreensSetup"));
+        touchScreensButton.onClick = [this]() {
+            if (onTouchScreensRequested)
+                onTouchScreensRequested();
+        };
+       #endif
         screenRenderingToggle.onClick = [this]() {
             bool enabled = screenRenderingToggle.getToggleState();
             ScreenShareRendering::setOn(enabled);
@@ -1669,6 +1682,14 @@ public:
             screenRenderingToggle.setBounds(x + labelWidth, y, editorWidth, rowHeight);
             y += rowHeight + spacing;
         }
+       #if JUCE_MAC
+        else
+        {
+            touchScreensLabel.setBounds(x, y, labelWidth, rowHeight);
+            touchScreensButton.setBounds(x + labelWidth, y, editorWidth * 2, rowHeight);
+            y += rowHeight + spacing;
+        }
+       #endif
 
         languageLabel.setBounds(x, y, labelWidth, rowHeight);
         languageSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
@@ -4923,6 +4944,10 @@ public:
         helpTextMap[&quickLongPressToggle] = LOC("systemConfig.help.quickLongPress");
         helpTextMap[&screenRenderingLabel] = LOC("systemConfig.help.screenRendering");
         helpTextMap[&screenRenderingToggle] = LOC("systemConfig.help.screenRendering");
+       #if JUCE_MAC
+        helpTextMap[&touchScreensLabel] = LOC("systemConfig.help.touchScreens");
+        helpTextMap[&touchScreensButton] = LOC("systemConfig.help.touchScreens");
+       #endif
         helpTextMap[&languageSelector] = LOC("systemConfig.help.language");
         helpTextMap[&translationTierSelector] = {};  // looked up when shown, see helpTextFor()
         helpTextMap[&dialsAndButtonsSelector] = LOC("systemConfig.help.dialsAndButtons");
@@ -5189,6 +5214,10 @@ public:
     juce::TextButton quickLongPressToggle;
     juce::Label screenRenderingLabel;
     juce::TextButton screenRenderingToggle;
+   #if JUCE_MAC
+    juce::Label touchScreensLabel;
+    juce::TextButton touchScreensButton;
+   #endif
     juce::Label languageLabel;
     juce::ComboBox languageSelector;
     juce::StringArray availableLanguages;
@@ -5391,9 +5420,19 @@ public:
                                               : LOC("systemConfig.buttons.screenRenderingAccelerated"));
     }
 
-    /** Reference-pixel height of the Screen Rendering row in the UI section
-        (rowHeight 30 + spacing 5), which only Windows shows. */
-    static constexpr int screenRenderingRowRef() { return ScreenShareRendering::isSupported() ? 35 : 0; }
+    /** Reference-pixel height of the platform row in the UI section (rowHeight
+        30 + spacing 5): Screen Rendering on Windows, Touch Screens on macOS. */
+    static constexpr int screenRenderingRowRef()
+    {
+       #if JUCE_MAC
+        return 35;
+       #else
+        return ScreenShareRendering::isSupported() ? 35 : 0;
+       #endif
+    }
+
+    /** Wired by MainComponent on macOS: opens the Touch Screens window. */
+    std::function<void()> onTouchScreensRequested;
 
     // Channel order dialog (stable-number model): drag to arrange the
     // mono/stereo interleaving, per-row delete (number retires as a gap).

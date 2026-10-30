@@ -147,7 +147,8 @@
       "binauralHeight": "Hauteur auditeur :",
       "binauralHeadRadius": "Rayon de la tête :",
       "binauralOrientation": "Orientation L/T/R :",
-      "binauralYaw": "Lacet de la tête :"
+      "binauralYaw": "Lacet de la tête :",
+      "touchScreens": "Écrans tactiles :"
     },
     "controller": {
       "off": "Désactivé",
@@ -192,7 +193,8 @@
       "exportLogs": "Exporter les journaux",
       "openLogFolder": "Ouvrir le dossier des journaux",
       "copySystemInfo": "Copier les infos système",
-      "reportIssue": "Signaler un problème"
+      "reportIssue": "Signaler un problème",
+      "touchScreensSetup": "Configurer..."
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (délais en lecture)",
@@ -297,7 +299,8 @@
       "binauralHeight": "Hauteur des oreilles de l'auditeur binaural (mètres). Modes HRTF uniquement.",
       "binauralHeadRadius": "Rayon de la tête pour le modèle de HRTF structurelle (centimètres). Une tête plus grande produit des différences interaurales de temps plus grandes.",
       "binauralOrientation": "Décalages manuels d'orientation de la tête par rapport à l'orientation face à l'origine : lacet, tangage, roulis (degrés). Ils tournent la tête sur place — contrairement à Orbite, qui déplace le siège. Ignorés tant qu'un suivi de tête est actif.",
-      "binauralYaw": "Tourne la tête de l'auditeur sur place, sans déplacer le siège (degrés, 0 = face à l'origine de la scène, positif = tourne vers la droite). Reflète le lacet suivi en direct et est verrouillé tant qu'un suivi de tête est actif. Modes HRTF uniquement."
+      "binauralYaw": "Tourne la tête de l'auditeur sur place, sans déplacer le siège (degrés, 0 = face à l'origine de la scène, positif = tourne vers la droite). Reflète le lacet suivi en direct et est verrouillé tant qu'un suivi de tête est actif. Modes HRTF uniquement.",
+      "touchScreens": "L'écran que couvre chaque écran tactile USB. Avec un seul écran, rien à régler ; avec deux ou plus, WFS-DIY vous demande de toucher chaque écran une fois."
     },
     "messages": {
       "selectFolderFirst": "Veuillez d'abord sélectionner un dossier de projet.",
@@ -3265,5 +3268,21 @@
       "gate": "Autoriser les actions IA destructrices (modifications du nombre de canaux, reconfiguration de port, runDSP, etc.) ET ignorer la confirmation par appel pour les actions de niveau 2 moins destructrices tant que la porte est ouverte. Surensemble de la bascule de confirmation automatique de niveau 2. Le remplissage rouge s'écoule sur 5 minutes, puis se bloque automatiquement.",
       "aiToggle": "Interrupteur principal pour l'intégration MCP. Lorsqu'il est sur OFF, tout appel d'outil IA est refusé ; lorsqu'il est sur ON, la gestion normale par niveau s'applique (la bascule des actions critiques contrôle séparément les appels destructeurs)."
     }
+  },
+  "touchScreens": {
+    "windowTitle": "Écrans tactiles",
+    "identify": "Identifier les écrans",
+    "identifyHint": "Affiche un cercle sur chaque écran : touchez une fois le cercle sur chaque écran tactile, et chacun est attribué à l'écran qu'il couvre.",
+    "identifyPrompt": "Touchez le cercle sur cet écran",
+    "identifyCancel": "Cliquez avec la souris ou appuyez sur Échap pour arrêter",
+    "identifyAssigned": "Attribué :",
+    "display": "Écran :",
+    "automatic": "Automatique (un seul écran)",
+    "main": "principal",
+    "driveCursor": "Les touchers hors de WFS-DIY déplacent le curseur",
+    "exclusive": "Exclusif",
+    "noDisplay": "Aucun écran : choisissez-en un ou identifiez les écrans",
+    "reading": "En service",
+    "empty": "Aucun écran tactile connecté."
   }
 }

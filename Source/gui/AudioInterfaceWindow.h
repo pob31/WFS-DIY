@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "AudioPatchTab.h"
+#include "WindowUtils.h"
 #include "../WfsParameters.h"
 #include "../DSP/TestSignalGenerator.h"
 #include "../../spatcore/io/DeviceHost.h"
@@ -229,6 +230,12 @@ public:
                          MidiSnapshotTrigger* midiTrigger = nullptr);
 
     ~AudioInterfaceWindow() override = default;
+
+    void moved() override
+    {
+        DocumentWindow::moved();
+        WindowUtils::fitResizeLimitsToDisplay(*this);   // limits follow the display it is on
+    }
 
     void closeButtonPressed() override;
 

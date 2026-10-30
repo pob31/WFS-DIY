@@ -325,6 +325,7 @@
 		557EA9893EE5EE1977D74E63 /* MetalObBackend.mm */ /* MetalObBackend.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = MetalObBackend.mm; path = ../../spatcore/gpu/MetalObBackend.mm; sourceTree = SOURCE_ROOT; };
 		561908FA927ABC8DC0BB0A10 /* juce_simpleweb */ /* juce_simpleweb */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_simpleweb; path = ../../ThirdParty/juce_simpleweb; sourceTree = SOURCE_ROOT; };
 		5666A72E13A6F246D954D91A /* WfsFrHostState.h */ /* WfsFrHostState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WfsFrHostState.h; path = ../../spatcore/gpu/WfsFrHostState.h; sourceTree = SOURCE_ROOT; };
+		56A80F22BED1F92E517CE218 /* MacTouchPanelsWindow.h */ /* MacTouchPanelsWindow.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MacTouchPanelsWindow.h; path = ../../Source/gui/MacTouchPanelsWindow.h; sourceTree = SOURCE_ROOT; };
 		5708250B17E10EA1BEA04BBC /* SetParameterTool.h */ /* SetParameterTool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SetParameterTool.h; path = ../../Source/Network/MCP/tools/SetParameterTool.h; sourceTree = SOURCE_ROOT; };
 		571D549FDC58EA8A421E3329 /* juce_audio_processors_headless */ /* juce_audio_processors_headless */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_audio_processors_headless; path = ../../ThirdParty/JUCE/modules/juce_audio_processors_headless; sourceTree = SOURCE_ROOT; };
 		5810F8314E4B23B3F2FB167F /* OSCMessageBuilder.h */ /* OSCMessageBuilder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCMessageBuilder.h; path = ../../Source/Network/OSCMessageBuilder.h; sourceTree = SOURCE_ROOT; };
@@ -962,6 +963,7 @@
 				2A84935971237F2CE594E7BA,
 				7AFF9282759B81540BA02DCC,
 				141DFB14179D8C4EA0A6FF2D,
+				56A80F22BED1F92E517CE218,
 				FD7DB43D6E3D1AF4724A2303,
 				C76B234E02F32DF1865B2F27,
 				48D14721841738FD158C9ED7,
