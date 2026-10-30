@@ -2,6 +2,21 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
+## v1.0.0beta62 — 2026-10-30
+
+### Added
+- **Multitouch on macOS from USB touch screens.** macOS treats an external touch screen as a single mouse, so until now a Mac could not move two sources at once. WFS-DIY now reads the panel itself, and every finger reaches the Map, dials and matrices as a separate touch, as on Windows: ten fingers at once on the 16" ILITEK panel. When the panel connects, WFS-DIY switches it from mouse mode to multitouch mode. From then on macOS no longer uses it as a mouse, until it is unplugged and plugged back in.
+  - Touches on a WFS-DIY window's title bar close, minimise, zoom and move it; just outside its sides and bottom, they resize it.
+  - The panel needs the **Input Monitoring** permission, which macOS asks for once. For touches outside WFS-DIY to move the cursor, it also needs **Accessibility**; without it they do nothing.
+  - With one display, the panel needs no setup.
+
+### Fixed
+- **Turning the binaural Orbit dial no longer freezes the window.** Each step of the dial redrew the whole System Config tab, measuring every help card's text, and a touch drag sends steps faster than that, so the window fell further and further behind the finger until it froze. The tab now redraws its layout only when a control is shown or hidden.
+- **The ADM-OSC handles can be caught with a finger.** A touch now reaches about 22 points around a handle instead of 10 (3.5 mm on a 16-inch screen), and takes the nearest handle. The mouse is unchanged.
+
+### Chore / Internal
+- macOS builds apply a one-line JUCE patch (`canUseTouch()` returns true), shipped by spatcore (PR #28) with the script that applies it: `tools/apply-macos-juce-patches.sh`, run by CI and the release script and again after every JUCE submodule update. `WFS_TEST_TOUCH_INJECT=1` fails on a build without it. `WFS_TOUCH_TRACE=1` logs every finger.
+
 ## v1.0.0beta61 — 2026-10-29
 
 ### Fixed
