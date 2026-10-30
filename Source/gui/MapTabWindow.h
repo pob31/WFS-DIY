@@ -58,6 +58,12 @@ public:
 
     ~MapTabWindow() override = default;
 
+    void moved() override
+    {
+        DocumentWindow::moved();
+        WindowUtils::fitResizeLimitsToDisplay(*this);   // limits follow the display it is on
+    }
+
     void closeButtonPressed() override
     {
         if (onWindowClosed)

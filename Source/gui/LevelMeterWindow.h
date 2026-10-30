@@ -1054,6 +1054,12 @@ public:
         ColorScheme::Manager::getInstance().removeListener(this);
     }
 
+    void moved() override
+    {
+        DocumentWindow::moved();
+        WindowUtils::fitResizeLimitsToDisplay(*this);   // limits follow the display it is on
+    }
+
     void closeButtonPressed() override
     {
         levelManager.setMeterWindowEnabled(false);
