@@ -303,6 +303,11 @@ public:
     /** Callback when the user clicks the detach button. */
     std::function<void()> onDetachRequested;
 
+    /** True while a finger or the mouse is pressed on the Map, false once all
+        have let go. MainComponent holds the tab bar still meanwhile, so a
+        second finger or the mouse on a tab cannot hide the Map mid-drag. */
+    std::function<void (bool)> onPressStateChanged;
+
     /** Reset the map view to show the entire stage (for Stream Deck). */
     void requestResetView() { resetView(); repaint(); }
 
@@ -605,6 +610,9 @@ public:
         // long presses, feed stray second fingers and zero offsets on a
         // double-click. Same guard in mouseDrag/Up/DoubleClick/WheelMove.
         if (e.eventComponent != this)
+            return;
+
+        if (pressBlockedByOtherInput(e))
             return;
 
         int sourceIndex = e.source.getIndex();
@@ -1048,6 +1056,9 @@ public:
         if (e.eventComponent != this)   // an overlay button's press, see mouseDown
             return;
 
+        if (isIgnoredPress(e))
+            return;
+
         int sourceIndex = e.source.getIndex();
 
         // Latch "this press travelled" before the touch early return below: output
@@ -1356,6 +1367,9 @@ public:
         if (e.eventComponent != this)   // an overlay button's press, see mouseDown
             return;
 
+        if (endPressForOtherInput(e))
+            return;
+
         int sourceIndex = e.source.getIndex();
         const bool travelled = finishPointerPress(e);
 
@@ -1479,6 +1493,9 @@ public:
         if (e.eventComponent != this)   // an overlay button's double-click, see mouseDown
             return;
 
+        if (isIgnoredPress(e) || (! e.source.isTouch() && ! fingersDown.empty()))
+            return;
+
         // Double-tap/click on input marker: clear position offsets
         int hitInput = getInputAtPosition(e.position);
         if (hitInput >= 0)
@@ -1516,6 +1533,10 @@ public:
         // Over an overlay button the wheel arrives twice: forwarded up by the button
         // (eventComponent == this) and again as our listener copy. Keep the first.
         if (e.eventComponent != this)
+            return;
+
+        // No zooming the view out from under a finger: its marker would jump.
+        if (! fingersDown.empty())
             return;
 
         // Stereo image axis on the wheel. With stereo inputs selected the wheel
@@ -2727,6 +2748,85 @@ private:
         bool travelled = false;
     };
     std::map<int, PointerPress> pointerPresses;
+
+    // Mouse and touch take turns on the Map. While a finger is down, a mouse
+    // press, drag, double-click or wheel does nothing - the mouse could take
+    // the marker from under the finger, or pan and zoom the view under it and
+    // make its marker jump. While the mouse button is down, a finger that
+    // lands is ignored until it lifts. A press ignored at its start stays
+    // ignored to its end, even if the other input lets go first.
+    std::set<int> fingersDown;        // touch source indices pressed on the Map
+    std::set<int> ignoredFingers;
+    bool mousePressActive = false;
+    bool mousePressIgnored = false;
+
+    bool pressedNotified = false;
+
+    void notifyPressState()
+    {
+        const bool pressed = ! fingersDown.empty() || mousePressActive;
+        if (pressed != pressedNotified)
+        {
+            pressedNotified = pressed;
+            if (onPressStateChanged)
+                onPressStateChanged(pressed);
+        }
+    }
+
+    bool pressBlockedByOtherInput(const juce::MouseEvent& e)
+    {
+        const int index = e.source.getIndex();
+        if (e.source.isTouch())
+        {
+            if (mousePressActive)
+            {
+                ignoredFingers.insert(index);
+                return true;
+            }
+            fingersDown.insert(index);
+            notifyPressState();
+            return false;
+        }
+
+        if (! fingersDown.empty())
+        {
+            mousePressIgnored = true;
+            return true;
+        }
+        mousePressActive = true;
+        notifyPressState();
+        return false;
+    }
+
+    bool isIgnoredPress(const juce::MouseEvent& e) const
+    {
+        return e.source.isTouch() ? ignoredFingers.count(e.source.getIndex()) > 0
+                                  : mousePressIgnored;
+    }
+
+    // Called at mouseUp: ends the bookkeeping, and says whether the press was
+    // one that was ignored (so the release must be too).
+    bool endPressForOtherInput(const juce::MouseEvent& e)
+    {
+        const int index = e.source.getIndex();
+        if (e.source.isTouch())
+        {
+            if (ignoredFingers.erase(index) > 0)
+                return true;
+            fingersDown.erase(index);
+            notifyPressState();
+            return false;
+        }
+
+        mousePressActive = false;
+        notifyPressState();
+        if (mousePressIgnored)
+        {
+            mousePressIgnored = false;
+            return true;
+        }
+        return false;
+    }
 
     // The mouse, a pen and the first finger all have source index 0.
     static int pointerKey(const juce::MouseInputSource& source) noexcept
