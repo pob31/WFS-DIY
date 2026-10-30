@@ -47,6 +47,9 @@
     <Filter Include="WFS-DIY\Source\Controllers\Sampler">
       <UniqueIdentifier>{66CC4FA7-8297-6BE6-5FCC-095C0B122914}</UniqueIdentifier>
     </Filter>
+    <Filter Include="WFS-DIY\Source\Controllers\Touch">
+      <UniqueIdentifier>{D07C87A7-F1EE-E96F-2809-D5645BE5017B}</UniqueIdentifier>
+    </Filter>
     <Filter Include="WFS-DIY\Source\Controllers">
       <UniqueIdentifier>{1A7FB084-B2DE-86EC-E7BE-9DAFACDA277C}</UniqueIdentifier>
     </Filter>
@@ -1308,6 +1311,12 @@
     </ClCompile>
     <ClCompile Include="..\..\Source\Network\MCP\MCPParameterRegistry.cpp">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\spatcore\controllers\touch\TouchInjector.cpp">
+      <Filter>WFS-DIY\Source\Controllers\Touch</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\spatcore\controllers\touch\macos\MacHidTouchManager.mm">
+      <Filter>WFS-DIY\Source\Controllers\Touch</Filter>
     </ClCompile>
     <ClCompile Include="..\..\ThirdParty\hidapi\HidApiPlatform.c">
       <Filter>WFS-DIY\Source\hidapi</Filter>
@@ -6116,6 +6125,21 @@
     </ClInclude>
     <ClInclude Include="..\..\spatcore\controllers\lightpad\LightpadManager.h">
       <Filter>WFS-DIY\Source\Controllers\Sampler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\spatcore\controllers\touch\hid\HidDigitizerDescriptor.h">
+      <Filter>WFS-DIY\Source\Controllers\Touch</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\spatcore\controllers\touch\hid\HidContactTracker.h">
+      <Filter>WFS-DIY\Source\Controllers\Touch</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\spatcore\controllers\touch\TouchCalibration.h">
+      <Filter>WFS-DIY\Source\Controllers\Touch</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\spatcore\controllers\touch\TouchInjector.h">
+      <Filter>WFS-DIY\Source\Controllers\Touch</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\spatcore\controllers\touch\macos\MacHidTouchManager.h">
+      <Filter>WFS-DIY\Source\Controllers\Touch</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\GradientMap\GradientMapData.h">
       <Filter>WFS-DIY\Source\GradientMap</Filter>

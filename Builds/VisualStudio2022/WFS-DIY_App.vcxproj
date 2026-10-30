@@ -222,6 +222,7 @@
     <ClCompile Include="..\..\spatcore\control\mcp\MCPResourceRegistry.cpp"/>
     <ClCompile Include="..\..\spatcore\control\mcp\MCPPromptRegistry.cpp"/>
     <ClCompile Include="..\..\Source\Network\MCP\MCPParameterRegistry.cpp"/>
+    <ClCompile Include="..\..\spatcore\controllers\touch\TouchInjector.cpp"/>
     <ClCompile Include="..\..\ThirdParty\hidapi\HidApiPlatform.c"/>
     <ClCompile Include="..\..\ThirdParty\headtracker\firmware\common\protocol\htk_crc16.c"/>
     <ClCompile Include="..\..\ThirdParty\headtracker\firmware\common\protocol\htk_cobs.c"/>
@@ -4407,6 +4408,11 @@
     <ClInclude Include="..\..\spatcore\controllers\lightpad\LightpadTypes.h"/>
     <ClInclude Include="..\..\spatcore\controllers\lightpad\LightpadDevice.h"/>
     <ClInclude Include="..\..\spatcore\controllers\lightpad\LightpadManager.h"/>
+    <ClInclude Include="..\..\spatcore\controllers\touch\hid\HidDigitizerDescriptor.h"/>
+    <ClInclude Include="..\..\spatcore\controllers\touch\hid\HidContactTracker.h"/>
+    <ClInclude Include="..\..\spatcore\controllers\touch\TouchCalibration.h"/>
+    <ClInclude Include="..\..\spatcore\controllers\touch\TouchInjector.h"/>
+    <ClInclude Include="..\..\spatcore\controllers\touch\macos\MacHidTouchManager.h"/>
     <ClInclude Include="..\..\Source\GradientMap\GradientMapData.h"/>
     <ClInclude Include="..\..\Source\GradientMap\GradientMapEvaluator.h"/>
     <ClInclude Include="..\..\Source\GradientMap\GradientMapEditor.h"/>

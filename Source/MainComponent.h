@@ -64,6 +64,9 @@
 #include "Controllers/DialsAndButtons/pages/PatchWindowPages.h"
 #include "Controllers/PositionControl/ControllerManager.h"
 #include "../spatcore/controllers/lightpad/LightpadManager.h"
+#if JUCE_MAC
+ #include "../spatcore/controllers/touch/macos/MacHidTouchManager.h"
+#endif
 #include "GradientMap/GradientMapEvaluator.h"
 #include "GradientMap/GradientMapData.h"
 #include "Sampler/SamplerManager.h"
@@ -425,6 +428,13 @@ private:
     // Stream Deck+ physical controller
     std::unique_ptr<StreamDeckManager> streamDeckManager;
 
+   #if JUCE_MAC
+    // External USB multitouch panels: macOS flattens them to one pointer, so
+    // spatcore reads their HID reports and hands each finger to JUCE as a
+    // touch source (needs the canUseTouch JUCE patch and Input Monitoring).
+    std::unique_ptr<spatcore::controllers::MacHidTouchManager> macTouchManager;
+   #endif
+
     // Input controllers (SpaceMouse, joystick, gamepad)
     std::unique_ptr<ControllerManager> controllerManager;
 
@@ -778,6 +788,13 @@ private:
     /** WFS_TEST_RENDER_UI=<folder>: every main tab and the Snapshot Scope window
         (both family grids) rendered offscreen to PNG files. */
     void renderUiSnapshots (const juce::File& dir);
+
+    /** WFS_TEST_TOUCH_INJECT=1 — the gate for the macOS touch panel backend:
+        two fingers injected through ComponentPeer::handleMouseEvent as JUCE
+        touch sources, on the markers of inputs 1 and 2, dragged apart and
+        lifted. Passes when the Map sees two distinct touch sources and each
+        input follows its own finger. Restores what it touched. */
+    void runTouchInjectionSelfTest();
 
     /** A mono row may hold at most one hardware column. Clears any extra
         columns (keeping the lowest = L) left behind when a count change

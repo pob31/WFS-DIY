@@ -11,6 +11,7 @@
 		022AF15F41FCC4F69A1A3B0A /* loudness.c */ = {isa = PBXBuildFile; fileRef = AAEB00D0BD1044F8321A6CED; };
 		02C0B9F8F05793F28755A9E6 /* XmlPersistence.cpp */ = {isa = PBXBuildFile; fileRef = 78499000C7DBA493077EBC37; };
 		0536FD9C7D3537A9344A5DF2 /* MCPHistoryWindow.cpp */ = {isa = PBXBuildFile; fileRef = B7421A28E242EE8C51B7A481; };
+		05513A70F3161688B77BBEDD /* TouchInjector.cpp */ = {isa = PBXBuildFile; fileRef = 0568B302C465736CE9457405; };
 		074B7E72ADC7BF70E6DE6552 /* OSCReceiverWithSenderIP.cpp */ = {isa = PBXBuildFile; fileRef = 1557615117698279AF4F8AE9; };
 		096579233CE326ECF174D666 /* MCPTransport.cpp */ = {isa = PBXBuildFile; fileRef = 5D5B1B273C74327EAFD83543; };
 		0C3E37513198F49189B74E8F /* inflate.c */ = {isa = PBXBuildFile; fileRef = 231528DBC6556603FCFF060E; };
@@ -44,6 +45,7 @@
 		3201D56E12B692DF589404E8 /* include_juce_audio_utils.mm */ = {isa = PBXBuildFile; fileRef = 0295E8DB0FB28056B5EFD60F; };
 		36F17547828BD0BC27FB25DC /* WFSLogger.cpp */ = {isa = PBXBuildFile; fileRef = 2A3098A01F4897C79C3BDD80; };
 		3766AF344B413534B3F3F8AD /* CudaObBackend.cpp */ = {isa = PBXBuildFile; fileRef = E0D96951986CE93A30071986; };
+		38167E98A7BB0CC92805C08D /* MacHidTouchManager.mm */ = {isa = PBXBuildFile; fileRef = A03A25769515ACB061E4E4CE; };
 		3E0A0AB3E298FA5F0241DEB0 /* include_juce_audio_formats.mm */ = {isa = PBXBuildFile; fileRef = 88828B243F838905A44A3AE5; };
 		3E6370CF69F496FEC46111AE /* PatchMatrixShim.cpp */ = {isa = PBXBuildFile; fileRef = 642B404DC1044240DDD7FD3A; };
 		3E7B7B561E9084B4A9893314 /* transport.cpp */ = {isa = PBXBuildFile; fileRef = E03BFBED1B3A6DBAC7DA300D; };
@@ -190,6 +192,8 @@
 		0295E8DB0FB28056B5EFD60F /* include_juce_audio_utils.mm */ /* include_juce_audio_utils.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_utils.mm; path = ../../JuceLibraryCode/include_juce_audio_utils.mm; sourceTree = SOURCE_ROOT; };
 		0336BAD5994A5DD29FEB2B02 /* UpdateChecker.h */ /* UpdateChecker.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = UpdateChecker.h; path = ../../Source/UpdateChecker.h; sourceTree = SOURCE_ROOT; };
 		0430A50E40195C34A3D32E6D /* CudaObKernels.h */ /* CudaObKernels.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CudaObKernels.h; path = ../../spatcore/gpu/CudaObKernels.h; sourceTree = SOURCE_ROOT; };
+		0568B302C465736CE9457405 /* TouchInjector.cpp */ /* TouchInjector.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = TouchInjector.cpp; path = ../../spatcore/controllers/touch/TouchInjector.cpp; sourceTree = SOURCE_ROOT; };
+		05A8C3287BC9D98BD114E84C /* TouchInjector.h */ /* TouchInjector.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TouchInjector.h; path = ../../spatcore/controllers/touch/TouchInjector.h; sourceTree = SOURCE_ROOT; };
 		05D2B5A53FEB53CA24CFD91E /* LocalizationManager.cpp */ /* LocalizationManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = LocalizationManager.cpp; path = ../../Source/Localization/LocalizationManager.cpp; sourceTree = SOURCE_ROOT; };
 		0724D2EC3F7252162C616AE8 /* InputsTab.h */ /* InputsTab.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = InputsTab.h; path = ../../Source/gui/InputsTab.h; sourceTree = SOURCE_ROOT; };
 		077B2948E10BFDDEDA298758 /* TabIndex.h */ /* TabIndex.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TabIndex.h; path = ../../Source/gui/TabIndex.h; sourceTree = SOURCE_ROOT; };
@@ -270,6 +274,7 @@
 		344E94DE75CE8AD15E5DF4F7 /* SystemConfigTab.h */ /* SystemConfigTab.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SystemConfigTab.h; path = ../../Source/gui/SystemConfigTab.h; sourceTree = SOURCE_ROOT; };
 		3490B82F1263703CAD0AD65B /* MCPServer.h */ /* MCPServer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPServer.h; path = ../../Source/Network/MCP/MCPServer.h; sourceTree = SOURCE_ROOT; };
 		34EFFCC800FCC66BA545C8F2 /* dataobject.c */ /* dataobject.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = dataobject.c; path = ../../ThirdParty/libmysofa/src/hdf/dataobject.c; sourceTree = SOURCE_ROOT; };
+		3513450C95A926C7D19A645A /* TouchCalibration.h */ /* TouchCalibration.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TouchCalibration.h; path = ../../spatcore/controllers/touch/TouchCalibration.h; sourceTree = SOURCE_ROOT; };
 		359A0BC4EBF9F94A8B6A77BF /* MetalSdnKernels.h */ /* MetalSdnKernels.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MetalSdnKernels.h; path = ../../spatcore/gpu/MetalSdnKernels.h; sourceTree = SOURCE_ROOT; };
 		35A75BE8F742B3CF106ACE1B /* WFSValueTreeState.h */ /* WFSValueTreeState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WFSValueTreeState.h; path = ../../Source/Parameters/WFSValueTreeState.h; sourceTree = SOURCE_ROOT; };
 		3602CFC7A2DCE550B55B8963 /* htk_protocol.h */ /* htk_protocol.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = htk_protocol.h; path = ../../ThirdParty/headtracker/firmware/common/protocol/htk_protocol.h; sourceTree = SOURCE_ROOT; };
@@ -376,6 +381,7 @@
 		7A262E709A4F48BE09BF5CC4 /* include_juce_graphics_libwebp_sharpyuv.c */ /* include_juce_graphics_libwebp_sharpyuv.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = include_juce_graphics_libwebp_sharpyuv.c; path = ../../JuceLibraryCode/include_juce_graphics_libwebp_sharpyuv.c; sourceTree = SOURCE_ROOT; };
 		7A54176DB331E6CFDFC348CA /* BinaryData.h */ /* BinaryData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = BinaryData.h; path = ../../JuceLibraryCode/BinaryData.h; sourceTree = SOURCE_ROOT; };
 		7A72B859DF78898474724661 /* GpuHostWorkPool.h */ /* GpuHostWorkPool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GpuHostWorkPool.h; path = ../../spatcore/gpu/GpuHostWorkPool.h; sourceTree = SOURCE_ROOT; };
+		7AF01C6195783B0A22B6D3F0 /* HidDigitizerDescriptor.h */ /* HidDigitizerDescriptor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = HidDigitizerDescriptor.h; path = ../../spatcore/controllers/touch/hid/HidDigitizerDescriptor.h; sourceTree = SOURCE_ROOT; };
 		7AFF9282759B81540BA02DCC /* MapTab.h */ /* MapTab.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MapTab.h; path = ../../Source/gui/MapTab.h; sourceTree = SOURCE_ROOT; };
 		7B874E1E9B9C2D6461A3055A /* MetalObBackend.h */ /* MetalObBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MetalObBackend.h; path = ../../spatcore/gpu/MetalObBackend.h; sourceTree = SOURCE_ROOT; };
 		7C12942DF45AB151CC4D8F49 /* juce_audio_utils */ /* juce_audio_utils */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_audio_utils; path = ../../ThirdParty/JUCE/modules/juce_audio_utils; sourceTree = SOURCE_ROOT; };
@@ -404,6 +410,7 @@
 		89F19441719BBC804132D553 /* TrackingPSNReceiver.cpp */ /* TrackingPSNReceiver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = TrackingPSNReceiver.cpp; path = ../../Source/Network/TrackingPSNReceiver.cpp; sourceTree = SOURCE_ROOT; };
 		8AB84F1939ABCA3CB159A5B8 /* MetalFdnBackend.h */ /* MetalFdnBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MetalFdnBackend.h; path = ../../spatcore/gpu/MetalFdnBackend.h; sourceTree = SOURCE_ROOT; };
 		8AD2236FB1023A11A50BDF0F /* EffectsChannelPanel.h */ /* EffectsChannelPanel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = EffectsChannelPanel.h; path = ../../Source/gui/effects/EffectsChannelPanel.h; sourceTree = SOURCE_ROOT; };
+		8BA8FB389D95A48EC1D82A70 /* HidContactTracker.h */ /* HidContactTracker.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = HidContactTracker.h; path = ../../spatcore/controllers/touch/hid/HidContactTracker.h; sourceTree = SOURCE_ROOT; };
 		8BDFF50F5C228E133FE51580 /* OSCManager.cpp */ /* OSCManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCManager.cpp; path = ../../Source/Network/OSCManager.cpp; sourceTree = SOURCE_ROOT; };
 		8C11E7326375A886C71FF31C /* MetalKit.framework */ /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		8DB03BA853F8E5B1A25A7906 /* reader.c */ /* reader.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = reader.c; path = ../../ThirdParty/libmysofa/src/hrtf/reader.c; sourceTree = SOURCE_ROOT; };
@@ -427,6 +434,7 @@
 		9D694DF0A6065B72BB8A4A10 /* StreamDeckManager.h */ /* StreamDeckManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StreamDeckManager.h; path = ../../spatcore/controllers/streamdeck/StreamDeckManager.h; sourceTree = SOURCE_ROOT; };
 		9F2BD03DF373651E39BEDFE5 /* TrackingMQTTReceiver.h */ /* TrackingMQTTReceiver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TrackingMQTTReceiver.h; path = ../../Source/Network/TrackingMQTTReceiver.h; sourceTree = SOURCE_ROOT; };
 		9F333764A6A1446DF0903EC4 /* MetalSdnBackend.mm */ /* MetalSdnBackend.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = MetalSdnBackend.mm; path = ../../spatcore/gpu/MetalSdnBackend.mm; sourceTree = SOURCE_ROOT; };
+		A03A25769515ACB061E4E4CE /* MacHidTouchManager.mm */ /* MacHidTouchManager.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = MacHidTouchManager.mm; path = ../../spatcore/controllers/touch/macos/MacHidTouchManager.mm; sourceTree = SOURCE_ROOT; };
 		A0B89D22E0764DB96C3EA998 /* include_juce_graphics.mm */ /* include_juce_graphics.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_graphics.mm; path = ../../JuceLibraryCode/include_juce_graphics.mm; sourceTree = SOURCE_ROOT; };
 		A0FAA2AF96B3C1A44671F258 /* AudioPatchTab.h */ /* AudioPatchTab.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = AudioPatchTab.h; path = ../../Source/gui/AudioPatchTab.h; sourceTree = SOURCE_ROOT; };
 		A3415422604025237135E68E /* HipIrBackend.h */ /* HipIrBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = HipIrBackend.h; path = ../../spatcore/gpu/HipIrBackend.h; sourceTree = SOURCE_ROOT; };
@@ -505,6 +513,7 @@
 		CDBED1B9FA3F02E13A4435CE /* TrackingRTTrPReceiver.cpp */ /* TrackingRTTrPReceiver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = TrackingRTTrPReceiver.cpp; path = ../../Source/Network/TrackingRTTrPReceiver.cpp; sourceTree = SOURCE_ROOT; };
 		CDFCAEFFDE223B38F2084C89 /* FdnGpuBackend.h */ /* FdnGpuBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = FdnGpuBackend.h; path = ../../spatcore/gpu/FdnGpuBackend.h; sourceTree = SOURCE_ROOT; };
 		CE151A36C2798C86F74A1F57 /* EffectsTab.h */ /* EffectsTab.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = EffectsTab.h; path = ../../Source/gui/effects/EffectsTab.h; sourceTree = SOURCE_ROOT; };
+		CE4F9B9F35B476D1A1894EBB /* MacHidTouchManager.h */ /* MacHidTouchManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MacHidTouchManager.h; path = ../../spatcore/controllers/touch/macos/MacHidTouchManager.h; sourceTree = SOURCE_ROOT; };
 		CE540094C2300E3D686181BF /* neighbors.c */ /* neighbors.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = neighbors.c; path = ../../ThirdParty/libmysofa/src/hrtf/neighbors.c; sourceTree = SOURCE_ROOT; };
 		CEC081A521DE9D3B8C616524 /* InputTools.h */ /* InputTools.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = InputTools.h; path = ../../Source/Network/MCP/tools/InputTools.h; sourceTree = SOURCE_ROOT; };
 		D07FA404513B4AA9B62D68F9 /* zutil.c */ /* zutil.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = zutil.c; path = ../../ThirdParty/zlib/zutil.c; sourceTree = SOURCE_ROOT; };
@@ -766,6 +775,20 @@
 			name = Source;
 			sourceTree = "<group>";
 		};
+		4575753D870BC91C70184814 /* Touch */ = {
+			isa = PBXGroup;
+			children = (
+				7AF01C6195783B0A22B6D3F0,
+				8BA8FB389D95A48EC1D82A70,
+				3513450C95A926C7D19A645A,
+				05A8C3287BC9D98BD114E84C,
+				0568B302C465736CE9457405,
+				CE4F9B9F35B476D1A1894EBB,
+				A03A25769515ACB061E4E4CE,
+			);
+			name = Touch;
+			sourceTree = "<group>";
+		};
 		48358E746C391AAE56B8D55B /* WFS-DIY */ = {
 			isa = PBXGroup;
 			children = (
@@ -789,6 +812,7 @@
 				5FF0FAA0C6DF3F6D0E54089E,
 				B1458AF34AA6B9088758B69E,
 				08C9CE75099E36954892174F,
+				4575753D870BC91C70184814,
 			);
 			name = Controllers;
 			sourceTree = "<group>";
@@ -1391,6 +1415,8 @@
 				2C3D6E16B030BCDDAAB805DC,
 				6D07F065D7F9C1CE939923C9,
 				C4DFE83A0E4F48DD1A780437,
+				05513A70F3161688B77BBEDD,
+				38167E98A7BB0CC92805C08D,
 				D7BE7762C078D5CE3CFD2161,
 				FD5389BC78F5EC6BDF858A07,
 				459EE52E679CA2CEC84864BC,
@@ -1637,7 +1663,7 @@
 				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../ThirdParty/JUCE/modules $(SRCROOT)/../../ThirdParty $(SRCROOT)/../../ThirdParty/headtracker/host/libheadtracker/include $(SRCROOT)/../../ThirdParty/headtracker/firmware/common/protocol $(SRCROOT)/../../ThirdParty/hidapi $(SRCROOT)/../../ThirdParty/hidapi/hidapi $(SRCROOT)/../../ThirdParty/libmysofa/src/hrtf $(SRCROOT)/../../ThirdParty/zlib";
 				OTHER_CFLAGS = "$(inherited)";
 				OTHER_CPLUSPLUSFLAGS = "$(inherited)";
-				OTHER_LDFLAGS = "$(inherited) -lssl -lcrypto -lz -framework SystemConfiguration -framework CoreFoundation -framework IOKit -framework Metal";
+				OTHER_LDFLAGS = "$(inherited) -lssl -lcrypto -lz -framework SystemConfiguration -framework CoreFoundation -framework IOKit -framework ApplicationServices -framework Metal";
 				PRODUCT_BUNDLE_IDENTIFIER = com.wfsdiy.app;
 				PRODUCT_NAME = "WFS-DIY";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1733,7 +1759,7 @@
 				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../ThirdParty/JUCE/modules $(SRCROOT)/../../ThirdParty $(SRCROOT)/../../ThirdParty/headtracker/host/libheadtracker/include $(SRCROOT)/../../ThirdParty/headtracker/firmware/common/protocol $(SRCROOT)/../../ThirdParty/hidapi $(SRCROOT)/../../ThirdParty/hidapi/hidapi $(SRCROOT)/../../ThirdParty/libmysofa/src/hrtf $(SRCROOT)/../../ThirdParty/zlib";
 				OTHER_CFLAGS = "$(inherited)";
 				OTHER_CPLUSPLUSFLAGS = "$(inherited)";
-				OTHER_LDFLAGS = "$(inherited) -lssl -lcrypto -lz -framework SystemConfiguration -framework CoreFoundation -framework IOKit -framework Metal";
+				OTHER_LDFLAGS = "$(inherited) -lssl -lcrypto -lz -framework SystemConfiguration -framework CoreFoundation -framework IOKit -framework ApplicationServices -framework Metal";
 				PRODUCT_BUNDLE_IDENTIFIER = com.wfsdiy.app;
 				PRODUCT_NAME = "WFS-DIY";
 				PROVISIONING_PROFILE_SPECIFIER = "";

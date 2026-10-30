@@ -587,6 +587,14 @@ public:
 
     //==========================================================================
     // Mouse Handling
+    /** Where an input's main marker is drawn, in this component's coordinates
+        (the point getInputAtPosition hit-tests against). For the touch
+        injection self-test, which has to put a finger on a marker. */
+    juce::Point<float> getInputMarkerScreenPosition (int inputIndex) const
+    {
+        return stageToScreen (getInputPosition (inputIndex));
+    }
+
     //==========================================================================
 
     void mouseDown(const juce::MouseEvent& e) override
