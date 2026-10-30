@@ -2,7 +2,7 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
-## Unreleased
+## v1.0.0beta63 — 2026-10-31
 
 ### Added
 - **Two or more touch screens on macOS, each on its own display.** With one display, a touch screen still needs no setup. With two or more, WFS-DIY shows a circle on every display, in a different place on each, the first time a touch screen has no display yet; touch the circle once on each touch screen, and each one is assigned to the display it covers. **System Config > Touch Screens: Set Up...**, in the UI section where Windows has its Screen Rendering row, lists the connected touch screens and lets you choose each one's display, run the identification again, turn off cursor moves from touches outside WFS-DIY, or open a screen exclusively. Assignments follow the display itself, not its place in the list, so they survive rearranging or reconnecting the displays. Tested with a 16" ILITEK and an iiyama touch screen side by side.
