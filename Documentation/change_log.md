@@ -13,7 +13,7 @@ All notable changes to WFS DIY are documented in this file, organized by release
 - **WFS-DIY no longer asks to identify a touch screen whose display is merely unplugged.** It asks only for a touch screen that was never placed, or whose display can no longer be told apart from another.
 
 ### Chore / Internal
-- spatcore pinned to PR #30 (`TouchPanelRegistry`: file locks the system releases even when an application crashes).
+- spatcore pinned to main after PR #32: PR #30 (`TouchPanelRegistry`: file locks the system releases even when an application crashes), PR #31 (spatcore-tests links the touch registry), PR #32 (the mouse-mode reset waits for the HID manager to close; identical displays told apart).
 
 ## v1.0.0beta63 — 2026-10-31
 
