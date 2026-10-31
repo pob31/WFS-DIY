@@ -2,6 +2,14 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
+## v1.0.0beta64 — 2026-10-31
+
+### Added
+- **Touch screens on macOS are shared with other spatcore applications, Go.dot among them, on the same computer.** A finger on the other application's window is left to it. Only one of them moves the cursor from touches outside both; when it quits, the next one takes over. The last one to quit puts the panels back in mouse mode, and quitting WFS-DIY while Go.dot still runs leaves them in multitouch mode for Go.dot. The screens are placed once for all of them: WFS-DIY no longer offers its circles for a screen already placed in Go.dot. Settings move to `~/Library/Application Support/spatcore/touch/panels.settings`; WFS-DIY's own are copied there on first launch.
+
+### Chore / Internal
+- spatcore pinned to PR #30 (`TouchPanelRegistry`: file locks the system releases even when an application crashes).
+
 ## v1.0.0beta63 — 2026-10-31
 
 ### Added
