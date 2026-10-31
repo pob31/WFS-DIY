@@ -1156,8 +1156,10 @@ MainComponent::MainComponent()
             // its settings are shared. Notifies only on a change, so no loop.
             safe->macTouchManager->reloadSettings();
 
+            const auto displays = spatcore::controllers::MacHidTouchManager::getDisplays();
             for (auto& p : safe->macTouchManager->getPanels())
-                if (p.connected && p.problem.isEmpty() && ! safe->macTouchManager->hasDisplay (p.settings)
+                if (p.connected && p.problem.isEmpty()
+                    && spatcore::controllers::MacHidTouchManager::needsIdentify (p.settings, displays)
                     && safe->touchIdentifyOffered.insert (p.key).second)
                 {
                     WFSLogger::getInstance().logInfo ("Touch panel: " + p.name + " [" + p.key

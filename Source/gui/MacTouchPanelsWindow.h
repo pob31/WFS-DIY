@@ -276,7 +276,7 @@ private:
                                         + juce::String (d.bounds.getWidth()) + " x " + juce::String (d.bounds.getHeight())
                                         + (d.isMain ? "  (" + LOC ("touchScreens.main") + ")" : juce::String()),
                                     (int) i + 2);
-                if (d.id == p.settings.displayId)
+                if ((int) i == Manager::findDisplay (p.settings.displayId, displays))
                     selected = (int) i + 2;
             }
             displayBox.setSelectedId (selected, juce::dontSendNotification);

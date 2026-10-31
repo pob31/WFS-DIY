@@ -7,6 +7,11 @@ All notable changes to WFS DIY are documented in this file, organized by release
 ### Added
 - **Touch screens on macOS are shared with other spatcore applications, Go.dot among them, on the same computer.** A finger on the other application's window is left to it. Only one of them moves the cursor from touches outside both; when it quits, the next one takes over. The last one to quit puts the panels back in mouse mode, and quitting WFS-DIY while Go.dot still runs leaves them in multitouch mode for Go.dot. The screens are placed once for all of them: WFS-DIY no longer offers its circles for a screen already placed in Go.dot. Settings move to `~/Library/Application Support/spatcore/touch/panels.settings`; WFS-DIY's own are copied there on first launch.
 
+### Fixed
+- **On macOS, a touch screen is a mouse again after the last touch-enabled application quits.** The panel was reset while WFS-DIY was still reading it, and it came straight back in multitouch mode; the reset now waits until WFS-DIY has let go of it. A touch screen that has no mouse mode of its own (the iiyama's, for one: macOS never uses it as a pointer, with or without WFS-DIY) is left alone, and the log says so.
+- **Two identical touch screens each go to their own display.** Two identical monitors can report the same identity, down to the serial number, so both touch screens went to the same display. Each display is now also told apart by the connection macOS gives it; screens placed by an earlier version keep their display wherever it is unambiguous.
+- **WFS-DIY no longer asks to identify a touch screen whose display is merely unplugged.** It asks only for a touch screen that was never placed, or whose display can no longer be told apart from another.
+
 ### Chore / Internal
 - spatcore pinned to PR #30 (`TouchPanelRegistry`: file locks the system releases even when an application crashes).
 
