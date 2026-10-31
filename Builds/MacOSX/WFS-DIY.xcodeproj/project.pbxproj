@@ -64,6 +64,7 @@
 		581FFD18F3EF1D0309FA0747 /* CudaSdnBackend.cpp */ = {isa = PBXBuildFile; fileRef = B028DF103261CAED92414C4A; };
 		58D69076FF4CE13A484EF5E7 /* MCPToolRegistry.cpp */ = {isa = PBXBuildFile; fileRef = 856AD36078496D6DCDDD3DE3; };
 		597D4525120E3BF0EECAC647 /* MCPServer.cpp */ = {isa = PBXBuildFile; fileRef = 4B6061E2662DD31DD344DA07; };
+		5A641D0160D933E256366701 /* TouchPanelRegistry.cpp */ = {isa = PBXBuildFile; fileRef = 812677FCABC414E2E31840C9; };
 		5AC314F1E4ABBDE1265BDE55 /* include_juce_graphics_libwebp_sharpyuv.c */ = {isa = PBXBuildFile; fileRef = 7A262E709A4F48BE09BF5CC4; };
 		5D0636565D7171BAD27B09AD /* lookup.c */ = {isa = PBXBuildFile; fileRef = 0B8F55D3642FB94A31002CCE; };
 		5D4E9619AEF393D1B45801B4 /* include_juce_audio_processors_headless_ara.cpp */ = {isa = PBXBuildFile; fileRef = A578604C7C69A5F0AB6D4219; };
@@ -346,6 +347,7 @@
 		6527D777383138607556F806 /* LocalizationManager.h */ /* LocalizationManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = LocalizationManager.h; path = ../../Source/Localization/LocalizationManager.h; sourceTree = SOURCE_ROOT; };
 		66551D52C0A4830C24A57285 /* juce_osc */ /* juce_osc */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_osc; path = ../../ThirdParty/JUCE/modules/juce_osc; sourceTree = SOURCE_ROOT; };
 		6853F259D734E247030942FD /* include_juce_graphics_libwebp_dsp_dec.c */ /* include_juce_graphics_libwebp_dsp_dec.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = include_juce_graphics_libwebp_dsp_dec.c; path = ../../JuceLibraryCode/include_juce_graphics_libwebp_dsp_dec.c; sourceTree = SOURCE_ROOT; };
+		6936BB0D06E3B9DC81A2FAB5 /* TouchPanelRegistry.h */ /* TouchPanelRegistry.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TouchPanelRegistry.h; path = ../../spatcore/controllers/touch/TouchPanelRegistry.h; sourceTree = SOURCE_ROOT; };
 		69B2087E3025EB27857CB870 /* MCPUndoOverlay.h */ /* MCPUndoOverlay.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPUndoOverlay.h; path = ../../Source/gui/MCPUndoOverlay.h; sourceTree = SOURCE_ROOT; };
 		69C917578578859B1CE878B8 /* GradientMapEditor.h */ /* GradientMapEditor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GradientMapEditor.h; path = ../../Source/GradientMap/GradientMapEditor.h; sourceTree = SOURCE_ROOT; };
 		6A24677DF371FEEAE8B9B546 /* OSCReceiverWithSenderIP.h */ /* OSCReceiverWithSenderIP.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCReceiverWithSenderIP.h; path = ../../spatcore/control/osc/OSCReceiverWithSenderIP.h; sourceTree = SOURCE_ROOT; };
@@ -395,6 +397,7 @@
 		804E6FAA96E98800D5B3A07B /* commands.cpp */ /* commands.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = commands.cpp; path = ../../ThirdParty/headtracker/host/libheadtracker/src/commands.cpp; sourceTree = SOURCE_ROOT; };
 		804EEBC4D9F5B58A736D9D88 /* TrackingOSCReceiver.h */ /* TrackingOSCReceiver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TrackingOSCReceiver.h; path = ../../Source/Network/TrackingOSCReceiver.h; sourceTree = SOURCE_ROOT; };
 		81168A0FE8284B31A0F86847 /* CudaWfsKernels.h */ /* CudaWfsKernels.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CudaWfsKernels.h; path = ../../spatcore/gpu/CudaWfsKernels.h; sourceTree = SOURCE_ROOT; };
+		812677FCABC414E2E31840C9 /* TouchPanelRegistry.cpp */ /* TouchPanelRegistry.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = TouchPanelRegistry.cpp; path = ../../spatcore/controllers/touch/TouchPanelRegistry.cpp; sourceTree = SOURCE_ROOT; };
 		8221B4E7339966AC676FA364 /* EffectsModuleDescriptors.h */ /* EffectsModuleDescriptors.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = EffectsModuleDescriptors.h; path = ../../Source/gui/effects/EffectsModuleDescriptors.h; sourceTree = SOURCE_ROOT; };
 		8293DF47F73DE63FD985E6C4 /* MCPResourceRegistry.h */ /* MCPResourceRegistry.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPResourceRegistry.h; path = ../../spatcore/control/mcp/MCPResourceRegistry.h; sourceTree = SOURCE_ROOT; };
 		8329F88D390FEDE692824213 /* NudgeParameterTool.h */ /* NudgeParameterTool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = NudgeParameterTool.h; path = ../../Source/Network/MCP/tools/NudgeParameterTool.h; sourceTree = SOURCE_ROOT; };
@@ -784,6 +787,8 @@
 				3513450C95A926C7D19A645A,
 				05A8C3287BC9D98BD114E84C,
 				0568B302C465736CE9457405,
+				6936BB0D06E3B9DC81A2FAB5,
+				812677FCABC414E2E31840C9,
 				CE4F9B9F35B476D1A1894EBB,
 				A03A25769515ACB061E4E4CE,
 			);
@@ -1418,6 +1423,7 @@
 				6D07F065D7F9C1CE939923C9,
 				C4DFE83A0E4F48DD1A780437,
 				05513A70F3161688B77BBEDD,
+				5A641D0160D933E256366701,
 				38167E98A7BB0CC92805C08D,
 				D7BE7762C078D5CE3CFD2161,
 				FD5389BC78F5EC6BDF858A07,

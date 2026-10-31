@@ -119,6 +119,7 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/MCPPromptRegistry_dfc30a9.o \
   $(JUCE_OBJDIR)/MCPParameterRegistry_efa6b86b.o \
   $(JUCE_OBJDIR)/TouchInjector_70c28ea0.o \
+  $(JUCE_OBJDIR)/TouchPanelRegistry_d5df003f.o \
   $(JUCE_OBJDIR)/HidApiPlatform_aec62187.o \
   $(JUCE_OBJDIR)/htk_crc16_6a5f508e.o \
   $(JUCE_OBJDIR)/htk_cobs_b86ba92.o \
@@ -465,6 +466,11 @@ $(JUCE_OBJDIR)/MCPParameterRegistry_efa6b86b.o: ../../Source/Network/MCP/MCPPara
 $(JUCE_OBJDIR)/TouchInjector_70c28ea0.o: ../../spatcore/controllers/touch/TouchInjector.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling TouchInjector.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/TouchPanelRegistry_d5df003f.o: ../../spatcore/controllers/touch/TouchPanelRegistry.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling TouchPanelRegistry.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/HidApiPlatform_aec62187.o: ../../ThirdParty/hidapi/HidApiPlatform.c

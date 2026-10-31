@@ -1315,6 +1315,9 @@
     <ClCompile Include="..\..\spatcore\controllers\touch\TouchInjector.cpp">
       <Filter>WFS-DIY\Source\Controllers\Touch</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\spatcore\controllers\touch\TouchPanelRegistry.cpp">
+      <Filter>WFS-DIY\Source\Controllers\Touch</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\spatcore\controllers\touch\macos\MacHidTouchManager.mm">
       <Filter>WFS-DIY\Source\Controllers\Touch</Filter>
     </ClCompile>
@@ -6139,6 +6142,9 @@
       <Filter>WFS-DIY\Source\Controllers\Touch</Filter>
     </ClInclude>
     <ClInclude Include="..\..\spatcore\controllers\touch\TouchInjector.h">
+      <Filter>WFS-DIY\Source\Controllers\Touch</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\spatcore\controllers\touch\TouchPanelRegistry.h">
       <Filter>WFS-DIY\Source\Controllers\Touch</Filter>
     </ClInclude>
     <ClInclude Include="..\..\spatcore\controllers\touch\macos\MacHidTouchManager.h">

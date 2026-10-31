@@ -1152,6 +1152,10 @@ MainComponent::MainComponent()
             if (juce::Desktop::getInstance().getDisplays().displays.size() < 2)
                 return;
 
+            // A screen already placed in another spatcore app (Go.dot) counts:
+            // its settings are shared. Notifies only on a change, so no loop.
+            safe->macTouchManager->reloadSettings();
+
             for (auto& p : safe->macTouchManager->getPanels())
                 if (p.connected && p.problem.isEmpty() && ! safe->macTouchManager->hasDisplay (p.settings)
                     && safe->touchIdentifyOffered.insert (p.key).second)

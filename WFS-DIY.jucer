@@ -399,6 +399,10 @@
                 file="spatcore/controllers/touch/TouchInjector.h"/>
           <FILE id="tchInjCpp" name="TouchInjector.cpp" compile="1" resource="0"
                 file="spatcore/controllers/touch/TouchInjector.cpp"/>
+          <FILE id="tchRegH" name="TouchPanelRegistry.h" compile="0" resource="0"
+                file="spatcore/controllers/touch/TouchPanelRegistry.h"/>
+          <FILE id="tchRegCpp" name="TouchPanelRegistry.cpp" compile="1" resource="0"
+                file="spatcore/controllers/touch/TouchPanelRegistry.cpp"/>
           <FILE id="tchMacMgrH" name="MacHidTouchManager.h" compile="0" resource="0"
                 file="spatcore/controllers/touch/macos/MacHidTouchManager.h"/>
           <FILE id="tchMacMgrMm" name="MacHidTouchManager.mm" compile="1" resource="0"
