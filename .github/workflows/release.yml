@@ -4,6 +4,9 @@ name: Release
 # Release. Runs when a Release is published, or on manual dispatch against an
 # existing tag. macOS is signed + notarized + stapled; Windows ships an unsigned
 # Inno Setup installer and Linux a tar.gz (no Windows code-signing cert).
+#
+# Plugin releases (`plugins-v*` tags, plugins-release.yml) skip every job here
+# via the verify-version gate.
 
 on:
   release:
@@ -29,6 +32,7 @@ jobs:
   # spending build minutes. Version lives in JuceLibraryCode/JuceHeader.h.
   verify-version:
     name: verify tag == versionString
+    if: startsWith(github.event.release.tag_name || github.event.inputs.tag, 'v')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
