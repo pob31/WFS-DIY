@@ -4,6 +4,9 @@ All notable changes to WFS DIY are documented in this file, organized by release
 
 ## Unreleased
 
+### Added
+- **On Linux with GNOME, multitouch on a touch screen is no longer cut short by GNOME's own gestures.** GNOME Shell takes three-finger swipes and edge drags for itself, even inside a fullscreen application, and WFS-DIY lost those fingers mid-move. The Linux installer now offers a small GNOME Shell extension that turns those gestures off while a WFS-DIY window is open and gives them back when it closes. It comes from spatcore and is shared with Go.dot and later spatcore applications: one copy serves all of them, and uninstalling WFS-DIY leaves it in place while another of them still uses it. Log out and back in once after installing it; `gnome-extensions disable spatcore-touch@spatcore` turns it off.
+
 ### Changed
 - **The macOS app needs macOS 12 (Monterey) or later.** It ran on 10.13 until now. JUCE 9.0.5 raises the minimum, because Xcode 27 builds nothing older. The DAW plugins still run on 10.13.
 
@@ -12,7 +15,7 @@ All notable changes to WFS DIY are documented in this file, organized by release
 
 ### Chore / Internal
 - JUCE 9.0.5 (from 9.0.4). Message boxes give each button an explicit result code (the codes they had before, so no handler changes meaning) and a Cancel role on their Cancel button; `WfsLookAndFeel` builds alerts through `createAlertWindowForOptions`. The release also fixes some Direct2D presentation, WinMM MIDI, X11 and VST3 hosting issues. spatcore's minimal-app example moves to 9.0.5 on spatcore's own `juce-9.0.5` branch.
-- spatcore pinned to main after PR #33 (the macOS touch reader takes a display's area from `logicalBounds` instead of the deprecated `totalArea`, which JUCE 9 builds warned about).
+- spatcore pinned to main after PR #34: PR #33 (the macOS touch reader takes a display's area from `logicalBounds` instead of the deprecated `totalArea`, which JUCE 9 builds warned about), PR #34 (the GNOME Shell extension and its `gesture-hold.sh` installer helper, under `controllers/touch/linux/gnome-shell/`; WFS-DIY's own copy is gone).
 
 ## v1.0.0beta64 — 2026-10-31
 

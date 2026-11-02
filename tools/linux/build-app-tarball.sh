@@ -286,6 +286,11 @@ esac
 mkdir -p "$STAGE_DIR/share"
 cp "$REPO_ROOT/assets/linux/70-wfs-diy.rules" "$STAGE_DIR/share/"
 cp "$REPO_ROOT/Resources/WFS-DIY_logo.png"     "$STAGE_DIR/share/"
+# spatcore's GNOME Shell extension that keeps GNOME's touchscreen gestures off
+# while a spatcore app (WFS-DIY, Go.dot, ...) is open - they swallow
+# multitouch - and gesture-hold.sh, which registers apps with it; install.sh
+# offers it.
+cp -R "$REPO_ROOT/spatcore/controllers/touch/linux/gnome-shell" "$STAGE_DIR/share/"
 
 # .desktop entry — installer rewrites Exec=/Icon= paths during install.
 cat > "$STAGE_DIR/share/wfs-diy.desktop" <<'EOF'
@@ -354,6 +359,9 @@ for so in "$HERE"/libwfs_*.so; do [[ -e "$so" ]] && $SUDO install -m 0755 "$so" 
 $SUDO cp -R          "$HERE/lang"                      "$APP_DIR/lang"
 $SUDO cp -R          "$HERE/MCP"                       "$APP_DIR/MCP"
 $SUDO install -m 0644 "$HERE/share/WFS-DIY_logo.png"   "$APP_DIR/WFS-DIY_logo.png"
+# Kept beside the app so the uninstaller can unregister WFS-DIY.
+$SUDO rm -rf         "$APP_DIR/gnome-shell"
+$SUDO cp -R          "$HERE/share/gnome-shell"          "$APP_DIR/gnome-shell"
 
 # Write a prefix-baked uninstaller into $APP_DIR so users can simply run it
 # without remembering which prefix they installed against. The inner heredoc
@@ -366,6 +374,13 @@ set -euo pipefail
 PREFIX="$PREFIX"
 SUDO=""; [[ "\$PREFIX" != "\$HOME/"* ]] && SUDO="sudo"
 
+# GNOME touch-gesture hold: unregister WFS-DIY first (a refused sudo below
+# must not skip it); the extension goes with the last spatcore app. Runs as
+# the user (it is per user), never with sudo.
+GESTURE_HOLD="\$PREFIX/share/wfs-diy/gnome-shell/gesture-hold.sh"
+if [[ -x "\$GESTURE_HOLD" && "\$(id -u)" != 0 ]]; then
+    "\$GESTURE_HOLD" unregister WFS-DIY || true
+fi
 \$SUDO rm -f  "\$PREFIX/bin/WFS-DIY"
 \$SUDO rm -f  "\$PREFIX/share/applications/wfs-diy.desktop"
 if [[ -f /etc/udev/rules.d/70-wfs-diy.rules ]]; then
@@ -402,6 +417,25 @@ else
     echo "Stdin not a tty — skipping udev rules. Copy share/70-wfs-diy.rules to /etc/udev/rules.d/ manually if needed."
 fi
 
+# GNOME's touchscreen gestures (three-finger swipes, edge drags) take the
+# fingers away from WFS-DIY mid-move. spatcore's extension turns them off while
+# a spatcore app is open; gesture-hold.sh installs it per user and registers
+# WFS-DIY with it.
+if command -v gnome-shell >/dev/null 2>&1 && [[ -x "$APP_DIR/gnome-shell/gesture-hold.sh" ]]; then
+    echo
+    if [[ "$(id -u)" == 0 ]]; then
+        echo "Running as root — skipping the GNOME touch-gesture hold (it is per user). Run as yourself: $APP_DIR/gnome-shell/gesture-hold.sh register WFS-DIY"
+    elif [[ -t 0 ]]; then
+        read -r -p "Turn GNOME's touchscreen gestures off while WFS-DIY is open, for multitouch (GNOME Shell extension, this user)? [Y/n] " ans
+        case "${ans,,}" in n|no) ;; *)
+            "$APP_DIR/gnome-shell/gesture-hold.sh" register WFS-DIY | sed 's/^/    /'
+            ;;
+        esac
+    else
+        echo "Stdin not a tty — skipping the GNOME touch-gesture hold. To add it: $APP_DIR/gnome-shell/gesture-hold.sh register WFS-DIY"
+    fi
+fi
+
 echo
 echo "Done. Launch from your application menu, or run: $BIN_DIR/WFS-DIY"
 echo "To uninstall: ${SUDO:+$SUDO }$APP_DIR/uninstall.sh"
@@ -414,6 +448,12 @@ set -euo pipefail
 PREFIX="${1:-$HOME/.local}"
 SUDO=""; [[ "$PREFIX" != "$HOME/"* ]] && SUDO="sudo"
 
+# GNOME touch-gesture hold: unregister WFS-DIY before its copy of the helper
+# goes; the extension goes with the last spatcore app.
+GESTURE_HOLD="$PREFIX/share/wfs-diy/gnome-shell/gesture-hold.sh"
+if [[ -x "$GESTURE_HOLD" && "$(id -u)" != 0 ]]; then
+    "$GESTURE_HOLD" unregister WFS-DIY || true
+fi
 $SUDO rm -f  "$PREFIX/bin/WFS-DIY"
 $SUDO rm -rf "$PREFIX/share/wfs-diy"
 $SUDO rm -f  "$PREFIX/share/applications/wfs-diy.desktop"
@@ -465,6 +505,15 @@ in this archive. udev rules under share/70-wfs-diy.rules grant non-root
 access to Stream Deck, 3Dconnexion SpaceMouse and
 USB touchscreens. The installer offers to drop them in /etc/udev/rules.d
 on request.
+
+Touchscreens under GNOME
+    GNOME Shell's touchscreen gestures (three-finger swipes, edge drags)
+    take the fingers away from WFS-DIY mid-move. The installer offers
+    spatcore's GNOME Shell extension (share/gnome-shell/spatcore-touch@spatcore),
+    shared with other spatcore applications such as Go.dot. It turns them off
+    while one of those applications is open and back on when the last closes.
+    Log out and back in once after installing it. To turn it off:
+      gnome-extensions disable spatcore-touch@spatcore
 ${HEADTRACK_README}${GPU_README}
 Source: https://github.com/pob31/WFS-DIY
 EOF
