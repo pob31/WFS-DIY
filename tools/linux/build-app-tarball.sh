@@ -286,6 +286,9 @@ esac
 mkdir -p "$STAGE_DIR/share"
 cp "$REPO_ROOT/assets/linux/70-wfs-diy.rules" "$STAGE_DIR/share/"
 cp "$REPO_ROOT/Resources/WFS-DIY_logo.png"     "$STAGE_DIR/share/"
+# GNOME Shell extension that keeps GNOME's touchscreen gestures off while
+# WFS-DIY is open (they swallow multitouch); install.sh offers it.
+cp -R "$REPO_ROOT/assets/linux/gnome-shell"    "$STAGE_DIR/share/"
 
 # .desktop entry — installer rewrites Exec=/Icon= paths during install.
 cat > "$STAGE_DIR/share/wfs-diy.desktop" <<'EOF'
@@ -329,6 +332,7 @@ esac
 BIN_DIR="$PREFIX/bin"
 APP_DIR="$PREFIX/share/wfs-diy"
 DESKTOP_DIR="$PREFIX/share/applications"
+EXT_UUID="wfs-diy-touch@wfs-diy"
 
 echo "==> Installing to $PREFIX (mode: $MODE)"
 $SUDO mkdir -p "$BIN_DIR" "$APP_DIR" "$DESKTOP_DIR"
@@ -372,6 +376,16 @@ if [[ -f /etc/udev/rules.d/70-wfs-diy.rules ]]; then
     sudo rm -f /etc/udev/rules.d/70-wfs-diy.rules
     sudo udevadm control --reload-rules || true
 fi
+EXT_UUID="$EXT_UUID"
+if [[ -d "\$HOME/.local/share/gnome-shell/extensions/\$EXT_UUID" ]]; then
+    rm -rf "\$HOME/.local/share/gnome-shell/extensions/\$EXT_UUID"
+    if command -v gsettings >/dev/null 2>&1; then
+        cur=\$(gsettings get org.gnome.shell enabled-extensions 2>/dev/null || true)
+        new=\$(printf '%s' "\$cur" | sed -e "s/, '\$EXT_UUID'//" -e "s/'\$EXT_UUID', //" -e "s/'\$EXT_UUID'//")
+        [[ "\$new" == "[]" ]] && new="@as []"
+        [[ -n "\$cur" && "\$new" != "\$cur" ]] && gsettings set org.gnome.shell enabled-extensions "\$new" || true
+    fi
+fi
 # Remove the share dir last — this deletes the running script too, but bash
 # has already loaded it into memory so the rest of the script still executes.
 \$SUDO rm -rf "\$PREFIX/share/wfs-diy"
@@ -402,6 +416,40 @@ else
     echo "Stdin not a tty — skipping udev rules. Copy share/70-wfs-diy.rules to /etc/udev/rules.d/ manually if needed."
 fi
 
+# GNOME's touchscreen gestures (three-finger swipes, edge drags) take the
+# fingers away from WFS-DIY mid-move. The extension turns them off while a
+# WFS-DIY window is open. Per user: it goes to the installing user's ~/.local.
+if command -v gnome-shell >/dev/null 2>&1 && [[ -d "$HERE/share/gnome-shell/$EXT_UUID" ]]; then
+    echo
+    ext_dir="$HOME/.local/share/gnome-shell/extensions/$EXT_UUID"
+    if [[ "$(id -u)" == 0 ]]; then
+        echo "Running as root — skipping the GNOME touch-gesture extension (it installs per user). Rerun install.sh as yourself to get it."
+    elif [[ -t 0 ]]; then
+        read -r -p "Turn GNOME's touchscreen gestures off while WFS-DIY is open, for multitouch (GNOME Shell extension, this user)? [Y/n] " ans
+        case "${ans,,}" in n|no) ;; *)
+            mkdir -p "$ext_dir"
+            cp "$HERE/share/gnome-shell/$EXT_UUID"/* "$ext_dir/"
+            if command -v gsettings >/dev/null 2>&1 && gsettings get org.gnome.shell enabled-extensions >/dev/null 2>&1; then
+                # Extensions you install yourself are blocked while this is true.
+                gsettings set org.gnome.shell disable-user-extensions false
+                cur=$(gsettings get org.gnome.shell enabled-extensions)
+                case "$cur" in
+                    *"'$EXT_UUID'"*) ;;
+                    "@as []"|"[]") gsettings set org.gnome.shell enabled-extensions "['$EXT_UUID']" ;;
+                    *) gsettings set org.gnome.shell enabled-extensions "${cur%]}, '$EXT_UUID']" ;;
+                esac
+                echo "    Extension installed. Log out and back in once for GNOME to load it."
+            else
+                echo "    Extension copied to $ext_dir, but GNOME settings are not reachable from here."
+                echo "    From your desktop session, after logging out and back in: gnome-extensions enable $EXT_UUID"
+            fi
+            ;;
+        esac
+    else
+        echo "Stdin not a tty — skipping the GNOME touch-gesture extension. Copy share/gnome-shell/$EXT_UUID to $ext_dir and enable it with gnome-extensions if needed."
+    fi
+fi
+
 echo
 echo "Done. Launch from your application menu, or run: $BIN_DIR/WFS-DIY"
 echo "To uninstall: ${SUDO:+$SUDO }$APP_DIR/uninstall.sh"
@@ -420,6 +468,16 @@ $SUDO rm -f  "$PREFIX/share/applications/wfs-diy.desktop"
 [[ -n "$SUDO" && -f /etc/udev/rules.d/70-wfs-diy.rules ]] \
     && sudo rm -f /etc/udev/rules.d/70-wfs-diy.rules \
     && sudo udevadm control --reload-rules || true
+EXT_UUID="wfs-diy-touch@wfs-diy"
+if [[ -d "$HOME/.local/share/gnome-shell/extensions/$EXT_UUID" ]]; then
+    rm -rf "$HOME/.local/share/gnome-shell/extensions/$EXT_UUID"
+    if command -v gsettings >/dev/null 2>&1; then
+        cur=$(gsettings get org.gnome.shell enabled-extensions 2>/dev/null || true)
+        new=$(printf '%s' "$cur" | sed -e "s/, '$EXT_UUID'//" -e "s/'$EXT_UUID', //" -e "s/'$EXT_UUID'//")
+        [[ "$new" == "[]" ]] && new="@as []"
+        [[ -n "$cur" && "$new" != "$cur" ]] && gsettings set org.gnome.shell enabled-extensions "$new" || true
+    fi
+fi
 
 echo "Uninstalled WFS-DIY from $PREFIX."
 UNINSTALL_EOF
@@ -465,6 +523,14 @@ in this archive. udev rules under share/70-wfs-diy.rules grant non-root
 access to Stream Deck, 3Dconnexion SpaceMouse and
 USB touchscreens. The installer offers to drop them in /etc/udev/rules.d
 on request.
+
+Touchscreens under GNOME
+    GNOME Shell's touchscreen gestures (three-finger swipes, edge drags)
+    take the fingers away from WFS-DIY mid-move. The installer offers a small
+    GNOME Shell extension (share/gnome-shell/wfs-diy-touch@wfs-diy) that turns
+    them off while a WFS-DIY window is open and back on when it closes. Log
+    out and back in once after installing it. To turn it off:
+      gnome-extensions disable wfs-diy-touch@wfs-diy
 ${HEADTRACK_README}${GPU_README}
 Source: https://github.com/pob31/WFS-DIY
 EOF
