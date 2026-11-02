@@ -2,6 +2,17 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
+## Unreleased
+
+### Changed
+- **The macOS app needs macOS 12 (Monterey) or later.** It ran on 10.13 until now. JUCE 9.0.5 raises the minimum, because Xcode 27 builds nothing older. The DAW plugins still run on 10.13.
+
+### Fixed
+- **Malformed project files, OSC packets, JSON requests and audio files can no longer crash WFS-DIY.** JUCE 9.0.5 limits how deeply XML, JSON, ValueTree data and OSC bundles may nest, caps XML entity expansion, no longer reads external DTD files named by an XML document, and checks PNG, GIF, WAV and AIFF headers before trusting them.
+
+### Chore / Internal
+- JUCE 9.0.5 (from 9.0.4). Message boxes give each button an explicit result code (the codes they had before, so no handler changes meaning) and a Cancel role on their Cancel button; `WfsLookAndFeel` builds alerts through `createAlertWindowForOptions`. The release also fixes some Direct2D presentation, WinMM MIDI, X11 and VST3 hosting issues. spatcore's minimal-app example moves to 9.0.5 on spatcore's own `juce-9.0.5` branch; the app's spatcore pin is unchanged.
+
 ## v1.0.0beta64 — 2026-10-31
 
 ### Added

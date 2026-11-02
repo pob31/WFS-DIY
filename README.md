@@ -138,7 +138,7 @@ NVIDIA GPUs (GTX 9xx/10xx) keep acceleration; developing against newer toolkits
 - **Video calls**: to show WFS-DIY in Zoom or a similar app, share the whole screen, or set **System Config > UI > Screen Rendering** to **Compatible** before sharing only the WFS-DIY window. Compatible draws on the CPU so that single-window capture sees every change; switch it back to Accelerated for shows (it always starts on Accelerated)
 
 ### macOS
-- No additional runtime dependencies — all required frameworks ship with macOS 10.13+
+- No additional runtime dependencies — all required frameworks ship with macOS 12+
 - Official `.pkg` releases are codesigned with Developer ID and notarized, so Gatekeeper opens them without any warning
 - Grant microphone permission when prompted (required for audio input)
 

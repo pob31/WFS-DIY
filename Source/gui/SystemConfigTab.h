@@ -2974,8 +2974,8 @@ private:
                     .withTitle(LOC("systemConfig.dialogs.reduceInputChannels.title"))
                     .withMessage(LOC("systemConfig.dialogs.reduceInputChannels.messageList")
                                      .replace("{rows}", rows.joinIntoString("\n")))
-                    .withButton(LOC("systemConfig.dialogs.reduce"))
-                    .withButton(LOC("common.cancel"))
+                    .withButton(LOC("systemConfig.dialogs.reduce"), 1)
+                    .withButton(juce::MessageBoxButtonOptions(LOC("common.cancel"), 0).withRole(juce::MessageBoxButtonRole::cancel))
                     .withAssociatedComponent(this);
 
                 juce::AlertWindow::showAsync(options,
@@ -3019,8 +3019,8 @@ private:
                          {"new", juce::String(newOutputs)},
                          {"start", juce::String(newOutputs + 1)},
                          {"end", juce::String(currentOutputs)}}))
-                    .withButton(LOC("systemConfig.dialogs.reduce"))
-                    .withButton(LOC("common.cancel"))
+                    .withButton(LOC("systemConfig.dialogs.reduce"), 1)
+                    .withButton(juce::MessageBoxButtonOptions(LOC("common.cancel"), 0).withRole(juce::MessageBoxButtonRole::cancel))
                     .withAssociatedComponent(this);
 
                 juce::AlertWindow::showAsync(options, [this, newOutputs, currentOutputs](int result) {
@@ -3066,8 +3066,8 @@ private:
                          {"new", juce::String(newReverbs)},
                          {"start", juce::String(newReverbs + 1)},
                          {"end", juce::String(currentReverbs)}}))
-                    .withButton(LOC("systemConfig.dialogs.reduce"))
-                    .withButton(LOC("common.cancel"))
+                    .withButton(LOC("systemConfig.dialogs.reduce"), 1)
+                    .withButton(juce::MessageBoxButtonOptions(LOC("common.cancel"), 0).withRole(juce::MessageBoxButtonRole::cancel))
                     .withAssociatedComponent(this);
 
                 juce::AlertWindow::showAsync(options, [this, newReverbs, currentReverbs](int result) {
@@ -3118,8 +3118,8 @@ private:
                          {"new", juce::String(newEffects)},
                          {"start", juce::String(newEffects + 1)},
                          {"end", juce::String(currentEffects)}}))
-                    .withButton(LOC("systemConfig.dialogs.reduce"))
-                    .withButton(LOC("common.cancel"))
+                    .withButton(LOC("systemConfig.dialogs.reduce"), 1)
+                    .withButton(juce::MessageBoxButtonOptions(LOC("common.cancel"), 0).withRole(juce::MessageBoxButtonRole::cancel))
                     .withAssociatedComponent(this);
 
                 juce::AlertWindow::showAsync(options, [this, newEffects, currentEffects](int result) {

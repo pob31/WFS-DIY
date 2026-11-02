@@ -12,7 +12,7 @@ The project builds successfully on both Windows (VS2022) and macOS (Xcode) as a 
   Metal path is macOS-only, off unless selected, and falls back to CPU on init failure)
 - **Current deployment targets are fine for the beta:**
   - Windows: 10+ (works)
-  - macOS: currently 10.13 in pbxproj (JUCE minimum)
+  - macOS: currently 12.0 in pbxproj (the Projucer default since JUCE 9.0.5; Xcode 27 refuses anything lower)
 
 ---
 

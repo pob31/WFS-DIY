@@ -26,9 +26,8 @@
     number, name and type, and every automatic suggestion is a list of pairs to
     confirm.
 
-    Three-button dialogs return 1 / 2 / 0 for buttons 0 / 1 / 2 (JUCE's
-    ((X + 1) % N) rule); toIndex() below turns that back into a button index so
-    no callback here ever reasons about the raw code.
+    Each button's result code is its 0-based index, so no callback here ever
+    reasons about anything but the button it names.
 */
 namespace ChannelIdentityGate
 {
@@ -67,11 +66,6 @@ namespace ChannelIdentityGate
             if (lines.size() > max)
                 out.add (L ("lineMore").replace ("{n}", juce::String (lines.size() - max)));
             return out.joinIntoString ("\n");
-        }
-
-        inline int toIndex (int juceCode, int numButtons)
-        {
-            return numButtons <= 0 ? 0 : (juceCode - 1 + numButtons) % numButtons;
         }
 
         inline void status (const Context& ctx, const juce::String& text)
@@ -198,15 +192,20 @@ namespace ChannelIdentityGate
                                .withTitle (title)
                                .withMessage (message)
                                .withAssociatedComponent (ctx.parent);
-            for (const auto& b : buttons)
-                options = options.withButton (b);
+            const int n = buttons.size();
+            for (int i = 0; i < n; ++i)
+            {
+                juce::MessageBoxButtonOptions button (buttons[i], i);
+                if (n > 1 && i == n - 1)
+                    button.setRole (juce::MessageBoxButtonRole::cancel);
+                options = options.withButton (button);
+            }
 
             dialogOpen() = true;
-            const int n = buttons.size();
-            juce::AlertWindow::showAsync (options, [n, onButton] (int code)
+            juce::AlertWindow::showAsync (options, [onButton] (int index)
             {
                 dialogOpen() = false;
-                if (onButton) onButton (toIndex (code, n));
+                if (onButton) onButton (index);
             });
         }
     }

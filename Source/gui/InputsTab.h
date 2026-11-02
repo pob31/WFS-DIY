@@ -8054,20 +8054,21 @@ private:
         }
 
         // Show conflict dialog asynchronously
-        juce::AlertWindow::showOkCancelBox(
-            juce::MessageBoxIconType::WarningIcon,
-            LOC("inputs.dialogs.trackingConflictTitle"),
-            // existingTrackedInput is a slot, {current} is a permanent number:
-            // numbers may have gaps and are not slot order after a reorder, so
-            // slot + 1 would name a live but unrelated channel in the sentence.
-            LOC("inputs.dialogs.trackingConflictCluster")
-                .replace("{current}", juce::String(currentChannel))
-                .replace("{existing}", juce::String(parameters.getValueTreeState().getInputChannelNumber(existingTrackedInput)))
-                .replace("{cluster}", juce::String(targetCluster)),
-            LOC("inputs.dialogs.trackingConflictContinue"),
-            LOC("common.cancel"),
-            nullptr,
-            juce::ModalCallbackFunction::create([this, targetCluster, previousCluster](int result) {
+        juce::AlertWindow::showAsync(
+            juce::MessageBoxOptions()
+                .withIconType(juce::MessageBoxIconType::WarningIcon)
+                .withTitle(LOC("inputs.dialogs.trackingConflictTitle"))
+                .withMessage(
+                    // existingTrackedInput is a slot, {current} is a permanent number:
+                    // numbers may have gaps and are not slot order after a reorder, so
+                    // slot + 1 would name a live but unrelated channel in the sentence.
+                    LOC("inputs.dialogs.trackingConflictCluster")
+                        .replace("{current}", juce::String(currentChannel))
+                        .replace("{existing}", juce::String(parameters.getValueTreeState().getInputChannelNumber(existingTrackedInput)))
+                        .replace("{cluster}", juce::String(targetCluster)))
+                .withButton(LOC("inputs.dialogs.trackingConflictContinue"), 1)
+                .withButton(juce::MessageBoxButtonOptions(LOC("common.cancel"), 0).withRole(juce::MessageBoxButtonRole::cancel)),
+            [this, targetCluster, previousCluster](int result) {
                 if (result == 1)  // Continue
                 {
                     // Disable tracking on current input
@@ -8083,8 +8084,7 @@ private:
                     clusterSelector.setSelectedId(previousCluster + 1, juce::dontSendNotification);
                     updateClusterColour();
                 }
-            })
-        );
+            });
     }
 
     /**
@@ -8146,19 +8146,20 @@ private:
         }
 
         // Conflict detected - show warning dialog
-        juce::AlertWindow::showOkCancelBox(
-            juce::MessageBoxIconType::WarningIcon,
-            LOC("inputs.dialogs.trackingConflictTitle"),
-            // Same id-space split as above: {to} is a permanent number, so the
-            // channel being switched away from has to be named by number too.
-            LOC("inputs.dialogs.trackingConflictSwitch")
-                .replace("{existing}", juce::String(parameters.getValueTreeState().getInputChannelNumber(existingTrackedInput)))
-                .replace("{cluster}", juce::String(inputCluster))
-                .replace("{to}", juce::String(currentChannel)),
-            LOC("inputs.dialogs.trackingConflictYes"),
-            LOC("common.cancel"),
-            nullptr,
-            juce::ModalCallbackFunction::create([this, existingTrackedInput](int result) {
+        juce::AlertWindow::showAsync(
+            juce::MessageBoxOptions()
+                .withIconType(juce::MessageBoxIconType::WarningIcon)
+                .withTitle(LOC("inputs.dialogs.trackingConflictTitle"))
+                .withMessage(
+                    // Same id-space split as above: {to} is a permanent number, so the
+                    // channel being switched away from has to be named by number too.
+                    LOC("inputs.dialogs.trackingConflictSwitch")
+                        .replace("{existing}", juce::String(parameters.getValueTreeState().getInputChannelNumber(existingTrackedInput)))
+                        .replace("{cluster}", juce::String(inputCluster))
+                        .replace("{to}", juce::String(currentChannel)))
+                .withButton(LOC("inputs.dialogs.trackingConflictYes"), 1)
+                .withButton(juce::MessageBoxButtonOptions(LOC("common.cancel"), 0).withRole(juce::MessageBoxButtonRole::cancel)),
+            [this, existingTrackedInput](int result) {
                 if (result == 1)  // Yes
                 {
                     // Disable tracking on existing input
@@ -8174,8 +8175,7 @@ private:
                     trackingActiveButton.setToggleState(false, juce::dontSendNotification);
                     trackingActiveButton.setButtonText(LOC("inputs.toggles.trackingOff"));
                 }
-            })
-        );
+            });
     }
 
     void saveMuteStates()
