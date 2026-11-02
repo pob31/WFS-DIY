@@ -2,6 +2,11 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
+## Unreleased
+
+### Added
+- **On Linux with GNOME, multitouch on a touch screen is no longer cut short by GNOME's own gestures.** GNOME Shell takes three-finger swipes and edge drags for itself, even inside a fullscreen application, and WFS-DIY lost those fingers mid-move. The Linux installer now offers a small GNOME Shell extension that turns those gestures off while a WFS-DIY window is open and gives them back when it closes. Log out and back in once after installing it; `gnome-extensions disable wfs-diy-touch@wfs-diy` turns it off, and the uninstaller removes it.
+
 ## v1.0.0beta64 — 2026-10-31
 
 ### Added
