@@ -243,8 +243,8 @@ private:
             .withMessage (LocalizationManager::getInstance().get (
                 "systemConfig.channelList.deleteMessage",
                 {{ "number", juce::String (channelNumber) }}))
-            .withButton (LOC ("systemConfig.channelList.deleteConfirm"))
-            .withButton (LOC ("common.cancel"))
+            .withButton (LOC ("systemConfig.channelList.deleteConfirm"), 1)
+            .withButton (juce::MessageBoxButtonOptions (LOC ("common.cancel"), 0).withRole (juce::MessageBoxButtonRole::cancel))
             .withAssociatedComponent (this);
 
         juce::AlertWindow::showAsync (options,

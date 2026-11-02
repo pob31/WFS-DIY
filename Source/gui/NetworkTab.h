@@ -3659,20 +3659,19 @@ private:
         if (targetName.isEmpty())
             targetName = LOC("network.table.defaultTarget").replace("{num}", juce::String(index + 1));
 
-        juce::AlertWindow::showOkCancelBox(
-            juce::MessageBoxIconType::QuestionIcon,
-            LOC("network.dialogs.removeTargetTitle"),
-            LOC("network.dialogs.removeTargetMessage").replace("{name}", targetName),
-            LOC("common.ok"),
-            LOC("common.cancel"),
-            nullptr,
-            juce::ModalCallbackFunction::create([this, index](int result) {
+        juce::AlertWindow::showAsync(
+            juce::MessageBoxOptions()
+                .withIconType(juce::MessageBoxIconType::QuestionIcon)
+                .withTitle(LOC("network.dialogs.removeTargetTitle"))
+                .withMessage(LOC("network.dialogs.removeTargetMessage").replace("{name}", targetName))
+                .withButton(LOC("common.ok"), 1)
+                .withButton(juce::MessageBoxButtonOptions(LOC("common.cancel"), 0).withRole(juce::MessageBoxButtonRole::cancel)),
+            [this, index](int result) {
                 if (result == 1)  // OK clicked
                 {
                     removeTarget(index);
                 }
-            })
-        );
+            });
     }
 
     void removeTarget(int index)
@@ -6017,14 +6016,14 @@ private:
         }
         conflictMsg += LOC("network.dialogs.trackingConflictsMessage");
 
-        juce::AlertWindow::showOkCancelBox(
-            juce::MessageBoxIconType::WarningIcon,
-            LOC("network.dialogs.trackingConflictsTitle"),
-            conflictMsg,
-            LOC("network.dialogs.trackingConflictsContinue"),
-            LOC("common.cancel"),
-            nullptr,
-            juce::ModalCallbackFunction::create([this, conflicts, fromProtocolChange](int result) {
+        juce::AlertWindow::showAsync(
+            juce::MessageBoxOptions()
+                .withIconType(juce::MessageBoxIconType::WarningIcon)
+                .withTitle(LOC("network.dialogs.trackingConflictsTitle"))
+                .withMessage(conflictMsg)
+                .withButton(LOC("network.dialogs.trackingConflictsContinue"), 1)
+                .withButton(juce::MessageBoxButtonOptions(LOC("common.cancel"), 0).withRole(juce::MessageBoxButtonRole::cancel)),
+            [this, conflicts, fromProtocolChange](int result) {
                 if (result == 1)  // Continue
                 {
                     // Disable tracking on all but the first input in each conflicting cluster
@@ -6062,8 +6061,7 @@ private:
                         trackingEnabledButton.setButtonText(LOC("network.toggles.trackingOff"));
                     }
                 }
-            })
-        );
+            });
     }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(NetworkTab)

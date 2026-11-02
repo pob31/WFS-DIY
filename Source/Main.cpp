@@ -176,8 +176,8 @@ public:
                 .withTitle ("Audio Processing Active")
                 .withMessage ("Audio processing is currently running.\n\n"
                               "Are you sure you want to quit?")
-                .withButton ("Quit")
-                .withButton ("Cancel");
+                .withButton ("Quit", 1)
+                .withButton (juce::MessageBoxButtonOptions ("Cancel", 0).withRole (juce::MessageBoxButtonRole::cancel));
 
             juce::AlertWindow::showAsync (options, [] (int result)
             {

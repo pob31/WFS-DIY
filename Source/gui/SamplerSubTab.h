@@ -1235,7 +1235,7 @@ private:
                                                       .withTitle (LOC ("sampler.cell.loadTitle"))
                                                       .withMessage (LOC ("sampler.importFailed")
                                                                         .replace ("{file}", result.getFileName()))
-                                                      .withButton (LOC ("common.ok"))
+                                                      .withButton (LOC ("common.ok"), 0)
                                                       .withAssociatedComponent (this),
                                                   nullptr);
                     return;
@@ -1688,7 +1688,7 @@ private:
                                                       .withTitle (LOC ("sampler.exportTitle"))
                                                       .withMessage (LOC ("sampler.exportFailed")
                                                                         .replace ("{path}", result.getFullPathName()))
-                                                      .withButton (LOC ("common.ok"))
+                                                      .withButton (LOC ("common.ok"), 0)
                                                       .withAssociatedComponent (this),
                                                   nullptr);
                 }

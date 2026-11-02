@@ -436,8 +436,8 @@ MainComponent::MainComponent()
                 .withMessage ("The Elgato Stream Deck app is running and will prevent "
                               "direct HID access to the device.\n\n"
                               "Close the Stream Deck app to use it with WFS-DIY?")
-                .withButton ("Close App")
-                .withButton ("Cancel")
+                .withButton ("Close App", 1)
+                .withButton (juce::MessageBoxButtonOptions ("Cancel", 0).withRole (juce::MessageBoxButtonRole::cancel))
                 .withAssociatedComponent (this);
 
             juce::AlertWindow::showAsync (options, [this] (int result)
@@ -485,8 +485,8 @@ MainComponent::MainComponent()
                 .withMessage ("The 3DxWare driver is running and will send duplicate scroll/zoom "
                               "events that interfere with the map.\n\n"
                               "Close the driver to use the SpaceMouse directly?")
-                .withButton ("Close Driver")
-                .withButton ("Cancel")
+                .withButton ("Close Driver", 1)
+                .withButton (juce::MessageBoxButtonOptions ("Cancel", 0).withRole (juce::MessageBoxButtonRole::cancel))
                 .withAssociatedComponent (this);
 
             juce::AlertWindow::showAsync (options, [this] (int result)

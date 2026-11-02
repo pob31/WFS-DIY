@@ -474,13 +474,9 @@ public:
         ScreenShareRendering::apply(newWindow);
     }
 
-    juce::AlertWindow* createAlertWindow(const juce::String& title, const juce::String& message,
-                                         const juce::String& button1, const juce::String& button2,
-                                         const juce::String& button3, juce::MessageBoxIconType iconType,
-                                         int numButtons, juce::Component* associatedComponent) override
+    std::unique_ptr<juce::AlertWindow> createAlertWindowForOptions(const juce::MessageBoxOptions& options) override
     {
-        auto* alert = LookAndFeel_V4::createAlertWindow(title, message, button1, button2, button3,
-                                                        iconType, numButtons, associatedComponent);
+        auto alert = LookAndFeel_V4::createAlertWindowForOptions(options);
         if (alert != nullptr)
             ScreenShareRendering::apply(*alert);
 
