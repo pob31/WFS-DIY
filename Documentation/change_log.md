@@ -8,7 +8,7 @@ All notable changes to WFS DIY are documented in this file, organized by release
 - **On Linux with GNOME, multitouch on a touch screen is no longer cut short by GNOME's own gestures.** GNOME Shell takes three-finger swipes and edge drags for itself, even inside a fullscreen application, and WFS-DIY lost those fingers mid-move. The Linux installer now offers a small GNOME Shell extension that turns those gestures off while a WFS-DIY window is open and gives them back when it closes. It comes from spatcore and is shared with Go.dot and later spatcore applications: one copy serves all of them, and uninstalling WFS-DIY leaves it in place while another of them still uses it. Log out and back in once after installing it; `gnome-extensions disable spatcore-touch@spatcore` turns it off.
 
 ### Chore / Internal
-- spatcore pinned to its `feat/gnome-gesture-hold` branch (the GNOME Shell extension and its `gesture-hold.sh` installer helper, under `controllers/touch/linux/gnome-shell/`); WFS-DIY's own copy is gone. The pin also brings spatcore PR #33 (the macOS touch reader takes a display's area from `logicalBounds`).
+- spatcore pinned to main after PR #34 (the GNOME Shell extension and its `gesture-hold.sh` installer helper, under `controllers/touch/linux/gnome-shell/`); WFS-DIY's own copy is gone. The pin also brings spatcore PR #33 (the macOS touch reader takes a display's area from `logicalBounds`).
 
 ## v1.0.0beta64 — 2026-10-31
 
