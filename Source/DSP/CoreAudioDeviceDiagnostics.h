@@ -257,7 +257,16 @@ inline juce::String CoreAudioDeviceDiagnostics::snapshot() const
 inline void CoreAudioDeviceDiagnostics::attach (const juce::String& juceDeviceName)
 {
     if (juceDeviceName == attachedName && deviceId != kAudioObjectUnknown)
-        return;
+    {
+        // Same name, same object: nothing to do. Same name but the object is
+        // gone (unplugged and replugged, the HAL hands out a new id) means the
+        // listeners sit on a corpse, so fall through and resolve again.
+        UInt32 alive = 0;
+        if (getData (deviceId, kAudioDevicePropertyDeviceIsAlive, kAudioObjectPropertyScopeGlobal, &alive, sizeof (alive))
+            && alive != 0)
+            return;
+        WFSLogger::getInstance().logInfo ("CoreAudio: '" + juceDeviceName + "' is a new HAL object - re-attaching");
+    }
 
     detach();
     attachedName = juceDeviceName;
