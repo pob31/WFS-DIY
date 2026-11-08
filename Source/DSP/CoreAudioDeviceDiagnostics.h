@@ -25,6 +25,13 @@
     own DSP; this is the missing instrumentation. Read-only: nothing here calls
     a setter, and JUCE's own listeners keep restarting the device as before.
 
+    Read the "buffer" and "running" fields as the PHYSICAL device's: JUCE 9
+    drives every device through a private aggregate of its own, so the HAL
+    reports the underlying device as not running and at its own default buffer
+    (verified on the farm Mac: speakers "buffer 512, running no" while JUCE ran
+    them at 128). The clock source, sample rates and alive state are the
+    device's too, which is the point.
+
     On every other platform the class is an empty shell so the call sites need
     no #if.
 
