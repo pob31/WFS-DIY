@@ -11,6 +11,7 @@
 #endif
 #include "../spatcore/wfs/OutputBufferAlgorithm.h"
 #include "DSP/WFSCalculationEngine.h"
+#include "DSP/CoreAudioDeviceDiagnostics.h"
 #include "DSP/LFOProcessor.h"
 #include "Automation/AutomOtionProcessor.h"
 #include "../spatcore/dsp/InputSpeedLimiter.h"
@@ -324,6 +325,20 @@ private:
     int reverbLivenessTick = 0;           // 5 ms timer ticks -> 1 s reverb-liveness cadence
     uint32_t reverbLastBlockCount = 0;    // reverb engine block counter at the previous check
     int reverbStalledSeconds = 0;         // consecutive checks without a new reverb block
+
+    int effectsUnderrunTick = 0;          // 5 ms timer ticks -> 1 s effects-underrun cadence
+    uint64_t effectsUnderrunsLogged = 0;  // last effects-return underrun total surfaced in the log
+
+    // Device-list bookkeeping for changeListenerCallback(): "Audio device
+    // changed" alone does not say WHAT changed when the current device is the
+    // same one, which is what a mid-show hub re-enumeration looks like.
+    bool audioDeviceListsKnown = false;
+    juce::StringArray knownInputDeviceNames, knownOutputDeviceNames;
+    void logAudioDeviceListChanges();
+
+    // macOS: HAL-level view of the open device (clock source, measured rate,
+    // overloads, exclusive access). An empty shell elsewhere.
+    CoreAudioDeviceDiagnostics coreAudioDiagnostics;
     // Device layer. deviceManager comes from AudioAppComponent, but its
     // AudioSourcePlayer is bypassed entirely: that player caps the callback
     // buffer at 128 channels, which silently kills every hardware channel above

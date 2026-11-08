@@ -12973,6 +12973,7 @@ void MainComponent::runStereoGeometrySelfTest()
 MainComponent::~MainComponent()
 {
     WFSLogger::getInstance().logInfo ("Session ending - saving settings");
+    coreAudioDiagnostics.detach();
 
    #if JUCE_MAC
     // First: lifts any finger still down while the windows it was sent to
@@ -13134,7 +13135,14 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
         {
             WFSLogger::getInstance().logInfo ("Audio device changed: " + device->getName()
                                               + " @ " + juce::String (device->getCurrentSampleRate()) + " Hz"
-                                              + ", buffer " + juce::String (device->getCurrentBufferSizeSamples()));
+                                              + ", buffer " + juce::String (device->getCurrentBufferSizeSamples())
+                                              + ", " + juce::String (device->getActiveInputChannels().countNumberOfSetBits())
+                                              + " in / " + juce::String (device->getActiveOutputChannels().countNumberOfSetBits())
+                                              + " out open, latency in " + juce::String (device->getInputLatencyInSamples())
+                                              + " / out " + juce::String (device->getOutputLatencyInSamples()) + " samples"
+                                              + (device->isPlaying() ? "" : ", not playing"));
+            logAudioDeviceListChanges();
+            coreAudioDiagnostics.attach (device->getName());
 
             // Update patch matrix hardware channel count from the channels the
             // device actually OPENED, not the ones it merely lists: a channel
@@ -13158,6 +13166,8 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
         else
         {
             WFSLogger::getInstance().logWarning ("Audio device changed: no device available");
+            logAudioDeviceListChanges();
+            coreAudioDiagnostics.detach();
             DBG("Device changed: no device available");
             audioCallbacksAttached = false;
 
@@ -13166,6 +13176,46 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
             parameters.updateHardwareChannelCount (0, 0);
         }
     }
+}
+
+void MainComponent::logAudioDeviceListChanges()
+{
+    auto* type = deviceManager.getCurrentDeviceTypeObject();
+    if (type == nullptr)
+        return;
+
+    // AudioDeviceManager rescans before it broadcasts, so these are current.
+    const juce::StringArray inputs  = type->getDeviceNames (true);
+    const juce::StringArray outputs = type->getDeviceNames (false);
+
+    if (! audioDeviceListsKnown)
+    {
+        WFSLogger::getInstance().logInfo ("Audio devices (" + type->getTypeName() + "): inputs ["
+                                          + inputs.joinIntoString (", ") + "], outputs ["
+                                          + outputs.joinIntoString (", ") + "]");
+    }
+    else
+    {
+        juce::StringArray changes;
+        auto diff = [&changes] (const juce::StringArray& before, const juce::StringArray& now, const char* what)
+        {
+            for (const auto& n : now)
+                if (! before.contains (n))
+                    changes.add (juce::String ("+") + what + " '" + n + "'");
+            for (const auto& b : before)
+                if (! now.contains (b))
+                    changes.add (juce::String ("-") + what + " '" + b + "'");
+        };
+        diff (knownInputDeviceNames, inputs, "input");
+        diff (knownOutputDeviceNames, outputs, "output");
+
+        if (! changes.isEmpty())
+            WFSLogger::getInstance().logInfo ("Audio device list changed: " + changes.joinIntoString (", "));
+    }
+
+    audioDeviceListsKnown = true;
+    knownInputDeviceNames = inputs;
+    knownOutputDeviceNames = outputs;
 }
 
 void MainComponent::colorSchemeChanged()
@@ -17754,6 +17804,27 @@ void MainComponent::timerCallback()
             reverbStalledSeconds = 0;
         }
     }
+    // Once per second: effects-return underruns (silence-filled return blocks).
+    // They never trip the device xrun counter and only reached the log under
+    // WFS_EFFECTS_TRACE, so a show with periodic clicks had nothing to show
+    // for them.
+    if (++effectsUnderrunTick >= 200) // 5 ms timer
+    {
+        effectsUnderrunTick = 0;
+        if (effectsHost != nullptr && effectsHost->isPrepared())
+        {
+            const uint64_t u = effectsHost->getTotalUnderruns();
+            if (u > effectsUnderrunsLogged)
+                WFSLogger::getInstance().logWarning ("Effects return underran: " + juce::String (u - effectsUnderrunsLogged)
+                                                     + " block(s) in the last second (total " + juce::String (u) + ")");
+            effectsUnderrunsLogged = u; // also re-baselines after a prepare()
+        }
+        else
+        {
+            effectsUnderrunsLogged = 0;
+        }
+    }
+
     // Check once whether the window is visible — skip all repaints and
     // visual-only updates when minimized to avoid message-queue congestion
     // that can starve the audio thread's parameter updates.
@@ -18881,10 +18952,18 @@ void MainComponent::timerCallback()
             if ((timerTicksSinceLastRandom % 200) == 100)
             {
                 uint64_t drops = reverbEngine->getAndResetDropoutCount();
-                if (drops > 0 && statusBar != nullptr)
-                    statusBar->showTemporaryMessage (
-                        "Reverb dropout detected - consider reducing reverb channels, IR length, or switching to SDN/FDN",
-                        5000);
+                if (drops > 0)
+                {
+                    // Until now this only reached the status bar. One node pull
+                    // = one reverb return in one audio block, so with 23
+                    // reverbs a single late engine block reads as 23.
+                    WFSLogger::getInstance().logWarning ("Reverb feed underran: " + juce::String (drops)
+                                                         + " node pull(s) zero-padded in the last second");
+                    if (statusBar != nullptr)
+                        statusBar->showTemporaryMessage (
+                            "Reverb dropout detected - consider reducing reverb channels, IR length, or switching to SDN/FDN",
+                            5000);
+                }
             }
         }
 

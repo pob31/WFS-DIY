@@ -137,6 +137,15 @@ private:
     {
         const juce::String what = juce::String (htk::to_string (s))
                                 + (detail.isEmpty() ? juce::String() : " - " + detail);
+        if (s != htk::ConnState::Lost)
+        {
+            if (suppressedLostRepeats > 0)
+                WFSLogger::getInstance().logInfo ("Head tracker: the previous 'lost' message repeated "
+                                                  + juce::String (suppressedLostRepeats) + " more time(s)");
+            lastLostMessage.clear();
+            suppressedLostRepeats = 0;
+        }
+
         if (s == htk::ConnState::Ready)
         {
             const auto d = client.device();
@@ -153,8 +162,21 @@ private:
         else if (s == htk::ConnState::Lost)
         {
             // Not a warning on the no-dongle-present path: most installations
-            // have no tracker and should not see this every few seconds.
-            WFSLogger::getInstance().logInfo ("Head tracker: " + what);
+            // have no tracker. And not once per retry either: the reconnect
+            // loop reports the same failure every 5 s for the whole session
+            // (1500 lines in one evening's log), so an unchanged message is
+            // counted and the count is written when the message changes.
+            if (what == lastLostMessage)
+            {
+                ++suppressedLostRepeats;
+                return;
+            }
+            juce::String line = "Head tracker: " + what;
+            if (suppressedLostRepeats > 0)
+                line += " (the previous 'lost' message repeated " + juce::String (suppressedLostRepeats) + " more time(s))";
+            lastLostMessage = what;
+            suppressedLostRepeats = 0;
+            WFSLogger::getInstance().logInfo (line);
         }
     }
 
@@ -304,6 +326,9 @@ private:
     bool wasWorn[kMaxTrackers] {};
     bool wasLevelReady[kMaxTrackers] {};
     uint32_t lastTaps[kMaxTrackers] {};
+
+    juce::String lastLostMessage;          // message thread: last 'lost' detail written
+    int suppressedLostRepeats = 0;         // identical 'lost' reports not written since
 
     // Shared with in-flight callAsync lambdas; cleared in shutdown().
     std::shared_ptr<bool> alive { std::make_shared<bool> (true) };

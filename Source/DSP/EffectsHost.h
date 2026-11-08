@@ -226,6 +226,17 @@ public:
     int getPreparedSourceCount() const noexcept { return preparedSources; }
     int getFirstEffectSlot() const noexcept { return firstSlot; }
 
+    /** Sum of the engine's per-effect underrun counters: return blocks the
+        audio callback asked for before the engine had produced them, filled
+        with silence. Resets with prepare(); any thread. */
+    uint64_t getTotalUnderruns() const noexcept
+    {
+        uint64_t n = 0;
+        for (int fx = 0; fx < preparedEffects; ++fx)
+            n += engine.getCore().getUnderruns (fx);
+        return n;
+    }
+
     //==========================================================================
     // Audio thread
     //==========================================================================
