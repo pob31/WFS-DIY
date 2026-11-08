@@ -137,7 +137,10 @@ private:
     {
         const juce::String what = juce::String (htk::to_string (s))
                                 + (detail.isEmpty() ? juce::String() : " - " + detail);
-        if (s != htk::ConnState::Lost)
+        // Opening and Handshaking are the reconnect loop's own transitions on
+        // the way to the next Lost, so they must not count as "something
+        // changed"; only a settled state does.
+        if (s == htk::ConnState::Ready || s == htk::ConnState::Incompatible || s == htk::ConnState::Closed)
         {
             if (suppressedLostRepeats > 0)
                 WFSLogger::getInstance().logInfo ("Head tracker: the previous 'lost' message repeated "
