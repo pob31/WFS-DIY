@@ -293,12 +293,18 @@ inline void CoreAudioDeviceDiagnostics::attach (const juce::String& juceDeviceNa
         kAudioDeviceProcessorOverload,
     };
 
+    juce::StringArray refused;
     for (const auto sel : selectors)
     {
         const AudioObjectPropertyAddress addr { sel, kAudioObjectPropertyScopeGlobal, kElement };
         if (AudioObjectAddPropertyListener (deviceId, &addr, &CoreAudioDeviceDiagnostics::listenerProc, this) == noErr)
             listened.push_back (addr);
+        else
+            refused.add ("0x" + juce::String::toHexString ((int) sel));
     }
+    if (! refused.isEmpty())
+        WFSLogger::getInstance().logInfo ("CoreAudio '" + attachedName + "': no listener for property "
+                                          + refused.joinIntoString (", "));
 }
 
 inline void CoreAudioDeviceDiagnostics::detach()
