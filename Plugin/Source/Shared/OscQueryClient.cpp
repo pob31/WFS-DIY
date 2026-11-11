@@ -1,6 +1,39 @@
 #include "OscQueryClient.h"
 #include "../../../spatcore/control/osc/NetworkJson.h"
 
+#if ! JUCE_WINDOWS
+ #include <sys/socket.h>
+ #include <sys/types.h>
+#endif
+
+namespace
+{
+    // juce::StreamingSocket::write without SIGPIPE: MSG_NOSIGNAL on Linux, SO_NOSIGPIPE on
+    // macOS. A plain send() to a peer that has closed raises SIGPIPE, which would kill the
+    // DAW hosting this plugin; a plugin must not touch its host's signal handlers, so the
+    // write itself has to be the one that cannot raise it.
+    // See docs/SIGPIPE_TCP_Writes_Handoff.md.
+    int writeNoSignal (juce::StreamingSocket& socket, const void* data, int size) noexcept
+    {
+       #if JUCE_WINDOWS
+        return socket.write (data, size);
+       #else
+        const auto handle = socket.getRawSocketHandle();
+
+        if (handle < 0 || ! socket.isConnected())
+            return -1;
+
+        #if defined (MSG_NOSIGNAL)
+        return (int) ::send (handle, data, (size_t) size, MSG_NOSIGNAL);
+        #else
+        const int on = 1;
+        (void) ::setsockopt (handle, SOL_SOCKET, SO_NOSIGPIPE, &on, (socklen_t) sizeof (on));
+        return (int) ::send (handle, data, (size_t) size, 0);
+        #endif
+       #endif
+    }
+}
+
 namespace wfs::plugin
 {
     OscQueryClient::OscQueryClient() = default;
@@ -54,7 +87,7 @@ namespace wfs::plugin
 
         const auto utf8 = request.toRawUTF8();
         const int reqLen = static_cast<int> (std::strlen (utf8));
-        if (socket.write (utf8, reqLen) != reqLen)
+        if (writeNoSignal (socket, utf8, reqLen) != reqLen)
             return false;
 
         // The app's whole OSCQuery tree is about 750 kB; a reply past 8 MB

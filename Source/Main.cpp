@@ -16,6 +16,10 @@
 #include "UpdateChecker.h"
 #include "AppSettings.h"
 
+#if ! JUCE_WINDOWS
+ #include <csignal>
+#endif
+
 //==============================================================================
 // Windows crash handler to release ASIO driver on unhandled exceptions
 //==============================================================================
@@ -68,6 +72,14 @@ public:
     //==============================================================================
     void initialise (const juce::String& commandLine) override
     {
+       #if ! JUCE_WINDOWS
+        // A TCP peer that hangs up must cost a failed write, not the whole application:
+        // juce::StreamingSocket::write is a plain send(), which raises SIGPIPE on macOS
+        // and Linux (TCP OSC targets, the MQTT tracking broker).
+        // See docs/SIGPIPE_TCP_Writes_Handoff.md.
+        std::signal (SIGPIPE, SIG_IGN);
+       #endif
+
         // Start session logger before anything else
         WFSLogger::getInstance().initialise();
 
