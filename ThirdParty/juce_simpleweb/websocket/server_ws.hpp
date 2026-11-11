@@ -676,6 +676,16 @@ namespace SimpleWeb {
                 std::array<unsigned char, 8> length_bytes{};
                 istream.read((char *)&length_bytes[0], 8);
 
+                // RFC 6455 5.2: the top bit of a 64-bit length is 0. A frame claiming more is no
+                // frame, and 4 + its length below could wrap to nothing: one such header made the
+                // copy loop run for ever out of an empty buffer while memory filled.
+                if(length_bytes[0] & 0x80) {
+                  const std::string reason("frame length out of range");
+                  connection->send_close(1002, reason);
+                  connection_close(connection, endpoint, 1002, reason);
+                  return;
+                }
+
                 std::size_t length = 0;
                 std::size_t num_bytes = 8;
                 for(std::size_t c = 0; c < num_bytes; c++)
@@ -696,7 +706,9 @@ namespace SimpleWeb {
     }
 
     void read_message_content(const std::shared_ptr<Connection> &connection, std::size_t length, Endpoint &endpoint, unsigned char fin_rsv_opcode) const {
-      if(length + (connection->fragmented_in_message ? connection->fragmented_in_message->length : 0) > config.max_message_size) {
+      // Compared so that neither side can wrap, whatever length a frame claims.
+      const std::size_t already = connection->fragmented_in_message ? connection->fragmented_in_message->length : 0;
+      if(length > config.max_message_size || already > config.max_message_size - length) {
         connection_error(connection, endpoint, make_error_code::make_error_code(errc::message_size));
         const int status = 1009;
         const std::string reason = "message too big";

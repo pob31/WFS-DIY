@@ -373,7 +373,18 @@ void SimpleWebSocketServer::onErrorCallback(std::shared_ptr<WsServer::Connection
 
 void SimpleWebSocketServer::httpStartCallback(unsigned short _port)
 {
-	isConnected = port == _port;
+	// _port is the port asio ACTUALLY bound, read from
+	// acceptor->local_endpoint() after bind() (server_http.hpp:439).
+	// `port` is the one the caller ASKED for.
+	//
+	// Comparing them made start(0) - the ephemeral request - a silent,
+	// permanent failure: the server bound fine, isConnected never became
+	// true, and the one number needed to reach it was discarded. Record
+	// the granted port instead. For a fixed port this is what the
+	// comparison already meant; for port 0 it is the only way to learn
+	// the answer.
+	port = _port;
+	isConnected = true;
 }
 
 void SimpleWebSocketServer::onHTTPUpgrade(std::unique_ptr<SimpleWeb::HTTP>& socket, std::shared_ptr<HttpServer::Request> request)
@@ -665,7 +676,9 @@ void SecureWebSocketServer::onErrorCallback(std::shared_ptr<WssServer::Connectio
 
 void SecureWebSocketServer::httpStartCallback(unsigned short _port)
 {
-	isConnected = port == _port;
+	// See SimpleWebSocketServer::httpStartCallback - same bug, same fix.
+	port = _port;
+	isConnected = true;
 }
 
 void SecureWebSocketServer::onHTTPUpgrade(std::unique_ptr<SimpleWeb::HTTPS>& socket, std::shared_ptr<HttpsServer::Request> request)
