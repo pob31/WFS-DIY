@@ -2,10 +2,10 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
-## v1.0.0beta66 — 2026-11-11
+## v1.0.0beta66 — 2026-11-11 (also tagged plugins-v0.0.9)
 
 ### Fixed
-- **On macOS and Linux, WFS-DIY no longer quits silently when a TCP peer hangs up.** Writing to a TCP connection the other side had just closed (the TCP OSC sender, the MQTT tracking client) raised SIGPIPE, which ended the process without a word. The write now fails, and the existing reconnect paths take over. The DAW master plugin's OSCQuery client gets the same protection without touching its host's signal handlers (shipped with the next plugins release).
+- **On macOS and Linux, WFS-DIY no longer quits silently when a TCP peer hangs up.** Writing to a TCP connection the other side had just closed (the TCP OSC sender, the MQTT tracking client) raised SIGPIPE, which ended the process without a word. The write now fails, and the existing reconnect paths take over. The DAW master plugin's OSCQuery client gets the same protection without touching its host's signal handlers, so the DAW no longer dies if WFS-DIY closes between connect and write (plugins 0.0.9).
 - **The remote-control WebSocket server can no longer be stalled by a malformed frame.** A frame claiming a 64-bit length with the top bit set held a server thread forever while memory filled; it is now refused with a close, as RFC 6455 requires. The WebSocket client no longer crashes on a handshake reply without `Sec-WebSocket-Accept`.
 - **The head-tracker dongle search leaves unrelated serial ports alone.** It probed every serial port every 5 s; a port that did not answer as a dongle is now skipped until the port list changes or a 10-60 s back-off expires.
 
@@ -13,6 +13,7 @@ All notable changes to WFS DIY are documented in this file, organized by release
 - **The log says more about a show that clicks.** Reverb-feed and effects-return underruns are logged once per second; "Audio device changed" carries channel counts, latencies and a diff of the device list. On macOS the log also records the CoreAudio device's clock source, nominal vs measured sample rate, buffer, latencies, running state and exclusive owner, and follows their changes and HAL overloads. The dongle's "lost" message is written once with a repeat count instead of every 5 s.
 
 ### Chore / Internal
+- DAW plugins 0.0.9: the master plugin's SIGPIPE-safe OSCQuery write, and the juce_simpleweb update below (the plugins link the same vendored copy).
 - juce_simpleweb: vendored copy updated to pob31/juce_simpleweb a793281 (the tree Go.dot pins): 338035e (oversized frame length refused), a793281 (upstream 73f6499, `Sec-WebSocket-Accept` checked before use), b72ec94 (`start(0)` reports the bound port). No API change.
 - headtracker pinned to 612f6ed (serial-probe back-off).
 - release.yml skips `plugins-v*` tags: publishing plugins-v0.0.8 had started the app workflow, whose version gate then failed.
