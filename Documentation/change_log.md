@@ -8,8 +8,14 @@ All notable changes to WFS DIY are documented in this file, organized by release
 - **Draw shapes on the Map as visual aids.** The new **Edit Shapes** button opens a drawing panel: lines (they may stay open), polygons, rectangles, ellipses and freehand outlines, each with its own colour, line width, dashes and a label. Shapes are outlines only, never affect the sound, and are saved with the system configuration. While the panel is open the inputs are locked so a show cannot be moved by accident; pan and zoom still work. Hold Shift to draw horizontal or vertical segments. Shapes copy to and from the gradient maps and keep their position; an open line copied to a gradient map is closed with a straight edge.
 - **The tablet map shows the speakers and the drawn shapes.** WFS Control 2 1.0-beta_15 draws the speakers (orientation, array colour and number, hidden ones left out) and the shapes exactly where the desktop does. Both follow every change, and the tablet has its own switches to hide them. Older tablets ignore the new messages.
 
+### Fixed
+- **EQ shelves and filters at low frequencies now have the gain you set.** The output EQ, the reverb EQ, the effects EQ and the effects modules built on the same filters computed in single precision, which put a 20 Hz shelf's level up to 0.8 dB off (more the deeper the cut) by an amount that depended on the computer. They now compute in double precision.
+
 ### Changed
 - **Gradient maps copy every selected shape, not just the first**, take Ctrl/Cmd+C and Ctrl/Cmd+V, and a pasted layer can now be undone.
+
+### Chore / Internal
+- spatcore pinned to fix/biquad-double-precision 8b26755 (spatcore PR #35, re-pin to main after merge). offline-render: win-dev-nvidia effects hashes re-baselined (CPU WFS and reverb renders unchanged).
 
 ## v1.0.0beta66 — 2026-11-11 (also tagged plugins-v0.0.9)
 
