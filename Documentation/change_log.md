@@ -17,6 +17,7 @@ All notable changes to WFS DIY are documented in this file, organized by release
 
 ### Chore / Internal
 - spatcore pinned to main a5713e8 (PR #35: the shared biquads in double precision). offline-render: win-dev-nvidia effects hashes re-baselined (CPU WFS and reverb renders unchanged).
+- JUCE 9.0.6 (from 9.0.5). No code changes needed: the Projucer resave only moves the version stamp. The release fixes popup menus, alert boxes and child windows that were ordered wrongly against always-on-top windows on macOS, Windows and Linux (X11), WASAPI devices with inputs only that received no input, and file paths on Windows network shares (UNC) and drive-relative paths. It also improves PopupMenu and TreeView accessibility. spatcore pinned to main af6bdf4 (PR #36: its minimal-app example moves to 9.0.6; no source change).
 
 ## v1.0.0beta66 — 2026-11-11 (also tagged plugins-v0.0.9)
 
