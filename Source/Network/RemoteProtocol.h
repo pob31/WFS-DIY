@@ -70,6 +70,18 @@ namespace WFSNetwork
 //         hold; a full-replacement snapshot, so a no-op on a tablet that has
 //         it), and the name/position/offset/cluster burst of an input-count
 //         change goes as paced bundles instead of one datagram per message.
+//       - tablet map (Network/RemoteMapGeometry.h): the speakers and the shapes
+//         drawn on the desktop Map, origin-relative metres, read-only on the
+//         tablet. /remote/map/speakers ",iiii" rev chunk chunkCount total + n x
+//         "iifff" (number, array, x, y, orientation deg; visible ones only, at
+//         most 32 per chunk); /remote/map/shapes ",ii" rev count; one or more
+//         /remote/map/shape ",iiiiiiifffs" rev index part partCount closed
+//         colourARGB dashed lineWidth labelX labelY label + k x "ff" (flattened
+//         outline, <= 80 points per part, label in part 0). Sent in the full
+//         dump, on change (coalesced 150 ms) and on request; /remote/map/rev
+//         ",ii" (speakersRev, shapesRev) repeats every 2 s, and a tablet
+//         holding another revision asks with /remote/map/request ",i" mask
+//         (1 speakers, 2 shapes), answered to it alone, at most every 250 ms.
 constexpr int kRemoteProtocolVersion = 4;
 
 } // namespace WFSNetwork

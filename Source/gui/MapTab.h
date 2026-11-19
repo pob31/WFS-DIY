@@ -18,6 +18,8 @@
 #include "../Helpers/CoordinateConverter.h"
 #include "../Localization/LocalizationManager.h"
 #include "HelpCard.h"
+#include "MapShapesEditor.h"
+#include "MapShapeEditPanel.h"
 
 /**
  * Map Tab Component
@@ -104,6 +106,29 @@ public:
         for (auto* button : { &homeButton, &fitInputsButton, &levelOverlayButton, &secondaryTouchButton, &detachButton })
             button->setWantsKeyboardFocus(false);
 
+        // Drawn shapes (visual aids): always painted; the toggle opens the
+        // draw-tools panel and routes the pointer to the shape editor.
+        shapeEditor.toScreen = [this](juce::Point<float> p) { return stageToScreen(p); };
+        shapeEditor.toStage = [this](juce::Point<float> p) { return screenToStage(p); };
+        shapeEditor.getViewScale = [this]() { return viewScale; };
+        shapeEditor.requestRepaint = [this]() { repaint(); };
+        shapeEditor.onSelectionChanged = [this]() { shapePanel.refresh(); };
+        shapeEditor.showMessage = [this](const juce::String& text)
+        {
+            if (statusBar != nullptr)
+                statusBar->showTemporaryMessage(text);
+        };
+
+        addAndMakeVisible(editShapesButton);
+        editShapesButton.setClickingTogglesState(true);
+        editShapesButton.setButtonText(LOC("map.buttons.editShapes"));
+        editShapesButton.onClick = [this]()
+        {
+            setShapeEditMode(editShapesButton.getToggleState());
+        };
+        editShapesButton.setWantsKeyboardFocus(false);
+        addChildComponent(shapePanel);
+
         // Map help card
         addAndMakeVisible(mapHelpButton);
         addChildComponent(mapHelpCard);
@@ -130,7 +155,33 @@ public:
     void setStatusBar(StatusBar* bar)
     {
         statusBar = bar;
+        shapePanel.setStatusBar(bar);
     }
+
+    /** Shape-edit mode: the draw-tools panel is shown and the pointer edits
+        the drawn shapes. Inputs, clusters and reverbs are drawn but locked;
+        pan and zoom still work. */
+    void setShapeEditMode(bool enabled)
+    {
+        if (shapeEditMode == enabled)
+            return;
+        shapeEditMode = enabled;
+        editShapesButton.setToggleState(enabled, juce::dontSendNotification);
+        editShapesButton.setButtonText(enabled ? LOC("map.buttons.doneShapes")
+                                               : LOC("map.buttons.editShapes"));
+        if (enabled)
+        {
+            clearSelection();
+            if (onMapSelectionChanged) onMapSelectionChanged();
+        }
+        shapeEditor.setActive(enabled);
+        shapePanel.refresh();
+        shapePanel.setVisible(enabled);
+        if (enabled)
+            grabKeyboardFocus();
+        repaint();
+    }
+    bool getShapeEditMode() const { return shapeEditMode; }
 
     /** Get the currently selected input on the map (-1 if none) */
     int getSelectedInput() const { return selectedInput; }
@@ -421,10 +472,18 @@ public:
         }
     }
 
-    void mouseExit(const juce::MouseEvent&) override
+    void mouseExit(const juce::MouseEvent& e) override
     {
         if (statusBar != nullptr)
             statusBar->clearText();
+        if (shapeEditMode && e.eventComponent == this)
+            shapeEditor.pointerExit();
+    }
+
+    void mouseMove(const juce::MouseEvent& e) override
+    {
+        if (shapeEditMode && e.eventComponent == this)
+            shapeEditor.pointerMove(e.position);
     }
 
     void paint(juce::Graphics& g) override
@@ -434,12 +493,14 @@ public:
         drawGrid(g);
         drawStageBounds(g);
         drawOriginMarker(g);
+        shapeEditor.paintShapes(g);
         drawOutputs(g);
         drawReverbs(g);
         drawEffects(g);
         drawBinauralListener(g);
         drawClusters(g);
         drawInputs(g);
+        shapeEditor.paintEditOverlay(g);
         drawRubberBand(g);
         drawSecondaryTouchFeedback(g);
     }
@@ -457,6 +518,15 @@ public:
 
         // Second-finger toggle right under it, on the help button's row
         secondaryTouchButton.setBounds(margin, margin + btnH + margin / 2, leftBtnW, btnH);
+
+        // Shape editing toggle under that, and its panel below it
+        editShapesButton.setBounds(margin, secondaryTouchButton.getBottom() + margin / 2, leftBtnW, btnH);
+        {
+            const int panelW = juce::jmax(220, static_cast<int>(leftBtnW * 1.9f));
+            const int top = editShapesButton.getBottom() + margin / 2;
+            const int panelH = juce::jmin(shapePanel.getIdealHeight(panelW), juce::jmax(0, getHeight() - top - margin));
+            shapePanel.setBounds(margin, top, panelW, panelH);
+        }
 
         // Position fit buttons in top-right corner
         const int fitW = juce::jmax(120, static_cast<int>(170.0f * us));
@@ -494,6 +564,19 @@ public:
 
     bool keyPressed(const juce::KeyPress& key) override
     {
+        if (shapeEditMode)
+        {
+            if (shapeEditor.keyPressed(key))
+                return true;
+            // Escape with nothing left to cancel leaves edit mode
+            if (key.getKeyCode() == juce::KeyPress::escapeKey)
+            {
+                setShapeEditMode(false);
+                return true;
+            }
+            return false;
+        }
+
         if (key.getKeyCode() == juce::KeyPress::escapeKey
             && (!selectedInputs.empty() || selectedBarycenter >= 0 || selectedReverbNode >= 0))
         {
@@ -617,6 +700,9 @@ public:
 
         int sourceIndex = e.source.getIndex();
         pointerPresses[pointerKey(e.source)] = { e.position, false };
+
+        if (shapeEditMode && handleShapeEditMouseDown(e))
+            return;
 
         // Handle touch input
         if (e.source.isTouch())
@@ -1069,6 +1155,12 @@ public:
             && e.position.getDistanceFrom(press->second.startPos) > pressTolerance(e))
             press->second.travelled = true;
 
+        if (shapeEditMode && shapeEditor.ownsPointer(pointerKey(e.source)))
+        {
+            shapeEditor.pointerDrag(pointerKey(e.source), e.position, e.mods);
+            return;
+        }
+
         // Handle touch input
         if (e.source.isTouch())
         {
@@ -1373,6 +1465,12 @@ public:
         int sourceIndex = e.source.getIndex();
         const bool travelled = finishPointerPress(e);
 
+        if (shapeEditMode && shapeEditor.ownsPointer(pointerKey(e.source)))
+        {
+            shapeEditor.pointerUp(pointerKey(e.source), e.position, e.mods);
+            return;
+        }
+
         // Handle touch input
         if (e.source.isTouch())
         {
@@ -1495,6 +1593,13 @@ public:
 
         if (isIgnoredPress(e) || (! e.source.isTouch() && ! fingersDown.empty()))
             return;
+
+        if (shapeEditMode)
+        {
+            if (! e.mods.isRightButtonDown() && ! e.mods.isMiddleButtonDown())
+                shapeEditor.doubleClick(e.position);
+            return;
+        }
 
         // Double-tap/click on input marker: clear position offsets
         int hitInput = getInputAtPosition(e.position);
@@ -3001,6 +3106,13 @@ private:
     juce::TextButton levelOverlayButton;
     juce::TextButton secondaryTouchButton;
     juce::TextButton detachButton;
+    juce::TextButton editShapesButton;
+
+    // Drawn shapes: the editor (model + interaction) and its draw-tools panel
+    bool shapeEditMode = false;
+    MapShapesEditor shapeEditor { parameters.getValueTreeState(),
+                                  [this]() { return parameters.getConfigTree(); } };
+    MapShapeEditPanel shapePanel { shapeEditor };
 
     // Level overlay state
     bool levelOverlayEnabled = false;
@@ -3029,6 +3141,55 @@ private:
         helpTextMap[&levelOverlayButton] = LOC("map.tooltips.levels");
         helpTextMap[&secondaryTouchButton] = LOC("map.tooltips.secondaryTouch");
         helpTextMap[&detachButton] = LOC("map.tooltips.detach");
+        helpTextMap[&editShapesButton] = LOC("map.tooltips.editShapes");
+    }
+
+    // Shape-edit mode press routing. True when the press is consumed here.
+    //  - Mouse: left presses edit shapes; right/middle fall through to pan,
+    //    zoom and view reset.
+    //  - Touch: the first finger edits; a second finger turns the gesture into
+    //    a pan/zoom (the first finger's edit is undone and it joins the view
+    //    gesture), so pinch-zoom still works while drawing.
+    bool handleShapeEditMouseDown(const juce::MouseEvent& e)
+    {
+        if (! e.source.isTouch())
+        {
+            if (e.mods.isRightButtonDown() || e.mods.isMiddleButtonDown())
+                return false;
+            grabKeyboardFocus();
+            shapeEditor.pointerDown(pointerKey(e.source), e.position, e.mods, false);
+            return true;
+        }
+
+        const int sourceIndex = e.source.getIndex();
+        auto joinViewGesture = [this](int index, juce::Point<float> pos)
+        {
+            TouchInfo touch;
+            touch.type = TouchInfo::Type::ViewGesture;
+            touch.startPos = pos;
+            touch.currentPos = pos;
+            activeTouches[index] = touch;
+        };
+
+        if (shapeEditor.hasPointer())
+        {
+            int ownerKey = -1;
+            juce::Point<float> ownerPos;
+            if (shapeEditor.yieldPointer(ownerKey, ownerPos))
+                joinViewGesture(ownerKey % 1000, ownerPos);   // pointerKey -> source index
+        }
+        else if (activeTouches.empty())
+        {
+            shapeEditor.pointerDown(pointerKey(e.source), e.position, e.mods, true);
+            return true;
+        }
+
+        joinViewGesture(sourceIndex, e.position);
+        const int viewTouches = countViewGestureTouches();
+        if (viewTouches == 2 || viewTouches == 3)
+            initializeViewGesture();
+        repaint();
+        return true;
     }
 
     // "2nd Finger" toggle. Suspending mid-gesture drops the live secondary touches:
@@ -5034,7 +5195,9 @@ private:
     void valueTreePropertyChanged(juce::ValueTree& treeWhosePropertyHasChanged,
                                   const juce::Identifier& property) override
     {
-        juce::ignoreUnused(treeWhosePropertyHasChanged, property);
+        juce::ignoreUnused(property);
+        if (MapShapesEditor::isShapeTree(treeWhosePropertyHasChanged))
+            shapeEditor.markModelDirty();
         // Raise a flag; timerCallback paints at most once per tick. This used to
         // filter by ORIGIN, repainting only for MCP and Snapshot, on the premise
         // that the high-frequency origins "all have their own existing repaint
@@ -5053,14 +5216,19 @@ private:
 
     void valueTreeChildAdded(juce::ValueTree& parentTree, juce::ValueTree& child) override
     {
-        juce::ignoreUnused(parentTree, child);
+        if (MapShapesEditor::isShapeTree(parentTree) || MapShapesEditor::isShapeTree(child))
+            shapeEditor.markModelDirty();
         repaintCoalescer.arm();
     }
 
     void valueTreeChildRemoved(juce::ValueTree& parentTree, juce::ValueTree& child, int index) override
     {
-        juce::ignoreUnused(parentTree, child, index);
-        clearSelection();  // Clear selection if channel removed
+        juce::ignoreUnused(index);
+        // A drawn shape coming or going is not a channel: keep the selection.
+        if (MapShapesEditor::isShapeTree(parentTree) || MapShapesEditor::isShapeTree(child))
+            shapeEditor.markModelDirty();
+        else
+            clearSelection();  // Clear selection if channel removed
         repaintCoalescer.arm();
     }
 

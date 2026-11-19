@@ -355,7 +355,8 @@
       "fitInputs": "Zoom und Schwenken anpassen, um alle sichtbaren Eingänge anzuzeigen",
       "levels": "Pegel für Eingänge und Ausgänge auf der Karte anzeigen",
       "detach": "Karte in ein separates Fenster lösen für Dual-Screen-Setups",
-      "secondaryTouch": "Bearbeitungen mit dem zweiten Finger aussetzen oder wieder aktivieren: Eingangsrotation und -höhe, Stereobild, Cluster-Rotation und -Skalierung. Schwenken und Zoom funktionieren weiterhin. Wird nicht gespeichert."
+      "secondaryTouch": "Bearbeitungen mit dem zweiten Finger aussetzen oder wieder aktivieren: Eingangsrotation und -höhe, Stereobild, Cluster-Rotation und -Skalierung. Schwenken und Zoom funktionieren weiterhin. Wird nicht gespeichert.",
+      "editShapes": "Umrissformen als visuelle Hilfen auf die Karte zeichnen: Bühnenkanten, Bühnenbild, Zonen. Während der Bearbeitung sind die Eingänge gesperrt; Verschieben und Zoomen funktionieren weiter. Wird mit der Systemkonfiguration gespeichert und auf dem Remote-Tablet angezeigt."
     },
     "detachedMessage": "Die Karte wird in einem separaten Fenster angezeigt.",
     "messages": {
@@ -364,6 +365,29 @@
       "setSingle": "Eingang {channel} aus Cluster entfernt",
       "setSingleMulti": "{count} Eingänge aus Clustern entfernt",
       "clusterBrokenUp": "Cluster {cluster} aufgelöst"
+    },
+    "shapes": {
+      "help": {
+        "select": "Formen über ihren Umriss auswählen: Ziehen verschiebt, die Eckgriffe skalieren (Umschalt behält die Proportionen), der runde Griff dreht (Umschalt rastet in 15°-Schritten). Ziehen auf einer leeren Fläche wählt mehrere aus; Umschalt+Klick fügt eine Form hinzu oder entfernt sie.",
+        "editPoints": "Die Punkte einer Linie, eines Polygons oder Rechtecks ziehen. Doppelklick auf einen Punkt entfernt ihn, auf eine Kante fügt einen hinzu.",
+        "line": "Klicken fügt Punkte hinzu; Doppelklick oder Eingabe beendet. Die Linie bleibt offen. Rücktaste entfernt den letzten Punkt, Escape bricht ab.",
+        "polygon": "Klicken fügt Punkte hinzu; Klick auf den ersten Punkt, Doppelklick oder Eingabe schließt die Form.",
+        "rectangle": "Ziehen zeichnet ein Rechteck. Mit Umschalt ein Quadrat.",
+        "ellipse": "Ziehen zeichnet eine Ellipse. Mit Umschalt einen Kreis.",
+        "freehand": "Ziehen skizziert eine Linie. Endet sie nahe dem Anfang, wird die Form geschlossen.",
+        "colour": "Umrissfarbe der ausgewählten Formen oder der nächsten gezeichneten Formen.",
+        "width": "Umrissbreite in Bildschirmpixeln: bei jedem Zoom gleich.",
+        "dashed": "Umriss gestrichelt zeichnen.",
+        "label": "Text über den ausgewählten Formen. Mit Eingabe übernehmen.",
+        "copy": "Ausgewählte Formen kopieren (Strg/Cmd+C). In eine Gradientenkarte eingefügt, behalten sie ihre Position.",
+        "paste": "Formen einfügen (Strg/Cmd+V). Formen aus einer Gradientenkarte landen an derselben Stelle; auf der Karte kopierte Formen werden um 0,5 m versetzt.",
+        "delete": "Ausgewählte Formen löschen (Entf-Taste)."
+      },
+      "messages": {
+        "copied": "{count} Form(en) kopiert",
+        "limit": "Die Karte fasst höchstens {count} Formen",
+        "noPoints": "Eine Ellipse hat keine bearbeitbaren Punkte: mit Select die Größe ändern"
+      }
     }
   },
   "levelMeter": {
@@ -872,8 +896,11 @@
         "fillTool": "Gleichmäßige Füllung auf Form anwenden",
         "linGradTool": "Linearen Verlauf auf Form anwenden",
         "radGradTool": "Radialen Verlauf auf Form anwenden",
-        "copy": "Ausgewählte Form oder Ebene kopieren",
-        "paste": "Form oder Ebene aus Zwischenablage einfügen"
+        "copy": "Ausgewählte Formen kopieren, oder die ganze Ebene, wenn nichts ausgewählt ist (Strg/Cmd+C). Formen lassen sich auch im Tab Map an derselben Stelle einfügen.",
+        "paste": "Formen oder eine Ebene aus der Zwischenablage einfügen (Strg/Cmd+V). Im Tab Map kopierte Formen landen an derselben Stelle; eine offene Linie wird mit einer geraden Kante geschlossen."
+      },
+      "messages": {
+        "linesSkipped": "{count} Linie(n) mit zwei Punkten übersprungen: eine Linie umschließt keine Fläche"
       }
     },
     "dialogs": {
@@ -1202,7 +1229,7 @@
     },
     "map": {
       "title": "Karte",
-      "body": "- Linksklick auf einen Eingang oder Cluster ermöglicht das Verschieben durch Ziehen.\n- Linksklick mit Umschalttaste fügt Eingänge zur Auswahl hinzu/entfernt sie.\n- Linksklick-Ziehen zeichnet ein Auswahlrechteck.\n- Doppelklick setzt den Positionsversatz zurück.\n- Langer Linksklick oder langer Druck (0,7 bis 1,2 s) ohne Bewegung wechselt beim Loslassen zum Eingangs-Tab mit Fokus auf dem ausgewählten Eingang. Wegbewegen bricht den Vorgang ab, auch bei Rückkehr, und nach dem Verschieben oder Bearbeiten eines Markers wird er 3 s lang ignoriert.\n- Klick außerhalb löscht die Auswahl.\n- Rechtsklick-Ziehen verschiebt die Kartenansicht. Zwei-Finger-Ziehen ebenso.\n- Mausrad zoomt. Zwei-Finger-Pinch ebenfalls.\n- Bei ausgewählten Stereo-Eingängen dreht das Mausrad deren Bildachse statt zu zoomen: 5° pro Raste, 1° mit gehaltener Shift-Taste. Ctrl/Cmd gedrückt halten, um wie gewohnt zu zoomen.\n- Mittelklick setzt die Ansicht zurück.\n- Pfeiltasten verschieben X/Y, BildAuf/Ab die Höhe.\n- Ein zweiter Finger kann die Direktionalität drehen und die Höhe anpassen.\n- Bei Clustern kann ein zweiter Finger rotieren und skalieren.\n- Bei einem berührten Stereo-Eingang wirkt der zweite Finger mit gehaltener Shift-Taste auf das Stereobild: Drehen ändert die Bildachse, Zusammenziehen die Breite.\n- Die Schaltfläche unter dem Schalter zur Anzeige der Audiopegel setzt alle Bearbeitungen mit dem zweiten Finger an Eingängen und Clustern aus. Verschieben der Kartenansicht, Zoomen und symmetrisches Bewegen von Hallknotenpaaren funktionieren weiterhin. Die Einstellung wird nicht gespeichert.\n- Mit einer Space Mouse ändert bei gehaltener Shift-Taste und gewähltem Stereo-Eingang das Drehen die Bildachse und Ziehen/Drücken die Breite, jeweils in derselben Richtung wie der zweite Finger: Hochziehen spreizt, Herunterdrücken verengt. Shift mit XY bewegt den Eingang weiterhin.\n- L bei ausgewählten Stereo-Eingängen sperrt oder entsperrt deren Bildausrichtung. Gesperrt spreizt das Paar nach links/rechts im Saal, nur um den Achsenwert gedreht, und folgt der Quelle nicht mehr um den Ursprung.\n- Eingänge, Ausgabe-Arrays und Hallknoten können ausgeblendet werden.\n- Eingänge können gesperrt werden.\n- Hallknoten können verschoben werden. Strg/Cmd bewegt Paare symmetrisch.\n- Der Live-Source-Tamer-Radius wird angezeigt.\n- Audiopegel können auf der Karte angezeigt werden."
+      "body": "- Linksklick auf einen Eingang oder Cluster ermöglicht das Verschieben durch Ziehen.\n- Linksklick mit Umschalttaste fügt Eingänge zur Auswahl hinzu/entfernt sie.\n- Linksklick-Ziehen zeichnet ein Auswahlrechteck.\n- Doppelklick setzt den Positionsversatz zurück.\n- Langer Linksklick oder langer Druck (0,7 bis 1,2 s) ohne Bewegung wechselt beim Loslassen zum Eingangs-Tab mit Fokus auf dem ausgewählten Eingang. Wegbewegen bricht den Vorgang ab, auch bei Rückkehr, und nach dem Verschieben oder Bearbeiten eines Markers wird er 3 s lang ignoriert.\n- Klick außerhalb löscht die Auswahl.\n- Rechtsklick-Ziehen verschiebt die Kartenansicht. Zwei-Finger-Ziehen ebenso.\n- Mausrad zoomt. Zwei-Finger-Pinch ebenfalls.\n- Bei ausgewählten Stereo-Eingängen dreht das Mausrad deren Bildachse statt zu zoomen: 5° pro Raste, 1° mit gehaltener Shift-Taste. Ctrl/Cmd gedrückt halten, um wie gewohnt zu zoomen.\n- Mittelklick setzt die Ansicht zurück.\n- Pfeiltasten verschieben X/Y, BildAuf/Ab die Höhe.\n- Ein zweiter Finger kann die Direktionalität drehen und die Höhe anpassen.\n- Bei Clustern kann ein zweiter Finger rotieren und skalieren.\n- Bei einem berührten Stereo-Eingang wirkt der zweite Finger mit gehaltener Shift-Taste auf das Stereobild: Drehen ändert die Bildachse, Zusammenziehen die Breite.\n- Die Schaltfläche unter dem Schalter zur Anzeige der Audiopegel setzt alle Bearbeitungen mit dem zweiten Finger an Eingängen und Clustern aus. Verschieben der Kartenansicht, Zoomen und symmetrisches Bewegen von Hallknotenpaaren funktionieren weiterhin. Die Einstellung wird nicht gespeichert.\n- Mit einer Space Mouse ändert bei gehaltener Shift-Taste und gewähltem Stereo-Eingang das Drehen die Bildachse und Ziehen/Drücken die Breite, jeweils in derselben Richtung wie der zweite Finger: Hochziehen spreizt, Herunterdrücken verengt. Shift mit XY bewegt den Eingang weiterhin.\n- L bei ausgewählten Stereo-Eingängen sperrt oder entsperrt deren Bildausrichtung. Gesperrt spreizt das Paar nach links/rechts im Saal, nur um den Achsenwert gedreht, und folgt der Quelle nicht mehr um den Ursprung.\n- Eingänge, Ausgabe-Arrays und Hallknoten können ausgeblendet werden.\n- Eingänge können gesperrt werden.\n- Hallknoten können verschoben werden. Strg/Cmd bewegt Paare symmetrisch.\n- Der Live-Source-Tamer-Radius wird angezeigt.\n- Audiopegel können auf der Karte angezeigt werden.\n- Die Schaltfläche Edit Shapes öffnet die Zeichenwerkzeuge: Linien, Polygone, Rechtecke, Ellipsen und Freihandumrisse, jeweils mit Farbe, Breite, Strichelung und Beschriftung. Sie dienen nur als visuelle Hilfen, werden mit der Systemkonfiguration gespeichert und auf dem Remote-Tablet angezeigt. Formen lassen sich an derselben Stelle in die Gradientenkarten und aus ihnen kopieren; eine offene Linie wird dort mit einer geraden Kante geschlossen."
     },
     "clusters": {
       "title": "Cluster",

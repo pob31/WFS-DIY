@@ -2,6 +2,7 @@
 #include "WFSParameterIDs.h"
 #include "WFSParameterDefaults.h"
 #include "EffectsSnapshotScope.h"
+#include "../MapShapes/MapShapeData.h"
 #include "../AppSettings.h"
 #include "../Localization/LocalizationManager.h"
 #include "../Network/OSCParameterBounds.h"
@@ -3680,9 +3681,27 @@ bool WFSFileManager::applyConfigSection (const juce::ValueTree& configTree)
         }
     }
 
+    // The Map's drawn shapes are a LIST: the merge below matches id-less
+    // children by ordinal and keeps any extra live ones, so loading a show with
+    // two shapes over a session holding five would keep three strangers. Lift
+    // the file's list now and replace the live one wholesale after the merge -
+    // an absent list (an older project) empties it.
+    const juce::ValueTree fileMapShapes = configTree.getChildWithName (MapShapes).createCopy();
+
     // Merge properties and children from loaded config (preserves missing properties/children)
     // Network, ADMOSC, and Tracking are automatically preserved if not in configTree
     mergeTreeRecursive (existingConfig, configTree, undoManager);
+
+    {
+        auto liveMapShapes = existingConfig.getChildWithName (MapShapes);
+        if (! liveMapShapes.isValid())
+        {
+            liveMapShapes = juce::ValueTree (MapShapes);
+            existingConfig.appendChild (liveMapShapes, nullptr);
+        }
+        // nullptr: every load ends by clearing all undo histories anyway.
+        MapDrawing::replaceShapes (liveMapShapes, fileMapShapes, nullptr);
+    }
 
     // Ensure channel children exist with proper structure (including EQ sections)
     // Loaded XML may have old-format Reverb children without EQ sections.

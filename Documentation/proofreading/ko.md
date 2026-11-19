@@ -1,6 +1,6 @@
 # Proofreading checklist — Korean (한국어)
 
-Locale: `ko`  |  Total keys: 1143  |  Source: `Resources/lang/en.json` vs `Resources/lang/ko.json`
+Locale: `ko`  |  Total keys: 1181  |  Source: `Resources/lang/en.json` vs `Resources/lang/ko.json`
 
 ## How to use this file
 
@@ -68,6 +68,11 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 ## `arrayHelper.errors`
+
+- **`fieldNotNumber`**
+  - EN: A field outlined in red holds no number.
+  - KO: 빨간색으로 표시된 칸에 숫자가 없습니다.
+  - [ ] OK    Fix: 
 
 - **`noPositions`**
   - EN: No positions to apply. Check geometry parameters.
@@ -164,6 +169,11 @@ Walk through each section. For every entry:
 - **`attenuationSlider`**
   - EN: Adjust attenuation of all cluster inputs (dB).
   - KO: 클러스터의 모든 입력의 감쇠를 조정합니다 (dB).
+  - [ ] OK    Fix: 
+
+- **`cuePreset`**
+  - EN: Create a cue in QLab or Go.dot to recall the last selected LFO preset for the current cluster.
+  - KO: 현재 클러스터에서 마지막으로 선택한 LFO 프리셋을 불러오는 큐를 QLab 또는 Go.dot에 만듭니다.
   - [ ] OK    Fix: 
 
 - **`exportPresets`**
@@ -2067,8 +2077,8 @@ Walk through each section. For every entry:
 ## `help.map`
 
 - **`body`**
-  - EN: - A left click on an input or a cluster will allow to move it by dragging it. A single finger touch will do the same.\n- A left click with the shift key pressed will add or remove inputs to the selection. A double tap and drag will act the same way.\n- A left click drag will draw a selection rectangle to select multiple inputs and clusters at the same time.\n- A left double-click or tap will reset the position offset of the input.\n- A long left click or press (0.7 to 1.2 s) with no movement will switch to the input tab with the focus on the selected input on release. Moving away cancels it even if you come back, and it is ignored for 3 s after moving or editing a marker.\n- A left click away from any input will clear the selection.\n- A right click and drag will pan the view of the map. A two finger drag with no selected input or cluster will do the same if your operating system supports multitouch.\n- The mouse wheel will zoom in and out. A two finger pinch with no selected input or cluster will also zoom in and out.\n- With stereo inputs selected the mouse wheel turns their image axis instead of zooming: 5° per notch, 1° with Shift held. Hold Ctrl/Cmd to zoom as usual.\n- A middle click will reset the view to fit the stage on the map display. There is also a dedicated set of buttons to reset the view to fit all inputs and to fit the stage respectively.\n- Selected inputs and clusters can also be moved with the arrow keys for X and Y and with the PageUp and PageDown keys for height. Hardware controllers can be used too.\n- When an input is touched, a second finger nearby can rotate the input directivity and adjust the height by pinching if your operating system allows multitouch interaction.\n- When a cluster is touched, a second finger nearby can rotate the cluster and scale it by pinching.\n- When a stereo input is touched, holding Shift makes the second finger act on the stereo image instead: rotating changes the image axis and pinching changes the width.\n- The button under the levels toggle suspends every second-finger edit on inputs and clusters. Pan, zoom and reverb pair mirroring keep working. It is not saved.\n- With a Space Mouse, holding Shift while a stereo input is selected makes the twist change the image axis and the pull/push change the width, both the same way round as the second finger: pull up to spread, push down to narrow. Shift with XY still moves the input.\n- Pressing L with stereo inputs selected locks or unlocks their image orientation. Locked, the pair spreads house left/right turned by the Axis value alone and no longer follows the source around the origin.\n- Inputs, output arrays and the reverb nodes can be hidden on the map.\n- Inputs can also be locked to prevent selecting and moving them on the map. They will still be moved by clusters, network commands, tracking and hardware controllers.\n- All reverb nodes can be moved on the map if this is enabled on the reverb tab. Holding the Ctrl/Cmd key will move each pair of reverb nodes in symmetry.\n- Inputs with offsets, LFO or with speed regulation will have a temporary position marker. But the point of interaction will remain the normal marker.\n- The Live Source Tamer radius will be displayed around input when activated.\n- There is a toggle to display the audio level for the inputs and outputs on the map tab, that's active when the audio processing is running.
-  - KO: - 입력이나 클러스터를 왼쪽 클릭하여 드래그로 이동합니다.\n- Shift+왼쪽 클릭으로 선택에 추가/제거합니다.\n- 왼쪽 클릭 드래그로 선택 사각형을 그립니다.\n- 더블클릭으로 위치 오프셋을 리셋합니다.\n- 움직임 없는 긴 클릭이나 길게 누르기(0.7~1.2초)는 놓을 때 입력 탭으로 전환하고 선택한 입력에 포커스를 맞춥니다. 움직여 벗어나면 다시 돌아와도 취소되며, 마커를 이동하거나 편집한 후 3초 동안은 무시됩니다.\n- 입력 외부 클릭으로 선택을 해제합니다.\n- 오른쪽 클릭 드래그로 맵을 팬합니다. 두 손가락 드래그도 동일합니다.\n- 마우스 휠로 줌합니다. 두 손가락 핀치도 동일합니다.\n- 스테레오 입력이 선택되어 있으면 마우스 휠은 줌 대신 이미지 축을 회전합니다(한 칸에 5°, Shift를 누르면 1°). Ctrl/Cmd를 누르면 평소처럼 줌합니다.\n- 가운데 클릭으로 뷰를 리셋합니다.\n- 화살표 키로 X/Y 이동, PageUp/Down으로 높이 조정.\n- 두 번째 손가락으로 지향성 회전과 높이 조정이 가능합니다.\n- 클러스터에서는 두 번째 손가락으로 회전과 크기 조정이 가능합니다.\n- 스테레오 입력을 터치한 상태에서 Shift를 누르면 두 번째 손가락이 스테레오 이미지를 조작합니다. 회전은 이미지 축을, 핀치는 폭을 바꿉니다.\n- 오디오 레벨 표시 토글 아래의 버튼은 입력과 클러스터에 대한 두 번째 손가락 조작을 모두 일시 정지합니다. 팬, 줌, 리버브 노드 쌍의 대칭 이동은 계속 작동합니다. 이 설정은 저장되지 않습니다.\n- Space Mouse에서는 스테레오 입력을 선택하고 Shift를 누른 채 비틀면 이미지 축이, 당기기/누르기로 폭이 바뀝니다(두 번째 손가락과 같은 방향으로, 위로 당기면 넓어지고 아래로 누르면 좁아집니다). Shift와 XY는 여전히 입력을 이동합니다.\n- 스테레오 입력을 선택한 상태에서 L을 누르면 이미지 방향이 잠기거나 풀립니다. 잠기면 페어는 객석 좌우로 벌어지고 축 값만큼만 회전하며, 원점을 도는 소스를 더 이상 따라가지 않습니다.\n- 입력, 출력 배열, 리버브 노드를 숨길 수 있습니다.\n- 입력을 잠가 선택과 이동을 방지할 수 있습니다.\n- 리버브 노드를 이동 가능. Ctrl/Cmd로 쌍을 대칭 이동합니다.\n- Live Source Tamer 반경이 표시됩니다.\n- 오디오 레벨을 맵에 표시할 수 있습니다.
+  - EN: - A left click on an input or a cluster will allow to move it by dragging it. A single finger touch will do the same.\n- A left click with the shift key pressed will add or remove inputs to the selection. A double tap and drag will act the same way.\n- A left click drag will draw a selection rectangle to select multiple inputs and clusters at the same time.\n- A left double-click or tap will reset the position offset of the input.\n- A long left click or press (0.7 to 1.2 s) with no movement will switch to the input tab with the focus on the selected input on release. Moving away cancels it even if you come back, and it is ignored for 3 s after moving or editing a marker.\n- A left click away from any input will clear the selection.\n- A right click and drag will pan the view of the map. A two finger drag with no selected input or cluster will do the same if your operating system supports multitouch.\n- The mouse wheel will zoom in and out. A two finger pinch with no selected input or cluster will also zoom in and out.\n- With stereo inputs selected the mouse wheel turns their image axis instead of zooming: 5° per notch, 1° with Shift held. Hold Ctrl/Cmd to zoom as usual.\n- A middle click will reset the view to fit the stage on the map display. There is also a dedicated set of buttons to reset the view to fit all inputs and to fit the stage respectively.\n- Selected inputs and clusters can also be moved with the arrow keys for X and Y and with the PageUp and PageDown keys for height. Hardware controllers can be used too.\n- When an input is touched, a second finger nearby can rotate the input directivity and adjust the height by pinching if your operating system allows multitouch interaction.\n- When a cluster is touched, a second finger nearby can rotate the cluster and scale it by pinching.\n- When a stereo input is touched, holding Shift makes the second finger act on the stereo image instead: rotating changes the image axis and pinching changes the width.\n- The button under the levels toggle suspends every second-finger edit on inputs and clusters. Pan, zoom and reverb pair mirroring keep working. It is not saved.\n- With a Space Mouse, holding Shift while a stereo input is selected makes the twist change the image axis and the pull/push change the width, both the same way round as the second finger: pull up to spread, push down to narrow. Shift with XY still moves the input.\n- Pressing L with stereo inputs selected locks or unlocks their image orientation. Locked, the pair spreads house left/right turned by the Axis value alone and no longer follows the source around the origin.\n- Inputs, output arrays and the reverb nodes can be hidden on the map.\n- Inputs can also be locked to prevent selecting and moving them on the map. They will still be moved by clusters, network commands, tracking and hardware controllers.\n- All reverb nodes can be moved on the map if this is enabled on the reverb tab. Holding the Ctrl/Cmd key will move each pair of reverb nodes in symmetry.\n- Inputs with offsets, LFO or with speed regulation will have a temporary position marker. But the point of interaction will remain the normal marker.\n- The Live Source Tamer radius will be displayed around input when activated.\n- There is a toggle to display the audio level for the inputs and outputs on the map tab, that's active when the audio processing is running.\n- The Edit Shapes button opens the drawing tools: lines, polygons, rectangles, ellipses and freehand outlines, each with a colour, width, dashes and a label. They are visual aids only, saved with the system configuration and shown on the remote tablet. Shapes copy to and from the gradient maps in place; an open line is closed with a straight edge there.
+  - KO: - 입력이나 클러스터를 왼쪽 클릭하여 드래그로 이동합니다.\n- Shift+왼쪽 클릭으로 선택에 추가/제거합니다.\n- 왼쪽 클릭 드래그로 선택 사각형을 그립니다.\n- 더블클릭으로 위치 오프셋을 리셋합니다.\n- 움직임 없는 긴 클릭이나 길게 누르기(0.7~1.2초)는 놓을 때 입력 탭으로 전환하고 선택한 입력에 포커스를 맞춥니다. 움직여 벗어나면 다시 돌아와도 취소되며, 마커를 이동하거나 편집한 후 3초 동안은 무시됩니다.\n- 입력 외부 클릭으로 선택을 해제합니다.\n- 오른쪽 클릭 드래그로 맵을 팬합니다. 두 손가락 드래그도 동일합니다.\n- 마우스 휠로 줌합니다. 두 손가락 핀치도 동일합니다.\n- 스테레오 입력이 선택되어 있으면 마우스 휠은 줌 대신 이미지 축을 회전합니다(한 칸에 5°, Shift를 누르면 1°). Ctrl/Cmd를 누르면 평소처럼 줌합니다.\n- 가운데 클릭으로 뷰를 리셋합니다.\n- 화살표 키로 X/Y 이동, PageUp/Down으로 높이 조정.\n- 두 번째 손가락으로 지향성 회전과 높이 조정이 가능합니다.\n- 클러스터에서는 두 번째 손가락으로 회전과 크기 조정이 가능합니다.\n- 스테레오 입력을 터치한 상태에서 Shift를 누르면 두 번째 손가락이 스테레오 이미지를 조작합니다. 회전은 이미지 축을, 핀치는 폭을 바꿉니다.\n- 오디오 레벨 표시 토글 아래의 버튼은 입력과 클러스터에 대한 두 번째 손가락 조작을 모두 일시 정지합니다. 팬, 줌, 리버브 노드 쌍의 대칭 이동은 계속 작동합니다. 이 설정은 저장되지 않습니다.\n- Space Mouse에서는 스테레오 입력을 선택하고 Shift를 누른 채 비틀면 이미지 축이, 당기기/누르기로 폭이 바뀝니다(두 번째 손가락과 같은 방향으로, 위로 당기면 넓어지고 아래로 누르면 좁아집니다). Shift와 XY는 여전히 입력을 이동합니다.\n- 스테레오 입력을 선택한 상태에서 L을 누르면 이미지 방향이 잠기거나 풀립니다. 잠기면 페어는 객석 좌우로 벌어지고 축 값만큼만 회전하며, 원점을 도는 소스를 더 이상 따라가지 않습니다.\n- 입력, 출력 배열, 리버브 노드를 숨길 수 있습니다.\n- 입력을 잠가 선택과 이동을 방지할 수 있습니다.\n- 리버브 노드를 이동 가능. Ctrl/Cmd로 쌍을 대칭 이동합니다.\n- Live Source Tamer 반경이 표시됩니다.\n- 오디오 레벨을 맵에 표시할 수 있습니다.\n- Edit Shapes 버튼을 누르면 그리기 도구가 열립니다. 선, 다각형, 사각형, 타원, 자유 곡선 윤곽을 그릴 수 있고 각각 색, 두께, 점선, 레이블을 지정할 수 있습니다. 시각적 보조용일 뿐이며 시스템 구성과 함께 저장되고 원격 태블릿에도 표시됩니다. 도형은 그라디언트 맵과 같은 위치로 서로 복사할 수 있으며, 그곳에서 열린 선은 직선으로 닫힙니다.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -2434,8 +2444,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`help.copy`**
-  - EN: Copy selected shape or layer
-  - KO: 선택한 도형 또는 레이어 복사
+  - EN: Copy the selected shapes, or the whole layer when nothing is selected (Ctrl/Cmd+C). Shapes can be pasted on the Map tab too, at the same position.
+  - KO: 선택한 도형을, 아무것도 선택하지 않았으면 레이어 전체를 복사합니다(Ctrl/Cmd+C). 도형은 Map 탭에도 같은 위치로 붙여넣을 수 있습니다.
   - [ ] OK    Fix: 
 
 - **`help.curve`**
@@ -2479,8 +2489,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`help.paste`**
-  - EN: Paste shape or layer from clipboard
-  - KO: 클립보드에서 도형 또는 레이어 붙여넣기
+  - EN: Paste shapes or a layer from the clipboard (Ctrl/Cmd+V). Shapes copied on the Map tab land in place; an open line is closed with a straight edge.
+  - KO: 클립보드에서 도형이나 레이어를 붙여넣습니다(Ctrl/Cmd+V). Map 탭에서 복사한 도형은 같은 위치에 놓이고, 열린 선은 직선으로 닫힙니다.
   - [ ] OK    Fix: 
 
 - **`help.polygonTool`**
@@ -2578,6 +2588,11 @@ Walk through each section. For every entry:
   - KO: (missing — falls back to English)
   - [ ] OK    Fix: 
 
+- **`messages.linesSkipped`**
+  - EN: {count} two-point line(s) skipped: a line encloses no area
+  - KO: 두 점짜리 선 {count}개를 건너뛰었습니다. 선은 면적을 감싸지 않습니다
+  - [ ] OK    Fix: 
+
 - **`warnings.heightRatioZero`**
   - EN: Height Ratio is 0% — increase it for height to take effect
   - KO: Height Ratio가 0%입니다 — 높이가 적용되려면 값을 올려주세요
@@ -2608,6 +2623,11 @@ Walk through each section. For every entry:
 - **`channelSelector`**
   - EN: Input Channel Number and Selection.
   - KO: 입력 채널 번호 및 선택.
+  - [ ] OK    Fix: 
+
+- **`clearSnapshotSelection`**
+  - EN: Clear the snapshot selection. With no snapshot selected, Edit Scope sets the scope of the next snapshot to be stored.
+  - KO: 스냅샷 선택을 해제합니다. 선택된 스냅샷이 없으면 Edit Scope에서 다음에 저장할 스냅샷의 필터를 설정합니다.
   - [ ] OK    Fix: 
 
 - **`clusterSelector`**
@@ -3504,11 +3524,103 @@ Walk through each section. For every entry:
   - KO: {count}개의 입력이 클러스터에서 제거되었습니다
   - [ ] OK    Fix: 
 
+## `map.shapes`
+
+- **`help.colour`**
+  - EN: Outline colour of the selected shapes, or of the next shapes drawn.
+  - KO: 선택한 도형 또는 다음에 그릴 도형의 윤곽선 색입니다.
+  - [ ] OK    Fix: 
+
+- **`help.copy`**
+  - EN: Copy the selected shapes (Ctrl/Cmd+C). Pasted on a gradient map, they keep their position.
+  - KO: 선택한 도형을 복사합니다(Ctrl/Cmd+C). 그라디언트 맵에 붙여넣으면 위치가 그대로 유지됩니다.
+  - [ ] OK    Fix: 
+
+- **`help.dashed`**
+  - EN: Draw the outline dashed.
+  - KO: 윤곽선을 점선으로 그립니다.
+  - [ ] OK    Fix: 
+
+- **`help.delete`**
+  - EN: Delete the selected shapes (Delete key).
+  - KO: 선택한 도형을 삭제합니다(Delete 키).
+  - [ ] OK    Fix: 
+
+- **`help.editPoints`**
+  - EN: Drag the points of a line, polygon or rectangle. Double-click a point to remove it, or an edge to add one.
+  - KO: 선, 다각형, 사각형의 점을 드래그합니다. 점을 더블클릭하면 삭제하고, 변을 더블클릭하면 점을 추가합니다.
+  - [ ] OK    Fix: 
+
+- **`help.ellipse`**
+  - EN: Drag to draw an ellipse. Hold Shift for a circle.
+  - KO: 드래그해 타원을 그립니다. Shift를 누르면 원이 됩니다.
+  - [ ] OK    Fix: 
+
+- **`help.freehand`**
+  - EN: Drag to sketch a line. Finishing near the start closes the shape.
+  - KO: 드래그해 선을 그립니다. 시작점 근처에서 끝내면 도형이 닫힙니다.
+  - [ ] OK    Fix: 
+
+- **`help.label`**
+  - EN: Text shown above the selected shapes. Press Enter to apply.
+  - KO: 선택한 도형 위에 표시되는 텍스트입니다. Enter를 눌러 적용합니다.
+  - [ ] OK    Fix: 
+
+- **`help.line`**
+  - EN: Click to add points; double-click or press Enter to finish. The line stays open. Backspace removes the last point, Escape cancels.
+  - KO: 클릭해 점을 추가하고, 더블클릭이나 Enter로 마칩니다. 선은 열린 상태로 남습니다. Backspace는 마지막 점을 지우고, Esc는 취소합니다.
+  - [ ] OK    Fix: 
+
+- **`help.paste`**
+  - EN: Paste shapes (Ctrl/Cmd+V). Shapes from a gradient map land in place; shapes copied on the map are offset by 0.5 m.
+  - KO: 도형을 붙여넣습니다(Ctrl/Cmd+V). 그라디언트 맵의 도형은 같은 위치에, 맵에서 복사한 도형은 0.5 m 옮겨서 놓입니다.
+  - [ ] OK    Fix: 
+
+- **`help.polygon`**
+  - EN: Click to add points; click the first point, double-click or press Enter to close the shape.
+  - KO: 클릭해 점을 추가합니다. 첫 점을 클릭하거나 더블클릭 또는 Enter로 도형을 닫습니다.
+  - [ ] OK    Fix: 
+
+- **`help.rectangle`**
+  - EN: Drag to draw a rectangle. Hold Shift for a square.
+  - KO: 드래그해 사각형을 그립니다. Shift를 누르면 정사각형이 됩니다.
+  - [ ] OK    Fix: 
+
+- **`help.select`**
+  - EN: Select shapes by their outline: drag to move, the corner handles resize (Shift keeps the proportions), the round handle rotates (Shift snaps to 15°). Drag on empty space to select several; Shift+click adds or removes a shape.
+  - KO: 윤곽선을 클릭해 도형을 선택합니다. 드래그하면 이동, 모서리 핸들은 크기 조절(Shift는 비율 유지), 둥근 핸들은 회전(Shift는 15° 단위)입니다. 빈 곳을 드래그하면 여러 개를 선택하고, Shift+클릭으로 도형을 추가하거나 제외합니다.
+  - [ ] OK    Fix: 
+
+- **`help.width`**
+  - EN: Outline width in screen pixels: the same at every zoom.
+  - KO: 화면 픽셀 단위의 윤곽선 두께로, 확대/축소해도 같습니다.
+  - [ ] OK    Fix: 
+
+- **`messages.copied`**
+  - EN: {count} shape(s) copied
+  - KO: 도형 {count}개를 복사했습니다
+  - [ ] OK    Fix: 
+
+- **`messages.limit`**
+  - EN: The map holds at most {count} shapes
+  - KO: 맵에는 도형을 최대 {count}개까지 둘 수 있습니다
+  - [ ] OK    Fix: 
+
+- **`messages.noPoints`**
+  - EN: An ellipse has no points to edit: use Select to resize it
+  - KO: 타원에는 편집할 점이 없습니다. 크기를 바꾸려면 Select을(를) 사용하세요
+  - [ ] OK    Fix: 
+
 ## `map.tooltips`
 
 - **`detach`**
   - EN: Detach the map into a separate window for dual-screen setups
   - KO: 듀얼 스크린 설정을 위해 맵을 별도 창으로 분리
+  - [ ] OK    Fix: 
+
+- **`editShapes`**
+  - EN: Draw outline shapes on the map as visual aids: stage edges, set pieces, zones. Inputs are locked while editing; pan and zoom still work. Saved with the system configuration and shown on the remote tablet.
+  - KO: 무대 가장자리, 세트, 구역 등 시각적 보조용 윤곽 도형을 맵에 그립니다. 편집 중에는 입력이 잠기지만 이동과 확대/축소는 계속 사용할 수 있습니다. 시스템 구성과 함께 저장되며 원격 태블릿에도 표시됩니다.
   - [ ] OK    Fix: 
 
 - **`fitInputs`**
@@ -3922,6 +4034,46 @@ Walk through each section. For every entry:
 - **`findDeviceSent`**
   - EN: Find Device command sent.
   - KO: 장치 찾기 명령이 전송되었습니다.
+  - [ ] OK    Fix: 
+
+- **`godotCueCreated`**
+  - EN: Go.dot cue created: {name}
+  - KO: Go.dot 큐 생성: {name}
+  - [ ] OK    Fix: 
+
+- **`godotCueRefused`**
+  - EN: Go.dot refused the cue: {reason}
+  - KO: Go.dot이 큐를 거부했습니다: {reason}
+  - [ ] OK    Fix: 
+
+- **`godotCueUpdated`**
+  - EN: Go.dot cue updated: {name}
+  - KO: Go.dot 큐 업데이트: {name}
+  - [ ] OK    Fix: 
+
+- **`godotDeclareRefused`**
+  - EN: Go.dot refused WFS-DIY's declaration: {reason}
+  - KO: Go.dot이 WFS-DIY 등록을 거부했습니다: {reason}
+  - [ ] OK    Fix: 
+
+- **`godotDeclared`**
+  - EN: WFS-DIY is declared in Go.dot
+  - KO: WFS-DIY가 Go.dot에 등록되었습니다
+  - [ ] OK    Fix: 
+
+- **`godotDescribeFailed`**
+  - EN: Go.dot could not read WFS-DIY's parameters: {problem}
+  - KO: Go.dot이 WFS-DIY 파라미터를 읽지 못했습니다: {problem}
+  - [ ] OK    Fix: 
+
+- **`godotDescribed`**
+  - EN: Go.dot read {count} WFS-DIY parameters for its menus
+  - KO: Go.dot이 메뉴용으로 WFS-DIY 파라미터 {count}개를 읽었습니다
+  - [ ] OK    Fix: 
+
+- **`godotNoAnswer`**
+  - EN: No answer from Go.dot: is it running, and does its Network tab let this machine in?
+  - KO: Go.dot의 응답이 없습니다. 실행 중이며 Network 탭에서 이 컴퓨터를 허용하고 있습니까?
   - [ ] OK    Fix: 
 
 - **`maxTargetsReached`**
@@ -4728,6 +4880,11 @@ Walk through each section. For every entry:
   - KO: 그리드의 셀을 선택하여 속성을 편집합니다.\n샘플을 로드하려면 두 번 클릭합니다.\nCtrl+클릭으로 셀을 활성 세트에 할당합니다.
   - [ ] OK    Fix: 
 
+- **`importFailed`**
+  - EN: {file} could not be copied into the project's samples folder.
+  - KO: {file}을(를) 프로젝트의 samples 폴더에 복사할 수 없습니다.
+  - [ ] OK    Fix: 
+
 - **`placeholder`**
   - EN: Sampler — coming soon
   - KO: (missing — falls back to English)
@@ -4871,6 +5028,16 @@ Walk through each section. For every entry:
 
 ## `snapshot`
 
+- **`godotNothingInScope`**
+  - EN: Go.dot export: no parameters in scope
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`godotWriting`**
+  - EN: Writing {count} parameters to Go.dot as one cue...
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
 - **`qlabExportDone`**
   - EN: QLab export complete: {count} cues created
   - KO: (missing — falls back to English)
@@ -4893,14 +5060,39 @@ Walk through each section. For every entry:
 
 ## `snapshotScope`
 
+- **`clearSelectionTooltip`**
+  - EN: Clear the snapshot selection: this grid, as it is now, becomes the scope of the next snapshot you store.
+  - KO: 스냅샷 선택을 해제합니다. 이 그리드가 현재 상태 그대로 다음에 저장할 스냅샷의 필터가 됩니다.
+  - [ ] OK    Fix: 
+
 - **`noEffectChannels`**
   - EN: This session has no effect channels.
   - KO: 이 세션에는 이펙트 채널이 없습니다.
   - [ ] OK    Fix: 
 
+- **`writeSnapshotLoadCueBothTooltip`**
+  - EN: Also create a QLab cue and a Go.dot cue to load this snapshot via OSC
+  - KO: OSC로 이 스냅샷을 로드하는 QLab 큐와 Go.dot 큐도 생성
+  - [ ] OK    Fix: 
+
+- **`writeSnapshotLoadCueGoDotTooltip`**
+  - EN: Also create a Go.dot cue to load this snapshot via OSC
+  - KO: OSC로 이 스냅샷을 로드하는 Go.dot 큐도 생성
+  - [ ] OK    Fix: 
+
 - **`writeSnapshotLoadCueTooltip`**
   - EN: Also create a QLab cue to load this snapshot via OSC
   - KO: OSC로 이 스냅샷을 로드하는 QLab 큐도 생성
+  - [ ] OK    Fix: 
+
+- **`writeToBothTooltip`**
+  - EN: Save the snapshot, then write its scope to QLab and, as one cue, to Go.dot
+  - KO: 스냅샷을 저장한 뒤 스코프를 QLab에, 그리고 하나의 큐로 Go.dot에 쓰기
+  - [ ] OK    Fix: 
+
+- **`writeToGoDotTooltip`**
+  - EN: Save the snapshot, then write its scope to Go.dot as one cue
+  - KO: 스냅샷을 저장한 뒤 스코프를 하나의 큐로 Go.dot에 쓰기
   - [ ] OK    Fix: 
 
 - **`writeToQLabTooltip`**

@@ -5208,6 +5208,7 @@ void WFSValueTreeState::ensureCompleteSchema()
         createBinauralSection (defaultConfig);
         createUISection (defaultConfig);
         createEffectsGlobalSection (defaultConfig);
+        createMapShapesSection (defaultConfig);
         backfillFromTemplate (config, defaultConfig, um);
     }
 
@@ -5569,6 +5570,7 @@ void WFSValueTreeState::createConfigSection()
     createBinauralSection (config);
     createUISection (config);
     createEffectsGlobalSection (config);
+    createMapShapesSection (config);
 
     state.appendChild (config, nullptr);
 }
@@ -6015,6 +6017,12 @@ void WFSValueTreeState::createBinauralSection (juce::ValueTree& config)
     binaural.setProperty (binauralDelay, binauralDelayDefault, nullptr);
     // (solo is per-channel: Channel.inputSolo — no csv here anymore)
     config.appendChild (binaural, nullptr);
+}
+
+void WFSValueTreeState::createMapShapesSection (juce::ValueTree& config)
+{
+    // The container only: shapes are drawn by the user on the Map tab.
+    config.appendChild (juce::ValueTree (MapShapes), nullptr);
 }
 
 void WFSValueTreeState::createUISection (juce::ValueTree& config)

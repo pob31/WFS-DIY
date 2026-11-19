@@ -81,6 +81,20 @@ asserts the remote-protocol contract:
                    the mute (its resync dump still carries it); a float 0.0
                    unmutes; the plain-OSC target never sees the state. Runs
                    after 10, before 7g
+ 13. tablet map    the fixture's system.xml carries three drawn Map shapes
+                   (a dashed labelled rectangle, an ellipse, a 150-point open
+                   line) and outputs.xml hides output 3 on the map: a full
+                   dump carries /remote/map/speakers chunks listing exactly
+                   the 15 visible outputs and /remote/map/shapes + every
+                   /remote/map/shape part (ellipse flattened to 48 closed
+                   points, the line open with all 150 in 2 parts, the
+                   rectangle's style and label), all under one revision that
+                   /remote/map/rev states; no /remote/map/* datagram tops
+                   1472 B; /remote/map/rev repeats every 2 s;
+                   /remote/map/request 3 is answered with both sets and no
+                   dump; and an MCP move of output 1 reaches the tablet as a
+                   new speakers revision. Runs after 11, before 7g (it needs
+                   the fixture's 16 outputs)
  12. added pair    a stereo channel added over MCP while the tablet is
                    connected arrives listed stereo AND with its stereo image
                    (width, axis offset, axis lock) — the per-channel dump the
@@ -124,6 +138,10 @@ UDP_PAYLOAD_MAX = 1472         # 1500 B Ethernet MTU - 20 B IPv4 - 8 B UDP
 VIS_KEEPALIVE_S = 2.0          # MainComponent::visKeepaliveIntervalMs
 ARRAY_COUNT = 10               # ArrayMuteState::numArrays
 ARRAY_MUTE_REPEAT_S = 2.0      # OSCManager::arrayMuteRepeatIntervalMs (500 ms timer)
+MAP_REV_REPEAT_S = 2.0         # OSCManager::remoteMapRevRepeatIntervalMs
+MAP_HIDDEN_OUTPUT = 3          # hidden on the map in the patched outputs.xml
+MAP_LINE_POINTS = 150          # the open line seeded in system.xml: 2 parts of <= 80
+FIXTURE_OUTPUTS = 16
 
 # Fixture channels swapped on disk to make the display order non-ascending,
 # the one typed stereo, and the channel deleted at the end. The swap may not
@@ -211,6 +229,8 @@ class MockTablet:
         # every datagram that carried a /remote/vis/* message: the size is a
         # property of the datagram, which the flattened log no longer has.
         self.vis_datagrams: list[tuple[int, int]] = []
+        # Same, for /remote/map/* datagrams.
+        self.map_datagrams: list[tuple[int, int]] = []
         self.lock = threading.Lock()
         self.ping_typetags: str | None = None
         self.ping_version: int | None = None
@@ -238,6 +258,9 @@ class MockTablet:
                 if any(address.startswith("/remote/vis/")
                        for address, _tt, _a in msgs):
                     self.vis_datagrams.append((start, len(data)))
+                if any(address.startswith("/remote/map/")
+                       for address, _tt, _a in msgs):
+                    self.map_datagrams.append((start, len(data)))
             for address, typetags, args in msgs:
                 if address == "/remote/ping" and args:
                     if self.ping_typetags is None:
@@ -276,6 +299,12 @@ class MockTablet:
         mark (a mark() taken earlier)."""
         with self.lock:
             return [size for start, size in self.vis_datagrams
+                    if start >= mark]
+
+    def map_datagram_sizes_since(self, mark: int) -> list[int]:
+        """UDP payload size of every /remote/map/* datagram after mark."""
+        with self.lock:
+            return [size for start, size in self.map_datagrams
                     if start >= mark]
 
     def wait_for(self, predicate, timeout: float, mark: int = 0):
@@ -492,6 +521,109 @@ def seed_array_sends(project_dir: Path) -> None:
     inputs.write_text(text, encoding="utf-8")
 
 
+def seed_map_shapes(project_dir: Path) -> None:
+    """Draw three shapes into the temp fixture's system.xml and hide output
+    MAP_HIDDEN_OUTPUT on the map (outputs.xml). Loading them goes through
+    applyConfigSection's lift-and-replace, so arriving at all checks that."""
+    line = ";".join(f"{i * 0.05 - 3.7:.4f},{0.5 * ((i % 7) - 3) / 3:.4f}"
+                    for i in range(MAP_LINE_POINTS))
+    block = (
+        '    <MapShapes>\n'
+        '      <MapShape msType="0" msPosX="1.0" msPosY="2.0" msRotation="0.0"'
+        ' msScaleX="2.0" msScaleY="1.0" msColour="ffffc107" msLineWidth="2.0"'
+        ' msDashed="1" msLabel="Stage edge"/>\n'
+        '      <MapShape msType="1" msPosX="-3.0" msPosY="0.0" msRotation="0.0"'
+        ' msScaleX="1.5" msScaleY="1.0" msColour="ff26c6da" msLineWidth="3.0"'
+        ' msDashed="0"/>\n'
+        '      <MapShape msType="3" msPosX="0.0" msPosY="-2.0" msRotation="0.0"'
+        ' msScaleX="1.0" msScaleY="1.0" msColour="ffffffff" msLineWidth="1.0"'
+        f' msDashed="0" msVertices="{line}"/>\n'
+        '    </MapShapes>\n')
+    system = project_dir / "system.xml"
+    text = system.read_text(encoding="utf-8")
+    if text.count("</Config>") != 1:
+        print("[remote-mock] fixture system.xml has no single </Config>; "
+              "cannot seed the map shapes", file=sys.stderr)
+        raise SystemExit(EXIT_MISMATCH)
+    text = text.replace("  </Config>", block + "  </Config>")
+    system.write_text(text, encoding="utf-8")
+
+    outputs = project_dir / "outputs.xml"
+    text = outputs.read_text(encoding="utf-8")
+    node = re.search(r'<Output id="%d">.*?</Output>' % MAP_HIDDEN_OUTPUT, text, re.S)
+    tag = (re.search(r'outputMapVisible="1"', node.group(0))
+           if node is not None else None)
+    if tag is None:
+        print(f"[remote-mock] fixture outputs.xml has no outputMapVisible on "
+              f"<Output id=\"{MAP_HIDDEN_OUTPUT}\">", file=sys.stderr)
+        raise SystemExit(EXIT_MISMATCH)
+    at = node.start() + tag.start()
+    text = text[:at] + 'outputMapVisible="0"' + text[at + len(tag.group(0)):]
+    outputs.write_text(text, encoding="utf-8")
+
+
+def map_speakers(messages):
+    """The latest complete /remote/map/speakers set: {"rev", "total",
+    "speakers": [(number, array, x, y, orientation)]}, or None."""
+    chunks = [a for adr, _tt, a in messages
+              if adr == "/remote/map/speakers" and len(a) >= 4]
+    if not chunks:
+        return None
+    rev = chunks[-1][0]
+    mine = {a[1]: a for a in chunks if a[0] == rev}
+    count = chunks[-1][2]
+    if sorted(mine) != list(range(count)):
+        return None
+    speakers = []
+    for c in range(count):
+        a = mine[c]
+        body = a[4:]
+        if len(body) % 5:
+            return None
+        speakers += [tuple(body[i:i + 5]) for i in range(0, len(body), 5)]
+    if len(speakers) != chunks[-1][3]:
+        return None
+    return {"rev": rev, "total": chunks[-1][3], "speakers": speakers}
+
+
+def map_shapes(messages):
+    """The latest complete shape set: {"rev", "shapes": [{closed, colour,
+    dashed, width, label, points}]}, or None."""
+    manifests = [a for adr, _tt, a in messages
+                 if adr == "/remote/map/shapes" and len(a) >= 2]
+    if not manifests:
+        return None
+    rev, count = manifests[-1][0], manifests[-1][1]
+    parts: dict[int, dict[int, list]] = {}
+    for adr, _tt, a in messages:
+        if adr == "/remote/map/shape" and len(a) >= 11 and a[0] == rev:
+            parts.setdefault(a[1], {})[a[2]] = a
+    shapes = []
+    for index in range(count):
+        got = parts.get(index)
+        if not got:
+            return None
+        part_count = next(iter(got.values()))[3]
+        if sorted(got) != list(range(part_count)):
+            return None
+        first = got[0]
+        coords = []
+        for k in range(part_count):
+            coords += got[k][11:]
+        shapes.append({"closed": first[4], "colour": first[5] & 0xFFFFFFFF,
+                       "dashed": first[6], "width": first[7],
+                       "label": first[10],
+                       "points": list(zip(coords[0::2], coords[1::2])),
+                       "parts": part_count})
+    return {"rev": rev, "shapes": shapes}
+
+
+def map_revs(messages):
+    revs = [a for adr, _tt, a in messages
+            if adr == "/remote/map/rev" and len(a) >= 2]
+    return tuple(revs[-1][:2]) if revs else None
+
+
 # ---------------------------------------------------------------------------
 # Dump analysis helpers
 # ---------------------------------------------------------------------------
@@ -625,6 +757,7 @@ def main() -> int:
     display_order = reorder_input_channels(project_dir, *REORDER_SWAP)
     make_stereo_input_channel(project_dir, STEREO_CHANNEL)
     seed_array_sends(project_dir)
+    seed_map_shapes(project_dir)
     print(f"[remote-mock] fixture display order {display_order}, "
           f"channel {STEREO_CHANNEL} stereo, array levels {ARRAY_SEEDS}")
 
@@ -1322,6 +1455,105 @@ def main() -> int:
                       for adr, _tt, _a in osc_target.since(mark_osc)),
               "the array mute state goes to tablets only, not to the plain-OSC "
               "target")
+
+        # ---- 13. tablet map: speakers + drawn shapes ---------------------
+        # Additive, still v4 (RemoteMapGeometry.h). Runs here, before 7g grows
+        # the rig, so the speaker set is the fixture's 16 outputs.
+        time.sleep(1.5)  # let 11's resync drain
+        mark = tablet.mark()
+        tablet.tx.send("/remote/requestResync", [])
+        dump13 = tablet.wait_for(
+            lambda msgs: find_dump(msgs, after_seq=last_seq),
+            timeout=20.0, mark=mark)
+        check(dump13 is not None, "full dump for the tablet map checks")
+        spk13 = shp13 = None
+        if dump13:
+            last_seq = dump13["seq"]
+            body = dump13["body"]
+            spk13 = map_speakers(body)
+            check(spk13 is not None,
+                  "the dump carries a complete /remote/map/speakers set")
+            if spk13:
+                numbers = sorted(sp[0] for sp in spk13["speakers"])
+                expected = [n for n in range(1, FIXTURE_OUTPUTS + 1)
+                            if n != MAP_HIDDEN_OUTPUT]
+                check(numbers == expected,
+                      f"speakers are exactly the visible outputs, output "
+                      f"{MAP_HIDDEN_OUTPUT} hidden (got {numbers})")
+            shp13 = map_shapes(body)
+            check(shp13 is not None and len(shp13["shapes"]) == 3,
+                  f"the dump carries all three drawn shapes, every part "
+                  f"({None if shp13 is None else len(shp13['shapes'])})")
+            if shp13 and len(shp13["shapes"]) == 3:
+                rect, ell, line = shp13["shapes"]
+                check(rect["closed"] == 1 and len(rect["points"]) == 4
+                      and rect["dashed"] == 1 and rect["label"] == "Stage edge"
+                      and rect["colour"] == 0xFFFFC107
+                      and abs(rect["width"] - 2.0) < 1e-6,
+                      f"rectangle: 4 closed points, dashed, amber, width 2, "
+                      f"label 'Stage edge' ({rect['closed']}, "
+                      f"{len(rect['points'])}, {rect['dashed']}, "
+                      f"{rect['colour']:#x}, {rect['width']}, {rect['label']!r})")
+                xs = [x for x, _y in rect["points"]]
+                ys = [y for _x, y in rect["points"]]
+                check(abs(min(xs) + 1.0) < 1e-4 and abs(max(xs) - 3.0) < 1e-4
+                      and abs(min(ys) - 1.0) < 1e-4 and abs(max(ys) - 3.0) < 1e-4,
+                      f"rectangle points are origin-relative stage metres "
+                      f"(x {min(xs):.3f}..{max(xs):.3f}, y {min(ys):.3f}..{max(ys):.3f})")
+                check(ell["closed"] == 1 and len(ell["points"]) == 48,
+                      f"ellipse flattened to 48 closed points "
+                      f"({ell['closed']}, {len(ell['points'])})")
+                check(line["closed"] == 0
+                      and len(line["points"]) == MAP_LINE_POINTS
+                      and line["parts"] == 2,
+                      f"open line keeps all {MAP_LINE_POINTS} points in 2 "
+                      f"parts ({line['closed']}, {len(line['points'])}, "
+                      f"{line['parts']})")
+            revs = map_revs(body)
+            check(revs is not None and spk13 is not None and shp13 is not None
+                  and revs == (spk13["rev"], shp13["rev"]),
+                  f"/remote/map/rev states the dump's revisions ({revs})")
+        sizes = tablet.map_datagram_sizes_since(mark)
+        check(bool(sizes) and max(sizes) <= UDP_PAYLOAD_MAX,
+              f"no /remote/map/* datagram above {UDP_PAYLOAD_MAX} B "
+              f"({len(sizes)} seen, largest {max(sizes) if sizes else None} B)")
+
+        time.sleep(1.0)
+        mark = tablet.mark()
+        rep_rev = tablet.wait_for(lambda msgs: map_revs(msgs),
+                                  timeout=MAP_REV_REPEAT_S + 1.0, mark=mark)
+        check(rep_rev is not None,
+              f"/remote/map/rev repeats on a quiet scene ({rep_rev})")
+        check(not any(adr in ("/remote/map/speakers", "/remote/map/shape")
+                      for adr, _tt, _a in tablet.since(mark)),
+              "a quiet scene repeats only the revision, not the sets")
+
+        mark = tablet.mark()
+        tablet.tx.send("/remote/map/request", [("i", 3)])
+        answered = tablet.wait_for(
+            lambda msgs: (map_speakers(msgs) and map_shapes(msgs)) or None,
+            timeout=1.5, mark=mark)
+        check(answered is not None,
+              "/remote/map/request 3 is answered with both sets")
+        check(not any(adr == "/remote/dumpBegin"
+                      for adr, _tt, _a in tablet.since(mark)),
+              "the map request triggers no full dump")
+
+        mark = tablet.mark()
+        app.tool("output_position_set_x", {"output_id": 1, "value": 4.25})
+
+        def moved(msgs):
+            got = map_speakers(msgs)
+            if got is None:
+                return None
+            one = [sp for sp in got["speakers"] if sp[0] == 1]
+            return got if one and abs(one[0][2] - 4.25) < 1e-4 else None
+        t0 = time.monotonic()
+        spk_moved = tablet.wait_for(moved, timeout=2.0, mark=mark)
+        check(spk_moved is not None
+              and (spk13 is None or spk_moved["rev"] != spk13["rev"]),
+              f"an MCP move of output 1 reaches the tablet as a new speakers "
+              f"revision ({time.monotonic() - t0:.2f} s)")
 
         # 7g. The desktop maxima, 128 outputs + 32 reverbs: the vis state
         # carries the counts in full, and no /remote/vis/* datagram is larger

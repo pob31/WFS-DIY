@@ -739,14 +739,17 @@
       "showLevels": "Mostrar niveles",
       "hideLevels": "Ocultar niveles",
       "secondaryTouchOn": "2.º dedo: ON",
-      "secondaryTouchOff": "2.º dedo: OFF"
+      "secondaryTouchOff": "2.º dedo: OFF",
+      "editShapes": "Editar formas",
+      "doneShapes": "Terminar edición"
     },
     "tooltips": {
       "fitStage": "Ajustar el zoom y panorámica para mostrar el escenario",
       "fitInputs": "Ajustar el zoom y panorámica para mostrar todas las entradas visibles",
       "levels": "Mostrar los niveles de entradas y salidas en el mapa",
       "detach": "Separar el mapa en una ventana independiente para configuraciones de doble pantalla",
-      "secondaryTouch": "Suspender o reactivar las ediciones con el segundo dedo: rotación y altura de las entradas, imagen estéreo, rotación y escala de los clusters. La panorámica y el zoom siguen funcionando. No se guarda."
+      "secondaryTouch": "Suspender o reactivar las ediciones con el segundo dedo: rotación y altura de las entradas, imagen estéreo, rotación y escala de los clusters. La panorámica y el zoom siguen funcionando. No se guarda.",
+      "editShapes": "Dibuja formas de contorno en el mapa como ayudas visuales: bordes del escenario, escenografía, zonas. Las entradas quedan bloqueadas durante la edición; el desplazamiento y el zoom siguen funcionando. Se guardan con la configuración del sistema y se muestran en la tableta remota."
     },
     "reattach": "Reinsertar mapa",
     "detachedMessage": "El mapa se muestra en una ventana separada.",
@@ -760,6 +763,49 @@
       "setSingle": "Entrada {channel} eliminada del cluster",
       "setSingleMulti": "{count} entradas eliminadas de los clusters",
       "clusterBrokenUp": "Cluster {cluster} disuelto"
+    },
+    "shapes": {
+      "tools": {
+        "select": "Selección",
+        "editPoints": "Editar puntos",
+        "line": "Línea",
+        "polygon": "Polígono",
+        "rectangle": "Rectángulo",
+        "ellipse": "Elipse",
+        "freehand": "A mano alzada"
+      },
+      "style": {
+        "width": "Grosor",
+        "dashed": "Discontinua",
+        "labelPlaceholder": "Etiqueta"
+      },
+      "actions": {
+        "copy": "Copiar",
+        "paste": "Pegar",
+        "pasteFromGradient": "Pegar del gradiente",
+        "delete": "Eliminar"
+      },
+      "help": {
+        "select": "Selecciona las formas por su contorno: arrastra para mover, los tiradores de las esquinas cambian el tamaño (Mayús mantiene las proporciones), el tirador redondo gira (Mayús ajusta a pasos de 15°). Arrastra en un espacio vacío para seleccionar varias; Mayús+clic añade o quita una forma.",
+        "editPoints": "Arrastra los puntos de una línea, un polígono o un rectángulo. Doble clic en un punto lo elimina; en un lado añade uno.",
+        "line": "Haz clic para añadir puntos; doble clic o Intro para terminar. La línea queda abierta. Retroceso quita el último punto, Escape cancela.",
+        "polygon": "Haz clic para añadir puntos; clic en el primer punto, doble clic o Intro para cerrar la forma.",
+        "rectangle": "Arrastra para dibujar un rectángulo. Mantén Mayús para un cuadrado.",
+        "ellipse": "Arrastra para dibujar una elipse. Mantén Mayús para un círculo.",
+        "freehand": "Arrastra para trazar una línea. Si terminas cerca del inicio, la forma se cierra.",
+        "colour": "Color del contorno de las formas seleccionadas, o de las próximas que dibujes.",
+        "width": "Grosor del contorno en píxeles de pantalla: igual con cualquier zoom.",
+        "dashed": "Dibuja el contorno discontinuo.",
+        "label": "Texto que se muestra sobre las formas seleccionadas. Pulsa Intro para aplicarlo.",
+        "copy": "Copia las formas seleccionadas (Ctrl/Cmd+C). Pegadas en un mapa de gradiente, conservan su posición.",
+        "paste": "Pega formas (Ctrl/Cmd+V). Las formas de un mapa de gradiente quedan en su sitio; las copiadas en el mapa se desplazan 0,5 m.",
+        "delete": "Elimina las formas seleccionadas (tecla Supr)."
+      },
+      "messages": {
+        "copied": "{count} forma(s) copiada(s)",
+        "limit": "El mapa admite como máximo {count} formas",
+        "noPoints": "Una elipse no tiene puntos que editar: usa Selección para cambiar su tamaño"
+      }
     }
   },
   "levelMeter": {
@@ -1896,7 +1942,8 @@
         "copyShape": "Copiar forma",
         "pasteShape": "Pegar forma",
         "copyLayer": "Copiar capa",
-        "pasteLayer": "Pegar capa"
+        "pasteLayer": "Pegar capa",
+        "pasteFromMap": "Pegar del mapa"
       },
       "warnings": {
         "heightRatioZero": "La proporción de altura es 0% — auméntela para que la altura tenga efecto"
@@ -1933,13 +1980,16 @@
         "fillTool": "Aplicar relleno uniforme a la forma",
         "linGradTool": "Aplicar degradado lineal a la forma",
         "radGradTool": "Aplicar degradado radial a la forma",
-        "copy": "Copiar forma o capa seleccionada",
-        "paste": "Pegar forma o capa desde el portapapeles"
+        "copy": "Copia las formas seleccionadas, o toda la capa si no hay nada seleccionado (Ctrl/Cmd+C). Las formas también se pueden pegar en la pestaña Mapa, en la misma posición.",
+        "paste": "Pega formas o una capa desde el portapapeles (Ctrl/Cmd+V). Las formas copiadas en la pestaña Mapa quedan en su sitio; una línea abierta se cierra con un segmento recto."
       },
       "header": {
         "attenuationLayer": "Capa Atenuación",
         "heightLayer": "Capa Altura",
         "hfShelfLayer": "Capa Estante HF"
+      },
+      "messages": {
+        "linesSkipped": "{count} línea(s) de dos puntos omitida(s): una línea no encierra ninguna área"
       }
     },
     "labels": {
@@ -2971,7 +3021,7 @@
     },
     "map": {
       "title": "Mapa",
-      "body": "- Clic izquierdo en una entrada o cluster permite moverlo arrastrando.\n- Clic izquierdo con Mayús añade o quita entradas de la selección.\n- Clic izquierdo arrastrado dibuja un rectángulo de selección.\n- Doble clic restablece el desplazamiento de posición.\n- Clic largo o pulsación larga (0,7 a 1,2 s) sin movimiento cambia, al soltar, a la pestaña de la entrada seleccionada. Alejarse lo cancela aunque luego se vuelva, y se ignora durante 3 s tras mover o editar un marcador.\n- Clic fuera de cualquier entrada limpia la selección.\n- Clic derecho arrastrado desplaza la vista del mapa. Arrastre con dos dedos también.\n- La rueda del ratón hace zoom. Pellizco con dos dedos también.\n- Con entradas estéreo seleccionadas, la rueda del ratón gira su eje de imagen en lugar de hacer zoom: 5° por muesca, 1° con Shift. Mantén Ctrl/Cmd para hacer zoom como siempre.\n- Clic del botón central restablece la vista.\n- Las flechas mueven X/Y, RePág/AvPág la altura.\n- Un segundo dedo puede rotar la directividad y ajustar la altura.\n- En clusters, un segundo dedo puede rotar y escalar.\n- En una entrada estéreo tocada, con Shift pulsado el segundo dedo actúa sobre la imagen estéreo: rotar cambia el eje de la imagen y pellizcar cambia la anchura.\n- El botón situado debajo del que muestra los niveles de audio suspende todas las ediciones con el segundo dedo en entradas y clusters. El desplazamiento de la vista, el zoom y el movimiento en simetría de los pares de nodos de reverberación siguen funcionando. Su estado no se guarda.\n- Con un Space Mouse, manteniendo Shift con una entrada estéreo seleccionada, el giro cambia el eje de la imagen y tirar/empujar cambia la anchura, en el mismo sentido que el segundo dedo: tirar hacia arriba amplía, empujar hacia abajo estrecha. Shift con XY sigue moviendo la entrada.\n- Pulsar L con entradas estéreo seleccionadas bloquea o desbloquea la orientación de su imagen. Bloqueada, el par se abre a izquierda/derecha de sala girado solo por el valor de Eje, y ya no sigue a la fuente alrededor del origen.\n- Las entradas, arrays de salida y nodos de reverberación pueden ocultarse.\n- Las entradas pueden bloquearse.\n- Los nodos de reverberación pueden moverse. Ctrl/Cmd mueve pares en simetría.\n- El radio del Live Source Tamer se muestra cuando está activado.\n- Los niveles de audio pueden mostrarse en el mapa."
+      "body": "- Clic izquierdo en una entrada o cluster permite moverlo arrastrando.\n- Clic izquierdo con Mayús añade o quita entradas de la selección.\n- Clic izquierdo arrastrado dibuja un rectángulo de selección.\n- Doble clic restablece el desplazamiento de posición.\n- Clic largo o pulsación larga (0,7 a 1,2 s) sin movimiento cambia, al soltar, a la pestaña de la entrada seleccionada. Alejarse lo cancela aunque luego se vuelva, y se ignora durante 3 s tras mover o editar un marcador.\n- Clic fuera de cualquier entrada limpia la selección.\n- Clic derecho arrastrado desplaza la vista del mapa. Arrastre con dos dedos también.\n- La rueda del ratón hace zoom. Pellizco con dos dedos también.\n- Con entradas estéreo seleccionadas, la rueda del ratón gira su eje de imagen en lugar de hacer zoom: 5° por muesca, 1° con Shift. Mantén Ctrl/Cmd para hacer zoom como siempre.\n- Clic del botón central restablece la vista.\n- Las flechas mueven X/Y, RePág/AvPág la altura.\n- Un segundo dedo puede rotar la directividad y ajustar la altura.\n- En clusters, un segundo dedo puede rotar y escalar.\n- En una entrada estéreo tocada, con Shift pulsado el segundo dedo actúa sobre la imagen estéreo: rotar cambia el eje de la imagen y pellizcar cambia la anchura.\n- El botón situado debajo del que muestra los niveles de audio suspende todas las ediciones con el segundo dedo en entradas y clusters. El desplazamiento de la vista, el zoom y el movimiento en simetría de los pares de nodos de reverberación siguen funcionando. Su estado no se guarda.\n- Con un Space Mouse, manteniendo Shift con una entrada estéreo seleccionada, el giro cambia el eje de la imagen y tirar/empujar cambia la anchura, en el mismo sentido que el segundo dedo: tirar hacia arriba amplía, empujar hacia abajo estrecha. Shift con XY sigue moviendo la entrada.\n- Pulsar L con entradas estéreo seleccionadas bloquea o desbloquea la orientación de su imagen. Bloqueada, el par se abre a izquierda/derecha de sala girado solo por el valor de Eje, y ya no sigue a la fuente alrededor del origen.\n- Las entradas, arrays de salida y nodos de reverberación pueden ocultarse.\n- Las entradas pueden bloquearse.\n- Los nodos de reverberación pueden moverse. Ctrl/Cmd mueve pares en simetría.\n- El radio del Live Source Tamer se muestra cuando está activado.\n- Los niveles de audio pueden mostrarse en el mapa.\n- El botón Editar formas abre las herramientas de dibujo: líneas, polígonos, rectángulos, elipses y contornos a mano alzada, cada uno con color, grosor, trazo discontinuo y etiqueta. Son solo ayudas visuales, se guardan con la configuración del sistema y se muestran en la tableta remota. Las formas se copian a los mapas de gradiente y desde ellos en la misma posición; allí una línea abierta se cierra con un segmento recto."
     },
     "clusters": {
       "title": "Clusters",

@@ -4,6 +4,7 @@
 #include <JuceHeader.h>
 #include "OSCProtocolTypes.h"
 #include "RemoteProtocol.h"
+#include "RemoteMapGeometry.h"
 #include "OSCConnection.h"
 #include "../../spatcore/control/osc/OSCRateLimiter.h"
 #include "OSCLogger.h"
@@ -755,8 +756,10 @@ private:
     //==========================================================================
 
     void valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property) override;
-    void valueTreeChildAdded(juce::ValueTree&, juce::ValueTree&) override {}
-    void valueTreeChildRemoved(juce::ValueTree&, juce::ValueTree&, int) override {}
+    // Structural edits matter only to the tablet map (/remote/map/*): an output
+    // added or removed, a drawn shape added or deleted.
+    void valueTreeChildAdded(juce::ValueTree& parent, juce::ValueTree& child) override;
+    void valueTreeChildRemoved(juce::ValueTree& parent, juce::ValueTree& child, int) override;
     void valueTreeChildOrderChanged(juce::ValueTree&, int, int) override {}
     void valueTreeParentChanged(juce::ValueTree&) override {}
 
@@ -1201,6 +1204,9 @@ private:
         // When a /remote/vis/request from this tablet was last answered
         // (Time::getMillisecondCounter; see VIS_REQUEST_MIN_INTERVAL_MS).
         juce::uint32 lastVisRequestServedMs = 0;
+        // When a /remote/map/request from this tablet was last answered
+        // (same clock and limit as lastVisRequestServedMs).
+        juce::uint32 lastMapRequestServedMs = 0;
     };
     std::array<RemoteConnectionState, MAX_TARGETS> remoteStates;
 
@@ -1302,6 +1308,43 @@ private:
     // for one-shot bursts (initial state dump, per-input refresh) where we want the whole
     // payload to arrive as fast as possible without flooding the receiver as N tiny packets.
     void sendMessagesAsBundles(int targetIndex, const std::vector<juce::OSCMessage>& messages);
+
+    //==========================================================================
+    // Tablet map: speakers + drawn shapes (/remote/map/*, additive, still v4)
+    //==========================================================================
+    // Change detection only raises the dirty flags (any thread); the flush
+    // timer rebuilds the payloads on the message thread, bumps a set's
+    // revision only when its content really changed, and pushes the changed
+    // sets to every connected tablet. /remote/map/rev repeats every 2 s
+    // (quietly) so a tablet that lost a piece asks again (/remote/map/request).
+    std::atomic<bool> remoteMapSpeakersDirty { true };
+    std::atomic<bool> remoteMapShapesDirty { true };
+    int remoteMapPendingBroadcast = 0;      // mask of sets changed but not yet pushed
+    std::vector<RemoteMapGeometry::Speaker> remoteMapSpeakers;
+    std::vector<RemoteMapGeometry::ShapeOut> remoteMapShapes;
+    int remoteMapSpeakersRev = 0;
+    int remoteMapShapesRev = 0;
+    static constexpr juce::uint32 remoteMapRevRepeatIntervalMs = 2000;
+    juce::uint32 lastRemoteMapRevSendMs = 0;
+
+    /** Rebuild dirty payloads; returns the mask of sets whose revision moved. Message thread. */
+    int refreshRemoteMapPayload();
+    /** The messages for the sets in `mask`, then /remote/map/rev. */
+    void buildRemoteMapMessages(std::vector<juce::OSCMessage>& out, int mask) const;
+    /** Push the sets in `mask` to one connected tablet (-1 = all), paced on a thread. */
+    void sendRemoteMapTo(int targetIndex, int mask);
+    void sendRemoteMapRevRepeat();
+    void flushRemoteMap();
+
+    class RemoteMapFlushTimer : public juce::Timer
+    {
+    public:
+        explicit RemoteMapFlushTimer (OSCManager& o) : owner (o) {}
+        void timerCallback() override { owner.flushRemoteMap(); }
+    private:
+        OSCManager& owner;
+    };
+    RemoteMapFlushTimer remoteMapFlushTimer { *this };
 
     // Statistics
     std::atomic<int> messagesSent { 0 };

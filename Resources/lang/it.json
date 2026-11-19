@@ -352,7 +352,8 @@
       "fitInputs": "Regola zoom e panoramica per mostrare tutti gli ingressi visibili",
       "levels": "Mostra i livelli di ingressi e uscite sulla mappa",
       "detach": "Stacca la mappa in una finestra separata per configurazioni a doppio schermo",
-      "secondaryTouch": "Sospendi o riattiva le modifiche con il secondo dito: rotazione e altezza degli ingressi, immagine stereo, rotazione e scala dei cluster. Panoramica e zoom continuano a funzionare. Lo stato non viene salvato."
+      "secondaryTouch": "Sospendi o riattiva le modifiche con il secondo dito: rotazione e altezza degli ingressi, immagine stereo, rotazione e scala dei cluster. Panoramica e zoom continuano a funzionare. Lo stato non viene salvato.",
+      "editShapes": "Disegna forme di contorno sulla mappa come aiuti visivi: bordi del palco, scenografie, zone. Durante la modifica gli ingressi sono bloccati; panoramica e zoom continuano a funzionare. Salvate con la configurazione di sistema e mostrate sul tablet remoto."
     },
     "messages": {
       "assignedCluster": "Ingresso {channel} assegnato al Cluster {cluster}",
@@ -360,6 +361,29 @@
       "setSingle": "Ingresso {channel} rimosso dal cluster",
       "setSingleMulti": "{count} ingressi rimossi dai cluster",
       "clusterBrokenUp": "Cluster {cluster} sciolto"
+    },
+    "shapes": {
+      "help": {
+        "select": "Seleziona le forme dal contorno: trascina per spostare, le maniglie degli angoli ridimensionano (Maiusc mantiene le proporzioni), la maniglia rotonda ruota (Maiusc a scatti di 15°). Trascina su uno spazio vuoto per selezionarne diverse; Maiusc+clic aggiunge o toglie una forma.",
+        "editPoints": "Trascina i punti di una linea, di un poligono o di un rettangolo. Doppio clic su un punto lo elimina, su un lato ne aggiunge uno.",
+        "line": "Fai clic per aggiungere punti; doppio clic o Invio per terminare. La linea resta aperta. Backspace rimuove l'ultimo punto, Esc annulla.",
+        "polygon": "Fai clic per aggiungere punti; clic sul primo punto, doppio clic o Invio per chiudere la forma.",
+        "rectangle": "Trascina per disegnare un rettangolo. Tieni premuto Maiusc per un quadrato.",
+        "ellipse": "Trascina per disegnare un'ellisse. Tieni premuto Maiusc per un cerchio.",
+        "freehand": "Trascina per tracciare una linea. Terminando vicino all'inizio la forma si chiude.",
+        "colour": "Colore del contorno delle forme selezionate, o delle prossime forme disegnate.",
+        "width": "Spessore del contorno in pixel dello schermo: uguale a ogni zoom.",
+        "dashed": "Disegna il contorno tratteggiato.",
+        "label": "Testo mostrato sopra le forme selezionate. Premi Invio per applicarlo.",
+        "copy": "Copia le forme selezionate (Ctrl/Cmd+C). Incollate su una mappa di gradiente, mantengono la loro posizione.",
+        "paste": "Incolla forme (Ctrl/Cmd+V). Le forme di una mappa di gradiente restano al loro posto; quelle copiate sulla mappa sono spostate di 0,5 m.",
+        "delete": "Elimina le forme selezionate (tasto Canc)."
+      },
+      "messages": {
+        "copied": "{count} forma/e copiata/e",
+        "limit": "La mappa contiene al massimo {count} forme",
+        "noPoints": "Un'ellisse non ha punti da modificare: usa Select per ridimensionarla"
+      }
     }
   },
   "levelMeter": {
@@ -842,8 +866,11 @@
         "fillTool": "Applica riempimento uniforme alla forma",
         "linGradTool": "Applica gradiente lineare alla forma",
         "radGradTool": "Applica gradiente radiale alla forma",
-        "copy": "Copia forma o livello selezionato",
-        "paste": "Incolla forma o livello dagli appunti"
+        "copy": "Copia le forme selezionate, o l'intero livello se non è selezionato nulla (Ctrl/Cmd+C). Le forme si possono incollare anche nella scheda Map, nella stessa posizione.",
+        "paste": "Incolla forme o un livello dagli appunti (Ctrl/Cmd+V). Le forme copiate nella scheda Map restano al loro posto; una linea aperta viene chiusa con un segmento dritto."
+      },
+      "messages": {
+        "linesSkipped": "{count} linea/e a due punti ignorata/e: una linea non racchiude alcuna area"
       }
     },
     "dialogs": {
@@ -1127,7 +1154,7 @@
     },
     "map": {
       "title": "Mappa",
-      "body": "- Clic sinistro su un ingresso o cluster per spostarlo trascinando.\n- Clic sinistro con Maiusc aggiunge o rimuove ingressi dalla selezione.\n- Clic sinistro trascinato disegna un rettangolo di selezione.\n- Doppio clic ripristina l'offset di posizione.\n- Clic lungo o pressione prolungata (da 0,7 a 1,2 s) senza movimento passa alla scheda dell'ingresso selezionato al rilascio. Allontanarsi lo annulla anche se si ritorna, e viene ignorato per 3 s dopo aver spostato o modificato un marcatore.\n- Clic fuori da qualsiasi ingresso cancella la selezione.\n- Clic destro trascinato sposta la vista della mappa. Trascinamento a due dita anche.\n- La rotella del mouse fa zoom. Pizzico a due dita anche.\n- Con ingressi stereo selezionati, la rotella ruota il loro asse dell'immagine invece di fare zoom: 5° per scatto, 1° tenendo premuto Shift. Tieni premuto Ctrl/Cmd per fare zoom come al solito.\n- Clic centrale ripristina la vista.\n- I tasti freccia spostano X/Y, PagSu/Giù l'altezza.\n- Un secondo dito può ruotare la direttività e regolare l'altezza.\n- Nei cluster, un secondo dito può ruotare e scalare.\n- Su un ingresso stereo toccato, tenendo premuto Shift il secondo dito agisce sull'immagine stereo: la rotazione cambia l'asse dell'immagine e il pizzico cambia la larghezza.\n- Il pulsante sotto quello dei livelli audio sospende ogni modifica con il secondo dito su ingressi e cluster. Panoramica, zoom e spostamento in simmetria delle coppie di nodi di riverbero continuano a funzionare. Lo stato non viene salvato.\n- Con uno Space Mouse, tenendo premuto Shift con un ingresso stereo selezionato, la torsione cambia l'asse dell'immagine e tirare/spingere cambia la larghezza, nello stesso verso del secondo dito: tirare verso l'alto allarga, spingere verso il basso restringe. Shift con XY sposta comunque l'ingresso.\n- Premere L con ingressi stereo selezionati blocca o sblocca l'orientamento della loro immagine. Bloccata, la coppia si apre a sinistra/destra della sala ruotata solo dal valore Asse e non segue più la sorgente attorno all'origine.\n- Gli ingressi, array di uscita e nodi di riverbero possono essere nascosti.\n- Gli ingressi possono essere bloccati.\n- I nodi di riverbero possono essere spostati. Ctrl/Cmd sposta le coppie in simmetria.\n- Il raggio del Live Source Tamer viene visualizzato quando attivato.\n- I livelli audio possono essere visualizzati sulla mappa."
+      "body": "- Clic sinistro su un ingresso o cluster per spostarlo trascinando.\n- Clic sinistro con Maiusc aggiunge o rimuove ingressi dalla selezione.\n- Clic sinistro trascinato disegna un rettangolo di selezione.\n- Doppio clic ripristina l'offset di posizione.\n- Clic lungo o pressione prolungata (da 0,7 a 1,2 s) senza movimento passa alla scheda dell'ingresso selezionato al rilascio. Allontanarsi lo annulla anche se si ritorna, e viene ignorato per 3 s dopo aver spostato o modificato un marcatore.\n- Clic fuori da qualsiasi ingresso cancella la selezione.\n- Clic destro trascinato sposta la vista della mappa. Trascinamento a due dita anche.\n- La rotella del mouse fa zoom. Pizzico a due dita anche.\n- Con ingressi stereo selezionati, la rotella ruota il loro asse dell'immagine invece di fare zoom: 5° per scatto, 1° tenendo premuto Shift. Tieni premuto Ctrl/Cmd per fare zoom come al solito.\n- Clic centrale ripristina la vista.\n- I tasti freccia spostano X/Y, PagSu/Giù l'altezza.\n- Un secondo dito può ruotare la direttività e regolare l'altezza.\n- Nei cluster, un secondo dito può ruotare e scalare.\n- Su un ingresso stereo toccato, tenendo premuto Shift il secondo dito agisce sull'immagine stereo: la rotazione cambia l'asse dell'immagine e il pizzico cambia la larghezza.\n- Il pulsante sotto quello dei livelli audio sospende ogni modifica con il secondo dito su ingressi e cluster. Panoramica, zoom e spostamento in simmetria delle coppie di nodi di riverbero continuano a funzionare. Lo stato non viene salvato.\n- Con uno Space Mouse, tenendo premuto Shift con un ingresso stereo selezionato, la torsione cambia l'asse dell'immagine e tirare/spingere cambia la larghezza, nello stesso verso del secondo dito: tirare verso l'alto allarga, spingere verso il basso restringe. Shift con XY sposta comunque l'ingresso.\n- Premere L con ingressi stereo selezionati blocca o sblocca l'orientamento della loro immagine. Bloccata, la coppia si apre a sinistra/destra della sala ruotata solo dal valore Asse e non segue più la sorgente attorno all'origine.\n- Gli ingressi, array di uscita e nodi di riverbero possono essere nascosti.\n- Gli ingressi possono essere bloccati.\n- I nodi di riverbero possono essere spostati. Ctrl/Cmd sposta le coppie in simmetria.\n- Il raggio del Live Source Tamer viene visualizzato quando attivato.\n- I livelli audio possono essere visualizzati sulla mappa.\n- Il pulsante Edit Shapes apre gli strumenti di disegno: linee, poligoni, rettangoli, ellissi e contorni a mano libera, ciascuno con colore, spessore, tratteggio ed etichetta. Sono solo aiuti visivi, salvati con la configurazione di sistema e mostrati sul tablet remoto. Le forme si copiano da e verso le mappe di gradiente nella stessa posizione; lì una linea aperta viene chiusa con un segmento dritto."
     },
     "clusters": {
       "title": "Cluster",

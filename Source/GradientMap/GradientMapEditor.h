@@ -14,6 +14,7 @@
 #include "../gui/TypedTextField.h"
 #include "../gui/buttons/LongPressButton.h"
 #include "../gui/HelpCard.h"
+#include "../MapShapes/ShapeClipboard.h"
 
 /**
  * Gradient Map Editor
@@ -32,7 +33,8 @@
  */
 class GradientMapEditor : public juce::Component,
                           private juce::ValueTree::Listener,
-                          public ColorScheme::Manager::Listener
+                          public ColorScheme::Manager::Listener,
+                          private MapDrawing::ShapeClipboard::Listener
 {
 public:
     //==========================================================================
@@ -67,6 +69,7 @@ public:
         setOpaque (true);
         setWantsKeyboardFocus (true);
         ColorScheme::Manager::getInstance().addListener (this);
+        MapDrawing::ShapeClipboard::get().addListener (this);
 
         // Toolbar buttons
         selectToolBtn.setButtonText (LOC ("inputs.gradientMap.tools.select"));
@@ -501,6 +504,7 @@ public:
         if (gradientMapsTree.isValid())
             gradientMapsTree.removeListener (this);
         ColorScheme::Manager::getInstance().removeListener (this);
+        MapDrawing::ShapeClipboard::get().removeListener (this);
     }
 
     // ColorScheme::Manager::Listener — JUCE TextEditors cache their text colour
@@ -1794,6 +1798,16 @@ public:
         if (key == juce::KeyPress::deleteKey || key == juce::KeyPress::backspaceKey)
         {
             deleteSelectedShapes();
+            return true;
+        }
+        if (key == juce::KeyPress ('c', juce::ModifierKeys::commandModifier, 0))
+        {
+            onCopy();
+            return true;
+        }
+        if (key == juce::KeyPress ('v', juce::ModifierKeys::commandModifier, 0))
+        {
+            onPaste();
             return true;
         }
         if (key == juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0))
@@ -3267,75 +3281,107 @@ private:
     // Copy / Paste
     //==========================================================================
 
-    static inline GradientMap::Shape clipboardShape;
-    static inline GradientMap::Layer clipboardLayer;
-    static inline bool hasClipboardShape = false;
-    static inline bool hasClipboardLayer = false;
+    // The clipboard is shared with the Map's shape editor (ShapeClipboard.h).
+    // Gradient → gradient keeps the +0.5 m offset so a duplicate is visible;
+    // shapes coming from the Map are pasted IN PLACE (same stage frame).
+
+    void shapeClipboardChanged() override { updateCopyPasteButtons(); }
 
     void onCopy()
     {
+        auto& clip = MapDrawing::ShapeClipboard::get();
         if (! selectedShapeIndices.empty())
         {
-            int idx = selectedShapeIndices[0];
-            if (idx >= 0 && idx < static_cast<int> (currentLayerData.shapes.size()))
-            {
-                clipboardShape = currentLayerData.shapes[static_cast<size_t> (idx)];
-                hasClipboardShape = true;
-                hasClipboardLayer = false;
-            }
+            std::vector<GradientMap::Shape> shapes;
+            for (int idx : selectedShapeIndices)
+                if (idx >= 0 && idx < static_cast<int> (currentLayerData.shapes.size()))
+                    shapes.push_back (currentLayerData.shapes[static_cast<size_t> (idx)]);
+            clip.setGradientShapes (std::move (shapes));
         }
         else
         {
-            clipboardLayer = currentLayerData;
-            hasClipboardLayer = true;
-            hasClipboardShape = false;
+            clip.setGradientLayer (currentLayerData);
         }
         updateCopyPasteButtons();
     }
 
     void onPaste()
     {
-        if (hasClipboardShape)
+        using Kind = MapDrawing::ShapeClipboard::Kind;
+        auto& clip = MapDrawing::ShapeClipboard::get();
+
+        auto appendShapes = [this] (std::vector<GradientMap::Shape> shapes, float offset)
         {
+            if (shapes.empty())
+                return;
             pushUndo();
-            auto newShape = clipboardShape;
-            newShape.posX += 0.5f;
-            newShape.posY += 0.5f;
-            newShape.order = static_cast<int> (currentLayerData.shapes.size());
-            currentLayerData.shapes.push_back (newShape);
             selectedShapeIndices.clear();
-            selectedShapeIndices.push_back (static_cast<int> (currentLayerData.shapes.size()) - 1);
+            for (auto& shape : shapes)
+            {
+                shape.posX += offset;
+                shape.posY += offset;
+                shape.order = static_cast<int> (currentLayerData.shapes.size());
+                currentLayerData.shapes.push_back (shape);
+                selectedShapeIndices.push_back (static_cast<int> (currentLayerData.shapes.size()) - 1);
+            }
             updateShapePropertyPanel();
             saveCurrentLayerToValueTree();
-        }
-        else if (hasClipboardLayer)
+        };
+
+        switch (clip.getKind())
         {
-            currentLayerData.shapes = clipboardLayer.shapes;
-            currentLayerData.whiteValue = clipboardLayer.whiteValue;
-            currentLayerData.blackValue = clipboardLayer.blackValue;
-            currentLayerData.curve = clipboardLayer.curve;
-            selectedShapeIndices.clear();
-            updateLayerPropertyPanel();
-            setShapePropertiesVisible (false);
-            saveCurrentLayerToValueTree();
+            case Kind::GradientShapes:
+                appendShapes (clip.getGradientShapes(), 0.5f);
+                break;
+
+            case Kind::MapShapes:
+            {
+                int skipped = 0;
+                appendShapes (clip.mapShapesAsGradient (skipped), 0.0f);
+                if (skipped > 0 && statusBar != nullptr)
+                    statusBar->showTemporaryMessage (LOC ("inputs.gradientMap.messages.linesSkipped")
+                                                         .replace ("{count}", juce::String (skipped)));
+                break;
+            }
+
+            case Kind::GradientLayer:
+            {
+                const auto& layer = clip.getGradientLayer();
+                pushUndo();
+                currentLayerData.shapes = layer.shapes;
+                currentLayerData.whiteValue = layer.whiteValue;
+                currentLayerData.blackValue = layer.blackValue;
+                currentLayerData.curve = layer.curve;
+                selectedShapeIndices.clear();
+                updateLayerPropertyPanel();
+                setShapePropertiesVisible (false);
+                saveCurrentLayerToValueTree();
+                break;
+            }
+
+            case Kind::None:
+                break;
         }
         repaint();
     }
 
     void updateCopyPasteButtons()
     {
+        using Kind = MapDrawing::ShapeClipboard::Kind;
+        const auto kind = MapDrawing::ShapeClipboard::get().getKind();
+
         bool shapeMode = ! selectedShapeIndices.empty();
         copyBtn.setButtonText (shapeMode ? LOC ("inputs.gradientMap.buttons.copyShape")
                                          : LOC ("inputs.gradientMap.buttons.copyLayer"));
 
         // Paste always shows what's on clipboard, enabled if anything is copied
-        if (hasClipboardShape)
-            pasteBtn.setButtonText (LOC ("inputs.gradientMap.buttons.pasteShape"));
-        else if (hasClipboardLayer)
+        if (kind == Kind::GradientLayer)
             pasteBtn.setButtonText (LOC ("inputs.gradientMap.buttons.pasteLayer"));
+        else if (kind == Kind::MapShapes)
+            pasteBtn.setButtonText (LOC ("inputs.gradientMap.buttons.pasteFromMap"));
         else
             pasteBtn.setButtonText (LOC ("inputs.gradientMap.buttons.pasteShape"));
-        pasteBtn.setEnabled (hasClipboardShape || hasClipboardLayer);
+        pasteBtn.setEnabled (kind != Kind::None);
     }
 
     //==========================================================================
