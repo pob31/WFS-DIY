@@ -136,6 +136,7 @@
                    effectsGlobalLinkMode="1" effectsGlobalFxFeedGeometric="1" effectsGlobalWorkerThreads="-1"
                    effectsGlobalReturnCushion="0" effectsGlobalLoopGuard="1" effectsGlobalLoopGuardCeiling="6.0"
                    effectsGlobalMaxDelaySeconds="5" effectsGlobalFeedGpuDevice="cpu"/>
+    <MapShapes/>
     <ClusterLFOPresets>
       <ClusterLFOPreset clusterLFOPresetName="" clusterLFOperiod="5.0" clusterLFOphase="0"
                         clusterLFOshapeX="0" clusterLFOshapeY="0" clusterLFOshapeZ="0"
