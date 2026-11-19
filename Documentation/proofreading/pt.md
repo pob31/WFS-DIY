@@ -3547,8 +3547,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`help.editPoints`**
-  - EN: Drag the points of a line, polygon or rectangle. Double-click a point to remove it, or an edge to add one.
-  - PT: Arraste os pontos de uma linha, polígono ou retângulo. Clique duas vezes num ponto para removê-lo, ou num lado para adicionar um.
+  - EN: Drag the points of a line, polygon or rectangle. Double-click a point to remove it, or an edge to add one. Hold Shift to keep the dragged point level or plumb with its neighbour.
+  - PT: Arraste os pontos de uma linha, polígono ou retângulo. Clique duas vezes num ponto para removê-lo, ou num lado para adicionar um. Segure Shift para manter o ponto arrastado na horizontal ou vertical em relação ao vizinho.
   - [ ] OK    Fix: 
 
 - **`help.ellipse`**
@@ -3567,8 +3567,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`help.line`**
-  - EN: Click to add points; double-click or press Enter to finish. The line stays open. Backspace removes the last point, Escape cancels.
-  - PT: Clique para adicionar pontos; clique duas vezes ou pressione Enter para terminar. A linha fica aberta. Backspace remove o último ponto, Esc cancela.
+  - EN: Click to add points; double-click or press Enter to finish. The line stays open. Backspace removes the last point, Escape cancels. Hold Shift for horizontal or vertical segments.
+  - PT: Clique para adicionar pontos; clique duas vezes ou pressione Enter para terminar. A linha fica aberta. Backspace remove o último ponto, Esc cancela. Segure Shift para segmentos horizontais ou verticais.
   - [ ] OK    Fix: 
 
 - **`help.paste`**
@@ -3577,8 +3577,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`help.polygon`**
-  - EN: Click to add points; click the first point, double-click or press Enter to close the shape.
-  - PT: Clique para adicionar pontos; clique no primeiro ponto, clique duas vezes ou pressione Enter para fechar a forma.
+  - EN: Click to add points; click the first point, double-click or press Enter to close the shape. Hold Shift for horizontal or vertical segments.
+  - PT: Clique para adicionar pontos; clique no primeiro ponto, clique duas vezes ou pressione Enter para fechar a forma. Segure Shift para segmentos horizontais ou verticais.
   - [ ] OK    Fix: 
 
 - **`help.rectangle`**

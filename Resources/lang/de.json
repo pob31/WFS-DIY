@@ -369,9 +369,9 @@
     "shapes": {
       "help": {
         "select": "Formen über ihren Umriss auswählen: Ziehen verschiebt, die Eckgriffe skalieren (Umschalt behält die Proportionen), der runde Griff dreht (Umschalt rastet in 15°-Schritten). Ziehen auf einer leeren Fläche wählt mehrere aus; Umschalt+Klick fügt eine Form hinzu oder entfernt sie.",
-        "editPoints": "Die Punkte einer Linie, eines Polygons oder Rechtecks ziehen. Doppelklick auf einen Punkt entfernt ihn, auf eine Kante fügt einen hinzu.",
-        "line": "Klicken fügt Punkte hinzu; Doppelklick oder Eingabe beendet. Die Linie bleibt offen. Rücktaste entfernt den letzten Punkt, Escape bricht ab.",
-        "polygon": "Klicken fügt Punkte hinzu; Klick auf den ersten Punkt, Doppelklick oder Eingabe schließt die Form.",
+        "editPoints": "Die Punkte einer Linie, eines Polygons oder Rechtecks ziehen. Doppelklick auf einen Punkt entfernt ihn, auf eine Kante fügt einen hinzu. Mit Umschalt bleibt der gezogene Punkt waagerecht oder senkrecht zu seinem Nachbarn.",
+        "line": "Klicken fügt Punkte hinzu; Doppelklick oder Eingabe beendet. Die Linie bleibt offen. Rücktaste entfernt den letzten Punkt, Escape bricht ab. Mit Umschalt nur waagerechte oder senkrechte Segmente.",
+        "polygon": "Klicken fügt Punkte hinzu; Klick auf den ersten Punkt, Doppelklick oder Eingabe schließt die Form. Mit Umschalt nur waagerechte oder senkrechte Segmente.",
         "rectangle": "Ziehen zeichnet ein Rechteck. Mit Umschalt ein Quadrat.",
         "ellipse": "Ziehen zeichnet eine Ellipse. Mit Umschalt einen Kreis.",
         "freehand": "Ziehen skizziert eine Linie. Endet sie nahe dem Anfang, wird die Form geschlossen.",

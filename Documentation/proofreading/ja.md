@@ -3547,8 +3547,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`help.editPoints`**
-  - EN: Drag the points of a line, polygon or rectangle. Double-click a point to remove it, or an edge to add one.
-  - JA: 線、多角形、矩形のポイントをドラッグします。ポイントをダブルクリックすると削除、辺をダブルクリックすると追加します。
+  - EN: Drag the points of a line, polygon or rectangle. Double-click a point to remove it, or an edge to add one. Hold Shift to keep the dragged point level or plumb with its neighbour.
+  - JA: 線、多角形、矩形のポイントをドラッグします。ポイントをダブルクリックすると削除、辺をダブルクリックすると追加します。Shift を押すと、ドラッグ中のポイントが隣のポイントと水平または垂直に揃います。
   - [ ] OK    Fix: 
 
 - **`help.ellipse`**
@@ -3567,8 +3567,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`help.line`**
-  - EN: Click to add points; double-click or press Enter to finish. The line stays open. Backspace removes the last point, Escape cancels.
-  - JA: クリックでポイントを追加し、ダブルクリックまたは Enter で終了します。線は開いたままです。Backspace で最後のポイントを削除、Esc でキャンセルします。
+  - EN: Click to add points; double-click or press Enter to finish. The line stays open. Backspace removes the last point, Escape cancels. Hold Shift for horizontal or vertical segments.
+  - JA: クリックでポイントを追加し、ダブルクリックまたは Enter で終了します。線は開いたままです。Backspace で最後のポイントを削除、Esc でキャンセルします。Shift を押すと水平または垂直の線分になります。
   - [ ] OK    Fix: 
 
 - **`help.paste`**
@@ -3577,8 +3577,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`help.polygon`**
-  - EN: Click to add points; click the first point, double-click or press Enter to close the shape.
-  - JA: クリックでポイントを追加します。最初のポイントをクリック、ダブルクリック、または Enter でシェイプを閉じます。
+  - EN: Click to add points; click the first point, double-click or press Enter to close the shape. Hold Shift for horizontal or vertical segments.
+  - JA: クリックでポイントを追加します。最初のポイントをクリック、ダブルクリック、または Enter でシェイプを閉じます。Shift を押すと水平または垂直の線分になります。
   - [ ] OK    Fix: 
 
 - **`help.rectangle`**

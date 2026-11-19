@@ -787,9 +787,9 @@
       },
       "help": {
         "select": "Selecciona las formas por su contorno: arrastra para mover, los tiradores de las esquinas cambian el tamaño (Mayús mantiene las proporciones), el tirador redondo gira (Mayús ajusta a pasos de 15°). Arrastra en un espacio vacío para seleccionar varias; Mayús+clic añade o quita una forma.",
-        "editPoints": "Arrastra los puntos de una línea, un polígono o un rectángulo. Doble clic en un punto lo elimina; en un lado añade uno.",
-        "line": "Haz clic para añadir puntos; doble clic o Intro para terminar. La línea queda abierta. Retroceso quita el último punto, Escape cancela.",
-        "polygon": "Haz clic para añadir puntos; clic en el primer punto, doble clic o Intro para cerrar la forma.",
+        "editPoints": "Arrastra los puntos de una línea, un polígono o un rectángulo. Doble clic en un punto lo elimina; en un lado añade uno. Mantén Mayús para que el punto arrastrado quede en horizontal o vertical respecto a su vecino.",
+        "line": "Haz clic para añadir puntos; doble clic o Intro para terminar. La línea queda abierta. Retroceso quita el último punto, Escape cancela. Mantén Mayús para segmentos horizontales o verticales.",
+        "polygon": "Haz clic para añadir puntos; clic en el primer punto, doble clic o Intro para cerrar la forma. Mantén Mayús para segmentos horizontales o verticales.",
         "rectangle": "Arrastra para dibujar un rectángulo. Mantén Mayús para un cuadrado.",
         "ellipse": "Arrastra para dibujar una elipse. Mantén Mayús para un círculo.",
         "freehand": "Arrastra para trazar una línea. Si terminas cerca del inicio, la forma se cierra.",

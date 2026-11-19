@@ -3547,8 +3547,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`help.editPoints`**
-  - EN: Drag the points of a line, polygon or rectangle. Double-click a point to remove it, or an edge to add one.
-  - DE: Die Punkte einer Linie, eines Polygons oder Rechtecks ziehen. Doppelklick auf einen Punkt entfernt ihn, auf eine Kante fügt einen hinzu.
+  - EN: Drag the points of a line, polygon or rectangle. Double-click a point to remove it, or an edge to add one. Hold Shift to keep the dragged point level or plumb with its neighbour.
+  - DE: Die Punkte einer Linie, eines Polygons oder Rechtecks ziehen. Doppelklick auf einen Punkt entfernt ihn, auf eine Kante fügt einen hinzu. Mit Umschalt bleibt der gezogene Punkt waagerecht oder senkrecht zu seinem Nachbarn.
   - [ ] OK    Fix: 
 
 - **`help.ellipse`**
@@ -3567,8 +3567,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`help.line`**
-  - EN: Click to add points; double-click or press Enter to finish. The line stays open. Backspace removes the last point, Escape cancels.
-  - DE: Klicken fügt Punkte hinzu; Doppelklick oder Eingabe beendet. Die Linie bleibt offen. Rücktaste entfernt den letzten Punkt, Escape bricht ab.
+  - EN: Click to add points; double-click or press Enter to finish. The line stays open. Backspace removes the last point, Escape cancels. Hold Shift for horizontal or vertical segments.
+  - DE: Klicken fügt Punkte hinzu; Doppelklick oder Eingabe beendet. Die Linie bleibt offen. Rücktaste entfernt den letzten Punkt, Escape bricht ab. Mit Umschalt nur waagerechte oder senkrechte Segmente.
   - [ ] OK    Fix: 
 
 - **`help.paste`**
@@ -3577,8 +3577,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`help.polygon`**
-  - EN: Click to add points; click the first point, double-click or press Enter to close the shape.
-  - DE: Klicken fügt Punkte hinzu; Klick auf den ersten Punkt, Doppelklick oder Eingabe schließt die Form.
+  - EN: Click to add points; click the first point, double-click or press Enter to close the shape. Hold Shift for horizontal or vertical segments.
+  - DE: Klicken fügt Punkte hinzu; Klick auf den ersten Punkt, Doppelklick oder Eingabe schließt die Form. Mit Umschalt nur waagerechte oder senkrechte Segmente.
   - [ ] OK    Fix: 
 
 - **`help.rectangle`**

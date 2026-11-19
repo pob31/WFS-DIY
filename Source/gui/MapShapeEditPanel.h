@@ -207,12 +207,24 @@ public:
         {
             auto r = area.removeFromTop (row);
             area.removeFromTop (gap);
-            const int half = (r.getWidth() - gap) / 2;
-            auto left = r.removeFromLeft (half);
-            r.removeFromLeft (gap);
-            widthLabel.setBounds (left.removeFromLeft (left.getWidth() * 2 / 5));
-            widthCombo.setBounds (left);
-            dashedBtn.setBounds (r);
+            // The label and the Dashed button take what their text needs (the
+            // look-and-feel pads button text 7 px a side), the width selector
+            // the rest, so "0.5 px" and the arrow always fit.
+            const auto textWidth = [] (const juce::Font& f, const juce::String& s)
+            {
+                return juce::roundToInt (juce::GlyphArrangement::getStringWidth (f, s));
+            };
+            // Measured at the row's text size, not the Label's own font, which the
+            // look-and-feel scales again when it draws.
+            const juce::Font buttonFont (juce::FontOptions().withHeight (row * 0.6f));
+            const int labelW = textWidth (buttonFont, widthLabel.getText())
+                             + widthLabel.getBorderSize().getLeftAndRight() + 4;
+            const int dashedW = juce::jmin (r.getWidth() / 2,
+                                            textWidth (buttonFont, dashedBtn.getButtonText()) + 14 + 2 * gap);
+            widthLabel.setBounds (r.removeFromLeft (labelW));
+            dashedBtn.setBounds (r.removeFromRight (dashedW));
+            r.removeFromRight (gap);
+            widthCombo.setBounds (r);
         }
         labelEditor.setBounds (area.removeFromTop (row));
         area.removeFromTop (gap * 2);

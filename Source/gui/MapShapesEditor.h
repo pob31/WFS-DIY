@@ -426,7 +426,7 @@ public:
             case Tool::Select:      selectDown (pos, mods); break;
             case Tool::EditPoints:  editPointsDown (pos, mods); break;
             case Tool::Line:
-            case Tool::Polygon:     polyDown (pos); break;
+            case Tool::Polygon:     polyDown (pos, mods); break;
             case Tool::Rectangle:
             case Tool::Ellipse:     gesture = Gesture::CreateBox; break;
             case Tool::Freehand:
@@ -466,8 +466,19 @@ public:
             {
                 if (! travelled) break;
                 auto& s = shapes[(size_t) gestureIndices.front()];
-                if (vertexIndex >= 0 && vertexIndex < (int) s.vertices.size())
-                    s.vertices[(size_t) vertexIndex] = s.stageToLocal (stagePos);
+                const int n = (int) s.vertices.size();
+                if (vertexIndex >= 0 && vertexIndex < n)
+                {
+                    auto target = stagePos;
+                    // Shift: level or plumb with the neighbour (the previous point;
+                    // for the first one, the last of a closed shape or the next of a line)
+                    if (mods.isShiftDown() && n >= 2)
+                    {
+                        const int neighbour = vertexIndex > 0 ? vertexIndex - 1 : (s.isClosed() ? n - 1 : 1);
+                        target = snapOrthogonal (s.localToStage (s.vertices[(size_t) neighbour]), target);
+                    }
+                    s.vertices[(size_t) vertexIndex] = s.stageToLocal (target);
+                }
                 break;
             }
             case Gesture::Freehand:
@@ -533,15 +544,24 @@ public:
         if (requestRepaint) requestRepaint();
     }
 
-    void pointerMove (juce::Point<float> pos)
+    void pointerMove (juce::Point<float> pos, juce::ModifierKeys mods)
     {
+        lastHoverPos = pos;
         if (building.empty())
         {
             hoverScreen.reset();
             return;
         }
-        hoverScreen = pos;
+        // The rubber segment shows where the next click lands, Shift snap included
+        hoverScreen = mods.isShiftDown() ? toScreen (snapOrthogonal (building.back(), toStage (pos))) : pos;
         if (requestRepaint) requestRepaint();
+    }
+
+    /** Shift pressed or released without moving: re-aim the rubber segment. */
+    void modifiersChanged (juce::ModifierKeys mods)
+    {
+        if (! building.empty() && lastHoverPos.has_value() && hoverScreen.has_value())
+            pointerMove (*lastHoverPos, mods);
     }
 
     void pointerExit()
@@ -561,8 +581,9 @@ public:
         {
             // The double-click's second press added a vertex on top of the
             // first one: drop it before finishing.
-            if (building.size() >= 2
-                && toScreen (building.back()).getDistanceFrom (toScreen (building[building.size() - 2])) < 6.0f)
+            // Compared on the RAW presses: with Shift the two land on different
+            // snapped points even though the pointer did not move.
+            if (building.size() >= 2 && lastPressScreen.getDistanceFrom (prevPressScreen) < 6.0f)
                 building.pop_back();
             finishBuilding (true);
             return;
@@ -717,6 +738,8 @@ private:
     std::vector<juce::Point<float>> building;           // stage points (Line / Polygon)
     bool pressAddedVertex = false;
     std::optional<juce::Point<float>> hoverScreen;
+    std::optional<juce::Point<float>> lastHoverPos;     // raw pointer, for a Shift change without a move
+    juce::Point<float> lastPressScreen, prevPressScreen;  // raw presses that added the last two points
     std::vector<juce::Point<float>> freehandScreen;
 
     //==========================================================================
@@ -1027,6 +1050,15 @@ private:
         return out;
     }
 
+    /** Shift drawing: p moved onto the horizontal or the vertical through the
+        anchor, whichever it is closer to (stage metres). */
+    static juce::Point<float> snapOrthogonal (juce::Point<float> anchor, juce::Point<float> p)
+    {
+        const auto d = p - anchor;
+        return std::abs (d.x) >= std::abs (d.y) ? juce::Point<float> (p.x, anchor.y)
+                                                : juce::Point<float> (anchor.x, p.y);
+    }
+
     static void convertRectangleToPolygon (Shape& s)
     {
         s.type = Type::Polygon;
@@ -1171,9 +1203,12 @@ private:
         clearSelection();
     }
 
-    void polyDown (juce::Point<float> pos)
+    void polyDown (juce::Point<float> pos, juce::ModifierKeys mods)
     {
-        const auto stagePos = toStage (pos);
+        auto stagePos = toStage (pos);
+        // Shift: horizontal or vertical from the previous point
+        if (mods.isShiftDown() && ! building.empty())
+            stagePos = snapOrthogonal (building.back(), stagePos);
 
         // Polygon: a press on the first vertex closes it
         if (tool == Tool::Polygon && building.size() >= 3
@@ -1186,6 +1221,8 @@ private:
         if ((int) building.size() >= MapDrawing::maxVertices)
             return;
         building.push_back (stagePos);
+        prevPressScreen = building.size() > 1 ? lastPressScreen : juce::Point<float> (-1.0e6f, -1.0e6f);
+        lastPressScreen = pos;
         pressAddedVertex = true;
     }
 

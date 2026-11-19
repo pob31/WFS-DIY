@@ -369,9 +369,9 @@
     "shapes": {
       "help": {
         "select": "Selecione as formas pelo contorno: arraste para mover, as alças dos cantos redimensionam (Shift mantém as proporções), a alça redonda gira (Shift ajusta em passos de 15°). Arraste num espaço vazio para selecionar várias; Shift+clique adiciona ou remove uma forma.",
-        "editPoints": "Arraste os pontos de uma linha, polígono ou retângulo. Clique duas vezes num ponto para removê-lo, ou num lado para adicionar um.",
-        "line": "Clique para adicionar pontos; clique duas vezes ou pressione Enter para terminar. A linha fica aberta. Backspace remove o último ponto, Esc cancela.",
-        "polygon": "Clique para adicionar pontos; clique no primeiro ponto, clique duas vezes ou pressione Enter para fechar a forma.",
+        "editPoints": "Arraste os pontos de uma linha, polígono ou retângulo. Clique duas vezes num ponto para removê-lo, ou num lado para adicionar um. Segure Shift para manter o ponto arrastado na horizontal ou vertical em relação ao vizinho.",
+        "line": "Clique para adicionar pontos; clique duas vezes ou pressione Enter para terminar. A linha fica aberta. Backspace remove o último ponto, Esc cancela. Segure Shift para segmentos horizontais ou verticais.",
+        "polygon": "Clique para adicionar pontos; clique no primeiro ponto, clique duas vezes ou pressione Enter para fechar a forma. Segure Shift para segmentos horizontais ou verticais.",
         "rectangle": "Arraste para desenhar um retângulo. Segure Shift para um quadrado.",
         "ellipse": "Arraste para desenhar uma elipse. Segure Shift para um círculo.",
         "freehand": "Arraste para traçar uma linha. Terminar perto do início fecha a forma.",

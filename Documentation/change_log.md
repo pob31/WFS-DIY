@@ -5,7 +5,7 @@ All notable changes to WFS DIY are documented in this file, organized by release
 ## Unreleased
 
 ### Added
-- **Draw shapes on the Map as visual aids.** The new **Edit Shapes** button opens a drawing panel: lines (they may stay open), polygons, rectangles, ellipses and freehand outlines, each with its own colour, line width, dashes and a label. Shapes are outlines only, never affect the sound, and are saved with the system configuration. While the panel is open the inputs are locked so a show cannot be moved by accident; pan and zoom still work. Shapes copy to and from the gradient maps and keep their position; an open line copied to a gradient map is closed with a straight edge.
+- **Draw shapes on the Map as visual aids.** The new **Edit Shapes** button opens a drawing panel: lines (they may stay open), polygons, rectangles, ellipses and freehand outlines, each with its own colour, line width, dashes and a label. Shapes are outlines only, never affect the sound, and are saved with the system configuration. While the panel is open the inputs are locked so a show cannot be moved by accident; pan and zoom still work. Hold Shift to draw horizontal or vertical segments. Shapes copy to and from the gradient maps and keep their position; an open line copied to a gradient map is closed with a straight edge.
 - **The tablet map shows the speakers and the drawn shapes.** WFS Control 2 1.0-beta_15 draws the speakers (orientation, array colour and number, hidden ones left out) and the shapes exactly where the desktop does. Both follow every change, and the tablet has its own switches to hide them. Older tablets ignore the new messages.
 
 ### Changed

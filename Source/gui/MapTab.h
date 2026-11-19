@@ -483,7 +483,13 @@ public:
     void mouseMove(const juce::MouseEvent& e) override
     {
         if (shapeEditMode && e.eventComponent == this)
-            shapeEditor.pointerMove(e.position);
+            shapeEditor.pointerMove(e.position, e.mods);
+    }
+
+    void modifierKeysChanged(const juce::ModifierKeys& mods) override
+    {
+        if (shapeEditMode)
+            shapeEditor.modifiersChanged(mods);
     }
 
     void paint(juce::Graphics& g) override

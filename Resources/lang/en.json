@@ -849,9 +849,9 @@
       },
       "help": {
         "select": "Select shapes by their outline: drag to move, the corner handles resize (Shift keeps the proportions), the round handle rotates (Shift snaps to 15°). Drag on empty space to select several; Shift+click adds or removes a shape.",
-        "editPoints": "Drag the points of a line, polygon or rectangle. Double-click a point to remove it, or an edge to add one.",
-        "line": "Click to add points; double-click or press Enter to finish. The line stays open. Backspace removes the last point, Escape cancels.",
-        "polygon": "Click to add points; click the first point, double-click or press Enter to close the shape.",
+        "editPoints": "Drag the points of a line, polygon or rectangle. Double-click a point to remove it, or an edge to add one. Hold Shift to keep the dragged point level or plumb with its neighbour.",
+        "line": "Click to add points; double-click or press Enter to finish. The line stays open. Backspace removes the last point, Escape cancels. Hold Shift for horizontal or vertical segments.",
+        "polygon": "Click to add points; click the first point, double-click or press Enter to close the shape. Hold Shift for horizontal or vertical segments.",
         "rectangle": "Drag to draw a rectangle. Hold Shift for a square.",
         "ellipse": "Drag to draw an ellipse. Hold Shift for a circle.",
         "freehand": "Drag to sketch a line. Finishing near the start closes the shape.",

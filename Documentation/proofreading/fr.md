@@ -3547,8 +3547,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`help.editPoints`**
-  - EN: Drag the points of a line, polygon or rectangle. Double-click a point to remove it, or an edge to add one.
-  - FR: Déplacer les points d'une ligne, d'un polygone ou d'un rectangle. Un double-clic sur un point le supprime, sur un côté en ajoute un.
+  - EN: Drag the points of a line, polygon or rectangle. Double-click a point to remove it, or an edge to add one. Hold Shift to keep the dragged point level or plumb with its neighbour.
+  - FR: Déplacer les points d'une ligne, d'un polygone ou d'un rectangle. Un double-clic sur un point le supprime, sur un côté en ajoute un. Maintenir Maj pour garder le point déplacé à l'horizontale ou à la verticale de son voisin.
   - [ ] OK    Fix: 
 
 - **`help.ellipse`**
@@ -3567,8 +3567,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`help.line`**
-  - EN: Click to add points; double-click or press Enter to finish. The line stays open. Backspace removes the last point, Escape cancels.
-  - FR: Cliquer pour ajouter des points ; double-clic ou Entrée pour terminer. La ligne reste ouverte. Retour arrière retire le dernier point, Échap annule.
+  - EN: Click to add points; double-click or press Enter to finish. The line stays open. Backspace removes the last point, Escape cancels. Hold Shift for horizontal or vertical segments.
+  - FR: Cliquer pour ajouter des points ; double-clic ou Entrée pour terminer. La ligne reste ouverte. Retour arrière retire le dernier point, Échap annule. Maintenir Maj pour des segments horizontaux ou verticaux.
   - [ ] OK    Fix: 
 
 - **`help.paste`**
@@ -3577,8 +3577,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`help.polygon`**
-  - EN: Click to add points; click the first point, double-click or press Enter to close the shape.
-  - FR: Cliquer pour ajouter des points ; cliquer sur le premier point, double-cliquer ou appuyer sur Entrée pour fermer la forme.
+  - EN: Click to add points; click the first point, double-click or press Enter to close the shape. Hold Shift for horizontal or vertical segments.
+  - FR: Cliquer pour ajouter des points ; cliquer sur le premier point, double-cliquer ou appuyer sur Entrée pour fermer la forme. Maintenir Maj pour des segments horizontaux ou verticaux.
   - [ ] OK    Fix: 
 
 - **`help.rectangle`**

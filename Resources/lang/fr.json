@@ -366,9 +366,9 @@
     "shapes": {
       "help": {
         "select": "Sélectionner les formes par leur contour : glisser pour déplacer, les poignées d'angle redimensionnent (Maj garde les proportions), la poignée ronde fait pivoter (Maj aimante par pas de 15°). Glisser dans le vide pour en sélectionner plusieurs ; Maj+clic ajoute ou retire une forme.",
-        "editPoints": "Déplacer les points d'une ligne, d'un polygone ou d'un rectangle. Un double-clic sur un point le supprime, sur un côté en ajoute un.",
-        "line": "Cliquer pour ajouter des points ; double-clic ou Entrée pour terminer. La ligne reste ouverte. Retour arrière retire le dernier point, Échap annule.",
-        "polygon": "Cliquer pour ajouter des points ; cliquer sur le premier point, double-cliquer ou appuyer sur Entrée pour fermer la forme.",
+        "editPoints": "Déplacer les points d'une ligne, d'un polygone ou d'un rectangle. Un double-clic sur un point le supprime, sur un côté en ajoute un. Maintenir Maj pour garder le point déplacé à l'horizontale ou à la verticale de son voisin.",
+        "line": "Cliquer pour ajouter des points ; double-clic ou Entrée pour terminer. La ligne reste ouverte. Retour arrière retire le dernier point, Échap annule. Maintenir Maj pour des segments horizontaux ou verticaux.",
+        "polygon": "Cliquer pour ajouter des points ; cliquer sur le premier point, double-cliquer ou appuyer sur Entrée pour fermer la forme. Maintenir Maj pour des segments horizontaux ou verticaux.",
         "rectangle": "Glisser pour dessiner un rectangle. Maintenir Maj pour un carré.",
         "ellipse": "Glisser pour dessiner une ellipse. Maintenir Maj pour un cercle.",
         "freehand": "Glisser pour tracer une ligne. Terminer près du départ ferme la forme.",

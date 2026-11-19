@@ -2453,7 +2453,9 @@ audible, always drawn (`shapeEditor.paintShapes` right after `drawOriginMarker`,
   the first finger edits; a second finger undoes that press and both become a pan/zoom view gesture.
   Tools: Select (stroke-distance hit test, corner scale handles, rotation handle, rubber band, Shift
   toggles/snaps), Edit Points (drag, double-click to delete/insert; a rectangle becomes a polygon on its
-  first point drag), Line/Polygon (click per vertex, double-click/Enter finishes, Backspace, Esc),
+  first point drag; Shift keeps the point level/plumb with its neighbour), Line/Polygon (click per
+  vertex, Shift = horizontal/vertical from the previous one, double-click/Enter finishes - the duplicate
+  is detected on the RAW presses, since Shift snaps them apart - Backspace, Esc),
   Rectangle/Ellipse (drag, Shift = square/circle), Freehand. Keys: Delete, Ctrl/Cmd+C/V/A/Z/Y, arrows
   (0.1 m, Shift 0.01 m), Esc (cancel, else deselect, else leave edit mode).
 - **Undo** - a gesture edits an in-memory copy and commits once on release, through the MAP domain's

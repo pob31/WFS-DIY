@@ -3547,8 +3547,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`help.editPoints`**
-  - EN: Drag the points of a line, polygon or rectangle. Double-click a point to remove it, or an edge to add one.
-  - KO: 선, 다각형, 사각형의 점을 드래그합니다. 점을 더블클릭하면 삭제하고, 변을 더블클릭하면 점을 추가합니다.
+  - EN: Drag the points of a line, polygon or rectangle. Double-click a point to remove it, or an edge to add one. Hold Shift to keep the dragged point level or plumb with its neighbour.
+  - KO: 선, 다각형, 사각형의 점을 드래그합니다. 점을 더블클릭하면 삭제하고, 변을 더블클릭하면 점을 추가합니다. Shift를 누르면 드래그하는 점이 이웃 점과 수평 또는 수직으로 맞춰집니다.
   - [ ] OK    Fix: 
 
 - **`help.ellipse`**
@@ -3567,8 +3567,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`help.line`**
-  - EN: Click to add points; double-click or press Enter to finish. The line stays open. Backspace removes the last point, Escape cancels.
-  - KO: 클릭해 점을 추가하고, 더블클릭이나 Enter로 마칩니다. 선은 열린 상태로 남습니다. Backspace는 마지막 점을 지우고, Esc는 취소합니다.
+  - EN: Click to add points; double-click or press Enter to finish. The line stays open. Backspace removes the last point, Escape cancels. Hold Shift for horizontal or vertical segments.
+  - KO: 클릭해 점을 추가하고, 더블클릭이나 Enter로 마칩니다. 선은 열린 상태로 남습니다. Backspace는 마지막 점을 지우고, Esc는 취소합니다. Shift를 누르면 수평 또는 수직 선분이 됩니다.
   - [ ] OK    Fix: 
 
 - **`help.paste`**
@@ -3577,8 +3577,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`help.polygon`**
-  - EN: Click to add points; click the first point, double-click or press Enter to close the shape.
-  - KO: 클릭해 점을 추가합니다. 첫 점을 클릭하거나 더블클릭 또는 Enter로 도형을 닫습니다.
+  - EN: Click to add points; click the first point, double-click or press Enter to close the shape. Hold Shift for horizontal or vertical segments.
+  - KO: 클릭해 점을 추가합니다. 첫 점을 클릭하거나 더블클릭 또는 Enter로 도형을 닫습니다. Shift를 누르면 수평 또는 수직 선분이 됩니다.
   - [ ] OK    Fix: 
 
 - **`help.rectangle`**

@@ -365,9 +365,9 @@
     "shapes": {
       "help": {
         "select": "Seleziona le forme dal contorno: trascina per spostare, le maniglie degli angoli ridimensionano (Maiusc mantiene le proporzioni), la maniglia rotonda ruota (Maiusc a scatti di 15°). Trascina su uno spazio vuoto per selezionarne diverse; Maiusc+clic aggiunge o toglie una forma.",
-        "editPoints": "Trascina i punti di una linea, di un poligono o di un rettangolo. Doppio clic su un punto lo elimina, su un lato ne aggiunge uno.",
-        "line": "Fai clic per aggiungere punti; doppio clic o Invio per terminare. La linea resta aperta. Backspace rimuove l'ultimo punto, Esc annulla.",
-        "polygon": "Fai clic per aggiungere punti; clic sul primo punto, doppio clic o Invio per chiudere la forma.",
+        "editPoints": "Trascina i punti di una linea, di un poligono o di un rettangolo. Doppio clic su un punto lo elimina, su un lato ne aggiunge uno. Tieni premuto Maiusc per tenere il punto trascinato in orizzontale o in verticale rispetto al vicino.",
+        "line": "Fai clic per aggiungere punti; doppio clic o Invio per terminare. La linea resta aperta. Backspace rimuove l'ultimo punto, Esc annulla. Tieni premuto Maiusc per segmenti orizzontali o verticali.",
+        "polygon": "Fai clic per aggiungere punti; clic sul primo punto, doppio clic o Invio per chiudere la forma. Tieni premuto Maiusc per segmenti orizzontali o verticali.",
         "rectangle": "Trascina per disegnare un rettangolo. Tieni premuto Maiusc per un quadrato.",
         "ellipse": "Trascina per disegnare un'ellisse. Tieni premuto Maiusc per un cerchio.",
         "freehand": "Trascina per tracciare una linea. Terminando vicino all'inizio la forma si chiude.",

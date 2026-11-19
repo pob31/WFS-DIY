@@ -3547,8 +3547,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`help.editPoints`**
-  - EN: Drag the points of a line, polygon or rectangle. Double-click a point to remove it, or an edge to add one.
-  - ZH: 拖动线条、多边形或矩形的点。双击点可删除，双击边可添加点。
+  - EN: Drag the points of a line, polygon or rectangle. Double-click a point to remove it, or an edge to add one. Hold Shift to keep the dragged point level or plumb with its neighbour.
+  - ZH: 拖动线条、多边形或矩形的点。双击点可删除，双击边可添加点。按住 Shift 可使拖动的点与相邻点保持水平或垂直。
   - [ ] OK    Fix: 
 
 - **`help.ellipse`**
@@ -3567,8 +3567,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`help.line`**
-  - EN: Click to add points; double-click or press Enter to finish. The line stays open. Backspace removes the last point, Escape cancels.
-  - ZH: 点击添加点，双击或按 Enter 完成。线条保持开放。Backspace 删除最后一个点，Esc 取消。
+  - EN: Click to add points; double-click or press Enter to finish. The line stays open. Backspace removes the last point, Escape cancels. Hold Shift for horizontal or vertical segments.
+  - ZH: 点击添加点，双击或按 Enter 完成。线条保持开放。Backspace 删除最后一个点，Esc 取消。按住 Shift 绘制水平或垂直线段。
   - [ ] OK    Fix: 
 
 - **`help.paste`**
@@ -3577,8 +3577,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`help.polygon`**
-  - EN: Click to add points; click the first point, double-click or press Enter to close the shape.
-  - ZH: 点击添加点；点击第一个点、双击或按 Enter 闭合形状。
+  - EN: Click to add points; click the first point, double-click or press Enter to close the shape. Hold Shift for horizontal or vertical segments.
+  - ZH: 点击添加点；点击第一个点、双击或按 Enter 闭合形状。按住 Shift 绘制水平或垂直线段。
   - [ ] OK    Fix: 
 
 - **`help.rectangle`**

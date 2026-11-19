@@ -3339,6 +3339,14 @@ void MainComponent::renderUiSnapshots (const juce::File& dir)
         if (auto* content = tabbedComponent.getTabContentComponent (i))
             save (*content, "tab-" + juce::String (i) + "-" + tabbedComponent.getTabNames()[i]);
 
+    // The Map again with its draw-tools panel open (shape edit mode), then closed.
+    if (mapTab != nullptr && mapTab->getWidth() > 0)
+    {
+        mapTab->setShapeEditMode (true);
+        save (*mapTab, "map-edit-shapes");
+        mapTab->setShapeEditMode (false);
+    }
+
     // Every sub-tab of the Effects tab, switched as a click on its bar would.
     if (effectsTab != nullptr)
     {
@@ -12998,13 +13006,13 @@ void MainComponent::runMapShapesSelfTest()
     logLine("SELF-TEST begin (map shapes)");
 
     // Fixtures: one of each type, with style and a non-ASCII label.
-    Style style { juce::Colour (0xFF26C6DA), 3.0f, true };
+    MapDrawing::Style style { juce::Colour (0xFF26C6DA), 3.0f, true };   // qualified: macOS has a global Style
     Shape rect;  rect.type = Type::Rectangle; rect.posX = 1.5f; rect.posY = -2.0f; rect.scaleX = 2.0f; rect.scaleY = 0.5f;
     rect.rotation = 30.0f; rect.applyStyle (style); rect.label = juce::String::fromUTF8 ("Sc\xc3\xa8ne");
     Shape ell;   ell.type = Type::Ellipse; ell.posX = -3.0f; ell.posY = 4.0f; ell.scaleX = 1.0f; ell.scaleY = 2.0f;
     Shape poly = Shape::fromStagePoints (Type::Polygon, { { 0, 0 }, { 4, 0 }, { 4, 3 } }, style);
-    Shape line = Shape::fromStagePoints (Type::Polyline, { { -1, -1 }, { 1, 1 }, { 3, -1 } }, Style {});
-    Shape twoPt = Shape::fromStagePoints (Type::Polyline, { { 0, 0 }, { 5, 0 } }, Style {});
+    Shape line = Shape::fromStagePoints (Type::Polyline, { { -1, -1 }, { 1, 1 }, { 3, -1 } }, MapDrawing::Style {});
+    Shape twoPt = Shape::fromStagePoints (Type::Polyline, { { 0, 0 }, { 5, 0 } }, MapDrawing::Style {});
 
     // A: XML round trip (every property comes back a STRING var)
     {
@@ -13398,6 +13406,37 @@ void MainComponent::runMapShapesSelfTest()
         else
         {
             check (false, "H: the gradient editor has a tree to paste into");
+        }
+
+        // Shift: horizontal / vertical segments, and a dragged point level or
+        // plumb with its neighbour. Off-axis by 0.3-0.4 m on purpose.
+        {
+            const juce::ModifierKeys shift (juce::ModifierKeys::shiftModifier);
+            auto press = [&](juce::Point<float> p, juce::ModifierKeys m) { ed.pointerDown (0, p, m, false); ed.pointerUp (0, p, m); };
+            const int before = (int) shapes().size();
+            ed.setTool (MapShapesEditor::Tool::Line);
+            press (S (-8.0f, -8.0f), none);
+            press (S (-5.0f, -7.6f), shift);                       // mostly horizontal
+            press (S (-4.7f, -5.0f), shift);                       // mostly vertical
+            ed.pointerDown (0, S (-4.7f, -5.0f), shift, false);    // the double-click's second press
+            ed.doubleClick (S (-4.7f, -5.0f));
+            ed.pointerUp (0, S (-4.7f, -5.0f), shift);
+            list = shapes();
+            const auto pts = list.empty() ? std::vector<juce::Point<float>>() : list.back().getOutlinePoints();
+            check ((int) list.size() == before + 1 && pts.size() == 3
+                   && approx (pts[1].x, -5.0f) && approx (pts[1].y, -8.0f)
+                   && approx (pts[2].x, -5.0f) && approx (pts[2].y, -5.0f),
+                   "H: Shift draws horizontal then vertical segments (and a Shift double-click adds no extra point)");
+
+            ed.setTool (MapShapesEditor::Tool::EditPoints);
+            ed.pointerDown (0, S (-5.0f, -5.0f), shift, false);
+            for (int i = 1; i <= 8; ++i)
+                ed.pointerDrag (0, S (-5.0f + 0.05f * (float) i, -5.0f - 0.25f * (float) i), shift);
+            ed.pointerUp (0, S (-4.6f, -7.0f), shift);
+            list = shapes();
+            const auto moved = list.back().getOutlinePoints();
+            check (moved.size() == 3 && approx (moved[2].x, -5.0f) && approx (moved[2].y, -7.0f),
+                   "H: Shift keeps a dragged point plumb with its neighbour");
         }
 
         // tidy the Map
