@@ -9,6 +9,7 @@ All notable changes to WFS DIY are documented in this file, organized by release
 - **The tablet map shows the speakers and the drawn shapes.** WFS Control 2 1.0-beta_15 draws the speakers (orientation, array colour and number, hidden ones left out) and the shapes exactly where the desktop does. Both follow every change, and the tablet has its own switches to hide them. Older tablets ignore the new messages.
 
 ### Fixed
+- **On Linux the letter shortcuts work again.** *I*, *O*, *R*, *N*, *C* and *M* (open a tab), *H* (help cards), *L* (stereo lock on the Map) and Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z (undo, redo) did nothing on Linux, because JUCE reports letters there as the character typed (lower case) where Windows and macOS report the upper-case key code. They now match either case. The F keys were never affected.
 - **EQ shelves and filters at low frequencies now have the gain you set.** The output EQ, the reverb EQ, the effects EQ and the effects modules built on the same filters computed in single precision, which put a 20 Hz shelf's level up to 0.8 dB off (more the deeper the cut) by an amount that depended on the computer. They now compute in double precision.
 
 ### Changed

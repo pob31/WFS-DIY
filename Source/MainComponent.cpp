@@ -20124,6 +20124,15 @@ void MainComponent::nudgeReverbPosition(int axis, float delta)
 
 bool MainComponent::keyPressed(const juce::KeyPress& key)
 {
+    // Letter shortcuts compare case-blind: JUCE reports a letter as its
+    // upper-case code on Windows and macOS but as the typed character on Linux
+    // (lower-case, and the plain keysym under Ctrl), so isKeyCode('I') never
+    // matched there. KeyPress::operator== is case-blind already; isKeyCode is not.
+    const auto isLetter = [&key] (char upper)
+    {
+        return juce::CharacterFunctions::toUpperCase ((juce::juce_wchar) key.getKeyCode()) == (juce::juce_wchar) upper;
+    };
+
     // Phase 5c: AI-undo / AI-redo keyboard shortcuts. Cmd/Ctrl-Alt-Z and
     // Cmd/Ctrl-Alt-Y drive the same engine the toast overlay uses. Works
     // regardless of whether the toast is visible or has been dismissed —
@@ -20146,13 +20155,13 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
                     2500);
             };
 
-            if (key.isKeyCode('Z'))
+            if (isLetter ('Z'))
             {
                 WFSNetwork::OriginTagScope originScope { WFSNetwork::OriginTag::MCP };
                 reportOutcome(mcpServer->getUndoEngine().undoLast(), LOC("ai.undo.verbUndo"));
                 return true;
             }
-            if (key.isKeyCode('Y'))
+            if (isLetter ('Y'))
             {
                 WFSNetwork::OriginTagScope originScope { WFSNetwork::OriginTag::MCP };
                 reportOutcome(mcpServer->getUndoEngine().redoLast(), LOC("ai.undo.verbRedo"));
@@ -20225,7 +20234,7 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
 
     // Help card cycling: H key — works even when a text editor has focus
     // (unfocuses the editor so H isn't typed into it)
-    if (key.isKeyCode('H') && !key.getModifiers().isCommandDown())
+    if (isLetter ('H') && !key.getModifiers().isCommandDown())
     {
         if (auto* focused = juce::Component::getCurrentlyFocusedComponent())
             if (dynamic_cast<juce::TextEditor*>(focused) != nullptr)
@@ -20242,7 +20251,7 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
     if (key.getModifiers().isCommandDown())
     {
         auto& state = parameters.getValueTreeState();
-        if (key.isKeyCode('Z'))
+        if (isLetter ('Z'))
         {
             if (key.getModifiers().isShiftDown())
             {
@@ -20265,7 +20274,7 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
                 }
             }
         }
-        if (key.isKeyCode('Y'))
+        if (isLetter ('Y'))
         {
             // Ctrl+Y = Redo
             if (state.canRedo())
@@ -20278,32 +20287,32 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
     }
 
     // Tab switching with channel selection: I, O, R
-    if (key.isKeyCode('I') && !key.getModifiers().isCommandDown())
+    if (isLetter ('I') && !key.getModifiers().isCommandDown())
     {
         startChannelSelection(ChannelSelectionMode::Input);
         return true;
     }
-    if (key.isKeyCode('O') && !key.getModifiers().isCommandDown())
+    if (isLetter ('O') && !key.getModifiers().isCommandDown())
     {
         startChannelSelection(ChannelSelectionMode::Output);
         return true;
     }
-    if (key.isKeyCode('R') && !key.getModifiers().isCommandDown())
+    if (isLetter ('R') && !key.getModifiers().isCommandDown())
     {
         startChannelSelection(ChannelSelectionMode::Reverb);
         return true;
     }
-    if (key.isKeyCode('M') && !key.getModifiers().isCommandDown())
+    if (isLetter ('M') && !key.getModifiers().isCommandDown())
     {
         tabbedComponent.setCurrentTabIndex(TabIndex::Map);
         return true;
     }
-    if (key.isKeyCode('N') && !key.getModifiers().isCommandDown())
+    if (isLetter ('N') && !key.getModifiers().isCommandDown())
     {
         tabbedComponent.setCurrentTabIndex(TabIndex::Network);
         return true;
     }
-    if (key.isKeyCode('C') && !key.getModifiers().isCommandDown())
+    if (isLetter ('C') && !key.getModifiers().isCommandDown())
     {
         tabbedComponent.setCurrentTabIndex(TabIndex::Clusters);
         return true;
