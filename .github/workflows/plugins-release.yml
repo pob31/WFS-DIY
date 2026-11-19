@@ -168,7 +168,11 @@ jobs:
   linux:
     name: Linux tarball
     needs: verify-version
-    runs-on: ubuntu-latest
+    # Pinned, not ubuntu-latest: a binary only runs on glibc as new as the one it
+    # was built against, so building on 26.04 would lock out every 24.04 user, and
+    # NVIDIA's 26.04 repo has no CUDA 12.9 (needed for pre-Turing GPUs). Raise it
+    # deliberately, together with the oldest supported distro. CI stays on latest.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
         with:
