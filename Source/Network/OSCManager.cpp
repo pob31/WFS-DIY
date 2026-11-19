@@ -62,6 +62,12 @@ OSCManager::OSCManager(WFSValueTreeState& valueTreeState)
     // Register as ValueTree listener
     state.addListener(this);
 
+    // Tablet map revisions start from the clock: a tablet only compares them
+    // for equality, so a restarted desktop never matches what it still holds.
+    remoteMapSpeakersRev = static_cast<int>(juce::Time::currentTimeMillis() & 0x3fffffff);
+    remoteMapShapesRev = (remoteMapSpeakersRev + 0x100000) & 0x3fffffff;   // apart, so logs never show equal revs
+    remoteMapFlushTimer.startTimer(150);
+
     // Set up rate limiter callback
     rateLimiter.setSendCallback([this](int targetIndex, const juce::OSCMessage& message)
     {
@@ -219,6 +225,7 @@ OSCManager::~OSCManager()
     cancelPendingUpdate();
     stopTimer();
     clusterMemberFlushTimer.stopTimer();
+    remoteMapFlushTimer.stopTimer();
     stopListening();
     disconnectAll();
     state.removeListener(this);
@@ -962,6 +969,24 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
         admMappingCacheDirty = true;
     }
 
+    // Tablet map: a drawn shape changed (nothing else listens to these), or
+    // one of the output properties the tablet draws a speaker from. The
+    // output change carries on below for the plain OSC targets.
+    if (tree.getType() == WFSParameterIDs::MapShape || tree.getType() == WFSParameterIDs::MapShapes)
+    {
+        remoteMapShapesDirty = true;
+        return;
+    }
+    if (property == WFSParameterIDs::outputPositionX ||
+        property == WFSParameterIDs::outputPositionY ||
+        property == WFSParameterIDs::outputOrientation ||
+        property == WFSParameterIDs::outputArray ||
+        property == WFSParameterIDs::outputMapVisible ||
+        property == WFSParameterIDs::outputArrayMapVisible)
+    {
+        remoteMapSpeakersDirty = true;
+    }
+
     // Check if this is a stage/config parameter that needs broadcasting to Remote
     if (property == WFSParameterIDs::stageWidth ||
         property == WFSParameterIDs::stageDepth ||
@@ -1620,6 +1645,114 @@ void OSCManager::timerCallback()
     // a channel added meanwhile never appeared on it until a reconnect.
     if (juce::Time::getMillisecondCounter() - lastChannelListSendMs >= channelListRepeatIntervalMs)
         repeatRemoteChannelList();
+
+    // Tablet map revisions: the sets themselves go out on change and in the
+    // dump; this repeat is how a tablet that lost a piece finds out.
+    if (juce::Time::getMillisecondCounter() - lastRemoteMapRevSendMs >= remoteMapRevRepeatIntervalMs)
+        sendRemoteMapRevRepeat();
+}
+
+//==============================================================================
+// Tablet map (/remote/map/*)
+//==============================================================================
+
+void OSCManager::valueTreeChildAdded(juce::ValueTree& parent, juce::ValueTree& child)
+{
+    if (parent.hasType(WFSParameterIDs::MapShapes) || child.hasType(WFSParameterIDs::MapShapes)
+        || child.hasType(WFSParameterIDs::MapShape))
+        remoteMapShapesDirty = true;
+    if (parent.hasType(WFSParameterIDs::Outputs) || child.hasType(WFSParameterIDs::Output)
+        || child.hasType(WFSParameterIDs::Outputs))
+        remoteMapSpeakersDirty = true;
+}
+
+void OSCManager::valueTreeChildRemoved(juce::ValueTree& parent, juce::ValueTree& child, int)
+{
+    valueTreeChildAdded(parent, child);
+}
+
+int OSCManager::refreshRemoteMapPayload()
+{
+    int changed = 0;
+    if (remoteMapSpeakersDirty.exchange(false))
+    {
+        auto speakers = RemoteMapGeometry::collectSpeakers(state);
+        if (speakers != remoteMapSpeakers)
+        {
+            remoteMapSpeakers = std::move(speakers);
+            remoteMapSpeakersRev = (remoteMapSpeakersRev + 1) & 0x3fffffff;
+            changed |= RemoteMapGeometry::maskSpeakers;
+        }
+    }
+    if (remoteMapShapesDirty.exchange(false))
+    {
+        auto shapes = RemoteMapGeometry::collectShapes(state.getConfigState());
+        if (shapes != remoteMapShapes)
+        {
+            remoteMapShapes = std::move(shapes);
+            remoteMapShapesRev = (remoteMapShapesRev + 1) & 0x3fffffff;
+            changed |= RemoteMapGeometry::maskShapes;
+        }
+    }
+    return changed;
+}
+
+void OSCManager::buildRemoteMapMessages(std::vector<juce::OSCMessage>& out, int mask) const
+{
+    if ((mask & RemoteMapGeometry::maskSpeakers) != 0)
+        RemoteMapGeometry::buildSpeakerMessages(out, remoteMapSpeakersRev, remoteMapSpeakers);
+    if ((mask & RemoteMapGeometry::maskShapes) != 0)
+        RemoteMapGeometry::buildShapeMessages(out, remoteMapShapesRev, remoteMapShapes);
+    out.push_back(RemoteMapGeometry::buildRevMessage(remoteMapSpeakersRev, remoteMapShapesRev));
+}
+
+void OSCManager::sendRemoteMapTo(int targetIndex, int mask)
+{
+    if (mask == 0)
+        return;
+
+    std::vector<juce::OSCMessage> messages;
+    buildRemoteMapMessages(messages, mask);
+
+    for (int i = 0; i < MAX_TARGETS; ++i)
+    {
+        if (targetIndex >= 0 && i != targetIndex)
+            continue;
+        const auto& config = targetConfigs[static_cast<size_t>(i)];
+        if (config.protocol != Protocol::Remote || ! config.txEnabled
+            || remoteStates[static_cast<size_t>(i)].phase != RemoteConnectionState::Phase::Connected)
+            continue;
+
+        std::thread([this, i, msgs = messages]() { sendMessagesAsBundles(i, msgs); }).detach();
+    }
+    lastRemoteMapRevSendMs = juce::Time::getMillisecondCounter();
+}
+
+void OSCManager::flushRemoteMap()
+{
+    remoteMapPendingBroadcast |= refreshRemoteMapPayload();
+    if (remoteMapPendingBroadcast == 0)
+        return;
+    const int mask = remoteMapPendingBroadcast;
+    remoteMapPendingBroadcast = 0;
+    sendRemoteMapTo(-1, mask);
+}
+
+void OSCManager::sendRemoteMapRevRepeat()
+{
+    lastRemoteMapRevSendMs = juce::Time::getMillisecondCounter();
+    const auto msg = RemoteMapGeometry::buildRevMessage(remoteMapSpeakersRev, remoteMapShapesRev);
+
+    // Quiet, like the array-mute repeat: straight to the connection, no log.
+    for (int i = 0; i < MAX_TARGETS; ++i)
+    {
+        const auto& config = targetConfigs[static_cast<size_t>(i)];
+        if (config.protocol != Protocol::Remote || ! config.txEnabled
+            || remoteStates[static_cast<size_t>(i)].phase != RemoteConnectionState::Phase::Connected)
+            continue;
+        if (connections[static_cast<size_t>(i)] && connections[static_cast<size_t>(i)]->send(msg))
+            ++messagesSent;
+    }
 }
 
 void OSCManager::repeatRemoteChannelList()
@@ -1941,6 +2074,35 @@ void OSCManager::handleIncomingMessage(const juce::OSCMessage& message,
                         if (onRemoteVisRefreshRequested)
                             onRemoteVisRefreshRequested(targetIndex, restatedPin);
                     });
+            }
+        }
+    }
+    else if (address == "/remote/map/request")
+    {
+        // Tablet map (additive, still v4): the tablet saw a /remote/map/rev
+        // it does not hold. ,i mask (1 speakers, 2 shapes; 0 = both).
+        // Answered to this tablet only, no dump, rate-limited like vis.
+        int targetIndex = findRemoteTargetByIP(senderIP);
+        if (targetIndex >= 0)
+        {
+            auto& remoteState = remoteStates[static_cast<size_t>(targetIndex)];
+            const juce::uint32 nowMs = juce::Time::getMillisecondCounter();
+            if (nowMs - remoteState.lastMapRequestServedMs
+                    >= static_cast<juce::uint32>(VIS_REQUEST_MIN_INTERVAL_MS))
+            {
+                remoteState.lastMapRequestServedMs = nowMs;
+                int mask = (message.size() >= 1 && message[0].isInt32()) ? message[0].getInt32() : 0;
+                mask &= (RemoteMapGeometry::maskSpeakers | RemoteMapGeometry::maskShapes);
+                if (mask == 0)
+                    mask = RemoteMapGeometry::maskSpeakers | RemoteMapGeometry::maskShapes;
+
+                juce::MessageManager::callAsync([this, targetIndex, mask]()
+                {
+                    // Fresh first, so the answer is never an older revision
+                    // than one the timer is about to push.
+                    remoteMapPendingBroadcast |= refreshRemoteMapPayload();
+                    sendRemoteMapTo(targetIndex, mask);
+                });
             }
         }
     }
@@ -5767,6 +5929,12 @@ std::vector<juce::OSCMessage> OSCManager::collectStateDumpMessages(int targetInd
     buildRemoteVisConfigMessages(messages,
                                  state.getNumOutputChannels(),
                                  state.getNumReverbChannels());
+
+    // --- Tablet map: speakers + drawn shapes (additive, still v4) ---
+    // Refreshed first so the dump carries the current revision; a change found
+    // here still goes to the other tablets through the flush timer.
+    remoteMapPendingBroadcast |= refreshRemoteMapPayload();
+    buildRemoteMapMessages(messages, RemoteMapGeometry::maskSpeakers | RemoteMapGeometry::maskShapes);
 
     // --- End-of-dump marker ---
     // Last message: tells the tablet the dump is finished and how many channels to

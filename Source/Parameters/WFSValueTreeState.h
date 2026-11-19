@@ -1444,6 +1444,11 @@ private:
     void createBinauralSection (juce::ValueTree& config);
     void createUISection (juce::ValueTree& config);
 
+    /** <Config><MapShapes> - the empty container for the Map's drawn shapes
+        (MapShapes/MapShapeData.h). Back-filled into older files by
+        ensureCompleteSchema; a load replaces its children wholesale. */
+    void createMapShapesSection (juce::ValueTree& config);
+
     /** <Config><EffectsGlobal> - the nine effectsGlobal* settings.
 
         A child of <Config>, NOT a sibling of the <Effect> channels: that is what

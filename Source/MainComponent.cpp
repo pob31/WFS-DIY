@@ -19,6 +19,8 @@
 #include "Network/OSCMessageRouter.h"
 #include "Helpers/CoordinateConverter.h"
 #include "Helpers/ArrayGeometryCalculator.h"
+#include "MapShapes/MapShapeData.h"
+#include "Network/RemoteMapGeometry.h"
 #include "Shared/PluginAdmMapping.h"
 #include "Network/MCP/tools/ChannelLifecycleTools.h"
 #include "Network/MCP/MCPSurfaceAudit.h"
@@ -3232,6 +3234,10 @@ MainComponent::MainComponent()
     if (std::getenv("WFS_TEST_STEREO_GEOMETRY") != nullptr)
         runStereoGeometrySelfTest();
 
+    // Hidden diagnostic: WFS_TEST_MAP_SHAPES=1 - the Map's drawn shapes, pure.
+    if (std::getenv("WFS_TEST_MAP_SHAPES") != nullptr)
+        runMapShapesSelfTest();
+
     // Hidden diagnostic: WFS_TEST_MCP_SURFACE=1 checks the generated MCP tool
     // manifest against what this state can actually write. Independent of the two
     // above — it mutates nothing at all, it only asks questions.
@@ -3332,6 +3338,14 @@ void MainComponent::renderUiSnapshots (const juce::File& dir)
     for (int i = 0; i < tabbedComponent.getNumTabs(); ++i)
         if (auto* content = tabbedComponent.getTabContentComponent (i))
             save (*content, "tab-" + juce::String (i) + "-" + tabbedComponent.getTabNames()[i]);
+
+    // The Map again with its draw-tools panel open (shape edit mode), then closed.
+    if (mapTab != nullptr && mapTab->getWidth() > 0)
+    {
+        mapTab->setShapeEditMode (true);
+        save (*mapTab, "map-edit-shapes");
+        mapTab->setShapeEditMode (false);
+    }
 
     // Every sub-tab of the Effects tab, switched as a click on its bar would.
     if (effectsTab != nullptr)
@@ -12968,6 +12982,471 @@ void MainComponent::runStereoGeometrySelfTest()
 
     logLine(failures == 0 ? juce::String("SELF-TEST RESULT: ALL PASS")
                           : "SELF-TEST RESULT: " + juce::String(failures) + " FAILURES");
+}
+
+void MainComponent::runMapShapesSelfTest()
+{
+    using namespace MapDrawing;
+    int failures = 0;
+    auto logLine = [](const juce::String& s) { WFSLogger::getInstance().logInfo(s); };
+    auto check = [&](bool ok, const juce::String& what)
+    {
+        if (! ok) ++failures;
+        logLine(juce::String("SELF-TEST ") + (ok ? "PASS " : "FAIL ") + what);
+    };
+    auto approx = [](float a, float b, float tol = 1.0e-3f) { return std::fabs(a - b) <= tol; };
+    auto samePoints = [&](const std::vector<juce::Point<float>>& a, const std::vector<juce::Point<float>>& b)
+    {
+        if (a.size() != b.size()) return false;
+        for (size_t i = 0; i < a.size(); ++i)
+            if (! approx(a[i].x, b[i].x) || ! approx(a[i].y, b[i].y)) return false;
+        return true;
+    };
+
+    logLine("SELF-TEST begin (map shapes)");
+
+    // Fixtures: one of each type, with style and a non-ASCII label.
+    MapDrawing::Style style { juce::Colour (0xFF26C6DA), 3.0f, true };   // qualified: macOS has a global Style
+    Shape rect;  rect.type = Type::Rectangle; rect.posX = 1.5f; rect.posY = -2.0f; rect.scaleX = 2.0f; rect.scaleY = 0.5f;
+    rect.rotation = 30.0f; rect.applyStyle (style); rect.label = juce::String::fromUTF8 ("Sc\xc3\xa8ne");
+    Shape ell;   ell.type = Type::Ellipse; ell.posX = -3.0f; ell.posY = 4.0f; ell.scaleX = 1.0f; ell.scaleY = 2.0f;
+    Shape poly = Shape::fromStagePoints (Type::Polygon, { { 0, 0 }, { 4, 0 }, { 4, 3 } }, style);
+    Shape line = Shape::fromStagePoints (Type::Polyline, { { -1, -1 }, { 1, 1 }, { 3, -1 } }, MapDrawing::Style {});
+    Shape twoPt = Shape::fromStagePoints (Type::Polyline, { { 0, 0 }, { 5, 0 } }, MapDrawing::Style {});
+
+    // A: XML round trip (every property comes back a STRING var)
+    {
+        juce::ValueTree list (WFSParameterIDs::MapShapes);
+        for (auto* s : { &rect, &ell, &poly, &line, &twoPt })
+            list.appendChild (s->toValueTree(), nullptr);
+        auto xml = list.createXml();
+        auto reloaded = juce::ValueTree::fromXml (xml->toString());
+        check (reloaded.getChild (0).getProperty (WFSParameterIDs::msPosX).isString(),
+               "A: properties reload as strings (the load-time hazard is exercised)");
+        auto shapes = readShapes (reloaded);
+        check (shapes.size() == 5, "A: five shapes survive the XML round trip");
+        if (shapes.size() == 5)
+        {
+            const auto& r = shapes[0];
+            check (r.type == Type::Rectangle && approx (r.posX, 1.5f) && approx (r.posY, -2.0f)
+                   && approx (r.scaleX, 2.0f) && approx (r.scaleY, 0.5f) && approx (r.rotation, 30.0f),
+                   "A: rectangle geometry round-trips");
+            check (r.colour.getARGB() == 0xFF26C6DA && approx (r.lineWidth, 3.0f) && r.dashed,
+                   "A: style round-trips (colour, width, dashed)");
+            check (r.label == rect.label, "A: a non-ASCII label round-trips");
+            check (shapes[3].type == Type::Polyline && ! shapes[3].isClosed()
+                   && samePoints (shapes[3].getOutlinePoints(), line.getOutlinePoints()),
+                   "A: an open polyline stays open with the same points");
+            check (samePoints (shapes[2].getOutlinePoints(), poly.getOutlinePoints()),
+                   "A: polygon vertices round-trip");
+        }
+    }
+
+    // B: malformed shapes are dropped, style values clamped
+    {
+        juce::ValueTree list (WFSParameterIDs::MapShapes);
+        juce::ValueTree bad (WFSParameterIDs::MapShape);
+        bad.setProperty (WFSParameterIDs::msType, "3", nullptr);
+        bad.setProperty (WFSParameterIDs::msVertices, "1,1", nullptr);           // 1 point: not a line
+        list.appendChild (bad, nullptr);
+        juce::ValueTree wide = rect.toValueTree();
+        wide.setProperty (WFSParameterIDs::msLineWidth, "99", nullptr);
+        list.appendChild (wide, nullptr);
+        juce::ValueTree nan = rect.toValueTree();
+        nan.setProperty (WFSParameterIDs::msPosX, "nan", nullptr);
+        list.appendChild (nan, nullptr);
+        auto shapes = readShapes (list);
+        check (shapes.size() == 1, "B: a one-point line and a NaN position are dropped");
+        check (! shapes.empty() && approx (shapes[0].lineWidth, maxLineWidth), "B: line width is clamped");
+    }
+
+    // C: a load replaces the whole list; a file without one empties it
+    {
+        juce::ValueTree live (WFSParameterIDs::MapShapes);
+        for (int i = 0; i < 5; ++i)
+            live.appendChild (rect.toValueTree(), nullptr);
+        juce::ValueTree file (WFSParameterIDs::MapShapes);
+        file.appendChild (ell.toValueTree(), nullptr);
+        file.appendChild (line.toValueTree(), nullptr);
+        replaceShapes (live, file, nullptr);
+        auto after = readShapes (live);
+        check (after.size() == 2 && after[0].type == Type::Ellipse && after[1].type == Type::Polyline,
+               "C: loading two shapes over five leaves exactly the two");
+        replaceShapes (live, juce::ValueTree(), nullptr);
+        check (live.getNumChildren() == 0, "C: loading a file with no shape list empties it");
+    }
+
+    // D: gradient conversions are in place; an open line closes
+    {
+        auto g = toGradientShape (line);
+        check (g.has_value() && g->type == GradientMap::ShapeType::Polygon && g->vertices.size() == 3,
+               "D: a 3-point open line becomes a gradient polygon");
+        if (g.has_value())
+        {
+            const auto a = g->getPath().getBounds();
+            const auto b = line.getPath().getBounds();
+            check (approx (a.getX(), b.getX()) && approx (a.getY(), b.getY())
+                   && approx (a.getWidth(), b.getWidth()) && approx (a.getHeight(), b.getHeight()),
+                   "D: map -> gradient lands in place (same bounds)");
+        }
+        check (! toGradientShape (twoPt).has_value(), "D: a 2-point line has no gradient form");
+
+        auto gr = toGradientShape (rect);
+        check (gr.has_value() && gr->type == GradientMap::ShapeType::Rectangle
+               && approx (gr->posX, rect.posX) && approx (gr->rotation, rect.rotation) && gr->name == rect.label,
+               "D: a rectangle keeps its geometry and label");
+
+        if (gr.has_value())
+        {
+            auto back = fromGradientShape (*gr, style);
+            check (back.type == Type::Rectangle && samePoints (back.getOutlinePoints(), rect.getOutlinePoints()),
+                   "D: gradient -> map round-trips a rectangle in place");
+        }
+        GradientMap::Shape gEll;
+        gEll.type = GradientMap::ShapeType::Ellipse; gEll.posX = 2.0f; gEll.scaleX = 3.0f; gEll.scaleY = 1.0f;
+        auto mEll = fromGradientShape (gEll, style);
+        check (mEll.type == Type::Ellipse && approx (mEll.scaleX, 3.0f) && mEll.colour == style.colour,
+               "D: a gradient ellipse becomes a map ellipse with the panel style");
+    }
+
+    // E: freehand simplification keeps the ends and honours the cap
+    {
+        std::vector<juce::Point<float>> pts;
+        juce::Random rng (42);
+        for (int i = 0; i < 2000; ++i)
+        {
+            const float a = juce::MathConstants<float>::twoPi * (float) i / 2000.0f;
+            pts.push_back ({ 5.0f * std::cos (a) + rng.nextFloat() * 0.01f, 5.0f * std::sin (a) });
+        }
+        auto simplified = simplifyToCap (pts, 0.001f, freehandPointCap);
+        check ((int) simplified.size() <= freehandPointCap && simplified.size() >= 8,
+               "E: 2000 freehand points simplify to <= 128 (got " + juce::String ((int) simplified.size()) + ")");
+        check (simplified.front() == pts.front() && simplified.back() == pts.back(), "E: both ends are kept");
+    }
+
+    // F: recentring moves the frame, not the drawing
+    {
+        Shape s = poly;
+        s.rotation = 40.0f; s.scaleX = 1.5f;
+        const auto before = s.getOutlinePoints();
+        s.vertices[0] += { 2.0f, 1.0f };
+        const auto edited = s.getOutlinePoints();
+        s.recentre();
+        check (samePoints (s.getOutlinePoints(), edited), "F: recentre keeps every vertex where it is on stage");
+        juce::Point<float> c;
+        for (auto& v : s.vertices) c += v;
+        check (approx (c.x, 0.0f) && approx (c.y, 0.0f), "F: after recentre the vertices are centred on pos");
+        juce::ignoreUnused (before);
+    }
+
+    // G: tablet encoding fits a datagram, parts and chunks add up
+    {
+        auto oscSize = [] (const juce::OSCMessage& m)
+        {
+            auto pad = [] (size_t n) { return (n + 4) & ~size_t (3); };   // string + NUL, 4-aligned
+            size_t bytes = pad ((size_t) m.getAddressPattern().toString().getNumBytesAsUTF8());
+            bytes += pad ((size_t) m.size() + 1);                           // ",tags"
+            for (auto& arg : m)
+                bytes += arg.isString() ? pad ((size_t) arg.getString().getNumBytesAsUTF8()) : 4;
+            return bytes;
+        };
+
+        std::vector<juce::Point<float>> many;
+        for (int i = 0; i < 150; ++i) many.push_back ({ (float) i * 0.1f, std::sin ((float) i * 0.2f) });
+        Shape longLine = Shape::fromStagePoints (Type::Polyline, many, style);
+        longLine.label = juce::String::repeatedString (juce::String::fromUTF8 ("\xe8\x88\x9e"), 60);   // 180 bytes of CJK
+
+        juce::ValueTree config (WFSParameterIDs::Config);
+        juce::ValueTree list (WFSParameterIDs::MapShapes);
+        list.appendChild (longLine.toValueTree(), nullptr);
+        list.appendChild (ell.toValueTree(), nullptr);
+        list.appendChild (rect.toValueTree(), nullptr);
+        config.appendChild (list, nullptr);
+
+        auto out = RemoteMapGeometry::collectShapes (config);
+        check (out.size() == 3, "G: three shapes collected");
+        if (out.size() == 3)
+        {
+            check (out[0].points.size() == 150 && ! out[0].closed, "G: the long line keeps 150 points, open");
+            check (out[1].points.size() == (size_t) ellipseSegments && out[1].closed, "G: an ellipse flattens to 48 points, closed");
+            check (out[2].points.size() == 4, "G: a rectangle flattens to 4 points");
+            check ((int) out[0].label.getNumBytesAsUTF8() <= RemoteMapGeometry::maxLabelBytes
+                   && out[0].label.isNotEmpty(), "G: a long label is cut to <= 96 UTF-8 bytes");
+        }
+
+        std::vector<juce::OSCMessage> msgs;
+        RemoteMapGeometry::buildShapeMessages (msgs, 7, out);
+        int parts = 0; size_t biggest = 0;
+        for (auto& m : msgs)
+        {
+            biggest = juce::jmax (biggest, oscSize (m));
+            if (m.getAddressPattern().toString() == "/remote/map/shape") ++parts;
+        }
+        check (parts == 4, "G: 150 points + 48 + 4 go as 4 parts (got " + juce::String (parts) + ")");
+        check (biggest <= 1200, "G: largest shape message " + juce::String ((int) biggest) + " B <= 1200");
+
+        std::vector<RemoteMapGeometry::Speaker> spk;
+        for (int i = 0; i < 100; ++i) spk.push_back ({ i + 1, i % 11, (float) i, 2.0f, 180.0f });
+        std::vector<juce::OSCMessage> sm;
+        RemoteMapGeometry::buildSpeakerMessages (sm, 3, spk);
+        size_t biggestSpk = 0; int listed = 0;
+        for (auto& m : sm) { biggestSpk = juce::jmax (biggestSpk, oscSize (m)); listed += (m.size() - 4) / 5; }
+        check (sm.size() == 4 && listed == 100, "G: 100 speakers go as 4 chunks carrying all 100");
+        check (biggestSpk <= 1200, "G: largest speaker chunk " + juce::String ((int) biggestSpk) + " B <= 1200");
+
+        std::vector<juce::OSCMessage> empty;
+        RemoteMapGeometry::buildSpeakerMessages (empty, 1, {});
+        check (empty.size() == 1 && empty[0].size() == 4 && empty[0][3].getInt32() == 0,
+               "G: no visible speakers is still one chunk (total 0)");
+    }
+
+    // H (deferred until the project has loaded, which replaces the shape list):
+    // the Map's shape editor driven through its pointer API against the LIVE
+    // config tree and the Map undo domain, then copy/paste through the real
+    // gradient editor. The pointer path is the one MapTab forwards to.
+    juce::Component::SafePointer<MainComponent> safeThis (this);
+    juce::Timer::callAfterDelay (8000, [safeThis, failures]() mutable
+    {
+        if (safeThis == nullptr)
+            return;
+        auto& self = *safeThis;
+        auto logLine = [](const juce::String& s) { WFSLogger::getInstance().logInfo(s); };
+        auto check = [&](bool ok, const juce::String& what)
+        {
+            if (! ok) ++failures;
+            logLine(juce::String("SELF-TEST ") + (ok ? "PASS " : "FAIL ") + what);
+        };
+        auto approx = [](float a, float b, float tol = 0.02f) { return std::fabs(a - b) <= tol; };
+
+        auto& vts = self.parameters.getValueTreeState();
+        auto config = self.parameters.getConfigTree();
+        auto shapesTree = [config]() { return config.getChildWithName (WFSParameterIDs::MapShapes); };
+        check (shapesTree().isValid(), "H: the loaded config has a <MapShapes> list (back-filled)");
+        if (! shapesTree().isValid())
+            config.appendChild (juce::ValueTree (WFSParameterIDs::MapShapes), nullptr);
+        shapesTree().removeAllChildren (nullptr);
+        vts.getUndoManagerForDomain (UndoDomain::Map)->clearUndoHistory();
+
+        static constexpr float pxPerM = 50.0f;
+        MapShapesEditor ed (vts, [&self]() { return self.parameters.getConfigTree(); });
+        ed.toScreen = [](juce::Point<float> p) { return juce::Point<float> (400.0f + p.x * pxPerM, 300.0f - p.y * pxPerM); };
+        ed.toStage  = [](juce::Point<float> p) { return juce::Point<float> ((p.x - 400.0f) / pxPerM, (300.0f - p.y) / pxPerM); };
+        ed.getViewScale = [] { return pxPerM; };
+        ed.setActive (true);
+        auto S = [&ed](float x, float y) { return ed.toScreen ({ x, y }); };
+        const juce::ModifierKeys none;
+        auto drag = [&](juce::Point<float> a, juce::Point<float> b, int steps = 10)
+        {
+            ed.pointerDown (0, a, none, false);
+            for (int i = 1; i <= steps; ++i)
+                ed.pointerDrag (0, a + (b - a) * ((float) i / (float) steps), none);
+            ed.pointerUp (0, b, none);
+        };
+        auto tap = [&](juce::Point<float> p) { ed.pointerDown (0, p, none, false); ed.pointerUp (0, p, none); };
+        auto shapes = [&]() { ed.markModelDirty(); return ed.getShapes(); };   // as MapTab's listener would
+
+        // Rectangle by drag
+        ed.setTool (MapShapesEditor::Tool::Rectangle);
+        drag (S (-2.0f, 1.0f), S (2.0f, -1.0f));
+        auto list = shapes();
+        check (list.size() == 1 && list[0].type == MapDrawing::Type::Rectangle
+               && approx (list[0].posX, 0.0f) && approx (list[0].posY, 0.0f)
+               && approx (list[0].scaleX, 2.0f) && approx (list[0].scaleY, 1.0f),
+               "H: a rectangle drag draws a 4 x 2 m rectangle at the origin");
+
+        // Line: two clicks, then a double-click (JUCE order: down, up, down, doubleClick, up)
+        ed.setTool (MapShapesEditor::Tool::Line);
+        tap (S (-3.0f, -3.0f));
+        tap (S (0.0f, -4.0f));
+        tap (S (3.0f, -3.0f));
+        ed.pointerDown (0, S (3.0f, -3.0f), none, false);
+        ed.doubleClick (S (3.0f, -3.0f));
+        ed.pointerUp (0, S (3.0f, -3.0f), none);
+        list = shapes();
+        check (list.size() == 2 && list[1].type == MapDrawing::Type::Polyline && list[1].vertices.size() == 3,
+               "H: three clicks + double-click make an OPEN 3-point line (duplicate dropped)");
+
+        // Freehand circle ending at its start: closes into a polygon
+        ed.setTool (MapShapesEditor::Tool::Freehand);
+        ed.pointerDown (0, S (6.5f, 0.0f), none, false);
+        for (int i = 1; i <= 60; ++i)
+        {
+            const float a = juce::MathConstants<float>::twoPi * (float) i / 60.0f;
+            ed.pointerDrag (0, S (5.0f + 1.5f * std::cos (a), 1.5f * std::sin (a)), none);
+        }
+        ed.pointerUp (0, S (6.5f, 0.0f), none);
+        list = shapes();
+        check (list.size() == 3 && list[2].type == MapDrawing::Type::Polygon
+               && (int) list[2].vertices.size() <= MapDrawing::freehandPointCap,
+               "H: a freehand loop closes into a polygon");
+
+        // Select the rectangle by its top edge and move it 1 m right
+        ed.setTool (MapShapesEditor::Tool::Select);
+        drag (S (0.0f, 1.0f), S (1.0f, 1.0f));
+        list = shapes();
+        check (! list.empty() && approx (list[0].posX, 1.0f) && approx (list[0].posY, 0.0f),
+               "H: dragging the outline moves the rectangle 1 m");
+
+        // Undo / redo through the Map domain
+        ed.undo();
+        list = shapes();
+        check (! list.empty() && approx (list[0].posX, 0.0f), "H: undo puts it back");
+        ed.redo();
+        list = shapes();
+        check (! list.empty() && approx (list[0].posX, 1.0f), "H: redo moves it again");
+
+        // Scale by the (1,1) corner: the (-1,-1) corner stays put
+        drag (S (3.0f, 1.0f), S (4.0f, 2.0f));
+        list = shapes();
+        check (! list.empty() && approx (list[0].posX, 1.5f) && approx (list[0].posY, 0.5f)
+               && approx (list[0].scaleX, 2.5f) && approx (list[0].scaleY, 1.5f),
+               "H: a corner drag resizes about the opposite corner");
+
+        // Rotate 90 degrees with the handle above the top edge
+        if (! list.empty())
+        {
+            const auto r = list[0];
+            const auto top = S (r.posX, r.posY + r.scaleY);
+            const auto handle = top + juce::Point<float> (0.0f, -24.0f);
+            const float radius = ed.toStage (handle).getDistanceFrom ({ r.posX, r.posY });
+            ed.pointerDown (0, handle, none, false);
+            for (int i = 1; i <= 9; ++i)
+            {
+                const float a = juce::MathConstants<float>::halfPi * (1.0f + (float) i / 9.0f);
+                ed.pointerDrag (0, S (r.posX + radius * std::cos (a), r.posY + radius * std::sin (a)), none);
+            }
+            ed.pointerUp (0, S (r.posX - radius, r.posY), none);
+            list = shapes();
+            check (approx (list[0].rotation, 90.0f, 1.0f), "H: the rotation handle turns it 90 degrees ("
+                   + juce::String (list[0].rotation, 2) + ")");
+        }
+
+        // Style applies to the selection
+        ed.setColour (juce::Colour (0xFFFF5252));
+        check (shapesTree().getChild (0).getProperty (WFSParameterIDs::msColour).toString() == "ffff5252",
+               "H: a colour pick restyles the selected shape in the tree");
+
+        // Edit points on the line: drag its middle vertex, then insert one
+        ed.setTool (MapShapesEditor::Tool::EditPoints);
+        tap (S (-1.5f, -3.5f));                       // on the line's first segment: selects it
+        drag (S (0.0f, -4.0f), S (0.0f, -5.0f));      // its middle vertex
+        list = shapes();
+        if (list.size() >= 2)
+        {
+            const auto pts = list[1].getOutlinePoints();
+            check (pts.size() == 3 && approx (pts[1].x, 0.0f) && approx (pts[1].y, -5.0f)
+                   && approx (pts[0].x, -3.0f) && approx (pts[2].x, 3.0f),
+                   "H: Edit Points drags one vertex, the others stay");
+        }
+        ed.doubleClick (S (-1.5f, -4.0f));            // midpoint of the first segment
+        list = shapes();
+        check (list.size() >= 2 && list[1].vertices.size() == 4, "H: a double-click on a segment inserts a point");
+
+        // Delete the freehand loop, undo brings it back
+        ed.setTool (MapShapesEditor::Tool::Select);
+        tap (S (6.5f, 0.0f));
+        ed.keyPressed (juce::KeyPress (juce::KeyPress::deleteKey));
+        check (shapes().size() == 2, "H: Delete removes the selected shape");
+        ed.undo();
+        check (shapes().size() == 3, "H: undo restores it");
+
+        // Copy all, paste on the Map: offset by 0.5 m
+        ed.keyPressed (juce::KeyPress ('a', juce::ModifierKeys::commandModifier, 0));
+        ed.keyPressed (juce::KeyPress ('c', juce::ModifierKeys::commandModifier, 0));
+        ed.keyPressed (juce::KeyPress ('v', juce::ModifierKeys::commandModifier, 0));
+        list = shapes();
+        check (list.size() == 6 && approx (list[3].posX, list[0].posX + 0.5f) && approx (list[3].posY, list[0].posY + 0.5f),
+               "H: Map -> Map paste adds copies offset by 0.5 m");
+
+        // Map -> gradient (the real editor, whatever input/layer it shows): in place
+        if (self.inputsTab != nullptr && self.inputsTab->getGradientMapEditor().getGradientMapsTree().isValid())
+        {
+            auto& gme = self.inputsTab->getGradientMapEditor();
+            auto gmTree = gme.getGradientMapsTree();
+            auto countGradient = [gmTree]()
+            {
+                int n = 0;
+                for (int l = 0; l < gmTree.getNumChildren(); ++l) n += gmTree.getChild (l).getNumChildren();
+                return n;
+            };
+            const int before = countGradient();
+            ed.keyPressed (juce::KeyPress ('a', juce::ModifierKeys::commandModifier, 0));
+            ed.keyPressed (juce::KeyPress ('c', juce::ModifierKeys::commandModifier, 0));
+            gme.keyPressed (juce::KeyPress ('v', juce::ModifierKeys::commandModifier, 0));
+            check (countGradient() == before + 6, "H: Map -> gradient pastes all six shapes (the line closes)");
+
+            // Find the pasted rectangle: same rotation (90) and scale
+            bool inPlace = false;
+            for (int l = 0; l < gmTree.getNumChildren(); ++l)
+                for (int c = 0; c < gmTree.getChild (l).getNumChildren(); ++c)
+                {
+                    auto g = GradientMap::Shape::fromValueTree (gmTree.getChild (l).getChild (c));
+                    if (g.type == GradientMap::ShapeType::Rectangle && approx (g.posX, list[0].posX)
+                        && approx (g.posY, list[0].posY) && approx (g.scaleX, list[0].scaleX)
+                        && approx (g.rotation, list[0].rotation, 0.5f))
+                        inPlace = true;
+                }
+            check (inPlace, "H: the rectangle lands on the gradient map exactly where it is on the Map");
+
+            // gradient -> Map: copy the pasted (still selected) shapes back, in place
+            gme.keyPressed (juce::KeyPress ('c', juce::ModifierKeys::commandModifier, 0));
+            check (MapDrawing::ShapeClipboard::get().getKind() == MapDrawing::ShapeClipboard::Kind::GradientShapes,
+                   "H: the gradient editor copies its selection to the shared clipboard");
+            ed.paste();
+            list = shapes();
+            check (list.size() == 12 && approx (list[6].posX, list[0].posX) && approx (list[6].posY, list[0].posY)
+                   && list[6].type == MapDrawing::Type::Rectangle,
+                   "H: gradient -> Map paste is in place");
+            check (list.size() == 12 && list[7].type == MapDrawing::Type::Polygon,
+                   "H: the open line came back closed (it went through a gradient map)");
+
+            // tidy the gradient map
+            gme.keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0));
+        }
+        else
+        {
+            check (false, "H: the gradient editor has a tree to paste into");
+        }
+
+        // Shift: horizontal / vertical segments, and a dragged point level or
+        // plumb with its neighbour. Off-axis by 0.3-0.4 m on purpose.
+        {
+            const juce::ModifierKeys shift (juce::ModifierKeys::shiftModifier);
+            auto press = [&](juce::Point<float> p, juce::ModifierKeys m) { ed.pointerDown (0, p, m, false); ed.pointerUp (0, p, m); };
+            const int before = (int) shapes().size();
+            ed.setTool (MapShapesEditor::Tool::Line);
+            press (S (-8.0f, -8.0f), none);
+            press (S (-5.0f, -7.6f), shift);                       // mostly horizontal
+            press (S (-4.7f, -5.0f), shift);                       // mostly vertical
+            ed.pointerDown (0, S (-4.7f, -5.0f), shift, false);    // the double-click's second press
+            ed.doubleClick (S (-4.7f, -5.0f));
+            ed.pointerUp (0, S (-4.7f, -5.0f), shift);
+            list = shapes();
+            const auto pts = list.empty() ? std::vector<juce::Point<float>>() : list.back().getOutlinePoints();
+            check ((int) list.size() == before + 1 && pts.size() == 3
+                   && approx (pts[1].x, -5.0f) && approx (pts[1].y, -8.0f)
+                   && approx (pts[2].x, -5.0f) && approx (pts[2].y, -5.0f),
+                   "H: Shift draws horizontal then vertical segments (and a Shift double-click adds no extra point)");
+
+            ed.setTool (MapShapesEditor::Tool::EditPoints);
+            ed.pointerDown (0, S (-5.0f, -5.0f), shift, false);
+            for (int i = 1; i <= 8; ++i)
+                ed.pointerDrag (0, S (-5.0f + 0.05f * (float) i, -5.0f - 0.25f * (float) i), shift);
+            ed.pointerUp (0, S (-4.6f, -7.0f), shift);
+            list = shapes();
+            const auto moved = list.back().getOutlinePoints();
+            check (moved.size() == 3 && approx (moved[2].x, -5.0f) && approx (moved[2].y, -7.0f),
+                   "H: Shift keeps a dragged point plumb with its neighbour");
+        }
+
+        // tidy the Map
+        ed.setActive (false);
+        shapesTree().removeAllChildren (nullptr);
+        vts.getUndoManagerForDomain (UndoDomain::Map)->clearUndoHistory();
+
+        logLine(failures == 0 ? juce::String("SELF-TEST RESULT: ALL PASS")
+                              : "SELF-TEST RESULT: " + juce::String(failures) + " FAILURES");
+    });
 }
 
 MainComponent::~MainComponent()

@@ -801,14 +801,17 @@
       "showLevels": "Show Levels",
       "hideLevels": "Hide Levels",
       "secondaryTouchOn": "2nd Finger: ON",
-      "secondaryTouchOff": "2nd Finger: OFF"
+      "secondaryTouchOff": "2nd Finger: OFF",
+      "editShapes": "Edit Shapes",
+      "doneShapes": "Done Editing"
     },
     "tooltips": {
       "fitStage": "Adjust the zoom and panning to fit the stage on the display",
       "fitInputs": "Adjust the zoom and panning to fit all visible inputs on the display",
       "levels": "Display the levels for inputs and outputs on the map",
       "detach": "Detach the map into a separate window for dual-screen setups",
-      "secondaryTouch": "Suspend or restore the second-finger edits: input rotation and height, stereo image, cluster rotation and scale. Pan and zoom still work. Not saved."
+      "secondaryTouch": "Suspend or restore the second-finger edits: input rotation and height, stereo image, cluster rotation and scale. Pan and zoom still work. Not saved.",
+      "editShapes": "Draw outline shapes on the map as visual aids: stage edges, set pieces, zones. Inputs are locked while editing; pan and zoom still work. Saved with the system configuration and shown on the remote tablet."
     },
     "reattach": "Re-attach Map",
     "detachedMessage": "The map is displayed in a separate window.",
@@ -822,6 +825,49 @@
       "setSingle": "Input {channel} removed from cluster",
       "setSingleMulti": "{count} inputs removed from clusters",
       "clusterBrokenUp": "Cluster {cluster} broken up"
+    },
+    "shapes": {
+      "tools": {
+        "select": "Select",
+        "editPoints": "Edit Points",
+        "line": "Line",
+        "polygon": "Polygon",
+        "rectangle": "Rectangle",
+        "ellipse": "Ellipse",
+        "freehand": "Freehand"
+      },
+      "style": {
+        "width": "Width",
+        "dashed": "Dashed",
+        "labelPlaceholder": "Label"
+      },
+      "actions": {
+        "copy": "Copy",
+        "paste": "Paste",
+        "pasteFromGradient": "Paste from Gradient",
+        "delete": "Delete"
+      },
+      "help": {
+        "select": "Select shapes by their outline: drag to move, the corner handles resize (Shift keeps the proportions), the round handle rotates (Shift snaps to 15°). Drag on empty space to select several; Shift+click adds or removes a shape.",
+        "editPoints": "Drag the points of a line, polygon or rectangle. Double-click a point to remove it, or an edge to add one. Hold Shift to keep the dragged point level or plumb with its neighbour.",
+        "line": "Click to add points; double-click or press Enter to finish. The line stays open. Backspace removes the last point, Escape cancels. Hold Shift for horizontal or vertical segments.",
+        "polygon": "Click to add points; click the first point, double-click or press Enter to close the shape. Hold Shift for horizontal or vertical segments.",
+        "rectangle": "Drag to draw a rectangle. Hold Shift for a square.",
+        "ellipse": "Drag to draw an ellipse. Hold Shift for a circle.",
+        "freehand": "Drag to sketch a line. Finishing near the start closes the shape.",
+        "colour": "Outline colour of the selected shapes, or of the next shapes drawn.",
+        "width": "Outline width in screen pixels: the same at every zoom.",
+        "dashed": "Draw the outline dashed.",
+        "label": "Text shown above the selected shapes. Press Enter to apply.",
+        "copy": "Copy the selected shapes (Ctrl/Cmd+C). Pasted on a gradient map, they keep their position.",
+        "paste": "Paste shapes (Ctrl/Cmd+V). Shapes from a gradient map land in place; shapes copied on the map are offset by 0.5 m.",
+        "delete": "Delete the selected shapes (Delete key)."
+      },
+      "messages": {
+        "copied": "{count} shape(s) copied",
+        "limit": "The map holds at most {count} shapes",
+        "noPoints": "An ellipse has no points to edit: use Select to resize it"
+      }
     }
   },
 
@@ -2211,7 +2257,8 @@
         "copyShape": "Copy Shape",
         "pasteShape": "Paste Shape",
         "copyLayer": "Copy Layer",
-        "pasteLayer": "Paste Layer"
+        "pasteLayer": "Paste Layer",
+        "pasteFromMap": "Paste from Map"
       },
       "warnings": {
         "heightRatioZero": "Height Ratio is 0% — increase it for height to take effect"
@@ -2248,13 +2295,16 @@
         "fillTool": "Apply uniform fill to shape",
         "linGradTool": "Apply linear gradient to shape",
         "radGradTool": "Apply radial gradient to shape",
-        "copy": "Copy selected shape or layer",
-        "paste": "Paste shape or layer from clipboard"
+        "copy": "Copy the selected shapes, or the whole layer when nothing is selected (Ctrl/Cmd+C). Shapes can be pasted on the Map tab too, at the same position.",
+        "paste": "Paste shapes or a layer from the clipboard (Ctrl/Cmd+V). Shapes copied on the Map tab land in place; an open line is closed with a straight edge."
       },
       "header": {
         "attenuationLayer": "Attenuation Layer",
         "heightLayer": "Height Layer",
         "hfShelfLayer": "HF Shelf Layer"
+      },
+      "messages": {
+        "linesSkipped": "{count} two-point line(s) skipped: a line encloses no area"
       }
     },
     "labels": {
@@ -3297,7 +3347,7 @@
     },
     "map": {
       "title": "Map",
-      "body": "- A left click on an input or a cluster will allow to move it by dragging it. A single finger touch will do the same.\n- A left click with the shift key pressed will add or remove inputs to the selection. A double tap and drag will act the same way.\n- A left click drag will draw a selection rectangle to select multiple inputs and clusters at the same time.\n- A left double-click or tap will reset the position offset of the input.\n- A long left click or press (0.7 to 1.2 s) with no movement will switch to the input tab with the focus on the selected input on release. Moving away cancels it even if you come back, and it is ignored for 3 s after moving or editing a marker.\n- A left click away from any input will clear the selection.\n- A right click and drag will pan the view of the map. A two finger drag with no selected input or cluster will do the same if your operating system supports multitouch.\n- The mouse wheel will zoom in and out. A two finger pinch with no selected input or cluster will also zoom in and out.\n- With stereo inputs selected the mouse wheel turns their image axis instead of zooming: 5\u00b0 per notch, 1\u00b0 with Shift held. Hold Ctrl/Cmd to zoom as usual.\n- A middle click will reset the view to fit the stage on the map display. There is also a dedicated set of buttons to reset the view to fit all inputs and to fit the stage respectively.\n- Selected inputs and clusters can also be moved with the arrow keys for X and Y and with the PageUp and PageDown keys for height. Hardware controllers can be used too.\n- When an input is touched, a second finger nearby can rotate the input directivity and adjust the height by pinching if your operating system allows multitouch interaction.\n- When a cluster is touched, a second finger nearby can rotate the cluster and scale it by pinching.\n- When a stereo input is touched, holding Shift makes the second finger act on the stereo image instead: rotating changes the image axis and pinching changes the width.\n- The button under the levels toggle suspends every second-finger edit on inputs and clusters. Pan, zoom and reverb pair mirroring keep working. It is not saved.\n- With a Space Mouse, holding Shift while a stereo input is selected makes the twist change the image axis and the pull/push change the width, both the same way round as the second finger: pull up to spread, push down to narrow. Shift with XY still moves the input.\n- Pressing L with stereo inputs selected locks or unlocks their image orientation. Locked, the pair spreads house left/right turned by the Axis value alone and no longer follows the source around the origin.\n- Inputs, output arrays and the reverb nodes can be hidden on the map.\n- Inputs can also be locked to prevent selecting and moving them on the map. They will still be moved by clusters, network commands, tracking and hardware controllers.\n- All reverb nodes can be moved on the map if this is enabled on the reverb tab. Holding the Ctrl/Cmd key will move each pair of reverb nodes in symmetry.\n- Inputs with offsets, LFO or with speed regulation will have a temporary position marker. But the point of interaction will remain the normal marker.\n- The Live Source Tamer radius will be displayed around input when activated.\n- There is a toggle to display the audio level for the inputs and outputs on the map tab, that's active when the audio processing is running."
+      "body": "- A left click on an input or a cluster will allow to move it by dragging it. A single finger touch will do the same.\n- A left click with the shift key pressed will add or remove inputs to the selection. A double tap and drag will act the same way.\n- A left click drag will draw a selection rectangle to select multiple inputs and clusters at the same time.\n- A left double-click or tap will reset the position offset of the input.\n- A long left click or press (0.7 to 1.2 s) with no movement will switch to the input tab with the focus on the selected input on release. Moving away cancels it even if you come back, and it is ignored for 3 s after moving or editing a marker.\n- A left click away from any input will clear the selection.\n- A right click and drag will pan the view of the map. A two finger drag with no selected input or cluster will do the same if your operating system supports multitouch.\n- The mouse wheel will zoom in and out. A two finger pinch with no selected input or cluster will also zoom in and out.\n- With stereo inputs selected the mouse wheel turns their image axis instead of zooming: 5° per notch, 1° with Shift held. Hold Ctrl/Cmd to zoom as usual.\n- A middle click will reset the view to fit the stage on the map display. There is also a dedicated set of buttons to reset the view to fit all inputs and to fit the stage respectively.\n- Selected inputs and clusters can also be moved with the arrow keys for X and Y and with the PageUp and PageDown keys for height. Hardware controllers can be used too.\n- When an input is touched, a second finger nearby can rotate the input directivity and adjust the height by pinching if your operating system allows multitouch interaction.\n- When a cluster is touched, a second finger nearby can rotate the cluster and scale it by pinching.\n- When a stereo input is touched, holding Shift makes the second finger act on the stereo image instead: rotating changes the image axis and pinching changes the width.\n- The button under the levels toggle suspends every second-finger edit on inputs and clusters. Pan, zoom and reverb pair mirroring keep working. It is not saved.\n- With a Space Mouse, holding Shift while a stereo input is selected makes the twist change the image axis and the pull/push change the width, both the same way round as the second finger: pull up to spread, push down to narrow. Shift with XY still moves the input.\n- Pressing L with stereo inputs selected locks or unlocks their image orientation. Locked, the pair spreads house left/right turned by the Axis value alone and no longer follows the source around the origin.\n- Inputs, output arrays and the reverb nodes can be hidden on the map.\n- Inputs can also be locked to prevent selecting and moving them on the map. They will still be moved by clusters, network commands, tracking and hardware controllers.\n- All reverb nodes can be moved on the map if this is enabled on the reverb tab. Holding the Ctrl/Cmd key will move each pair of reverb nodes in symmetry.\n- Inputs with offsets, LFO or with speed regulation will have a temporary position marker. But the point of interaction will remain the normal marker.\n- The Live Source Tamer radius will be displayed around input when activated.\n- There is a toggle to display the audio level for the inputs and outputs on the map tab, that's active when the audio processing is running.\n- The Edit Shapes button opens the drawing tools: lines, polygons, rectangles, ellipses and freehand outlines, each with a colour, width, dashes and a label. They are visual aids only, saved with the system configuration and shown on the remote tablet. Shapes copy to and from the gradient maps in place; an open line is closed with a straight edge there."
     },
     "clusters": {
       "title": "Clusters",

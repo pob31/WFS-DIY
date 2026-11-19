@@ -1,6 +1,6 @@
 # Proofreading checklist — French (Français)
 
-Locale: `fr`  |  Total keys: 1143  |  Source: `Resources/lang/en.json` vs `Resources/lang/fr.json`
+Locale: `fr`  |  Total keys: 1181  |  Source: `Resources/lang/en.json` vs `Resources/lang/fr.json`
 
 ## How to use this file
 
@@ -68,6 +68,11 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 ## `arrayHelper.errors`
+
+- **`fieldNotNumber`**
+  - EN: A field outlined in red holds no number.
+  - FR: (missing — falls back to English)
+  - [ ] OK    Fix: 
 
 - **`noPositions`**
   - EN: No positions to apply. Check geometry parameters.
@@ -164,6 +169,11 @@ Walk through each section. For every entry:
 - **`attenuationSlider`**
   - EN: Adjust attenuation of all cluster inputs (dB).
   - FR: Régler l'atténuation de toutes les entrées du cluster (dB).
+  - [ ] OK    Fix: 
+
+- **`cuePreset`**
+  - EN: Create a cue in QLab or Go.dot to recall the last selected LFO preset for the current cluster.
+  - FR: Créer une cue dans QLab ou Go.dot pour rappeler le dernier preset LFO sélectionné pour le cluster courant.
   - [ ] OK    Fix: 
 
 - **`exportPresets`**
@@ -2067,8 +2077,8 @@ Walk through each section. For every entry:
 ## `help.map`
 
 - **`body`**
-  - EN: - A left click on an input or a cluster will allow to move it by dragging it. A single finger touch will do the same.\n- A left click with the shift key pressed will add or remove inputs to the selection. A double tap and drag will act the same way.\n- A left click drag will draw a selection rectangle to select multiple inputs and clusters at the same time.\n- A left double-click or tap will reset the position offset of the input.\n- A long left click or press (0.7 to 1.2 s) with no movement will switch to the input tab with the focus on the selected input on release. Moving away cancels it even if you come back, and it is ignored for 3 s after moving or editing a marker.\n- A left click away from any input will clear the selection.\n- A right click and drag will pan the view of the map. A two finger drag with no selected input or cluster will do the same if your operating system supports multitouch.\n- The mouse wheel will zoom in and out. A two finger pinch with no selected input or cluster will also zoom in and out.\n- With stereo inputs selected the mouse wheel turns their image axis instead of zooming: 5° per notch, 1° with Shift held. Hold Ctrl/Cmd to zoom as usual.\n- A middle click will reset the view to fit the stage on the map display. There is also a dedicated set of buttons to reset the view to fit all inputs and to fit the stage respectively.\n- Selected inputs and clusters can also be moved with the arrow keys for X and Y and with the PageUp and PageDown keys for height. Hardware controllers can be used too.\n- When an input is touched, a second finger nearby can rotate the input directivity and adjust the height by pinching if your operating system allows multitouch interaction.\n- When a cluster is touched, a second finger nearby can rotate the cluster and scale it by pinching.\n- When a stereo input is touched, holding Shift makes the second finger act on the stereo image instead: rotating changes the image axis and pinching changes the width.\n- The button under the levels toggle suspends every second-finger edit on inputs and clusters. Pan, zoom and reverb pair mirroring keep working. It is not saved.\n- With a Space Mouse, holding Shift while a stereo input is selected makes the twist change the image axis and the pull/push change the width, both the same way round as the second finger: pull up to spread, push down to narrow. Shift with XY still moves the input.\n- Pressing L with stereo inputs selected locks or unlocks their image orientation. Locked, the pair spreads house left/right turned by the Axis value alone and no longer follows the source around the origin.\n- Inputs, output arrays and the reverb nodes can be hidden on the map.\n- Inputs can also be locked to prevent selecting and moving them on the map. They will still be moved by clusters, network commands, tracking and hardware controllers.\n- All reverb nodes can be moved on the map if this is enabled on the reverb tab. Holding the Ctrl/Cmd key will move each pair of reverb nodes in symmetry.\n- Inputs with offsets, LFO or with speed regulation will have a temporary position marker. But the point of interaction will remain the normal marker.\n- The Live Source Tamer radius will be displayed around input when activated.\n- There is a toggle to display the audio level for the inputs and outputs on the map tab, that's active when the audio processing is running.
-  - FR: - Un clic gauche sur une entrée ou un cluster permet de le déplacer en glissant. Un toucher simple fait de même.\n- Un clic gauche avec Maj ajoute ou retire des entrées de la sélection. Un double tap et glisser fait de même.\n- Un clic gauche glissé dessine un rectangle de sélection.\n- Un double-clic ou tap réinitialise le décalage de position.\n- Un clic gauche long ou un appui long (0,7 à 1,2 s) sans mouvement ouvre, au relâchement, l'onglet des entrées sur l'entrée sélectionnée. S'éloigner l'annule, même si l'on revient, et le geste est ignoré pendant 3 s après le déplacement ou la modification d'un marqueur.\n- Un clic hors d'une entrée efface la sélection.\n- Un clic droit glissé déplace la vue. Un glisser à deux doigts fait de même si le multitouch est supporté.\n- La molette zoome. Un pincement à deux doigts aussi.\n- Lorsque des entrées stéréo sont sélectionnées, la molette tourne leur axe d'image au lieu de zoomer : 5° par cran, 1° avec Maj. Maintenir Ctrl/Cmd pour zoomer comme d'habitude.\n- Un clic molette réinitialise la vue.\n- Les flèches déplacent la sélection en X/Y, PageHaut/Bas en hauteur.\n- Un deuxième doigt près d'une entrée touchée peut tourner la directivité et ajuster la hauteur.\n- Un deuxième doigt près d'un cluster touché peut le tourner et le redimensionner.\n- Sur une entrée stéréo touchée, avec la touche Maj enfoncée le deuxième doigt agit sur l'image stéréo : la rotation change l'axe de l'image et le pincement change la largeur.\n- Le bouton situé sous celui qui permet d'afficher les niveaux audio suspend toutes les modifications au deuxième doigt sur les entrées et les clusters. La vue peut toujours être déplacée et zoomée, et les paires de nœuds de réverbération déplacées en symétrie. Ce réglage n'est pas enregistré.\n- Avec une Space Mouse, en maintenant Maj avec une entrée stéréo sélectionnée, la torsion change l'axe de l'image et tirer/pousser change la largeur, dans le même sens que le deuxième doigt : tirer vers le haut élargit, pousser vers le bas resserre. Maj avec XY déplace toujours l'entrée.\n- Appuyer sur L avec des entrées stéréo sélectionnées verrouille ou déverrouille l'orientation de leur image. Verrouillée, la paire s'ouvre à gauche/droite de la salle, tournée par la seule valeur d'Axe, et ne suit plus la source autour de l'origine.\n- Les entrées, tableaux de sorties et nœuds de réverbération peuvent être masqués.\n- Les entrées peuvent être verrouillées pour empêcher leur sélection et déplacement.\n- Les nœuds de réverbération peuvent être déplacés si activé. Ctrl/Cmd déplace les paires en symétrie.\n- Le rayon du Live Source Tamer est affiché autour de l'entrée quand activé.\n- Un bouton permet d'afficher les niveaux audio sur la carte.
+  - EN: - A left click on an input or a cluster will allow to move it by dragging it. A single finger touch will do the same.\n- A left click with the shift key pressed will add or remove inputs to the selection. A double tap and drag will act the same way.\n- A left click drag will draw a selection rectangle to select multiple inputs and clusters at the same time.\n- A left double-click or tap will reset the position offset of the input.\n- A long left click or press (0.7 to 1.2 s) with no movement will switch to the input tab with the focus on the selected input on release. Moving away cancels it even if you come back, and it is ignored for 3 s after moving or editing a marker.\n- A left click away from any input will clear the selection.\n- A right click and drag will pan the view of the map. A two finger drag with no selected input or cluster will do the same if your operating system supports multitouch.\n- The mouse wheel will zoom in and out. A two finger pinch with no selected input or cluster will also zoom in and out.\n- With stereo inputs selected the mouse wheel turns their image axis instead of zooming: 5° per notch, 1° with Shift held. Hold Ctrl/Cmd to zoom as usual.\n- A middle click will reset the view to fit the stage on the map display. There is also a dedicated set of buttons to reset the view to fit all inputs and to fit the stage respectively.\n- Selected inputs and clusters can also be moved with the arrow keys for X and Y and with the PageUp and PageDown keys for height. Hardware controllers can be used too.\n- When an input is touched, a second finger nearby can rotate the input directivity and adjust the height by pinching if your operating system allows multitouch interaction.\n- When a cluster is touched, a second finger nearby can rotate the cluster and scale it by pinching.\n- When a stereo input is touched, holding Shift makes the second finger act on the stereo image instead: rotating changes the image axis and pinching changes the width.\n- The button under the levels toggle suspends every second-finger edit on inputs and clusters. Pan, zoom and reverb pair mirroring keep working. It is not saved.\n- With a Space Mouse, holding Shift while a stereo input is selected makes the twist change the image axis and the pull/push change the width, both the same way round as the second finger: pull up to spread, push down to narrow. Shift with XY still moves the input.\n- Pressing L with stereo inputs selected locks or unlocks their image orientation. Locked, the pair spreads house left/right turned by the Axis value alone and no longer follows the source around the origin.\n- Inputs, output arrays and the reverb nodes can be hidden on the map.\n- Inputs can also be locked to prevent selecting and moving them on the map. They will still be moved by clusters, network commands, tracking and hardware controllers.\n- All reverb nodes can be moved on the map if this is enabled on the reverb tab. Holding the Ctrl/Cmd key will move each pair of reverb nodes in symmetry.\n- Inputs with offsets, LFO or with speed regulation will have a temporary position marker. But the point of interaction will remain the normal marker.\n- The Live Source Tamer radius will be displayed around input when activated.\n- There is a toggle to display the audio level for the inputs and outputs on the map tab, that's active when the audio processing is running.\n- The Edit Shapes button opens the drawing tools: lines, polygons, rectangles, ellipses and freehand outlines, each with a colour, width, dashes and a label. They are visual aids only, saved with the system configuration and shown on the remote tablet. Shapes copy to and from the gradient maps in place; an open line is closed with a straight edge there.
+  - FR: - Un clic gauche sur une entrée ou un cluster permet de le déplacer en glissant. Un toucher simple fait de même.\n- Un clic gauche avec Maj ajoute ou retire des entrées de la sélection. Un double tap et glisser fait de même.\n- Un clic gauche glissé dessine un rectangle de sélection.\n- Un double-clic ou tap réinitialise le décalage de position.\n- Un clic gauche long ou un appui long (0,7 à 1,2 s) sans mouvement ouvre, au relâchement, l'onglet des entrées sur l'entrée sélectionnée. S'éloigner l'annule, même si l'on revient, et le geste est ignoré pendant 3 s après le déplacement ou la modification d'un marqueur.\n- Un clic hors d'une entrée efface la sélection.\n- Un clic droit glissé déplace la vue. Un glisser à deux doigts fait de même si le multitouch est supporté.\n- La molette zoome. Un pincement à deux doigts aussi.\n- Lorsque des entrées stéréo sont sélectionnées, la molette tourne leur axe d'image au lieu de zoomer : 5° par cran, 1° avec Maj. Maintenir Ctrl/Cmd pour zoomer comme d'habitude.\n- Un clic molette réinitialise la vue.\n- Les flèches déplacent la sélection en X/Y, PageHaut/Bas en hauteur.\n- Un deuxième doigt près d'une entrée touchée peut tourner la directivité et ajuster la hauteur.\n- Un deuxième doigt près d'un cluster touché peut le tourner et le redimensionner.\n- Sur une entrée stéréo touchée, avec la touche Maj enfoncée le deuxième doigt agit sur l'image stéréo : la rotation change l'axe de l'image et le pincement change la largeur.\n- Le bouton situé sous celui qui permet d'afficher les niveaux audio suspend toutes les modifications au deuxième doigt sur les entrées et les clusters. La vue peut toujours être déplacée et zoomée, et les paires de nœuds de réverbération déplacées en symétrie. Ce réglage n'est pas enregistré.\n- Avec une Space Mouse, en maintenant Maj avec une entrée stéréo sélectionnée, la torsion change l'axe de l'image et tirer/pousser change la largeur, dans le même sens que le deuxième doigt : tirer vers le haut élargit, pousser vers le bas resserre. Maj avec XY déplace toujours l'entrée.\n- Appuyer sur L avec des entrées stéréo sélectionnées verrouille ou déverrouille l'orientation de leur image. Verrouillée, la paire s'ouvre à gauche/droite de la salle, tournée par la seule valeur d'Axe, et ne suit plus la source autour de l'origine.\n- Les entrées, tableaux de sorties et nœuds de réverbération peuvent être masqués.\n- Les entrées peuvent être verrouillées pour empêcher leur sélection et déplacement.\n- Les nœuds de réverbération peuvent être déplacés si activé. Ctrl/Cmd déplace les paires en symétrie.\n- Le rayon du Live Source Tamer est affiché autour de l'entrée quand activé.\n- Un bouton permet d'afficher les niveaux audio sur la carte.\n- Le bouton Edit Shapes ouvre les outils de dessin : lignes, polygones, rectangles, ellipses et contours à main levée, chacun avec une couleur, une épaisseur, des pointillés et une étiquette. Ce sont uniquement des aides visuelles, enregistrées avec la configuration système et affichées sur la tablette distante. Les formes se copient vers et depuis les cartes de gradient à la même position ; une ligne ouverte y est fermée par un segment droit.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -2434,8 +2444,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`help.copy`**
-  - EN: Copy selected shape or layer
-  - FR: Copier la forme ou la couche sélectionnée
+  - EN: Copy the selected shapes, or the whole layer when nothing is selected (Ctrl/Cmd+C). Shapes can be pasted on the Map tab too, at the same position.
+  - FR: Copier les formes sélectionnées, ou toute la couche si rien n'est sélectionné (Ctrl/Cmd+C). Les formes peuvent aussi être collées dans l'onglet Map, à la même position.
   - [ ] OK    Fix: 
 
 - **`help.curve`**
@@ -2479,8 +2489,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`help.paste`**
-  - EN: Paste shape or layer from clipboard
-  - FR: Coller la forme ou la couche depuis le presse-papiers
+  - EN: Paste shapes or a layer from the clipboard (Ctrl/Cmd+V). Shapes copied on the Map tab land in place; an open line is closed with a straight edge.
+  - FR: Coller des formes ou une couche depuis le presse-papiers (Ctrl/Cmd+V). Les formes copiées dans l'onglet Map arrivent à la même place ; une ligne ouverte est fermée par un segment droit.
   - [ ] OK    Fix: 
 
 - **`help.polygonTool`**
@@ -2578,6 +2588,11 @@ Walk through each section. For every entry:
   - FR: (missing — falls back to English)
   - [ ] OK    Fix: 
 
+- **`messages.linesSkipped`**
+  - EN: {count} two-point line(s) skipped: a line encloses no area
+  - FR: {count} ligne(s) à deux points ignorée(s) : une ligne n'entoure aucune surface
+  - [ ] OK    Fix: 
+
 - **`warnings.heightRatioZero`**
   - EN: Height Ratio is 0% — increase it for height to take effect
   - FR: Le ratio de hauteur est à 0% — augmentez-le pour que la hauteur soit prise en compte
@@ -2608,6 +2623,11 @@ Walk through each section. For every entry:
 - **`channelSelector`**
   - EN: Input Channel Number and Selection.
   - FR: Numéro et sélection du canal d'entrée.
+  - [ ] OK    Fix: 
+
+- **`clearSnapshotSelection`**
+  - EN: Clear the snapshot selection. With no snapshot selected, Edit Scope sets the scope of the next snapshot to be stored.
+  - FR: Désélectionner le snapshot. Sans snapshot sélectionné, Edit Scope règle le filtre du prochain snapshot à enregistrer.
   - [ ] OK    Fix: 
 
 - **`clusterSelector`**
@@ -3504,11 +3524,103 @@ Walk through each section. For every entry:
   - FR: {count} entrées retirées des clusters
   - [ ] OK    Fix: 
 
+## `map.shapes`
+
+- **`help.colour`**
+  - EN: Outline colour of the selected shapes, or of the next shapes drawn.
+  - FR: Couleur du contour des formes sélectionnées, ou des prochaines formes dessinées.
+  - [ ] OK    Fix: 
+
+- **`help.copy`**
+  - EN: Copy the selected shapes (Ctrl/Cmd+C). Pasted on a gradient map, they keep their position.
+  - FR: Copier les formes sélectionnées (Ctrl/Cmd+C). Collées sur une carte de gradient, elles gardent leur position.
+  - [ ] OK    Fix: 
+
+- **`help.dashed`**
+  - EN: Draw the outline dashed.
+  - FR: Dessiner le contour en pointillés.
+  - [ ] OK    Fix: 
+
+- **`help.delete`**
+  - EN: Delete the selected shapes (Delete key).
+  - FR: Supprimer les formes sélectionnées (touche Suppr).
+  - [ ] OK    Fix: 
+
+- **`help.editPoints`**
+  - EN: Drag the points of a line, polygon or rectangle. Double-click a point to remove it, or an edge to add one. Hold Shift to keep the dragged point level or plumb with its neighbour.
+  - FR: Déplacer les points d'une ligne, d'un polygone ou d'un rectangle. Un double-clic sur un point le supprime, sur un côté en ajoute un. Maintenir Maj pour garder le point déplacé à l'horizontale ou à la verticale de son voisin.
+  - [ ] OK    Fix: 
+
+- **`help.ellipse`**
+  - EN: Drag to draw an ellipse. Hold Shift for a circle.
+  - FR: Glisser pour dessiner une ellipse. Maintenir Maj pour un cercle.
+  - [ ] OK    Fix: 
+
+- **`help.freehand`**
+  - EN: Drag to sketch a line. Finishing near the start closes the shape.
+  - FR: Glisser pour tracer une ligne. Terminer près du départ ferme la forme.
+  - [ ] OK    Fix: 
+
+- **`help.label`**
+  - EN: Text shown above the selected shapes. Press Enter to apply.
+  - FR: Texte affiché au-dessus des formes sélectionnées. Appuyer sur Entrée pour l'appliquer.
+  - [ ] OK    Fix: 
+
+- **`help.line`**
+  - EN: Click to add points; double-click or press Enter to finish. The line stays open. Backspace removes the last point, Escape cancels. Hold Shift for horizontal or vertical segments.
+  - FR: Cliquer pour ajouter des points ; double-clic ou Entrée pour terminer. La ligne reste ouverte. Retour arrière retire le dernier point, Échap annule. Maintenir Maj pour des segments horizontaux ou verticaux.
+  - [ ] OK    Fix: 
+
+- **`help.paste`**
+  - EN: Paste shapes (Ctrl/Cmd+V). Shapes from a gradient map land in place; shapes copied on the map are offset by 0.5 m.
+  - FR: Coller des formes (Ctrl/Cmd+V). Les formes d'une carte de gradient arrivent à la même place ; celles copiées sur la carte sont décalées de 0,5 m.
+  - [ ] OK    Fix: 
+
+- **`help.polygon`**
+  - EN: Click to add points; click the first point, double-click or press Enter to close the shape. Hold Shift for horizontal or vertical segments.
+  - FR: Cliquer pour ajouter des points ; cliquer sur le premier point, double-cliquer ou appuyer sur Entrée pour fermer la forme. Maintenir Maj pour des segments horizontaux ou verticaux.
+  - [ ] OK    Fix: 
+
+- **`help.rectangle`**
+  - EN: Drag to draw a rectangle. Hold Shift for a square.
+  - FR: Glisser pour dessiner un rectangle. Maintenir Maj pour un carré.
+  - [ ] OK    Fix: 
+
+- **`help.select`**
+  - EN: Select shapes by their outline: drag to move, the corner handles resize (Shift keeps the proportions), the round handle rotates (Shift snaps to 15°). Drag on empty space to select several; Shift+click adds or removes a shape.
+  - FR: Sélectionner les formes par leur contour : glisser pour déplacer, les poignées d'angle redimensionnent (Maj garde les proportions), la poignée ronde fait pivoter (Maj aimante par pas de 15°). Glisser dans le vide pour en sélectionner plusieurs ; Maj+clic ajoute ou retire une forme.
+  - [ ] OK    Fix: 
+
+- **`help.width`**
+  - EN: Outline width in screen pixels: the same at every zoom.
+  - FR: Épaisseur du contour en pixels d'écran : identique à tous les niveaux de zoom.
+  - [ ] OK    Fix: 
+
+- **`messages.copied`**
+  - EN: {count} shape(s) copied
+  - FR: {count} forme(s) copiée(s)
+  - [ ] OK    Fix: 
+
+- **`messages.limit`**
+  - EN: The map holds at most {count} shapes
+  - FR: La carte contient au plus {count} formes
+  - [ ] OK    Fix: 
+
+- **`messages.noPoints`**
+  - EN: An ellipse has no points to edit: use Select to resize it
+  - FR: Une ellipse n'a pas de points à éditer : utiliser Select pour la redimensionner
+  - [ ] OK    Fix: 
+
 ## `map.tooltips`
 
 - **`detach`**
   - EN: Detach the map into a separate window for dual-screen setups
   - FR: Détacher la carte dans une fenêtre séparée pour les configurations double écran
+  - [ ] OK    Fix: 
+
+- **`editShapes`**
+  - EN: Draw outline shapes on the map as visual aids: stage edges, set pieces, zones. Inputs are locked while editing; pan and zoom still work. Saved with the system configuration and shown on the remote tablet.
+  - FR: Dessiner des formes en contour sur la carte comme aides visuelles : bords de scène, décors, zones. Les entrées sont verrouillées pendant l'édition ; le déplacement et le zoom restent actifs. Enregistrées avec la configuration système et affichées sur la tablette distante.
   - [ ] OK    Fix: 
 
 - **`fitInputs`**
@@ -3922,6 +4034,46 @@ Walk through each section. For every entry:
 - **`findDeviceSent`**
   - EN: Find Device command sent.
   - FR: Commande Trouver l'appareil envoyée.
+  - [ ] OK    Fix: 
+
+- **`godotCueCreated`**
+  - EN: Go.dot cue created: {name}
+  - FR: Cue Go.dot créé : {name}
+  - [ ] OK    Fix: 
+
+- **`godotCueRefused`**
+  - EN: Go.dot refused the cue: {reason}
+  - FR: Go.dot a refusé le cue : {reason}
+  - [ ] OK    Fix: 
+
+- **`godotCueUpdated`**
+  - EN: Go.dot cue updated: {name}
+  - FR: Cue Go.dot mis à jour : {name}
+  - [ ] OK    Fix: 
+
+- **`godotDeclareRefused`**
+  - EN: Go.dot refused WFS-DIY's declaration: {reason}
+  - FR: Go.dot a refusé la déclaration de WFS-DIY : {reason}
+  - [ ] OK    Fix: 
+
+- **`godotDeclared`**
+  - EN: WFS-DIY is declared in Go.dot
+  - FR: WFS-DIY est déclaré dans Go.dot
+  - [ ] OK    Fix: 
+
+- **`godotDescribeFailed`**
+  - EN: Go.dot could not read WFS-DIY's parameters: {problem}
+  - FR: Go.dot n'a pas pu lire les paramètres de WFS-DIY : {problem}
+  - [ ] OK    Fix: 
+
+- **`godotDescribed`**
+  - EN: Go.dot read {count} WFS-DIY parameters for its menus
+  - FR: Go.dot a lu {count} paramètres de WFS-DIY pour ses menus
+  - [ ] OK    Fix: 
+
+- **`godotNoAnswer`**
+  - EN: No answer from Go.dot: is it running, and does its Network tab let this machine in?
+  - FR: Pas de réponse de Go.dot : est-il lancé, et son onglet Network accepte-t-il cette machine ?
   - [ ] OK    Fix: 
 
 - **`maxTargetsReached`**
@@ -4728,6 +4880,11 @@ Walk through each section. For every entry:
   - FR: Sélectionnez une cellule sur la grille pour modifier ses propriétés.\nDouble-cliquez pour charger un échantillon.\nMaintenez Ctrl et cliquez pour assigner les cellules au set actif.
   - [ ] OK    Fix: 
 
+- **`importFailed`**
+  - EN: {file} could not be copied into the project's samples folder.
+  - FR: {file} n'a pas pu être copié dans le dossier samples du projet.
+  - [ ] OK    Fix: 
+
 - **`placeholder`**
   - EN: Sampler — coming soon
   - FR: (missing — falls back to English)
@@ -4871,6 +5028,16 @@ Walk through each section. For every entry:
 
 ## `snapshot`
 
+- **`godotNothingInScope`**
+  - EN: Go.dot export: no parameters in scope
+  - FR: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`godotWriting`**
+  - EN: Writing {count} parameters to Go.dot as one cue...
+  - FR: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
 - **`qlabExportDone`**
   - EN: QLab export complete: {count} cues created
   - FR: (missing — falls back to English)
@@ -4893,14 +5060,39 @@ Walk through each section. For every entry:
 
 ## `snapshotScope`
 
+- **`clearSelectionTooltip`**
+  - EN: Clear the snapshot selection: this grid, as it is now, becomes the scope of the next snapshot you store.
+  - FR: Désélectionner le snapshot : cette grille, telle quelle, devient le filtre du prochain snapshot enregistré.
+  - [ ] OK    Fix: 
+
 - **`noEffectChannels`**
   - EN: This session has no effect channels.
   - FR: Cette session n'a aucun canal d'effet.
   - [ ] OK    Fix: 
 
+- **`writeSnapshotLoadCueBothTooltip`**
+  - EN: Also create a QLab cue and a Go.dot cue to load this snapshot via OSC
+  - FR: Créer aussi un cue QLab et un cue Go.dot pour charger ce snapshot via OSC
+  - [ ] OK    Fix: 
+
+- **`writeSnapshotLoadCueGoDotTooltip`**
+  - EN: Also create a Go.dot cue to load this snapshot via OSC
+  - FR: Créer aussi un cue Go.dot pour charger ce snapshot via OSC
+  - [ ] OK    Fix: 
+
 - **`writeSnapshotLoadCueTooltip`**
   - EN: Also create a QLab cue to load this snapshot via OSC
   - FR: Créer aussi un cue QLab pour charger ce snapshot via OSC
+  - [ ] OK    Fix: 
+
+- **`writeToBothTooltip`**
+  - EN: Save the snapshot, then write its scope to QLab and, as one cue, to Go.dot
+  - FR: Sauvegarder le snapshot, puis écrire son scope dans QLab et, en un seul cue, dans Go.dot
+  - [ ] OK    Fix: 
+
+- **`writeToGoDotTooltip`**
+  - EN: Save the snapshot, then write its scope to Go.dot as one cue
+  - FR: Sauvegarder le snapshot, puis écrire son scope dans Go.dot en un seul cue
   - [ ] OK    Fix: 
 
 - **`writeToQLabTooltip`**

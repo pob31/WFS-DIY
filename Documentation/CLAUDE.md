@@ -368,6 +368,26 @@ belongs to is muted: moving a speaker into a muted array mutes it, moving it to 
   (coalesced through `OSCManager`'s AsyncUpdater, the sender included) and every 2 s (kept out of
   the Network Log). No `/wfs/` address, OSCQuery node or MCP tool — it is not show state.
 
+### Tablet map: speakers + drawn shapes (`/remote/map/*`, additive, still v4)
+`Source/Network/RemoteMapGeometry.h` builds the payloads (pure); `OSCManager` owns the state. All
+coordinates origin-relative metres.
+- `/remote/map/speakers ,iiii rev chunk chunkCount total` + n x `iifff` (number, array, x, y,
+  orientation deg): the outputs `MapTab::drawOutputs` shows (single -> `outputMapVisible`, array member ->
+  `outputArrayMapVisible`, absent = visible), <= 32 per chunk; an empty set is one chunk with total 0.
+- `/remote/map/shapes ,ii rev count` + per shape one or more `/remote/map/shape ,iiiiiiifffs rev index part
+  partCount closed colourARGB dashed lineWidth labelX labelY label` + k x `ff`: the outline flattened by
+  the desktop (rectangle 4 points, ellipse 48), <= 80 points per part, label in part 0 (<= 96 UTF-8 bytes).
+- `/remote/map/rev ,ii speakersRev shapesRev` closes every push and repeats every 2 s (quiet); a tablet
+  that holds another revision sends `/remote/map/request ,i mask` (1 speakers, 2 shapes), answered to it
+  alone, at most every 250 ms, no dump.
+- Change detection only raises atomic dirty flags (output X/Y/orientation/array/map-visibility
+  properties, Outputs children, anything under MapShapes); `RemoteMapFlushTimer` (150 ms) rebuilds the
+  dirty payloads, bumps a set's revision only when its content changed and pushes the changed sets to
+  every connected tablet. Revisions are seeded from the clock, so a restarted desktop never matches
+  what a tablet still holds. Both sets ride the full dump (before the vis config).
+- Mock section 13 (`remote_tablet_mock.py`) asserts the dump, the hidden output, the parts, datagram
+  sizes, the repeat, the request and a live MCP output move.
+
 ### Sidelines (Edge Muting)
 Automatic position-based muting when sources approach stage edges. Per-channel feature that prevents sound from "spilling" outside the intended performance area.
 
@@ -2322,6 +2342,7 @@ Interactive 2D visualization of the WFS spatial layout:
 - **Outputs** - Trapezoid speaker icons with membrane, showing orientation, color-coded by array
 - **Reverbs** - Purple diamond shapes
 - **Clusters** - Boundary shapes around grouped inputs
+- **Drawn shapes** - Outline-only visual aids drawn by the user (see Drawn Shapes below), under every marker
 
 ### Mouse Navigation
 - **Mouse wheel** - Zoom in/out (centered on cursor)
@@ -2408,6 +2429,50 @@ Outputs displayed as trapezoid (keystone) shapes representing speakers:
 - **Channel number** - Bold 12pt black text at triangle centroid
 - **Colors** - Array color (HSL-based) when assigned, light gray when single (array 0)
 - **Orientation** - 0 degrees points toward audience (up on screen)
+
+### Drawn Shapes (visual aids)
+Outline-only shapes the operator draws on the Map (stage edges, set pieces, zones). Never filled, never
+audible, always drawn (`shapeEditor.paintShapes` right after `drawOriginMarker`, under every marker).
+- **Model** - `Source/MapShapes/MapShapeData.h` (namespace `MapDrawing`; not `MapShapes`, which is the
+  `WFSParameterIDs` node name and would be ambiguous under `using namespace WFSParameterIDs`). Types
+  Rectangle / Ellipse / Polygon / Polyline (open). Geometry follows `GradientMap::Shape` exactly (centre
+  in origin-relative metres, rotation deg, half-extent scale, shape-local vertices), so copies between
+  the Map and a gradient map land in place with no conversion. Style per shape: colour, line width in
+  SCREEN pixels (same at every zoom; dp on the tablet), dashed (dash max(4, 3w), gap max(3, 2w), shared
+  with the tablet), label (top-centre of the outline's bounds). Caps: 256 shapes, 256 vertices,
+  freehand simplified (RDP) to <= 128 points.
+- **Storage** - `<Config><MapShapes><MapShape ms*/>` -> system.xml (`createMapShapesSection`, back-filled
+  by `ensureCompleteSchema`). It is a LIST: `applyConfigSection` lifts the file's list before the
+  generic merge (which keeps extra live children) and replaces the live one wholesale after it,
+  sanitised through `MapDrawing::replaceShapes`; a file without one empties it. Not in snapshots, no
+  OSC/OSCQuery/MCP address.
+- **Editing** - the **Edit Shapes** toggle (under 2nd Finger) shows `MapShapeEditPanel` (tools, 8 colour
+  swatches + the input colour wheel, width, dashed, label, copy/paste/delete) and routes the pointer to
+  `MapShapesEditor` (`Source/gui/MapShapesEditor.h`, a controller, not a Component). In edit mode inputs,
+  clusters and reverbs are locked; right-drag pan, wheel zoom and middle-click reset still work. Touch:
+  the first finger edits; a second finger undoes that press and both become a pan/zoom view gesture.
+  Tools: Select (stroke-distance hit test, corner scale handles, rotation handle, rubber band, Shift
+  toggles/snaps), Edit Points (drag, double-click to delete/insert; a rectangle becomes a polygon on its
+  first point drag; Shift keeps the point level/plumb with its neighbour), Line/Polygon (click per
+  vertex, Shift = horizontal/vertical from the previous one, double-click/Enter finishes - the duplicate
+  is detected on the RAW presses, since Shift snaps them apart - Backspace, Esc),
+  Rectangle/Ellipse (drag, Shift = square/circle), Freehand. Keys: Delete, Ctrl/Cmd+C/V/A/Z/Y, arrows
+  (0.1 m, Shift 0.01 m), Esc (cancel, else deselect, else leave edit mode).
+- **Undo** - a gesture edits an in-memory copy and commits once on release, through the MAP domain's
+  UndoManager directly (`getUndoManagerForDomain(UndoDomain::Map)`, not the active one: a detached Map
+  sits beside any tab), and MapTab handles Ctrl+Z itself in edit mode (the detached window forwards no
+  keys). `valueTreeChildRemoved` must not clear the input selection for a MapShape removal.
+- **Clipboard** - `Source/MapShapes/ShapeClipboard.h`, shared with the gradient editor and tagged with its
+  source: same-kind paste keeps the +0.5 m offset, Map <-> gradient is in place. Map -> gradient closes an
+  open line with a straight edge (a 2-point line is skipped, status-bar message); gradient -> Map drops
+  fill/blur and takes the panel style. The gradient editor now copies every selected shape, has
+  Ctrl/Cmd+C/V, and its layer paste is undoable.
+- **Tablet** - mirrored read-only with the speakers over `/remote/map/*` (Remote section).
+- Self-test `WFS_TEST_MAP_SHAPES=1`: pure checks (XML round trip with string vars, replacement,
+  conversions, RDP cap, recentre, wire chunk sizes), then 8 s later (after the project load) the editor
+  driven through its pointer API on the live tree: every tool, move/scale/rotate, Edit Points, Delete,
+  undo/redo in the Map domain, and copy/paste both ways through the real gradient editor. The OS mouse
+  and touch routing in MapTab itself is not covered by it.
 
 ### Map Visibility & Lock Controls
 Per-channel controls in respective tabs:

@@ -202,6 +202,28 @@ namespace WFSParameterIDs
     const juce::Identifier temperature       ("temperature");
 
     //==========================================================================
+    // Config > MapShapes (outline-only visual aids drawn on the Map tab)
+    //==========================================================================
+    // A list, so a project load REPLACES it wholesale (applyConfigSection);
+    // the generic merge would keep a previous session's extra shapes.
+    // Geometry follows the gradient-map conventions (GradientMapData.h) so a
+    // shape copies between the two in place.
+
+    const juce::Identifier MapShapes         ("MapShapes");
+    const juce::Identifier MapShape          ("MapShape");
+    const juce::Identifier msType            ("msType");           // 0=Rectangle, 1=Ellipse, 2=Polygon, 3=Polyline (open)
+    const juce::Identifier msPosX            ("msPosX");           // Centre X, origin-relative metres
+    const juce::Identifier msPosY            ("msPosY");           // Centre Y, origin-relative metres
+    const juce::Identifier msRotation        ("msRotation");       // Degrees
+    const juce::Identifier msScaleX          ("msScaleX");         // Half-extent X (metres)
+    const juce::Identifier msScaleY          ("msScaleY");         // Half-extent Y (metres)
+    const juce::Identifier msVertices        ("msVertices");       // "x,y;x,y" shape-local (polygon/polyline)
+    const juce::Identifier msColour          ("msColour");         // ARGB hex "FFRRGGBB"
+    const juce::Identifier msLineWidth       ("msLineWidth");      // Screen pixels (desktop) / dp (tablet)
+    const juce::Identifier msDashed          ("msDashed");         // 0/1
+    const juce::Identifier msLabel           ("msLabel");          // Optional text drawn above the shape
+
+    //==========================================================================
     // Config > Master Section
     //==========================================================================
 

@@ -757,6 +757,14 @@ private:
         composition rules. Logs PASS/FAIL lines to the session log. */
     void runStereoGeometrySelfTest();
 
+    /** Hidden diagnostic (WFS_TEST_MAP_SHAPES=1): the Map's drawn shapes and
+        their tablet encoding, pure (no session state touched): XML round trip
+        with string-typed properties, wholesale list replacement, the gradient
+        conversions (an open line closes, a 2-point line has no gradient form),
+        freehand simplification, re-centring, and the /remote/map/* chunking
+        staying under one datagram. Logs PASS/FAIL lines to the session log. */
+    void runMapShapesSelfTest();
+
     /** WFS_TEST_MCP_SURFACE=1 — walk the generated MCP manifest and report every
         advertised parameter the state cannot actually write. Exists because the
         write seam has no failure channel of its own: a tool whose parameter does
