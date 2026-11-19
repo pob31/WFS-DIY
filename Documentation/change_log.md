@@ -2,20 +2,21 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
-## Unreleased
+## v1.0.0beta67 — 2026-11-19 (also tagged plugins-v0.0.10)
 
 ### Added
 - **Draw shapes on the Map as visual aids.** The new **Edit Shapes** button opens a drawing panel: lines (they may stay open), polygons, rectangles, ellipses and freehand outlines, each with its own colour, line width, dashes and a label. Shapes are outlines only, never affect the sound, and are saved with the system configuration. While the panel is open the inputs are locked so a show cannot be moved by accident; pan and zoom still work. Hold Shift to draw horizontal or vertical segments. Shapes copy to and from the gradient maps and keep their position; an open line copied to a gradient map is closed with a straight edge.
 - **The tablet map shows the speakers and the drawn shapes.** WFS Control 2 1.0-beta_15 draws the speakers (orientation, array colour and number, hidden ones left out) and the shapes exactly where the desktop does. Both follow every change, and the tablet has its own switches to hide them. Older tablets ignore the new messages.
 
 ### Fixed
-- **On Linux the letter shortcuts work again.** *I*, *O*, *R*, *N*, *C* and *M* (open a tab), *H* (help cards), *L* (stereo lock on the Map) and Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z (undo, redo) did nothing on Linux, because JUCE reports letters there as the character typed (lower case) where Windows and macOS report the upper-case key code. They now match either case. The F keys were never affected.
+- **On Linux the letter shortcuts now work.** *I*, *O*, *R*, *N*, *C* and *M* (open a tab), *H* (help cards), *L* (stereo lock on the Map) and Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z (undo, redo) did nothing on Linux, because JUCE reports letters there as the character typed (lower case) where Windows and macOS report the upper-case key code. They now match either case. The F keys were never affected.
 - **EQ shelves and filters at low frequencies now have the gain you set.** The output EQ, the reverb EQ, the effects EQ and the effects modules built on the same filters computed in single precision, which put a 20 Hz shelf's level up to 0.8 dB off (more the deeper the cut) by an amount that depended on the computer. They now compute in double precision.
 
 ### Changed
 - **Gradient maps copy every selected shape, not just the first**, take Ctrl/Cmd+C and Ctrl/Cmd+V, and a pasted layer can now be undone.
 
 ### Chore / Internal
+- DAW plugins 0.0.10: the same plugins built on JUCE 9.0.6, which fixes memory leaks in the AU wrapper, a possible crash in the VST3 wrapper when the host offers no context menu, plugin window scaling on Windows (REAPER included), and plugin editors on macOS in hosts that run plugins in a separate process (Logic on Apple Silicon).
 - spatcore pinned to main a5713e8 (PR #35: the shared biquads in double precision). offline-render: win-dev-nvidia effects hashes re-baselined (CPU WFS and reverb renders unchanged).
 - JUCE 9.0.6 (from 9.0.5). No code changes needed: the Projucer resave only moves the version stamp. The release fixes popup menus, alert boxes and child windows that were ordered wrongly against always-on-top windows on macOS, Windows and Linux (X11), WASAPI devices with inputs only that received no input, and file paths on Windows network shares (UNC) and drive-relative paths. It also improves PopupMenu and TreeView accessibility. spatcore pinned to main af6bdf4 (PR #36: its minimal-app example moves to 9.0.6; no source change).
 
