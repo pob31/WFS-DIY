@@ -15,7 +15,7 @@ All notable changes to WFS DIY are documented in this file, organized by release
 - **Gradient maps copy every selected shape, not just the first**, take Ctrl/Cmd+C and Ctrl/Cmd+V, and a pasted layer can now be undone.
 
 ### Chore / Internal
-- spatcore pinned to fix/biquad-double-precision 8b26755 (spatcore PR #35, re-pin to main after merge). offline-render: win-dev-nvidia effects hashes re-baselined (CPU WFS and reverb renders unchanged).
+- spatcore pinned to main a5713e8 (PR #35: the shared biquads in double precision). offline-render: win-dev-nvidia effects hashes re-baselined (CPU WFS and reverb renders unchanged).
 
 ## v1.0.0beta66 — 2026-11-11 (also tagged plugins-v0.0.9)
 
