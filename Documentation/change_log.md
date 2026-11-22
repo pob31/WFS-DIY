@@ -2,7 +2,7 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
-## Unreleased
+## v1.0.0beta68 — 2026-11-22
 
 ### Fixed
 - **Windows: F3 and several numpad keys no longer open the wrong prompt or tab.** Since beta67, F3 started a Reverb channel selection (instead of link group 3 on the Effects tab), and numpad 9, /, 3, -, . and 8 acted as the I, O, C, M, N and H shortcuts. The letter shortcuts now match only the letter keys themselves, still in either case (Linux).
