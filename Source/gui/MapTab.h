@@ -595,7 +595,7 @@ public:
         // L: lock or unlock the stereo image axis of the selected pairs. Falls
         // through to MainComponent when nothing stereo is selected, which owns
         // no L of its own, so the key stays free for the rest of the app.
-        if (juce::CharacterFunctions::toUpperCase ((juce::juce_wchar) key.getKeyCode()) == 'L' && ! key.getModifiers().isCommandDown()
+        if ((key.getKeyCode() == 'L' || key.getKeyCode() == 'l') && ! key.getModifiers().isCommandDown()
             && ! key.getModifiers().isCtrlDown() && ! key.getModifiers().isAltDown()
             && toggleSelectedStereoAxisLock())
         {

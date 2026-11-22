@@ -20128,9 +20128,17 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
     // upper-case code on Windows and macOS but as the typed character on Linux
     // (lower-case, and the plain keysym under Ctrl), so isKeyCode('I') never
     // matched there. KeyPress::operator== is case-blind already; isKeyCode is not.
+    //
+    // An EXACT match on the two codes, never a case conversion of the key
+    // code: on Windows the function and numpad keys are VK codes plus the
+    // extended-key flag (0x10000), and CharacterFunctions::toUpperCase goes
+    // through towupper's 16-bit wint_t there, which drops the flag - F3
+    // (0x72) became 'r' and opened the Reverb channel prompt instead of
+    // setting link group 3, numpad 9 (0x69) became the Inputs shortcut.
     const auto isLetter = [&key] (char upper)
     {
-        return juce::CharacterFunctions::toUpperCase ((juce::juce_wchar) key.getKeyCode()) == (juce::juce_wchar) upper;
+        const int code = key.getKeyCode();
+        return code == upper || code == upper - 'A' + 'a';
     };
 
     // Phase 5c: AI-undo / AI-redo keyboard shortcuts. Cmd/Ctrl-Alt-Z and
