@@ -71,7 +71,7 @@ EXTRA_HELP = collections.OrderedDict([
     ('eqBandToggle', "Switch this band on or off. Off keeps the band's settings for when it comes back."),
     ('eqDisplay', 'Drag a band handle to set its frequency and gain; the wheel sets its Q.'),
     ('grMeter', 'Gain reduction the dynamics module is applying right now.'),
-    ('tapTime', "This tap's delay time. In Pattern mode the pattern sets it and the slider follows."),
+    ('tapTime', "This tap's delay time. In Pattern mode the pattern sets it and the slider follows; moving it switches to Manual, starting every tap from the pattern's times."),
     ('tapLevel', "This tap's level."),
 ])
 

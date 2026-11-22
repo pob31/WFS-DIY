@@ -2,7 +2,7 @@
 
 /**
     Stream Deck pages for the Effects tab (TabIndex::Effects), one per sub-tab:
-    0 Channel Parameters, 1 Chain, 2 Post-Processing (the sends matrix),
+    0 Channel Parameters, 1 Chain, 2 Effects Matrix (the sends matrix),
     3 Movements, 4 Settings.
 
     THE FUNNEL, NOT THE STATE. Every per-channel write goes through
@@ -528,12 +528,12 @@ inline StreamDeckPage createChainPage (WFSValueTreeState& state, EffectParamEdit
 }
 
 //==============================================================================
-// Sub-tab 2: Post-Processing (the sends matrix)
+// Sub-tab 2: Effects Matrix (the sends matrix)
 //==============================================================================
 
 inline StreamDeckPage createSendsPage (const EffectsCallbacks& cb)
 {
-    StreamDeckPage page ("Effects > Post-Processing");
+    StreamDeckPage page ("Effects > Effects Matrix");
     const auto grey = juce::Colour (0xFF3A3A3A);
 
     // Section 0: move the selected cell

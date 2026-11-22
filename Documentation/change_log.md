@@ -6,6 +6,15 @@ All notable changes to WFS DIY are documented in this file, organized by release
 
 ### Fixed
 - **Windows: F3 and several numpad keys no longer open the wrong prompt or tab.** Since beta67, F3 started a Reverb channel selection (instead of link group 3 on the Effects tab), and numpad 9, /, 3, -, . and 8 acted as the I, O, C, M, N and H shortcuts. The letter shortcuts now match only the letter keys themselves, still in either case (Linux).
+- **The multitap delay's panel follows its own Taps and Tap Mode.** Changing the number of taps or switching between Pattern and Manual left the tap rows dimmed as they were, so Manual looked as if it did nothing (the sound did change). The rows now follow at once; in Manual mode the base Delay Time and the Pattern dim instead, since only the tap times are used, and Feedback Tap offers only live taps.
+
+### Changed
+- **The multitap delay's Pattern mode shows its own tap times, and Manual starts from them.** In Pattern mode the tap rows show the times the pattern plays (following Delay Time and Pattern as you move them). Switching to Manual, or grabbing a tap time while in Pattern, copies those times into the taps first and then switches to Manual, so nothing jumps. Linked channels each start from their own pattern; OSC and the Stream Deck do the same.
+- **Chorus / Flanger sets the modulation's Delay to that voicing's starting point**: 2 ms for flanger, 15 ms for chorus.
+- **Effects tab: the link Group is in the header**, where the Inputs tab has its Cluster, so it is visible on every sub-tab. Link mode and Mute Group stay on Channel Parameters.
+- **Effects tab: "Post-Processing" is now "Effects Matrix"** (the sends matrix), on the tab, its help card and the Stream Deck page.
+- **Effects tab: the header, the sub-tab strip and the content sit at the same height as on the Inputs, Outputs and Reverb tabs.**
+- **Effects Settings: "Re-layout Effects" is now "Reset Return Positions"**, under its own heading so it no longer reads as part of the link groups. It does the same thing: put every effect return back on the default ring.
 
 ## v1.0.0beta67 — 2026-11-19 (also tagged plugins-v0.0.10)
 

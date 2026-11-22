@@ -66,6 +66,9 @@ public:
         };
         ctx.helpTextMap[&linkModeCombo] = LOC ("effects.help.settingsLinkMode");
 
+        // Not a link-group control: it has its own heading so it does not
+        // read as "reorder the groups" under the names above it.
+        addTitle (positionsTitle, "effects.settings.positions");
         addAndMakeVisible (relayoutButton);
         relayoutButton.setButtonText (LOC ("effects.settings.relayout"));
         relayoutButton.setBaseColour (juce::Colour (0xFF3A6EA5));
@@ -250,6 +253,8 @@ public:
             linkModeCombo.setBounds (row.removeFromLeft (controlW));
         }
         col1.removeFromTop (spacing * 3);
+        positionsTitle.setBounds (col1.removeFromTop (titleH));
+        col1.removeFromTop (spacing);
         relayoutButton.setBounds (col1.removeFromTop (rowH).removeFromLeft (labelW + controlW));
 
         // ---- Engine (right) ----
@@ -427,7 +432,7 @@ private:
     float layoutScale = 1.0f;
     std::vector<std::pair<juce::String, juce::String>> devices;   // id, name
 
-    juce::Label linkTitle, engineTitle, noteLabel;
+    juce::Label linkTitle, positionsTitle, engineTitle, noteLabel;
     juce::Label groupLabels[numGroups];
     juce::TextEditor groupEditors[numGroups];
     juce::Label linkModeLabel;

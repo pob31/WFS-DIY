@@ -718,7 +718,7 @@
       "dynExpScLoCut": "Filtro passa-alto sul rilevatore sidechain dell'espansore.",
       "dynExpScHiCut": "Filtro passa-basso sul rilevatore sidechain dell'espansore.",
       "modBypass": "Bypassare il modulo chorus / flanger.",
-      "modMode": "Voicing chorus o flanger.",
+      "modMode": "Voicing chorus o flanger. Cambiarlo imposta Delay sul punto di partenza di quel voicing: 15 ms per il chorus, 2 ms per il flanger.",
       "modRate": "Frequenza dell'LFO del chorus / flanger (0.05 - 10 Hz).",
       "modDepth": "Profondità di modulazione in percentuale del ritardo centrale.",
       "modDelay": "Ritardo centrale della linea modulata.",
@@ -790,7 +790,7 @@
       "eqBandToggle": "Attivare o disattivare questa banda. Da disattivata conserva le sue impostazioni per quando tornerà attiva.",
       "eqDisplay": "Trascinare la maniglia di una banda per impostarne frequenza e guadagno; la rotellina ne imposta il Q.",
       "grMeter": "Riduzione di guadagno che il modulo di dinamica sta applicando in questo momento.",
-      "tapTime": "Tempo di ritardo di questo tap. In modalità Pattern lo imposta il pattern e lo slider lo segue.",
+      "tapTime": "Tempo di ritardo di questo tap. In modalità Pattern lo imposta il pattern e lo slider lo segue; spostarlo passa a Manual, con ogni tap che parte dai tempi del pattern.",
       "tapLevel": "Livello di questo tap.",
       "eqShape": "Selezionare la modalità EQ della banda <Band ID> di questa istanza EQ.",
       "eqFreq": "Selezionare la frequenza EQ della banda <Band ID> di questa istanza EQ.",
@@ -800,7 +800,7 @@
       "eqBypass": "Bypassare questa istanza EQ.",
       "settingsLinkNames": "Nomi degli otto gruppi di collegamento degli effetti. Mostrati nel combo di Channel Parameters, nel badge della Chain e nella matrice delle mandate.",
       "settingsLinkMode": "Modalità di collegamento con cui viene impostato un NUOVO canale effetto (disattivato, assoluto o relativo). I canali esistenti mantengono la propria.",
-      "settingsRelayout": "Pressione lunga per disporre di nuovo ogni ritorno effetto sull'anello predefinito. Cancella il blocco di proprietà delle posizioni degli effetti.",
+      "settingsRelayout": "Pressione lunga per riportare ogni ritorno effetto sull'anello predefinito intorno al palco. Appena un ritorno è stato spostato a mano, aggiungere o togliere canali effetto non tocca più le posizioni; questo le fa di nuovo seguire il numero di canali.",
       "settingsFxFeed": "Alimentare gli effetti tra loro in modo geometrico, oppure solo tramite la matrice (senza ritardo né attenuazione geometrici).",
       "settingsWorkerThreads": "Numero di thread di lavoro degli effetti (-1 = automatico, la regola del feed riverbero). Si applica al prossimo avvio del Processing.",
       "settingsReturnCushion": "Blocchi di margine sugli anelli dei ritorni effetto (Auto = decide il ledger). Si applica al prossimo avvio del Processing.",
@@ -1138,7 +1138,7 @@
   "help": {
     "inputEffectSends": {
       "title": "Mandate agli effetti",
-      "body": "Le mandate di questo ingresso verso i canali effetto, una striscia per effetto: le stesse celle della matrice Post-Processing della scheda Effects, viste dall'ingresso.\nIl fader imposta il livello di mandata (-92 a 0 dB) e il pulsante attiva o esclude la mandata senza toccare il livello, così una mandata può essere silenziata e ripristinata al livello che aveva. I due pulsanti in alto agiscono su tutte le mandate di questo ingresso in una volta.\nUn effetto alimentato da questo ingresso è un punto d'ingresso del suo gruppo. Ciò che l'effetto fa poi - la sua catena, la sua posizione sul palco e le sue mandate verso altri effetti - si regola nella scheda Effects."
+      "body": "Le mandate di questo ingresso verso i canali effetto, una striscia per effetto: le stesse celle della Effects Matrix della scheda Effects, viste dall'ingresso.\nIl fader imposta il livello di mandata (-92 a 0 dB) e il pulsante attiva o esclude la mandata senza toccare il livello, così una mandata può essere silenziata e ripristinata al livello che aveva. I due pulsanti in alto agiscono su tutte le mandate di questo ingresso in una volta.\nUn effetto alimentato da questo ingresso è un punto d'ingresso del suo gruppo. Ciò che l'effetto fa poi - la sua catena, la sua posizione sul palco e le sue mandate verso altri effetti - si regola nella scheda Effects."
     },
     "diagnostics": {
       "title": "Diagnostica e feedback",
@@ -1293,7 +1293,7 @@
       "body": "La striscia mostra gli undici moduli nel loro ordine attuale: cliccare un riquadro per modificare quel modulo, trascinarlo a sinistra o a destra per spostarlo nella catena. Il punto su un riquadro indica se il modulo è ON, la barra mostra il suo livello di uscita (riduzione di guadagno per Dynamics). Il badge sopra indica chi altro sente una modifica; accanto ci sono il bypass della catena (senza click, con latenza mantenuta) e la latenza della catena.\nI controlli di ogni modulo provengono dal CSV che li documenta. Gli EQ aggiungono un display interattivo e sei strisce di banda con Flatten e Reset a pressione lunga per banda; le Dynamics aggiungono un indicatore di riduzione di guadagno; il delay aggiunge le sue otto righe di tap (tap dormienti e tempi in modalità Pattern attenuati); il riverbero aggiunge modelli e preset: il menu Model sceglie il riverbero vero e proprio (FDN, Plate, Modulated Hall o Shimmer) e mostra solo i controlli di quel modello, mentre un preset imposta in una volta modello, prime riflessioni e ambiente - modificare uno qualsiasi di questi valori lo riporta a Custom, mentre Tone e Mix restano come li avete impostati."
     },
     "effectsSends": {
-      "title": "Effects Post-Processing",
+      "title": "Matrice degli effetti",
       "body": "L'intera matrice delle mandate, non una sola riga: ogni ingresso e ogni ritorno effetto come riga sorgente, ogni effetto come colonna di destinazione. Cliccare una cella per attivare una mandata, trascinare in su o in giù per impostarne il livello (Shift = fine), usare la rotellina per ritoccarlo. La diagonale tratteggiata è un effetto che alimenta se stesso, cosa non consentita.\nLa colonna dell'effetto selezionato è evidenziata e i due pulsanti attivano tutte le mandate verso di essa. Un badge verde segna una colonna alimentata da un ingresso - il punto di ingresso del suo gruppo - e uno ambra una colonna dentro un ciclo di retroazione. Il Loop guard (Settings) mette in mute una mandata che sta andando fuori controllo; Clear nell'intestazione svuota una catena che ci è già andata."
     },
     "effectsMovements": {

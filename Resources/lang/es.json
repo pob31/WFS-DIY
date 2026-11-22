@@ -725,7 +725,7 @@
       "dynExpScLoCut": "Filtro paso alto en el detector de sidechain del expansor.",
       "dynExpScHiCut": "Filtro paso bajo en el detector de sidechain del expansor.",
       "modBypass": "Poner en bypass el módulo de chorus / flanger.",
-      "modMode": "Sonoridad de chorus o de flanger.",
+      "modMode": "Sonoridad de chorus o de flanger. Al cambiarla, Delay se ajusta al punto de partida de esa sonoridad: 15 ms para chorus, 2 ms para flanger.",
       "modRate": "Velocidad del LFO del chorus / flanger (0,05 - 10 Hz).",
       "modDepth": "Profundidad de modulación como porcentaje del retardo central.",
       "modDelay": "Retardo central de la línea modulada.",
@@ -797,7 +797,7 @@
       "eqBandToggle": "Activar o desactivar esta banda. Desactivada conserva los ajustes de la banda para cuando vuelva.",
       "eqDisplay": "Arrastre el tirador de una banda para fijar su frecuencia y ganancia; la rueda ajusta su Q.",
       "grMeter": "Reducción de ganancia que el módulo de dinámica está aplicando ahora mismo.",
-      "tapTime": "Tiempo de retardo de este tap. En modo Pattern lo fija el patrón y el deslizador lo sigue.",
+      "tapTime": "Tiempo de retardo de este tap. En modo Pattern lo fija el patrón y el deslizador lo sigue; moverlo pasa a Manual, con cada tap partiendo de los tiempos del patrón.",
       "tapLevel": "Nivel de este tap.",
       "eqShape": "Elegir el modo de EQ de la banda <Band ID> de esta instancia de EQ.",
       "eqFreq": "Elegir la frecuencia de EQ de la banda <Band ID> de esta instancia de EQ.",
@@ -807,7 +807,7 @@
       "eqBypass": "Poner en bypass esta instancia de EQ.",
       "settingsLinkNames": "Nombres de los ocho grupos de enlace de efectos. Se muestran en el combo de Channel Parameters, en la insignia de la cadena y en la matriz de envíos.",
       "settingsLinkMode": "Modo de enlace con el que se crea un canal de efectos NUEVO (desactivado, absoluto o relativo). Los canales existentes conservan el suyo.",
-      "settingsRelayout": "Pulsación larga para volver a disponer todos los retornos de efectos en el anillo por defecto. Borra el bloqueo de propiedad de las posiciones de efectos.",
+      "settingsRelayout": "Pulsación larga para devolver todos los retornos de efectos al anillo por defecto alrededor del escenario. En cuanto se ha movido un retorno a mano, añadir o quitar canales de efecto ya no toca las posiciones; esto hace que vuelvan a seguir el número de canales.",
       "settingsFxFeed": "Alimentar los efectos entre sí geométricamente, o solo a través de la matriz (sin retardo ni atenuación geométricos).",
       "settingsWorkerThreads": "Número de hilos de trabajo de efectos (-1 = automático, la regla de la alimentación de reverb). Se aplica en el siguiente arranque del Processing.",
       "settingsReturnCushion": "Bloques de colchón en los anillos de retorno de efectos (Auto = decide el registro). Se aplica en el siguiente arranque del Processing.",
@@ -1193,7 +1193,7 @@
   "help": {
     "inputEffectSends": {
       "title": "Envíos a efectos",
-      "body": "Los envíos de esta entrada a los canales de efecto, una tira por efecto: las mismas celdas que la matriz Post-Processing de la pestaña Effects, vistas desde la entrada.\nEl fader fija el nivel de envío (-92 a 0 dB) y el botón activa o corta el envío sin tocar el nivel, de modo que un envío puede silenciarse y recuperarse al nivel que tenía. Los dos botones de arriba actúan sobre todos los envíos de esta entrada a la vez.\nUn efecto alimentado por esta entrada es un punto de entrada de su grupo. Lo que el efecto hace después - su cadena, su posición en el escenario y sus envíos a otros efectos - se ajusta en la pestaña Effects."
+      "body": "Los envíos de esta entrada a los canales de efecto, una tira por efecto: las mismas celdas que la Effects Matrix de la pestaña Effects, vistas desde la entrada.\nEl fader fija el nivel de envío (-92 a 0 dB) y el botón activa o corta el envío sin tocar el nivel, de modo que un envío puede silenciarse y recuperarse al nivel que tenía. Los dos botones de arriba actúan sobre todos los envíos de esta entrada a la vez.\nUn efecto alimentado por esta entrada es un punto de entrada de su grupo. Lo que el efecto hace después - su cadena, su posición en el escenario y sus envíos a otros efectos - se ajusta en la pestaña Effects."
     },
     "diagnostics": {
       "title": "Diagnóstico y comentarios",
@@ -1348,7 +1348,7 @@
       "body": "La tira muestra los once módulos en su orden actual: clic en una casilla para editar ese módulo, arrástrela a izquierda o derecha para moverla en la cadena. El punto de una casilla indica si el módulo está ON, la barra muestra su nivel de salida (reducción de ganancia en Dynamics). La insignia de arriba dice quién más oye una edición; a su lado, el bypass de la cadena (sin clics, con la latencia mantenida) y la latencia de la cadena.\nLos controles de cada módulo salen del CSV que los documenta. Los EQ añaden una pantalla interactiva y seis tiras de banda con pulsaciones largas de Flatten y de Reset por banda; Dynamics añade un medidor de reducción de ganancia; el delay añade sus ocho filas de taps (los taps inactivos y los tiempos en modo Pattern se atenúan); la reverb añade modelos y presets: el menú Model elige la propia reverb (FDN, Plate, Modulated Hall o Shimmer) y solo se muestran los controles de ese modelo, y un preset fija de una vez el modelo, las reflexiones tempranas y la sala - editar cualquiera de esos valores lo devuelve a Custom, mientras que Tone y Mix quedan como los haya fijado."
     },
     "effectsSends": {
-      "title": "Post-procesamiento de efectos",
+      "title": "Matriz de efectos",
       "body": "La matriz de envíos completa, no una sola fila: cada entrada y cada retorno de efecto como fila de origen, cada efecto como columna de destino. Clic en una celda para activar un envío, arrastre arriba o abajo para fijar su nivel (Shift = fino), use la rueda para ajustar. La diagonal rayada es un efecto alimentándose a sí mismo, lo cual se rechaza.\nLa columna del efecto seleccionado aparece resaltada y los dos botones activan todos los envíos hacia ella. Una insignia verde marca una columna alimentada por una entrada - el punto de entrada de su conjunto - y una ámbar una columna dentro de un ciclo de realimentación. La protección de bucle (Settings) silencia una alimentación que se dispara; Clear en la cabecera vacía una cadena que ya se ha disparado."
     },
     "effectsMovements": {

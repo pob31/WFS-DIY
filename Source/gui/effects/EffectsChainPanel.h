@@ -221,6 +221,39 @@ public:
             p->setBounds (area);
     }
 
+    /** The badge, after a group or mode change the tab made itself (the
+        header's group combo, F1-F8): the tab does not reload for those. */
+    void refreshLinkBadge()
+    {
+        auto& vts = ctx.parameters.getValueTreeState();
+        const int group = vts.getEffectLinkGroup (ctx.slot());
+        const int mode = vts.getEffectLinkMode (ctx.slot());
+
+        if (group <= 0)
+        {
+            linkBadge.setText (LOC ("effects.chain.unlinked"), juce::dontSendNotification);
+            return;
+        }
+
+        int others = 0;
+        const int numEffects = ctx.parameters.getNumEffectChannels();
+        for (int i = 0; i < numEffects; ++i)
+            if (i != ctx.slot() && vts.getEffectLinkGroup (i) == group)
+                ++others;
+
+        juce::StringArray names;
+        names.addTokens (ctx.parameters.getConfigParam ("effectsGlobalLinkNames").toString(), ",", "");
+        const auto custom = names[group - 1].trim();
+        const auto groupName = custom.isNotEmpty() ? custom : LOC ("effects.link.group") + " " + juce::String (group);
+        const auto modeName = LOC (mode == 0 ? "effects.link.modeOff" : mode == 1 ? "effects.link.modeAbsolute" : "effects.link.modeRelative");
+
+        const char* key = mode == 0 ? "effects.chain.linkedOff" : others == 0 ? "effects.chain.linkedAlone" : "effects.chain.linked";
+        linkBadge.setText (LOC (key).replace ("{group}", groupName)
+                                    .replace ("{mode}", modeName)
+                                    .replace ("{count}", juce::String (others)),
+                           juce::dontSendNotification);
+    }
+
 private:
     //==========================================================================
     struct Tile : public juce::Component
@@ -424,36 +457,6 @@ private:
                                      bypassed ? juce::Colour (0xFFCC8800) : ColorScheme::get().buttonNormal);
     }
 
-    void refreshLinkBadge()
-    {
-        auto& vts = ctx.parameters.getValueTreeState();
-        const int group = vts.getEffectLinkGroup (ctx.slot());
-        const int mode = vts.getEffectLinkMode (ctx.slot());
-
-        if (group <= 0)
-        {
-            linkBadge.setText (LOC ("effects.chain.unlinked"), juce::dontSendNotification);
-            return;
-        }
-
-        int others = 0;
-        const int numEffects = ctx.parameters.getNumEffectChannels();
-        for (int i = 0; i < numEffects; ++i)
-            if (i != ctx.slot() && vts.getEffectLinkGroup (i) == group)
-                ++others;
-
-        juce::StringArray names;
-        names.addTokens (ctx.parameters.getConfigParam ("effectsGlobalLinkNames").toString(), ",", "");
-        const auto custom = names[group - 1].trim();
-        const auto groupName = custom.isNotEmpty() ? custom : LOC ("effects.link.group") + " " + juce::String (group);
-        const auto modeName = LOC (mode == 0 ? "effects.link.modeOff" : mode == 1 ? "effects.link.modeAbsolute" : "effects.link.modeRelative");
-
-        const char* key = mode == 0 ? "effects.chain.linkedOff" : others == 0 ? "effects.chain.linkedAlone" : "effects.chain.linked";
-        linkBadge.setText (LOC (key).replace ("{group}", groupName)
-                                    .replace ("{mode}", modeName)
-                                    .replace ("{count}", juce::String (others)),
-                           juce::dontSendNotification);
-    }
 
     int scaled (int ref) const
     {

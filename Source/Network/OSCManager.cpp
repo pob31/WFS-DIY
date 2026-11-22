@@ -2511,7 +2511,11 @@ void OSCManager::applyEffectUpdate (const PendingParamUpdate& upd)
         {
             auto tap = state.getEffectDelayTap (upd.channelId, upd.subA - 1);
             if (tap.isValid())
+            {
+                // A tap time edited in Pattern mode takes over from the pattern
+                state.prepareEffectSectionWrite (tap, upd.paramId, upd.value);
                 tap.setProperty (upd.paramId, upd.value, state.getActiveUndoManager());
+            }
             break;
         }
 

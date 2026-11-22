@@ -721,7 +721,7 @@
       "dynExpScLoCut": "Passe-haut sur le détecteur de sidechain de l'expanseur.",
       "dynExpScHiCut": "Passe-bas sur le détecteur de sidechain de l'expanseur.",
       "modBypass": "Contourner le module chorus / flanger.",
-      "modMode": "Voicing chorus ou flanger.",
+      "modMode": "Voicing chorus ou flanger. Le changer règle le Delay sur le point de départ de ce voicing : 15 ms en chorus, 2 ms en flanger.",
       "modRate": "Fréquence du LFO du chorus / flanger (0,05 - 10 Hz).",
       "modDepth": "Profondeur de modulation en pourcentage du délai central.",
       "modDelay": "Délai central de la ligne modulée.",
@@ -793,7 +793,7 @@
       "eqBandToggle": "Active ou coupe cette bande. Désactivée, la bande conserve ses réglages pour son retour.",
       "eqDisplay": "Glissez la poignée d'une bande pour régler sa fréquence et son gain ; la molette règle son Q.",
       "grMeter": "Réduction de gain appliquée à l'instant par le module de dynamique.",
-      "tapTime": "Temps de délai de ce tap. En mode Pattern, le motif le fixe et le curseur suit.",
+      "tapTime": "Temps de délai de ce tap. En mode Pattern, le motif le fixe et le curseur suit ; le déplacer passe en mode Manual, chaque tap partant des temps du motif.",
       "tapLevel": "Niveau de ce tap.",
       "eqShape": "Choisir le mode d'EQ de la bande <ID de bande> de cette instance d'EQ.",
       "eqFreq": "Choisir la fréquence d'EQ de la bande <ID de bande> de cette instance d'EQ.",
@@ -803,7 +803,7 @@
       "eqBypass": "Contourner cette instance d'EQ.",
       "settingsLinkNames": "Noms des huit groupes de liaison d'effets. Affichés dans la liste Channel Parameters, le badge Chain et la matrice d'envois.",
       "settingsLinkMode": "Mode de liaison attribué à un NOUVEAU canal d'effet (off, absolu ou relatif). Les canaux existants gardent le leur.",
-      "settingsRelayout": "Appui long pour replacer chaque retour d'effet sur l'anneau par défaut. Efface le verrou de propriété des positions d'effets.",
+      "settingsRelayout": "Appui long pour replacer chaque retour d'effet sur l'anneau par défaut autour de la scène. Dès qu'un retour a été déplacé à la main, ajouter ou retirer des canaux d'effet ne touche plus aux positions ; ce bouton les fait de nouveau suivre le nombre de canaux.",
       "settingsFxFeed": "Alimenter les effets les uns par les autres géométriquement, ou par la seule matrice (sans délai ni atténuation géométriques).",
       "settingsWorkerThreads": "Nombre de threads de calcul des effets (-1 = automatique, la règle de l'alimentation réverb). S'applique au prochain démarrage de Processing.",
       "settingsReturnCushion": "Blocs de coussin sur les anneaux de retour d'effet (Auto = le registre décide). S'applique au prochain démarrage de Processing.",
@@ -1135,7 +1135,7 @@
   "help": {
     "inputEffectSends": {
       "title": "Envois vers les effets",
-      "body": "Les envois de cette entrée vers les canaux d'effet, une tranche par effet : les mêmes cellules que la matrice Post-Processing de l'onglet Effects, vues depuis l'entrée.\nLe fader règle le niveau d'envoi (-92 à 0 dB) et le bouton active ou coupe l'envoi sans toucher au niveau : un envoi peut être coupé puis rétabli au niveau qu'il avait. Les deux boutons du haut agissent sur tous les envois de cette entrée à la fois.\nUn effet alimenté par cette entrée est un point d'entrée de son groupe. Ce que l'effet fait ensuite - sa chaîne, sa position sur scène et ses envois vers d'autres effets - se règle dans l'onglet Effects."
+      "body": "Les envois de cette entrée vers les canaux d'effet, une tranche par effet : les mêmes cellules que l'Effects Matrix de l'onglet Effects, vues depuis l'entrée.\nLe fader règle le niveau d'envoi (-92 à 0 dB) et le bouton active ou coupe l'envoi sans toucher au niveau : un envoi peut être coupé puis rétabli au niveau qu'il avait. Les deux boutons du haut agissent sur tous les envois de cette entrée à la fois.\nUn effet alimenté par cette entrée est un point d'entrée de son groupe. Ce que l'effet fait ensuite - sa chaîne, sa position sur scène et ses envois vers d'autres effets - se règle dans l'onglet Effects."
     },
     "diagnostics": {
       "title": "Diagnostic et retours",
@@ -1290,7 +1290,7 @@
       "body": "La bande montre les onze modules dans leur ordre actuel : cliquez sur une tuile pour modifier ce module, glissez-la à gauche ou à droite pour la déplacer dans la chaîne. Le voyant d'une tuile indique si le module est ON, la barre montre son niveau de sortie (réduction de gain pour Dynamics). Le badge au-dessus indique qui d'autre entend une modification ; à côté, le bypass de la chaîne (sans clic, latence conservée) et la latence de la chaîne.\nLes contrôles de chaque module proviennent du CSV qui les documente. Les EQ ajoutent un affichage interactif et six bandes avec Flatten et Reset par appui long sur chaque bande ; les Dynamics ajoutent un vumètre de réduction de gain ; le délai ajoute ses huit lignes de taps (taps dormants et temps du mode Pattern atténués) ; la réverbération ajoute modèles et presets : le menu Model choisit la réverbération elle-même (FDN, Plate, Modulated Hall ou Shimmer) et seuls les contrôles de ce modèle sont affichés, et un preset règle d'un coup le modèle, les réflexions précoces et la salle - modifier l'une de ces valeurs le repasse en Custom, tandis que Tone et Mix restent tels que vous les avez réglés."
     },
     "effectsSends": {
-      "title": "Post-traitement des effets",
+      "title": "Matrice des effets",
       "body": "Toute la matrice d'envois, pas une seule ligne : chaque entrée et chaque retour d'effet en ligne source, chaque effet en colonne destination. Cliquez sur une cellule pour activer ou couper un envoi, glissez vers le haut ou le bas pour régler son niveau (Maj = fin), utilisez la molette pour l'ajuster. La diagonale hachurée est un effet qui s'alimente lui-même, ce qui est refusé.\nLa colonne de l'effet sélectionné est mise en évidence et les deux boutons activent ou coupent tous les envois vers elle. Un badge vert marque une colonne alimentée par une entrée - le point d'entrée de son groupe - et un badge ambre une colonne située dans un cycle de réinjection. La garde de boucle (Settings) coupe une alimentation qui s'emballe ; Clear dans l'en-tête vide une chaîne qui a déjà dérapé."
     },
     "effectsMovements": {

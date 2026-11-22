@@ -1131,8 +1131,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`modMode`**
-  - EN: Chorus or flanger voicing.
-  - KO: 코러스 또는 플랜저 보이싱.
+  - EN: Chorus or flanger voicing. Switching sets the Delay to that voicing's starting point: 15 ms for chorus, 2 ms for flanger.
+  - KO: 코러스 또는 플랜저 보이싱. 전환하면 Delay가 그 보이싱의 시작값으로 설정됩니다(코러스 15 ms, 플랜저 2 ms).
   - [ ] OK    Fix: 
 
 - **`modPhase`**
@@ -1426,8 +1426,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`settingsRelayout`**
-  - EN: Long-press to lay every effect return out on the default ring again. Clears the effects position ownership latch.
-  - KO: 길게 누르면 모든 이펙트 리턴을 기본 링에 다시 배치합니다. 이펙트 위치 소유권 래치도 해제됩니다.
+  - EN: Long-press to put every effect return back on the default ring around the stage. Once a return has been moved by hand, adding or removing effect channels leaves the positions alone; this also makes them follow the channel count again.
+  - KO: 길게 누르면 모든 이펙트 리턴을 무대를 둘러싼 기본 링 위로 되돌립니다. 리턴을 손으로 한 번 옮기면 이펙트 채널을 추가하거나 제거해도 위치가 바뀌지 않습니다. 이 버튼을 누르면 다시 채널 수에 따라 배치됩니다.
   - [ ] OK    Fix: 
 
 - **`settingsReturnCushion`**
@@ -1461,8 +1461,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`tapTime`**
-  - EN: This tap's delay time. In Pattern mode the pattern sets it and the slider follows.
-  - KO: 이 탭의 딜레이 시간. Pattern 모드에서는 패턴이 값을 정하고 슬라이더가 따라갑니다.
+  - EN: This tap's delay time. In Pattern mode the pattern sets it and the slider follows; moving it switches to Manual, starting every tap from the pattern's times.
+  - KO: 이 탭의 딜레이 시간. Pattern 모드에서는 패턴이 값을 정하고 슬라이더가 따라갑니다. 슬라이더를 움직이면 Manual로 바뀌고, 모든 탭이 패턴의 시간에서 시작합니다.
   - [ ] OK    Fix: 
 
 - **`tremBypass`**
@@ -1535,7 +1535,7 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`relayoutDone`**
-  - EN: Every effect return laid out on the default ring again.
+  - EN: Every effect return is back on the default ring.
   - KO: 모든 이펙트 리턴을 기본 링에 다시 배치했습니다.
   - [ ] OK    Fix: 
 
@@ -1893,8 +1893,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`title`**
-  - EN: Effects Post-Processing
-  - KO: 이펙트 후처리
+  - EN: Effects Matrix
+  - KO: 이펙트 매트릭스
   - [ ] OK    Fix: 
 
 ## `help.effectsSettings`
@@ -1960,8 +1960,8 @@ Walk through each section. For every entry:
 ## `help.inputEffectSends`
 
 - **`body`**
-  - EN: This input's sends into the effect channels, one strip per effect: the same cells as the Post-Processing matrix of the Effects tab, seen from the input.\nThe fader sets the send level (-92 to 0 dB) and the button switches the send on or off without touching the level, so a send can be muted and brought back at the level it had. The two buttons above switch every send of this input at once.\nAn effect this input feeds is an entry point of its bunch. What the effect does next - its chain, its position on stage and its sends into other effects - is set on the Effects tab.
-  - KO: 이 입력에서 이펙트 채널로 가는 센드를 이펙트마다 스트립 하나로 보여 줍니다. Effects 탭의 Post-Processing 매트릭스와 같은 셀을 입력 쪽에서 본 것입니다.\n페이더는 센드 레벨(-92~0 dB)을 정하고, 버튼은 레벨을 건드리지 않고 센드를 켜거나 끄므로, 센드를 뮤트했다가 원래 레벨로 되돌릴 수 있습니다. 위의 두 버튼은 이 입력의 모든 센드를 한 번에 전환합니다.\n이 입력이 보내는 이펙트는 그 그룹의 진입점입니다. 이펙트가 그다음에 하는 일(체인, 무대 위 위치, 다른 이펙트로의 센드)은 Effects 탭에서 설정합니다.
+  - EN: This input's sends into the effect channels, one strip per effect: the same cells as the Effects Matrix of the Effects tab, seen from the input.\nThe fader sets the send level (-92 to 0 dB) and the button switches the send on or off without touching the level, so a send can be muted and brought back at the level it had. The two buttons above switch every send of this input at once.\nAn effect this input feeds is an entry point of its bunch. What the effect does next - its chain, its position on stage and its sends into other effects - is set on the Effects tab.
+  - KO: 이 입력에서 이펙트 채널로 가는 센드를 이펙트마다 스트립 하나로 보여 줍니다. Effects 탭의 Effects Matrix와 같은 셀을 입력 쪽에서 본 것입니다.\n페이더는 센드 레벨(-92~0 dB)을 정하고, 버튼은 레벨을 건드리지 않고 센드를 켜거나 끄므로, 센드를 뮤트했다가 원래 레벨로 되돌릴 수 있습니다. 위의 두 버튼은 이 입력의 모든 센드를 한 번에 전환합니다.\n이 입력이 보내는 이펙트는 그 그룹의 진입점입니다. 이펙트가 그다음에 하는 일(체인, 무대 위 위치, 다른 이펙트로의 센드)은 Effects 탭에서 설정합니다.
   - [ ] OK    Fix: 
 
 - **`title`**

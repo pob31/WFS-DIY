@@ -1131,8 +1131,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`modMode`**
-  - EN: Chorus or flanger voicing.
-  - FR: Voicing chorus ou flanger.
+  - EN: Chorus or flanger voicing. Switching sets the Delay to that voicing's starting point: 15 ms for chorus, 2 ms for flanger.
+  - FR: Voicing chorus ou flanger. Le changer règle le Delay sur le point de départ de ce voicing : 15 ms en chorus, 2 ms en flanger.
   - [ ] OK    Fix: 
 
 - **`modPhase`**
@@ -1426,8 +1426,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`settingsRelayout`**
-  - EN: Long-press to lay every effect return out on the default ring again. Clears the effects position ownership latch.
-  - FR: Appui long pour replacer chaque retour d'effet sur l'anneau par défaut. Efface le verrou de propriété des positions d'effets.
+  - EN: Long-press to put every effect return back on the default ring around the stage. Once a return has been moved by hand, adding or removing effect channels leaves the positions alone; this also makes them follow the channel count again.
+  - FR: Appui long pour replacer chaque retour d'effet sur l'anneau par défaut autour de la scène. Dès qu'un retour a été déplacé à la main, ajouter ou retirer des canaux d'effet ne touche plus aux positions ; ce bouton les fait de nouveau suivre le nombre de canaux.
   - [ ] OK    Fix: 
 
 - **`settingsReturnCushion`**
@@ -1461,8 +1461,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`tapTime`**
-  - EN: This tap's delay time. In Pattern mode the pattern sets it and the slider follows.
-  - FR: Temps de délai de ce tap. En mode Pattern, le motif le fixe et le curseur suit.
+  - EN: This tap's delay time. In Pattern mode the pattern sets it and the slider follows; moving it switches to Manual, starting every tap from the pattern's times.
+  - FR: Temps de délai de ce tap. En mode Pattern, le motif le fixe et le curseur suit ; le déplacer passe en mode Manual, chaque tap partant des temps du motif.
   - [ ] OK    Fix: 
 
 - **`tremBypass`**
@@ -1535,7 +1535,7 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`relayoutDone`**
-  - EN: Every effect return laid out on the default ring again.
+  - EN: Every effect return is back on the default ring.
   - FR: Tous les retours d'effets sont replacés sur l'anneau par défaut.
   - [ ] OK    Fix: 
 
@@ -1893,8 +1893,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`title`**
-  - EN: Effects Post-Processing
-  - FR: Post-traitement des effets
+  - EN: Effects Matrix
+  - FR: Matrice des effets
   - [ ] OK    Fix: 
 
 ## `help.effectsSettings`
@@ -1960,8 +1960,8 @@ Walk through each section. For every entry:
 ## `help.inputEffectSends`
 
 - **`body`**
-  - EN: This input's sends into the effect channels, one strip per effect: the same cells as the Post-Processing matrix of the Effects tab, seen from the input.\nThe fader sets the send level (-92 to 0 dB) and the button switches the send on or off without touching the level, so a send can be muted and brought back at the level it had. The two buttons above switch every send of this input at once.\nAn effect this input feeds is an entry point of its bunch. What the effect does next - its chain, its position on stage and its sends into other effects - is set on the Effects tab.
-  - FR: Les envois de cette entrée vers les canaux d'effet, une tranche par effet : les mêmes cellules que la matrice Post-Processing de l'onglet Effects, vues depuis l'entrée.\nLe fader règle le niveau d'envoi (-92 à 0 dB) et le bouton active ou coupe l'envoi sans toucher au niveau : un envoi peut être coupé puis rétabli au niveau qu'il avait. Les deux boutons du haut agissent sur tous les envois de cette entrée à la fois.\nUn effet alimenté par cette entrée est un point d'entrée de son groupe. Ce que l'effet fait ensuite - sa chaîne, sa position sur scène et ses envois vers d'autres effets - se règle dans l'onglet Effects.
+  - EN: This input's sends into the effect channels, one strip per effect: the same cells as the Effects Matrix of the Effects tab, seen from the input.\nThe fader sets the send level (-92 to 0 dB) and the button switches the send on or off without touching the level, so a send can be muted and brought back at the level it had. The two buttons above switch every send of this input at once.\nAn effect this input feeds is an entry point of its bunch. What the effect does next - its chain, its position on stage and its sends into other effects - is set on the Effects tab.
+  - FR: Les envois de cette entrée vers les canaux d'effet, une tranche par effet : les mêmes cellules que l'Effects Matrix de l'onglet Effects, vues depuis l'entrée.\nLe fader règle le niveau d'envoi (-92 à 0 dB) et le bouton active ou coupe l'envoi sans toucher au niveau : un envoi peut être coupé puis rétabli au niveau qu'il avait. Les deux boutons du haut agissent sur tous les envois de cette entrée à la fois.\nUn effet alimenté par cette entrée est un point d'entrée de son groupe. Ce que l'effet fait ensuite - sa chaîne, sa position sur scène et ses envois vers d'autres effets - se règle dans l'onglet Effects.
   - [ ] OK    Fix: 
 
 - **`title`**

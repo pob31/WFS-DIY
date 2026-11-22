@@ -1131,8 +1131,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`modMode`**
-  - EN: Chorus or flanger voicing.
-  - JA: コーラスまたはフランジャーのボイシング。
+  - EN: Chorus or flanger voicing. Switching sets the Delay to that voicing's starting point: 15 ms for chorus, 2 ms for flanger.
+  - JA: コーラスまたはフランジャーのボイシング。切り替えると Delay がそのボイシングの初期値になります（コーラス 15 ms、フランジャー 2 ms）。
   - [ ] OK    Fix: 
 
 - **`modPhase`**
@@ -1426,8 +1426,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`settingsRelayout`**
-  - EN: Long-press to lay every effect return out on the default ring again. Clears the effects position ownership latch.
-  - JA: 長押しで、すべてのエフェクトリターンを既定のリング上に再配置します。エフェクト位置の所有ラッチを解除します。
+  - EN: Long-press to put every effect return back on the default ring around the stage. Once a return has been moved by hand, adding or removing effect channels leaves the positions alone; this also makes them follow the channel count again.
+  - JA: 長押しで、すべてのエフェクトリターンをステージを囲む既定のリング上に戻します。リターンを手動で動かすと、エフェクトチャンネルを追加・削除しても位置は変わらなくなります。これを押すと、再びチャンネル数に合わせて配置されます。
   - [ ] OK    Fix: 
 
 - **`settingsReturnCushion`**
@@ -1461,8 +1461,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`tapTime`**
-  - EN: This tap's delay time. In Pattern mode the pattern sets it and the slider follows.
-  - JA: このタップのディレイ時間。Patternモードではパターンが決め、スライダーが追従します。
+  - EN: This tap's delay time. In Pattern mode the pattern sets it and the slider follows; moving it switches to Manual, starting every tap from the pattern's times.
+  - JA: このタップのディレイ時間。Patternモードではパターンが決め、スライダーが追従します。動かすとManualに切り替わり、各タップはパターンの時間から始まります。
   - [ ] OK    Fix: 
 
 - **`tremBypass`**
@@ -1535,7 +1535,7 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`relayoutDone`**
-  - EN: Every effect return laid out on the default ring again.
+  - EN: Every effect return is back on the default ring.
   - JA: すべてのエフェクトリターンを既定のリング上に再配置しました。
   - [ ] OK    Fix: 
 
@@ -1893,8 +1893,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`title`**
-  - EN: Effects Post-Processing
-  - JA: エフェクトのポストプロセッシング
+  - EN: Effects Matrix
+  - JA: エフェクトマトリクス
   - [ ] OK    Fix: 
 
 ## `help.effectsSettings`
@@ -1960,8 +1960,8 @@ Walk through each section. For every entry:
 ## `help.inputEffectSends`
 
 - **`body`**
-  - EN: This input's sends into the effect channels, one strip per effect: the same cells as the Post-Processing matrix of the Effects tab, seen from the input.\nThe fader sets the send level (-92 to 0 dB) and the button switches the send on or off without touching the level, so a send can be muted and brought back at the level it had. The two buttons above switch every send of this input at once.\nAn effect this input feeds is an entry point of its bunch. What the effect does next - its chain, its position on stage and its sends into other effects - is set on the Effects tab.
-  - JA: この入力からエフェクトチャンネルへのセンドを、エフェクトごとに1本のストリップで表示します。 Effects タブの Post-Processing マトリクスと同じセルを、入力側から見たものです。\nフェーダーはセンドレベル（-92～0 dB）を設定し、ボタンはレベルに触れずにセンドをオン／オフします。センドをミュートし、元のレベルのまま戻せます。上の2つのボタンはこの入力の全センドを一度に切り替えます。\nこの入力が送るエフェクトは、そのグループの入口です。エフェクトがその先で行うこと（チェーン、ステージ上の位置、他のエフェクトへのセンド）は Effects タブで設定します。
+  - EN: This input's sends into the effect channels, one strip per effect: the same cells as the Effects Matrix of the Effects tab, seen from the input.\nThe fader sets the send level (-92 to 0 dB) and the button switches the send on or off without touching the level, so a send can be muted and brought back at the level it had. The two buttons above switch every send of this input at once.\nAn effect this input feeds is an entry point of its bunch. What the effect does next - its chain, its position on stage and its sends into other effects - is set on the Effects tab.
+  - JA: この入力からエフェクトチャンネルへのセンドを、エフェクトごとに1本のストリップで表示します。 Effects タブの Effects Matrixと同じセルを、入力側から見たものです。\nフェーダーはセンドレベル（-92～0 dB）を設定し、ボタンはレベルに触れずにセンドをオン／オフします。センドをミュートし、元のレベルのまま戻せます。上の2つのボタンはこの入力の全センドを一度に切り替えます。\nこの入力が送るエフェクトは、そのグループの入口です。エフェクトがその先で行うこと（チェーン、ステージ上の位置、他のエフェクトへのセンド）は Effects タブで設定します。
   - [ ] OK    Fix: 
 
 - **`title`**

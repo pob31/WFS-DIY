@@ -131,7 +131,11 @@ public:
             loadRow (*row);
 
         if (isEq())    loadEq();
-        if (isDelay()) refreshTapDimming();
+        if (isDelay())
+        {
+            loadTaps();
+            refreshTapDimming();
+        }
         if (isReverb())
         {
             refreshReverbState();
@@ -309,6 +313,8 @@ private:
                     ctx.writeModule (node, r->desc->id, next);
                     loadRow (*r);
                     afterReverbEdit (*r);
+                    afterDelayEdit (*r);
+                    afterModEdit (*r);
                     refreshSectionDimming();
                 };
                 break;
@@ -334,6 +340,7 @@ private:
                     }
                     ctx.writeModule (node, r->desc->id, value);
                     afterReverbEdit (*r);
+                    afterDelayEdit (*r);
                     TTSManager::getInstance().announceValueChange (r->label.getText(), r->combo->getText());
                 };
                 break;
@@ -452,6 +459,7 @@ private:
             return;
         ctx.writeModule (node, r.desc->id, real);
         afterReverbEdit (r);
+        afterDelayEdit (r);
     }
 
     juce::var readVar (const EffectsUi::ControlDesc& d) const
@@ -1059,8 +1067,16 @@ private:
                 const auto& d = EffectsUi::descDelayTapTime();
                 const float real = realFromNormalised (d, v);
                 taps[static_cast<size_t> (t)].timeValue.setText (formatValue (real, d.unit), juce::dontSendNotification);
-                if (! ctx.isLoadingParameters)
-                    ctx.writeTap (t, d.id, real);
+                if (ctx.isLoadingParameters)
+                    return;
+
+                // In Pattern mode the row shows the pattern's time, and an
+                // edit takes over from it: the state seeds every tap and
+                // switches to Manual, which the panel then shows.
+                const bool wasPattern = isPatternMode();
+                ctx.writeTap (t, d.id, real);
+                if (wasPattern && ! isPatternMode())
+                    reloadDelayView();
             };
             addAndMakeVisible (row.time);
             addAndMakeVisible (row.timeValue);
@@ -1090,12 +1106,22 @@ private:
         const auto& dt = EffectsUi::descDelayTapTime();
         const auto& dl = EffectsUi::descDelayTapLevel();
 
+        // Pattern mode: the times the pattern makes, as the engine plays them
+        // (clamped to the buffer), not the stored manual ones it ignores
+        const bool pattern = isPatternMode();
+        auto& vts = ctx.parameters.getValueTreeState();
+        const int patternId = ctx.readInt (WFSParameterIDs::effectDelayPattern, WFSParameterDefaults::effectDelayPatternDefault);
+        const float baseMs  = ctx.readFloat (WFSParameterIDs::effectDelayTime, WFSParameterDefaults::effectDelayTimeDefault);
+        const float capMs   = vts.getEffectMaxDelayMs();
+
         for (int t = 0; t < numTaps; ++t)
         {
             auto& row = taps[static_cast<size_t> (t)];
             const auto tv = ctx.readTap (t, dt.id);
             const auto lv = ctx.readTap (t, dl.id);
-            const float time  = tv.isVoid() ? dt.def : static_cast<float> (static_cast<double> (tv));
+            const float stored = tv.isVoid() ? dt.def : static_cast<float> (static_cast<double> (tv));
+            const float time = pattern ? juce::jlimit (dt.min, capMs, WFSValueTreeState::effectDelayPatternTimeMs (patternId, baseMs, t))
+                                       : stored;
             const float level = lv.isVoid() ? dl.def : static_cast<float> (static_cast<double> (lv));
             row.time.setValue (normalisedFromReal (dt, time));
             row.timeValue.setText (formatValue (time, dt.unit), juce::dontSendNotification);
@@ -1104,17 +1130,73 @@ private:
         }
     }
 
+    /** The tap count and the tap mode decide what is dimmed, and the tab does
+        not reload for its own writes: an edit to either redraws it here. */
+    void afterDelayEdit (const Row& r)
+    {
+        if (! isDelay())
+            return;
+
+        const auto& id = r.desc->id;
+        if (id == WFSParameterIDs::effectDelayTaps || id == WFSParameterIDs::effectDelayTapMode
+            || id == WFSParameterIDs::effectDelayPattern || id == WFSParameterIDs::effectDelayTime)
+            reloadDelayView();
+    }
+
+    bool isPatternMode()
+    {
+        return ctx.readInt (WFSParameterIDs::effectDelayTapMode, WFSParameterDefaults::effectDelayTapModeDefault) != 0;
+    }
+
+    /** The mode button, the tap rows and the dimming, as stored now - after a
+        write whose knock-ons (the seeded taps, the switch to Manual) the tab
+        does not reload for. Values only: no slider here may write back. */
+    void reloadDelayView()
+    {
+        const juce::ScopedValueSetter<bool> loadingScope (ctx.isLoadingParameters, true);
+        for (auto& row : rows)
+            if (row->desc->id == WFSParameterIDs::effectDelayTapMode)
+                loadRow (*row);
+        loadTaps();
+        refreshTapDimming();
+    }
+
+    /** Chorus <-> Flanger moved the centre delay (the state's knock-on). */
+    void afterModEdit (const Row& r)
+    {
+        if (r.desc->id != WFSParameterIDs::effectModMode)
+            return;
+
+        const juce::ScopedValueSetter<bool> loadingScope (ctx.isLoadingParameters, true);
+        for (auto& row : rows)
+            if (row->desc->id == WFSParameterIDs::effectModDelay)
+                loadRow (*row);
+    }
+
+    /** Dimming only - no value is set here, because a slider's setValue
+        writes and this also runs straight after the operator's own edit. */
     void refreshTapDimming()
     {
         if (! isDelay())
             return;
 
-        loadTaps();
-
         // Rows beyond the tap count are dormant; in Pattern mode the pattern
         // sets the times and the time sliders dim (levels stay live).
         const int active = juce::jlimit (1, numTaps, ctx.readInt (WFSParameterIDs::effectDelayTaps, 3));
         const bool pattern = ctx.readInt (WFSParameterIDs::effectDelayTapMode, 1) != 0;
+
+        // The other way round in Manual mode: the base time and the pattern
+        // are what is not used. The feedback tap offers only live taps (a
+        // stored one past the count runs as "last", as the engine says).
+        for (auto& row : rows)
+        {
+            const auto& id = row->desc->id;
+            if (id == WFSParameterIDs::effectDelayTime || id == WFSParameterIDs::effectDelayPattern)
+                setRowAlpha (*row, pattern ? 1.0f : 0.45f);
+            else if (id == WFSParameterIDs::effectDelayFeedbackTap && row->combo != nullptr)
+                for (int t = 1; t <= numTaps; ++t)
+                    row->combo->setItemEnabled (t + 1, t <= active);
+        }
 
         for (int t = 0; t < numTaps; ++t)
         {

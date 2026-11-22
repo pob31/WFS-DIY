@@ -2109,13 +2109,11 @@ void WFSValueTreeState::applyEffectLinkPropagation (int channelIndex,
             continue;
 
         // A member's reverb goes Custom exactly when its own value really
-        // moves, whatever the origin's did.
-        const bool reverbSection = section.hasType (FxReverb);
-
+        // moves, whatever the origin's did - and its delay and modulation
+        // make their own knock-on edits from their own state.
         if (absoluteOnly || (originMode == 1 && memberMode == 1))
         {
-            if (reverbSection)
-                flipEffectReverbToCustomIfEdited (section, paramId, newValue);
+            prepareEffectSectionWrite (section, paramId, newValue);
             writeProperty (section, paramId, newValue, getActiveUndoManager());
             continue;
         }
@@ -2131,15 +2129,13 @@ void WFSValueTreeState::applyEffectLinkPropagation (int channelIndex,
             if (bounds->isInt)
             {
                 const int memberInt = static_cast<int> (std::round (memberNew));
-                if (reverbSection)
-                    flipEffectReverbToCustomIfEdited (section, paramId, memberInt);
+                prepareEffectSectionWrite (section, paramId, memberInt);
                 writeProperty (section, paramId, memberInt, getActiveUndoManager());
                 continue;
             }
         }
 
-        if (reverbSection)
-            flipEffectReverbToCustomIfEdited (section, paramId, memberNew);
+        prepareEffectSectionWrite (section, paramId, memberNew);
         writeProperty (section, paramId, memberNew, getActiveUndoManager());
     }
 }
@@ -2183,11 +2179,7 @@ void WFSValueTreeState::setEffectParameterWithLinkPropagation (int channelIndex,
         return;
     }
 
-    if (isEffectReverbPresetOwned (paramId))
-    {
-        auto reverb = getEffectModuleSection (channelIndex, FxReverb);
-        flipEffectReverbToCustomIfEdited (reverb, paramId, value);
-    }
+    prepareEffectSectionWrite (findEffectSectionCarrying (channelIndex, paramId), paramId, value);
 
     if (! propagateToGroup || isEffectLinkExcluded (paramId))
     {
@@ -2223,8 +2215,7 @@ void WFSValueTreeState::setEffectModuleParameterWithLinkPropagation (int channel
 
     const auto oldValue = section.getProperty (paramId);
 
-    if (moduleType == FxReverb)
-        flipEffectReverbToCustomIfEdited (section, paramId, value);
+    prepareEffectSectionWrite (section, paramId, value);
 
     writeProperty (section, paramId, value, getActiveUndoManager());
 
@@ -2275,6 +2266,7 @@ void WFSValueTreeState::setEffectDelayTapParameterWithLinkPropagation (int chann
         return;
 
     const auto oldValue = tap.getProperty (paramId);
+    prepareEffectSectionWrite (tap, paramId, value);
     writeProperty (tap, paramId, value, getActiveUndoManager());
 
     if (! propagateToGroup)
@@ -2418,13 +2410,112 @@ void WFSValueTreeState::applyExternalEffectEdit (int channelIndex, const juce::I
         return;
     }
 
-    if (isEffectReverbPresetOwned (paramId))
-    {
-        auto reverb = getEffectModuleSection (channelIndex, FxReverb);
-        flipEffectReverbToCustomIfEdited (reverb, paramId, value);
-    }
+    prepareEffectSectionWrite (findEffectSectionCarrying (channelIndex, paramId), paramId, value);
 
     setEffectParameter (channelIndex, paramId, value);
+}
+
+//==============================================================================
+// Knock-on edits of the delay and modulation modules
+//==============================================================================
+
+void WFSValueTreeState::prepareEffectSectionWrite (juce::ValueTree section,
+                                                   const juce::Identifier& paramId,
+                                                   const juce::var& newValue)
+{
+    if (! section.isValid())
+        return;
+
+    if (section.hasType (FxReverb))
+    {
+        flipEffectReverbToCustomIfEdited (section, paramId, newValue);
+        return;
+    }
+
+    namespace D = WFSParameterDefaults;
+    auto* um = getActiveUndoManager();
+
+    // Pattern -> Manual: the taps take over the times that were playing
+    if (section.hasType (FxDelay) && paramId == effectDelayTapMode)
+    {
+        const int before = WFSVar::toInt (section.getProperty (effectDelayTapMode), D::effectDelayTapModeDefault);
+        if (before != 0 && WFSVar::toInt (newValue, before) == 0)
+            seedEffectDelayTapsFromPattern (section);
+        return;
+    }
+
+    // A tap time really edited while the pattern rules: take over from the
+    // pattern, then let the caller write the edited tap. An echo of the
+    // stored value (a QLab replay) changes nothing and switches nothing.
+    if (section.hasType (Tap) && paramId == effectDelayTapTime)
+    {
+        auto delay = section.getParent();
+        if (! delay.hasType (FxDelay)
+            || WFSVar::toInt (delay.getProperty (effectDelayTapMode), D::effectDelayTapModeDefault) == 0)
+            return;
+
+        const double before = static_cast<double> (WFSVar::toFloat (section.getProperty (paramId), 0.0f));
+        const double after  = static_cast<double> (WFSVar::toFloat (newValue, static_cast<float> (before)));
+        if (std::abs (after - before) <= 1.0e-6 * juce::jmax (1.0, std::abs (before)))
+            return;
+
+        seedEffectDelayTapsFromPattern (delay);
+        writeProperty (delay, effectDelayTapMode, 0, um);
+        return;
+    }
+
+    // Chorus <-> Flanger: the centre delay moves to the voicing's own range
+    if (section.hasType (FxMod) && paramId == effectModMode)
+    {
+        const int before = WFSVar::toInt (section.getProperty (effectModMode), D::effectModModeDefault);
+        const int after  = WFSVar::toInt (newValue, before);
+        if (after != before)
+            writeProperty (section, effectModDelay, after == 1 ? 2.0f : D::effectModDelayDefault, um);
+    }
+}
+
+float WFSValueTreeState::effectDelayPatternTimeMs (int pattern, float baseMs, int tapIndex)
+{
+    // phi^0 .. phi^7, as the module's kGolden
+    static constexpr float golden[] = { 1.0f, 1.61803399f, 2.61803399f, 4.23606798f,
+                                        6.85410197f, 11.09016994f, 17.94427191f, 29.03444185f };
+
+    const int k = juce::jlimit (0, 7, tapIndex);
+    const float count = static_cast<float> (k + 1);
+
+    switch (pattern)
+    {
+        case 1:  return 1.5f * baseMs * count;               // dotted
+        case 2:  return (2.0f / 3.0f) * baseMs * count;      // triplet
+        case 3:  return baseMs * golden[k];                  // golden
+        default: return baseMs * count;                      // equal
+    }
+}
+
+float WFSValueTreeState::getEffectMaxDelayMs() const
+{
+    namespace D = WFSParameterDefaults;
+    const int seconds = juce::jlimit (D::effectsGlobalMaxDelaySecondsMin, D::effectsGlobalMaxDelaySecondsMax,
+                                      WFSVar::toInt (getEffectsGlobalSection().getProperty (effectsGlobalMaxDelaySeconds),
+                                                     D::effectsGlobalMaxDelaySecondsDefault));
+    return juce::jmin (D::effectDelayTapTimeMax, static_cast<float> (seconds) * 1000.0f);
+}
+
+void WFSValueTreeState::seedEffectDelayTapsFromPattern (juce::ValueTree& delay)
+{
+    namespace D = WFSParameterDefaults;
+    const int pattern = juce::jlimit (0, 3, WFSVar::toInt (delay.getProperty (effectDelayPattern), D::effectDelayPatternDefault));
+    const float base  = WFSVar::toFloat (delay.getProperty (effectDelayTime), D::effectDelayTimeDefault);
+    const float cap   = getEffectMaxDelayMs();
+    auto* um = getActiveUndoManager();
+
+    for (int k = 0; k < D::numEffectDelayTaps; ++k)
+    {
+        auto tap = nthChildOfType (delay, Tap, k);
+        if (tap.isValid())
+            writeProperty (tap, effectDelayTapTime,
+                           juce::jlimit (D::effectDelayTapTimeMin, cap, effectDelayPatternTimeMs (pattern, base, k)), um);
+    }
 }
 
 //==============================================================================

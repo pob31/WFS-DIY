@@ -1131,8 +1131,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`modMode`**
-  - EN: Chorus or flanger voicing.
-  - ZH: 合唱或镶边音色。
+  - EN: Chorus or flanger voicing. Switching sets the Delay to that voicing's starting point: 15 ms for chorus, 2 ms for flanger.
+  - ZH: 合唱或镶边音色。切换时 Delay 会设为该音色的起始值：合唱 15 ms，镶边 2 ms。
   - [ ] OK    Fix: 
 
 - **`modPhase`**
@@ -1426,8 +1426,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`settingsRelayout`**
-  - EN: Long-press to lay every effect return out on the default ring again. Clears the effects position ownership latch.
-  - ZH: 长按以将每个效果返回重新排布到默认环上。同时清除效果位置的所有权锁定。
+  - EN: Long-press to put every effect return back on the default ring around the stage. Once a return has been moved by hand, adding or removing effect channels leaves the positions alone; this also makes them follow the channel count again.
+  - ZH: 长按可将所有效果返回放回舞台周围的默认环上。一旦手动移动过某个返回，增删效果通道就不再改变位置；按下此按钮后，位置会重新跟随通道数量。
   - [ ] OK    Fix: 
 
 - **`settingsReturnCushion`**
@@ -1461,8 +1461,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`tapTime`**
-  - EN: This tap's delay time. In Pattern mode the pattern sets it and the slider follows.
-  - ZH: 此抽头的延迟时间。在图案模式下由图案设定，滑块随之移动。
+  - EN: This tap's delay time. In Pattern mode the pattern sets it and the slider follows; moving it switches to Manual, starting every tap from the pattern's times.
+  - ZH: 此抽头的延迟时间。在图案模式下由图案设定，滑块随之移动；移动滑块会切换到 Manual，各抽头从图案的时间开始。
   - [ ] OK    Fix: 
 
 - **`tremBypass`**
@@ -1535,7 +1535,7 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`relayoutDone`**
-  - EN: Every effect return laid out on the default ring again.
+  - EN: Every effect return is back on the default ring.
   - ZH: 所有效果返回已重新排布到默认环上。
   - [ ] OK    Fix: 
 
@@ -1893,8 +1893,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`title`**
-  - EN: Effects Post-Processing
-  - ZH: 效果后处理
+  - EN: Effects Matrix
+  - ZH: 效果矩阵
   - [ ] OK    Fix: 
 
 ## `help.effectsSettings`
@@ -1960,8 +1960,8 @@ Walk through each section. For every entry:
 ## `help.inputEffectSends`
 
 - **`body`**
-  - EN: This input's sends into the effect channels, one strip per effect: the same cells as the Post-Processing matrix of the Effects tab, seen from the input.\nThe fader sets the send level (-92 to 0 dB) and the button switches the send on or off without touching the level, so a send can be muted and brought back at the level it had. The two buttons above switch every send of this input at once.\nAn effect this input feeds is an entry point of its bunch. What the effect does next - its chain, its position on stage and its sends into other effects - is set on the Effects tab.
-  - ZH: 此输入到各效果通道的发送，每个效果一条通道条：与 Effects 选项卡的 Post-Processing 矩阵相同的单元格，从输入的角度查看。\n推子设置发送电平（-92 至 0 dB），按钮在不触碰电平的情况下开关发送，因此可以将发送静音后再以原来的电平恢复。上方的两个按钮一次切换此输入的全部发送。\n此输入所馈送的效果是其组的入口。效果接下来的处理（其链路、在舞台上的位置以及到其他效果的发送）在 Effects 选项卡中设置。
+  - EN: This input's sends into the effect channels, one strip per effect: the same cells as the Effects Matrix of the Effects tab, seen from the input.\nThe fader sets the send level (-92 to 0 dB) and the button switches the send on or off without touching the level, so a send can be muted and brought back at the level it had. The two buttons above switch every send of this input at once.\nAn effect this input feeds is an entry point of its bunch. What the effect does next - its chain, its position on stage and its sends into other effects - is set on the Effects tab.
+  - ZH: 此输入到各效果通道的发送，每个效果一条通道条：与 Effects 选项卡的 Effects Matrix相同的单元格，从输入的角度查看。\n推子设置发送电平（-92 至 0 dB），按钮在不触碰电平的情况下开关发送，因此可以将发送静音后再以原来的电平恢复。上方的两个按钮一次切换此输入的全部发送。\n此输入所馈送的效果是其组的入口。效果接下来的处理（其链路、在舞台上的位置以及到其他效果的发送）在 Effects 选项卡中设置。
   - [ ] OK    Fix: 
 
 - **`title`**

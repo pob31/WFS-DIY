@@ -16,7 +16,7 @@ spatcore::ui::sends::SendMatrixConfig makeEffectsSendMatrixConfig (EffectsTabCon
                                                                    const std::function<bool (int column)>& columnInCycle);
 
 /**
-    The Post-Processing sub-tab: the sends matrix, which is where this
+    The Effects Matrix sub-tab: the sends matrix, which is where this
     effect's output goes next.
 
     THE WHOLE MATRIX, NOT ONE ROW. Levels 1 and 2 of the effects family are

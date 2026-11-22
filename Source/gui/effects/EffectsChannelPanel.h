@@ -67,35 +67,21 @@ public:
     void closeBoxForTest (juce::TextEditor& editor)       { commitEditor (editor); }
     void escapeBoxForTest (juce::TextEditor& editor)      { textEditorEscapeKeyPressed (editor); }
 
-    /** Called from the tab's loadChannelParameters, inside its loading scope. */
-    /** The group names changed on the Settings tab: rebuild the combo's
-        items, keeping the selection. */
-    void refreshLinkGroupNames()
-    {
-        const int selected = linkGroupCombo.getSelectedId();
-        linkGroupCombo.clear (juce::dontSendNotification);
-        linkGroupCombo.addItem (LOC ("effects.link.unlinked"), 1);
-        for (int g = 1; g <= WFSParameterDefaults::effectLinkGroupMax; ++g)
-            linkGroupCombo.addItem (groupName (g), g + 1);
-        linkGroupCombo.setSelectedId (selected, juce::dontSendNotification);
-    }
-
-    /** F1-F8 / F11 from the main window: the write the combo itself makes,
-        synchronously so it lands in the undo step the caller opened. */
-    void setLinkGroup (int group)
-    {
-        linkGroupCombo.setSelectedId (group + 1, juce::sendNotificationSync);
-    }
-
+    /** A group's display name: the Settings tab's, or "Group N". The link
+        group itself is picked in the tab's header, as the Inputs tab picks
+        a cluster; this panel keeps the mode and the group mute. */
     juce::String getLinkGroupName (int group) const { return groupName (group); }
 
+    /** The group changed (the header's combo, F1-F8): a mode with no group
+        to act on greys out. */
+    void refreshLinkMode() { updateLinkModeEnabled(); }
+
+    /** Called from the tab's loadChannelParameters, inside its loading scope. */
     void loadParameters()
     {
         using namespace WFSParameterIDs;
         namespace D = WFSParameterDefaults;
 
-        const int group = juce::jlimit (0, D::effectLinkGroupMax, ctx.readInt (effectLinkGroup, 0));
-        linkGroupCombo.setSelectedId (group + 1, juce::dontSendNotification);
         const int mode = juce::jlimit (D::effectLinkModeMin, D::effectLinkModeMax,
                                        ctx.readInt (effectLinkMode, D::effectLinkModeDefault));
         linkModeCombo.setSelectedId (mode + 1, juce::dontSendNotification);
@@ -206,12 +192,11 @@ public:
         const int dialSize     = juce::jmax (60, static_cast<int> (100.0f * layoutScale));
         const int titleHeight  = scaled (25);
 
-        // Top row: the link-group controls (full width, above the 3 columns),
-        // where the reverb tab keeps "Apply to all nodes".
+        // Top row: the link mode and the group mute (full width, above the 3
+        // columns), where the reverb tab keeps "Apply to all nodes". The group
+        // itself is in the tab's header.
         {
             auto topRow = area.removeFromTop (rowHeight);
-            linkGroupCombo.setBounds (topRow.removeFromLeft (scaled (160)));
-            topRow.removeFromLeft (spacing);
             linkModeCombo.setBounds (topRow.removeFromLeft (scaled (150)));
             topRow.removeFromLeft (spacing);
             groupMuteButton.setBounds (topRow.removeFromLeft (scaled (130)));
@@ -399,16 +384,6 @@ private:
 
     void setupLinkRow()
     {
-        addAndMakeVisible (linkGroupCombo);
-        linkGroupCombo.addItem (LOC ("effects.link.unlinked"), 1);
-        for (int g = 1; g <= WFSParameterDefaults::effectLinkGroupMax; ++g)
-            linkGroupCombo.addItem (groupName (g), g + 1);
-        linkGroupCombo.onChange = [this]
-        {
-            ctx.write (WFSParameterIDs::effectLinkGroup, linkGroupCombo.getSelectedId() - 1);
-            updateLinkModeEnabled();
-        };
-
         addAndMakeVisible (linkModeCombo);
         linkModeCombo.addItem (LOC ("effects.link.modeOff"), 1);
         linkModeCombo.addItem (LOC ("effects.link.modeAbsolute"), 2);
@@ -437,7 +412,6 @@ private:
             ctx.parameters.getValueTreeState().setEffectGroupMute (group, groupMuted);
         };
 
-        ctx.helpTextMap[&linkGroupCombo]  = LOC ("effects.help.linkGroup");
         ctx.helpTextMap[&linkModeCombo]   = LOC ("effects.help.linkMode");
         ctx.helpTextMap[&groupMuteButton] = LOC ("effects.help.groupMute");
     }
@@ -446,7 +420,7 @@ private:
     {
         // A mode with no group to act on is a control that does nothing, so it
         // greys out exactly as Apply-to-Array does for a Single output.
-        linkModeCombo.setEnabled (linkGroupCombo.getSelectedId() > 1);
+        linkModeCombo.setEnabled (ctx.readInt (WFSParameterIDs::effectLinkGroup, 0) > 0);
     }
 
     juce::String groupName (int group) const
@@ -1322,7 +1296,7 @@ private:
     bool groupMuted = false;
 
     // The link row
-    juce::ComboBox linkGroupCombo, linkModeCombo;
+    juce::ComboBox linkModeCombo;
     LongPressButton groupMuteButton { 800 };
 
     // Column 1

@@ -17,7 +17,7 @@
     every effect channel, one strip per effect.
 
     THE SAME CELLS AS THE EFFECTS TAB'S MATRIX, SEEN FROM THE INPUT. The
-    Post-Processing sub-tab of the Effects tab shows the whole grid - every
+    Effects Matrix sub-tab of the Effects tab shows the whole grid - every
     source as a row, every effect as a column. This is one row of it turned
     into a mixer bank: a fader for the level and a switch for the on/off,
     so an operator working on an input reaches its sends without leaving the

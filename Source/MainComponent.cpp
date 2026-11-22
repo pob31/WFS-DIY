@@ -7120,6 +7120,155 @@ void MainComponent::runChannelListSelfTest()
         vts.setNumEffectChannels(effectsBefore);
     }
 
+    // ---- KO: the delay's and the modulation's knock-on edits ------------------
+    // Leaving Pattern for Manual seeds the eight taps with the times the
+    // pattern was playing; a real tap-time edit in Pattern does the same and
+    // switches to Manual (an echo of the stored value does neither); each
+    // linked member seeds from ITS OWN pattern; OSC does what the GUI does;
+    // Chorus <-> Flanger moves the centre delay to 15 / 2 ms, on a real switch only.
+    {
+        namespace P = WFSParameterIDs;
+        WFSValueTreeState::ScopedUndoDomain undoScope (vts, UndoDomain::Effects);
+
+        const int effectsBefore = vts.getNumEffectChannels();
+        vts.setNumEffectChannels(3);
+
+        auto delayOf = [&](int ch) { return vts.getEffectModuleSection(ch, P::FxDelay); };
+        auto modOf   = [&](int ch) { return vts.getEffectModuleSection(ch, P::FxMod); };
+        auto tapMs   = [&](int ch, int k) { return static_cast<double> (vts.getEffectDelayTap(ch, k).getProperty(P::effectDelayTapTime)); };
+        auto modeOf  = [&](int ch) { return static_cast<int> (delayOf(ch).getProperty(P::effectDelayTapMode)); };
+        auto approxEq = [](double a, double b) { return std::abs(a - b) <= 1.0e-3 * juce::jmax(1.0, std::abs(b)); };
+        auto setDelay = [&](int ch, int mode, int pattern, double baseMs)
+        {
+            auto d = delayOf(ch);
+            d.setProperty(P::effectDelayTapMode, mode, nullptr);
+            d.setProperty(P::effectDelayPattern, pattern, nullptr);
+            d.setProperty(P::effectDelayTime, baseMs, nullptr);
+            for (int k = 0; k < 8; ++k)
+                vts.getEffectDelayTap(ch, k).setProperty(P::effectDelayTapTime, 11.0 * (k + 1), nullptr);
+        };
+        auto tapsArePattern = [&](int ch, int pattern, double baseMs, juce::String& why)
+        {
+            for (int k = 0; k < 8; ++k)
+            {
+                const double want = juce::jlimit(1.0f, vts.getEffectMaxDelayMs(),
+                                                 WFSValueTreeState::effectDelayPatternTimeMs(pattern, static_cast<float> (baseMs), k));
+                if (! approxEq(tapMs(ch, k), want))
+                {
+                    why = "tap " + juce::String(k + 1) + " is " + juce::String(tapMs(ch, k)) + ", the pattern says " + juce::String(want);
+                    return false;
+                }
+            }
+            return true;
+        };
+        auto guiDelay = [&](int ch, const juce::Identifier& id, const juce::var& v, bool propagate = false)
+        {
+            vts.setEffectModuleParameterWithLinkPropagation(ch, P::FxDelay, id, v, propagate);
+        };
+
+        // KO0: the formula is the module's: Equal k*b, Dotted 1.5*k*b, Triplet 2/3*k*b, Golden phi^(k-1)*b
+        check(approxEq(WFSValueTreeState::effectDelayPatternTimeMs(0, 400.0f, 2), 1200.0)
+                  && approxEq(WFSValueTreeState::effectDelayPatternTimeMs(1, 400.0f, 1), 1200.0)
+                  && approxEq(WFSValueTreeState::effectDelayPatternTimeMs(2, 300.0f, 2), 600.0)
+                  && approxEq(WFSValueTreeState::effectDelayPatternTimeMs(3, 100.0f, 3), 423.606798),
+              "KO0: the pattern times are Equal / Dotted / Triplet / Golden as the module computes them");
+
+        // KO1: Pattern -> Manual seeds the taps with what was playing
+        {
+            setDelay(0, 1, 1, 400.0);                           // Dotted, 400 ms
+            guiDelay(0, P::effectDelayTapMode, 0);
+            juce::String why;
+            check(modeOf(0) == 0 && tapsArePattern(0, 1, 400.0, why),
+                  "KO1: leaving Pattern for Manual writes the pattern's eight times into the taps (" + why + ")");
+        }
+
+        // KO2: writing Manual while already Manual touches no tap
+        {
+            vts.getEffectDelayTap(0, 0).setProperty(P::effectDelayTapTime, 123.0, nullptr);
+            guiDelay(0, P::effectDelayTapMode, 0);
+            check(approxEq(tapMs(0, 0), 123.0), "KO2: Manual -> Manual leaves the hand-set taps alone");
+        }
+
+        // KO3: the cap clamps a seeded time (Golden 8 x 1000 ms is 29 s)
+        {
+            setDelay(0, 1, 3, 1000.0);
+            guiDelay(0, P::effectDelayTapMode, 0);
+            check(approxEq(tapMs(0, 7), vts.getEffectMaxDelayMs()) && approxEq(tapMs(0, 1), 1618.03399),
+                  "KO3: a seeded time past the buffer is clamped to the maximum delay, the others land exactly");
+        }
+
+        // KO4: a real tap edit in Pattern takes over: every tap seeded, then the edit, then Manual
+        {
+            setDelay(0, 1, 0, 250.0);                           // Equal, 250 ms
+            vts.setEffectDelayTapParameterWithLinkPropagation(0, 2, P::effectDelayTapTime, 999.0, false);
+            check(modeOf(0) == 0 && approxEq(tapMs(0, 2), 999.0) && approxEq(tapMs(0, 0), 250.0)
+                      && approxEq(tapMs(0, 7), 2000.0),
+                  "KO4: grabbing a tap time in Pattern switches to Manual with the other taps at the pattern's times");
+        }
+
+        // KO5: an echo of the stored tap time in Pattern switches nothing
+        {
+            setDelay(0, 1, 0, 250.0);
+            vts.setEffectDelayTapParameterWithLinkPropagation(0, 2, P::effectDelayTapTime, 33.0, false);   // stored is 3 x 11
+            check(modeOf(0) == 1 && approxEq(tapMs(0, 0), 11.0),
+                  "KO5: re-sending a tap's stored time in Pattern neither seeds nor switches");
+        }
+
+        // KO6: a linked member seeds from its OWN pattern, not the origin's times
+        {
+            vts.setEffectParameter(0, P::effectLinkGroup, 1);
+            vts.setEffectParameter(1, P::effectLinkGroup, 1);
+            vts.setEffectParameter(0, P::effectLinkMode, 1);
+            vts.setEffectParameter(1, P::effectLinkMode, 1);
+            setDelay(0, 1, 0, 375.0);                           // Equal 375
+            setDelay(1, 1, 3, 100.0);                           // Golden 100
+            guiDelay(0, P::effectDelayTapMode, 0, true);
+            juce::String why0, why1;
+            check(modeOf(0) == 0 && modeOf(1) == 0 && tapsArePattern(0, 0, 375.0, why0) && tapsArePattern(1, 3, 100.0, why1),
+                  "KO6: a propagated switch to Manual seeds each member from its own pattern (" + why0 + why1 + ")");
+            vts.setEffectParameter(0, P::effectLinkGroup, 0);
+            vts.setEffectParameter(1, P::effectLinkGroup, 0);
+        }
+
+        // KO7: Chorus <-> Flanger moves the centre delay, on a real switch only
+        {
+            auto m = modOf(0);
+            m.setProperty(P::effectModMode, 0, nullptr);
+            m.setProperty(P::effectModDelay, 7.0, nullptr);
+            vts.setEffectModuleParameterWithLinkPropagation(0, P::FxMod, P::effectModMode, 1, false);
+            const bool toFlanger = approxEq(static_cast<double> (m.getProperty(P::effectModDelay)), 2.0);
+            vts.setEffectModuleParameterWithLinkPropagation(0, P::FxMod, P::effectModMode, 0, false);
+            const bool toChorus = approxEq(static_cast<double> (m.getProperty(P::effectModDelay)), 15.0);
+            m.setProperty(P::effectModDelay, 9.0, nullptr);
+            vts.setEffectModuleParameterWithLinkPropagation(0, P::FxMod, P::effectModMode, 0, false);
+            const bool same = approxEq(static_cast<double> (m.getProperty(P::effectModDelay)), 9.0);
+            check(toFlanger && toChorus && same,
+                  "KO7: Flanger sets the delay to 2 ms, Chorus to 15 ms, and re-sending the same mode leaves it");
+        }
+
+        // KO8: OSC does what the GUI does - a tap edit in Pattern takes over, a mode switch moves the delay
+        if (oscManager != nullptr)
+        {
+            setDelay(0, 1, 0, 200.0);
+            juce::OSCMessage tap { juce::OSCAddressPattern { "/wfs/effect/delayTapTime" } };
+            tap.addInt32(1); tap.addInt32(4); tap.addFloat32(777.0f);
+            juce::OSCMessage mode { juce::OSCAddressPattern { "/wfs/effect/modMode" } };
+            mode.addInt32(1); mode.addInt32(1);
+            modOf(0).setProperty(P::effectModMode, 0, nullptr);
+            modOf(0).setProperty(P::effectModDelay, 7.0, nullptr);
+            oscManager->receiveBurstForSelfTest({ tap, mode });
+            check(modeOf(0) == 0 && approxEq(tapMs(0, 3), 777.0) && approxEq(tapMs(0, 0), 200.0)
+                      && approxEq(static_cast<double> (modOf(0).getProperty(P::effectModDelay)), 2.0),
+                  "KO8: over OSC a tap edit in Pattern takes over and Flanger sets 2 ms");
+        }
+        else
+        {
+            check(false, "KO8: the OSC manager exists");
+        }
+
+        vts.setNumEffectChannels(effectsBefore);
+    }
+
     // ---- RD: the reverb shows what its model uses, on screen and on the deck --
     // Plan revision 9, section 8. The panel's rows follow the model (the CSV's
     // Models column, the model resolved as the engine resolves it) and never

@@ -738,7 +738,7 @@
       "dynExpScLoCut": "Filtro passa-alto no detetor de sidechain do expansor.",
       "dynExpScHiCut": "Filtro passa-baixo no detetor de sidechain do expansor.",
       "modBypass": "Contornar o módulo de chorus / flanger.",
-      "modMode": "Caráter de chorus ou de flanger.",
+      "modMode": "Caráter de chorus ou de flanger. Mudar define Delay no ponto de partida desse caráter: 15 ms para chorus, 2 ms para flanger.",
       "modRate": "Velocidade do LFO do chorus / flanger (0,05 - 10 Hz).",
       "modDepth": "Profundidade da modulação, em percentagem do atraso central.",
       "modDelay": "Atraso central da linha modulada.",
@@ -810,7 +810,7 @@
       "eqBandToggle": "Ligar ou desligar esta banda. Desligada, a banda conserva as suas definições para quando voltar.",
       "eqDisplay": "Arraste o manípulo de uma banda para definir a sua frequência e ganho; a roda define o seu Q.",
       "grMeter": "Redução de ganho que o módulo de dinâmica está a aplicar neste momento.",
-      "tapTime": "Tempo de atraso deste tap. No modo Pattern é o padrão que o define e o slider acompanha-o.",
+      "tapTime": "Tempo de atraso deste tap. No modo Pattern é o padrão que o define e o slider acompanha-o; movê-lo passa a Manual, com cada tap a partir dos tempos do padrão.",
       "tapLevel": "Nível deste tap.",
       "eqShape": "Escolher o modo de EQ da banda <Band ID> desta instância de EQ.",
       "eqFreq": "Escolher a frequência de EQ da banda <Band ID> desta instância de EQ.",
@@ -820,7 +820,7 @@
       "eqBypass": "Contornar esta instância de EQ.",
       "settingsLinkNames": "Nomes dos oito grupos de ligação de efeitos. Mostrados na caixa de seleção de Channel Parameters, no emblema de Chain e na matriz de envios.",
       "settingsLinkMode": "O modo de ligação com que um NOVO canal de efeitos é criado (desligado, absoluto ou relativo). Os canais existentes mantêm o seu.",
-      "settingsRelayout": "Premir longamente para dispor de novo todos os retornos de efeito no anel predefinido. Limpa o bloqueio de propriedade das posições de efeitos.",
+      "settingsRelayout": "Premir longamente para repor todos os retornos de efeito no anel predefinido à volta do palco. Assim que um retorno é movido à mão, acrescentar ou remover canais de efeito deixa as posições como estão; isto faz com que voltem a seguir o número de canais.",
       "settingsFxFeed": "Alimentar os efeitos uns aos outros geometricamente, ou apenas através da matriz (sem atraso nem atenuação geométricos).",
       "settingsWorkerThreads": "Número de threads de trabalho dos efeitos (-1 = automático, a regra do envio de reverb). Aplica-se no próximo arranque do Processing.",
       "settingsReturnCushion": "Blocos de margem nos anéis de retorno dos efeitos (Auto = o registo decide). Aplica-se no próximo arranque do Processing.",
@@ -1215,7 +1215,7 @@
   "help": {
     "inputEffectSends": {
       "title": "Envios para efeitos",
-      "body": "Os envios desta entrada para os canais de efeito, uma faixa por efeito: as mesmas células da matriz Post-Processing do separador Effects, vistas a partir da entrada.\nO fader define o nível de envio (-92 a 0 dB) e o botão liga ou corta o envio sem tocar no nível, pelo que um envio pode ser silenciado e reposto no nível que tinha. Os dois botões em cima actuam sobre todos os envios desta entrada de uma vez.\nUm efeito alimentado por esta entrada é um ponto de entrada do seu grupo. O que o efeito faz a seguir - a sua cadeia, a sua posição no palco e os seus envios para outros efeitos - ajusta-se no separador Effects."
+      "body": "Os envios desta entrada para os canais de efeito, uma faixa por efeito: as mesmas células da Effects Matrix do separador Effects, vistas a partir da entrada.\nO fader define o nível de envio (-92 a 0 dB) e o botão liga ou corta o envio sem tocar no nível, pelo que um envio pode ser silenciado e reposto no nível que tinha. Os dois botões em cima actuam sobre todos os envios desta entrada de uma vez.\nUm efeito alimentado por esta entrada é um ponto de entrada do seu grupo. O que o efeito faz a seguir - a sua cadeia, a sua posição no palco e os seus envios para outros efeitos - ajusta-se no separador Effects."
     },
     "diagnostics": {
       "title": "Diagnóstico e feedback",
@@ -1370,7 +1370,7 @@
       "body": "A faixa mostra os onze módulos pela sua ordem atual: clique num mosaico para editar esse módulo, arraste-o para a esquerda ou para a direita para o mover na cadeia. O ponto de um mosaico indica se o módulo está ON, a barra mostra o seu nível de saída (redução de ganho nas Dynamics). O emblema acima indica quem mais ouve uma edição; a seu lado ficam o bypass da cadeia (sem estalidos, latência mantida) e a latência da cadeia.\nOs controlos de cada módulo provêm do CSV que os documenta. Os EQ acrescentam um visor interativo e seis faixas de banda com Flatten e Reset por banda em pressão longa; as Dynamics acrescentam um medidor de redução de ganho; o delay acrescenta as suas oito linhas de taps (taps inativos e tempos do modo Pattern esbatidos); a reverberação acrescenta modelos e presets: o menu Model escolhe a própria reverberação (FDN, Plate, Modulated Hall ou Shimmer) e só são mostrados os controlos desse modelo, e um preset define de uma só vez o modelo, as reflexões iniciais e a sala - editar qualquer desses valores volta a pô-lo em Custom, enquanto Tone e Mix ficam como os definiu."
     },
     "effectsSends": {
-      "title": "Pós-processamento de Efeitos",
+      "title": "Matriz de Efeitos",
       "body": "A matriz de envios completa, não uma só linha: cada entrada e cada retorno de efeito como linha de origem, cada efeito como coluna de destino. Clique numa célula para ligar/cortar um envio, arraste para cima ou para baixo para definir o seu nível (Shift = fino), use a roda para ajustar. A diagonal tracejada é um efeito a alimentar-se a si próprio, o que é recusado.\nA coluna do efeito selecionado fica realçada e os dois botões ligam ou cortam todos os envios para ela. Um emblema verde marca uma coluna alimentada por uma entrada - o ponto de entrada do seu conjunto - e um âmbar uma coluna dentro de um ciclo de realimentação. O loop guard (Settings) silencia uma alimentação que dispara; Clear no cabeçalho esvazia uma cadeia que já disparou."
     },
     "effectsMovements": {

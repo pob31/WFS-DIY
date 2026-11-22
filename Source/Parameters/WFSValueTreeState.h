@@ -750,6 +750,37 @@ public:
         setEffectParameter. */
     void applyExternalEffectEdit (int channelIndex, const juce::Identifier& paramId, const juce::var& value);
 
+    //==========================================================================
+    // Knock-on edits of the delay and modulation modules
+    //
+    // The reverb presets' kind of rule, for three more cases, and run from
+    // the same places (both GUI funnels, every link member, OSC):
+    //   - the delay leaving Pattern for Manual first writes the pattern's
+    //     times into the eight taps, so what plays does not jump and the
+    //     tap sliders start where the pattern was;
+    //   - a real edit to a tap time while in Pattern does the same, then
+    //     switches to Manual: the tap rows show the pattern's times, so
+    //     grabbing one means "take over from here";
+    //   - the modulation module switching Chorus <-> Flanger sets the centre
+    //     delay to that voicing's starting point (2 ms flanger, 15 ms chorus).
+    //==========================================================================
+
+    /** Before a write of newValue to paramId on `section` (an <Effect> child,
+        a module node or a <Tap>): the reverb's flip to Custom and the knock-ons
+        above. Raw writes into the active undo transaction; never propagates. */
+    void prepareEffectSectionWrite (juce::ValueTree section, const juce::Identifier& paramId,
+                                    const juce::var& newValue);
+
+    /** The time Pattern mode gives tap `tapIndex` (0-based), before the
+        buffer's ceiling: spatcore's MultitapDelayModule::tapTimeMs, which
+        this must keep matching. Equal base*k, Dotted 1.5*base*k, Triplet
+        (2/3)*base*k, Golden base*phi^(k-1). */
+    static float effectDelayPatternTimeMs (int pattern, float baseMs, int tapIndex);
+
+    /** The longest delay any chain may buffer right now, in ms
+        (effectsGlobalMaxDelaySeconds): every delay time is clamped to it. */
+    float getEffectMaxDelayMs() const;
+
     /** One chain slot's module node, by slot index 0..10 in the declared order
         (dist, eq1, eq2, dyn1, dyn2, mod, phaser, trem, reverb, delay, crush) or
         by node type. This is the only way to address FxEq1 vs FxEq2 and FxDyn1
@@ -1417,6 +1448,9 @@ private:
     void flipEffectReverbToCustomIfEdited (juce::ValueTree& reverbSection,
                                            const juce::Identifier& paramId,
                                            const juce::var& newValue);
+
+    /** The pattern's eight times into the <Tap> children of `delay`, raw. */
+    void seedEffectDelayTapsFromPattern (juce::ValueTree& delay);
 
     /** Set one channel's permanent number, dragging its tracking id along only
         while that still matched the old number. Raw setProperty: a renumber is

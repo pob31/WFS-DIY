@@ -49,7 +49,7 @@ public:
     {
         static constexpr int Channel   = 0;
         static constexpr int Chain     = 1;
-        static constexpr int Sends     = 2;   // shown as "Post-Processing": where the output goes
+        static constexpr int Sends     = 2;   // shown as "Effects Matrix": who feeds whom
         static constexpr int Movements = 3;
         static constexpr int Settings  = 4;
     };
@@ -240,7 +240,8 @@ public:
 
         group = juce::jlimit (0, WFSParameterDefaults::effectLinkGroupMax, group);
         ctx.beginGesture ("Effect Link Group");
-        channelPanel.setLinkGroup (group);
+        // The combo's own write, synchronously so it lands in this undo step
+        linkGroupCombo.setSelectedId (group + 1, juce::sendNotificationSync);
 
         const auto channel = juce::String (ctx.currentChannel);
         ctx.showStatusMessage (group == 0
@@ -356,17 +357,20 @@ public:
 
         // The footer is laid out FIRST, as the reverb tab does, so Import stays
         // reachable when the session has no effects channels at all.
-        layoutFooter (getLocalBounds().removeFromBottom (footerHeight).reduced (scaled (10)));
-        layoutHeader (getLocalBounds().removeFromTop (headerHeight).reduced (scaled (10), scaled (15)));
+        const int padding = scaled (10);
+        layoutFooter (getLocalBounds().removeFromBottom (footerHeight).reduced (padding));
+        layoutHeader (getLocalBounds().removeFromTop (headerHeight).reduced (padding, padding));
 
-        auto area = getLocalBounds().withTrimmedTop (headerHeight).withTrimmedBottom (footerHeight)
-                                    .reduced (scaled (10), scaled (6));
+        // The Inputs / Outputs / Reverb geometry, so the header row, the
+        // sub-tab strip and the content start at the same height on every
+        // tab: the strip spans the full width right under the header's
+        // divider, and the content is inset by the padding on all sides.
+        auto area = getLocalBounds().withTrimmedTop (headerHeight).withTrimmedBottom (footerHeight);
 
-        subTabBar.setBounds (area.removeFromTop (scaled (28)));
-        area.removeFromTop (scaled (6));
+        subTabBar.setBounds (area.removeFromTop (scaled (32)));
 
-        subTabContentArea = area;
-        noChannelsLabel.setBounds (area);
+        subTabContentArea = area.reduced (padding, 0).reduced (0, padding);
+        noChannelsLabel.setBounds (subTabContentArea);
         layoutCurrentSubTab();
     }
 
@@ -414,8 +418,27 @@ private:
         nameEditor.addListener (this);
         nameEditor.addKeyListener (this);
 
-        // The link-group controls live on the Channel Parameters tab's top
-        // row, where the Reverb tab keeps its own cross-channel control.
+        // The link group, where the Inputs tab has its cluster: it says who
+        // else hears an edit on EVERY sub-tab, so it sits above them all. The
+        // link mode and the group mute stay on Channel Parameters' top row.
+        addAndMakeVisible (groupLabel);
+        groupLabel.setText (LOC ("effects.labels.linkGroup"), juce::dontSendNotification);
+
+        addAndMakeVisible (linkGroupCombo);
+        rebuildLinkGroupItems();
+        linkGroupCombo.onChange = [this]
+        {
+            if (ctx.isLoadingParameters || ! ctx.hasChannels())
+                return;
+
+            ctx.write (WFSParameterIDs::effectLinkGroup, linkGroupCombo.getSelectedId() - 1);
+
+            // Our own write does not reload the tab: everything that shows the
+            // group follows here (the sends grid listens for itself)
+            channelPanel.refreshLinkMode();
+            chainPanel.refreshLinkBadge();
+            TTSManager::getInstance().announceValueChange ("Link Group", linkGroupCombo.getText());
+        };
 
         // Per-channel mute: an instant toggle, worded and coloured like the
         // reverb tab's Mute Pre / Mute Post so the two headers read alike.
@@ -506,6 +529,11 @@ private:
         nameLabel.setBounds (row.removeFromLeft (scaled (50)));
         nameEditor.setBounds (row.removeFromLeft (scaled (200)));
 
+        // The Inputs tab's Cluster place, widened for a group's own name
+        row.removeFromLeft (spacing * 4);
+        groupLabel.setBounds (row.removeFromLeft (scaled (60)));
+        linkGroupCombo.setBounds (row.removeFromLeft (scaled (150)));
+
         row.removeFromLeft (spacing * 4);
         mapVisibilityButton.setBounds (row.removeFromLeft (scaled (180)));
         row.removeFromLeft (spacing);
@@ -541,9 +569,10 @@ private:
         // sound, then who feeds it, then how it travels, then the globals.
         subTabBar.addTab (LOC ("effects.tabs.channelParams"),  tabColour, -1);   // SubTab::Channel
         subTabBar.addTab (LOC ("effects.tabs.chain"),          tabColour, -1);   // SubTab::Chain
-        subTabBar.addTab (LOC ("effects.tabs.postProcessing"), tabColour, -1);   // SubTab::Sends - the matrix
+        subTabBar.addTab (LOC ("effects.tabs.matrix"),         tabColour, -1);   // SubTab::Sends - the matrix
         subTabBar.addTab (LOC ("effects.tabs.movements"), tabColour, -1);   // SubTab::Movements
         subTabBar.addTab (LOC ("effects.tabs.settings"),  tabColour, -1);   // SubTab::Settings
+        subTabBar.setMinimumTabScaleFactor (1.0);   // full text width, as the Inputs tab
         subTabBar.addChangeListener (static_cast<juce::ChangeListener*> (this));
 
         addChildComponent (channelPanel);
@@ -823,6 +852,9 @@ private:
         const juce::ScopedValueSetter<bool> loadingScope (ctx.isLoadingParameters, true);
 
         nameEditor.setText (ctx.read (WFSParameterIDs::effectName).toString(), false);
+        linkGroupCombo.setSelectedId (juce::jlimit (0, WFSParameterDefaults::effectLinkGroupMax,
+                                                    ctx.readInt (WFSParameterIDs::effectLinkGroup, 0)) + 1,
+                                      juce::dontSendNotification);
 
         refreshMuteButton();
         refreshSoloButton();
@@ -845,6 +877,8 @@ private:
         for (auto* c : { static_cast<juce::Component*> (&channelSelector),
                          static_cast<juce::Component*> (&nameLabel),
                          static_cast<juce::Component*> (&nameEditor),
+                         static_cast<juce::Component*> (&groupLabel),
+                         static_cast<juce::Component*> (&linkGroupCombo),
                          static_cast<juce::Component*> (&muteButton),
                          static_cast<juce::Component*> (&soloButton),
                          static_cast<juce::Component*> (&mapVisibilityButton),
@@ -887,6 +921,18 @@ private:
     //==========================================================================
     // Map visibility and the header toggles
     //==========================================================================
+
+    /** Unlinked, then the eight groups by their Settings names; the
+        selection is kept across a rename. */
+    void rebuildLinkGroupItems()
+    {
+        const int selected = linkGroupCombo.getSelectedId();
+        linkGroupCombo.clear (juce::dontSendNotification);
+        linkGroupCombo.addItem (LOC ("effects.link.unlinked"), 1);
+        for (int g = 1; g <= WFSParameterDefaults::effectLinkGroupMax; ++g)
+            linkGroupCombo.addItem (channelPanel.getLinkGroupName (g), g + 1);
+        linkGroupCombo.setSelectedId (selected > 0 ? selected : 1, juce::dontSendNotification);
+    }
 
     bool effectsVisibleOnMap() const
     {
@@ -1031,9 +1077,14 @@ private:
         if (tree.hasType (WFSParameterIDs::EffectsGlobal))
         {
             settingsPanel.loadParameters();
+            if (property == WFSParameterIDs::effectsGlobalMaxDelaySeconds && ctx.hasChannels())
+            {
+                const juce::ScopedValueSetter<bool> loadingScope (ctx.isLoadingParameters, true);
+                chainPanel.loadParameters();     // Pattern-mode tap times are clamped to it
+            }
             if (property == WFSParameterIDs::effectsGlobalLinkNames && ctx.hasChannels())
             {
-                channelPanel.refreshLinkGroupNames();
+                rebuildLinkGroupItems();
                 chainPanel.loadParameters();
                 sendsPanel.refresh();
             }
@@ -1089,6 +1140,7 @@ private:
     {
         ctx.helpTextMap[&channelSelector]     = LOC ("effects.help.channelSelector");
         ctx.helpTextMap[&nameEditor]          = LOC ("effects.help.name");
+        ctx.helpTextMap[&linkGroupCombo]      = LOC ("effects.help.linkGroup");
         ctx.helpTextMap[&muteButton]          = LOC ("effects.help.mute");
         ctx.helpTextMap[&soloButton]          = LOC ("effects.help.solo");
         ctx.helpTextMap[&mapVisibilityButton] = LOC ("effects.help.mapVisible");
@@ -1162,6 +1214,8 @@ private:
     ChannelSelectorButton channelSelector { "Effect" };
     juce::Label nameLabel;
     juce::TextEditor nameEditor;
+    juce::Label groupLabel;
+    juce::ComboBox linkGroupCombo;
     juce::TextButton muteButton;
     LongPressButton soloButton { 800 };
     juce::TextButton mapVisibilityButton;
