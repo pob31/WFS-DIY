@@ -44,7 +44,7 @@ A plate or hall that comes from a place on stage, for example upstage centre and
 
 **2. A delay throw that travels**
 Echoes of a voice that appear stage left and drift across the stage.
-Delay module on, `effect_fx_delay_set_delay_time`, taps and feedback → place the return → give it an LFO (`effect_lfo_*`) or an AutomOtion (`effect_automotion_*`) → send the voice.
+Delay module on, `effect_fx_delay_set_delay_time`, taps and feedback → place the return → prepare its LFO (`effect_lfo_*`) or AutomOtion (`effect_automotion_*`) settings → send the voice. Starting the movement is the operator's: MCP prepares, it never fires anything time-sensitive.
 
 **3. Echoes that reverberate**
 A delay effect feeding a reverb effect: `effect_set_fx_send_on` and `effect_set_fx_send_level` with `source_effect_id` = the delay and `effect_id` = the reverb. Alternatively, inside a single effect, put `delay` before `reverb` in `effect_set_chain_order`.
@@ -56,7 +56,7 @@ A chorus or flanger return placed beside the dry source, so the doubled part com
 Dynamics, distortion or bit crusher on a parallel return that is mixed under the dry sources, for example drums sent into a heavily compressed or crushed effect.
 
 **6. Movement and texture**
-Tremolo or phaser on an effect whose return circles the audience (LFO), for ambient or electronic material.
+Tremolo or phaser on an effect whose return circles the audience (an LFO the operator starts), for ambient or electronic material.
 
 **7. A shared treatment for several voices**
 Several inputs sent into one effect get the same processing and come from one place. Link groups (below) keep several such effects in step.

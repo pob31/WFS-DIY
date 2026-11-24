@@ -2,12 +2,17 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
-## Unreleased
+## v1.0.0beta69 — 2026-11-24
 
 ### Added
 - **AI assistants (MCP) can work with the effects channels.** Every effect parameter has its own tool, including the EQ bands, the two dynamics stages and the delay taps. New tools read a whole effect (`effect_get`), set the module order and switch modules on and off, set one effect feeding another, flush an effect's tails (`effect_clear`) and create or delete effect channels. A reverb type selected over MCP expands into its preset as it does from the panel. A new knowledge resource explains what effects channels are for, with the steps for each use.
 - **AI assistants can draw on the Map.** They can list, add, change and delete the outline shapes of the Map tab.
 - **AI assistants can rearrange the inputs** (`input_move`, `input_reorder`) and, behind the operator's safety gate, renumber them (`input_renumber`). They see which inputs are stereo in the session summary, and the summary now lists the effect channels.
+- **More settings are reachable over MCP**: the Live Source Tamer peak and slow compressor switches (without them its thresholds and ratios did nothing), the AutomOtion destination mode (so polar movements work), each input's ADM-OSC mapping, the binaural renderer's HRTF settings (render mode, SOFA file, listener offset and ear height, head size, head turn and tracker), the Remote pad layout, and which pad zone plays an input.
+- **AI assistants (MCP) can prepare shows further**: store, update and delete snapshots and edit their scope and MIDI trigger; write snapshot and sampler-set cues into QLab and Go.dot; store and read cluster LFO presets; move, rotate and scale a whole cluster; draw, remove and stack gradient-map shapes; rescale or shift positions after a stage change; reset the effect return positions; read and change the audio patch while processing is stopped; and lay out speaker arrays as the Wizard of OutZ does.
+
+### Changed
+- **MCP no longer starts or stops anything time-sensitive.** Snapshot recall, AutomOtion transport, LFO on/off, LFO preset recall and sampler playback stay with the operator, because an assistant's response time is no cue timing. The tools that switched an LFO on or off or paused an AutomOtion were removed; their settings can still be prepared.
 
 ### Fixed
 - **Network settings changed by an AI assistant (MCP) take effect at once.** A target's address, port, protocol or switches, the OSC source filter, tracking and OSC Query used to change only after the project was reopened, while the assistant was told the change was made. Assistants can now also add and remove network targets, and a target is found by its row even after one was removed.
@@ -16,11 +21,12 @@ All notable changes to WFS DIY are documented in this file, organized by release
 - **Gradient maps over MCP use real units**: a layer's white and black in dB or metres as in the editor, and shapes placed and sized in stage metres (they were limited to 0-1 and about 2 m).
 - **Sampler over MCP**: a set's cells can be chosen, and choosing the sampler controller switches the sampler on as the System Config selector does.
 - **All 16 cluster LFO preset slots can be renamed over MCP** (only 1-10 could, through a tool that claimed to name a cluster).
-- **More settings are reachable over MCP**: the Live Source Tamer peak and slow compressor switches (without them its thresholds and ratios did nothing), the AutomOtion destination mode (so polar movements work), each input's ADM-OSC mapping, the binaural renderer's HRTF settings (render mode, SOFA file, listener offset and ear height, head size, head turn and tracker), the Remote pad layout, and which pad zone plays an input.
 - **The binaural HRTF settings and the Remote pad layout are part of every session.** A project that had never had them set had no place to store them, so OSC and MCP writes to them were dropped; they now start at their defaults.
-- **AI assistants (MCP) can prepare shows further**: store, update and delete snapshots and edit their scope and MIDI trigger; write snapshot and sampler-set cues into QLab and Go.dot; store and read cluster LFO presets; move, rotate and scale a whole cluster; draw, remove and stack gradient-map shapes; rescale or shift positions after a stage change; reset the effect return positions; read and change the audio patch while processing is stopped; and lay out speaker arrays as the Wizard of OutZ does.
-- **Changed: MCP no longer starts or stops anything time-sensitive.** Snapshot recall, AutomOtion transport, LFO on/off, LFO preset recall and sampler playback stay with the operator, because an assistant's response time is no cue timing. The tools that switched an LFO on or off or paused an AutomOtion were removed; their settings can still be prepared.
 - **EQ shapes set by name over MCP land on the shape named.** Choosing "LowCut" for an output or reverb EQ band wrote the band's OFF value and the other shapes landed on the wrong shape, because the label's position in the list was written instead of its value. Numbers sent for these shapes are now checked against the real shape values too.
+
+### Chore / Internal
+- spatcore pinned to main 7bdf4ab (PR #37: a keyed, linked entry in the dynamics module; PR #38: the MCP knowledge resource for the effects channels).
+- MCP coverage audit with its findings and decisions: `Documentation/MCP/mcp-coverage-audit-2026-11-24.md`; new control-replay driver `mcp_coverage_check.py`.
 
 ## v1.0.0beta68 — 2026-11-22
 
