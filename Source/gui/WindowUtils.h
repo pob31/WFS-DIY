@@ -24,8 +24,10 @@ namespace WindowUtils
      * displays slide away, and a touch panel's window leaves its desktop. Once
      * installed, the green button, Ctrl+Cmd+F and ResizableWindow::setFullScreen
      * make a JUCE window borderless over its whole display instead, and hide
-     * the menu bar and Dock while it is on a display that has them; the same
-     * keys bring the title bar and the old frame back. Call once at startup,
+     * the menu bar and Dock while it is on a display that has them; Ctrl+Cmd+F
+     * (or the system full-screen shortcut) again brings the title bar and the old frame back
+     * (setFullScreen (false) does not: JUCE only leaves a native full screen,
+     * and nothing here calls it). Call once at startup,
      * before the first window opens. No-op on other OSes.
      */
     inline void installFakeFullScreen()

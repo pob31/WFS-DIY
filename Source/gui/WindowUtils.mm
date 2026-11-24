@@ -164,14 +164,24 @@ namespace
         return screen != nil && ([NSScreen screensHaveSeparateSpaces] || screen == [[NSScreen screens] firstObject]);
     }
 
+    /** The options in force before the first window hid the menu bar (the
+        user's auto-hide, for one), given back when the last one leaves. */
+    NSApplicationPresentationOptions gPresentationBeforeHiding = NSApplicationPresentationDefault;
+
     void changeMenuBarHiders (int delta)
     {
         const auto before = gMenuBarHiders;
         gMenuBarHiders = juce::jmax (0, gMenuBarHiders + delta);
 
-        if ((before > 0) != (gMenuBarHiders > 0))
-            [NSApp setPresentationOptions: gMenuBarHiders > 0 ? (NSApplicationPresentationHideDock | NSApplicationPresentationHideMenuBar)
-                                                              : NSApplicationPresentationDefault];
+        if (before == 0 && gMenuBarHiders > 0)
+        {
+            gPresentationBeforeHiding = [NSApp presentationOptions];
+            [NSApp setPresentationOptions: NSApplicationPresentationHideDock | NSApplicationPresentationHideMenuBar];
+        }
+        else if (before > 0 && gMenuBarHiders == 0)
+        {
+            [NSApp setPresentationOptions: gPresentationBeforeHiding];
+        }
     }
 
     /** Lets JUCE's constrainer reach the whole display: its maximum is the
