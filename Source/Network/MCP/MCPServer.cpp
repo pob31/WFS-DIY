@@ -70,7 +70,8 @@ MCPServer::MCPServer (WFSValueTreeState& state,
         "covers tier-2 - the gate is the operator's superset trust window). "
         "Both windows auto-close after 5 minutes and are operator-only. "
         "For the full tool catalog, the scope/domain vocabulary and the "
-        "read-side tools, read resource `wfs://knowledge/tool_catalog`. "
+        "read-side tools, read resource `wfs://knowledge/tool_catalog`; "
+        "before building effects, read `wfs://knowledge/effects`. "
         "For guided workflows call `prompts/list`.";
 
     dispatcher       = std::make_unique<MCPDispatcher> (std::move (identity),

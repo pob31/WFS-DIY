@@ -426,8 +426,8 @@ only one may build.
   be stamped, persisted and routed with no reader).
 - ~~**Snapshot/MIDI/QLab scope has zero effects coverage.**~~ Closed by Phase 7 (§10): one snapshot
   carries both families, and the scope has an effects grid.
-- **MCP session-info reports per-family channel counts without effects**, so a session with 8
-  effect channels is described as having none.
+- ~~**MCP session-info reports per-family channel counts without effects**~~ Closed 2026-11-24:
+  `session_get_state` counts and lists the effect channels (C9/C10 below).
 - **`effectMuteMacroMax = 4`** reaches only mute-all, unmute-all and invert; the reverb equivalent
   implements two more (mute-odd, mute-even). The plan specifies 4, so the constant is faithful —
   but the plan looks like it truncated the list by oversight. **Product decision, one constant.**
@@ -721,3 +721,19 @@ MCP got the three tools no generated tool could provide (`Source/Network/MCP/too
 Their change records carry a sub-write on the EFFECT's dense index with the whole row before and
 after, because the legacy single-channel undo path would resolve `input_id` to an input slot and
 write the row there. `mcp_replay.py` step 11 covers them on a fixture rewritten to two effects.
+
+**C9 rest + C10 (2026-11-24, branch `mcp/coverage-gaps`).** The codegen reads `WFS-UI_effects.csv`:
+187 generated `effect_*` tools (`effect_id` dense; `instance` 1-2 for `effectEQBypass` and every
+`effectDyn*`, `instance` + `effect_band` 1-6 for the EQ bands - never `band`, which the loader reads
+as the output EQ - and `tap` 1-8 for the delay taps; the effects globals, `effectChannels` and
+`effectsMapVisible` are global rows). The send cells and rows and `effectChainOrder` are ignored on
+purpose: hand-written tools write them. Every MCP effect write goes the OSC way, in
+`Source/Network/MCP/MCPEffectWrites.h` (`applyExternalEffectEdit`, the typed section accessors,
+`prepareEffectSectionWrite` before a tap, the Effects undo domain, no link propagation), from the
+generated tools, `wfs_set_parameter` / batch / nudge and the undo replay. Hand-written
+(`tools/EffectTools.h`): `effect_get`, `effect_set_chain_order`, `effect_set_module_on`,
+`effect_set_fx_send_level` / `_on`, `effect_clear` (MainComponent wires it to
+`EffectsHost::requestClear`); `effect_create` / `effect_delete` are the lifecycle tools' fourth kind.
+Knowledge resource `wfs://knowledge/effects` (`Documentation/MCP/resources/knowledge_effects.md`,
+catalog row in spatcore `mcp/knowledge-effects`). Gates: `WFS_TEST_MCP_SURFACE` (creates an effect),
+`tools/validation/control-replay/mcp_coverage_check.py`.

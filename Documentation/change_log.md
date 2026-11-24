@@ -2,6 +2,16 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
+## Unreleased
+
+### Added
+- **AI assistants (MCP) can work with the effects channels.** Every effect parameter has its own tool, including the EQ bands, the two dynamics stages and the delay taps. New tools read a whole effect (`effect_get`), set the module order and switch modules on and off, set one effect feeding another, flush an effect's tails (`effect_clear`) and create or delete effect channels. A reverb type selected over MCP expands into its preset as it does from the panel. A new knowledge resource explains what effects channels are for, with the steps for each use.
+- **AI assistants can draw on the Map.** They can list, add, change and delete the outline shapes of the Map tab.
+- **AI assistants can rearrange the inputs** (`input_move`, `input_reorder`) and, behind the operator's safety gate, renumber them (`input_renumber`). They see which inputs are stereo in the session summary, and the summary now lists the effect channels.
+
+### Fixed
+- **EQ shapes set by name over MCP land on the shape named.** Choosing "LowCut" for an output or reverb EQ band wrote the band's OFF value and the other shapes landed on the wrong shape, because the label's position in the list was written instead of its value. Numbers sent for these shapes are now checked against the real shape values too.
+
 ## v1.0.0beta68 — 2026-11-22
 
 ### Fixed

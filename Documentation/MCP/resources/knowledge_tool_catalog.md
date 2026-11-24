@@ -7,10 +7,10 @@ why the catalog you see is smaller than the set of tools you can call.
 ## Why some tools are not listed
 
 Every parameter in WFS-DIY has a dedicated auto-generated tool named
-`<area>_set_<param>` — around 393 of them. Listing them all made `tools/list`
-roughly 240 KB, which is a large amount of context to spend before you have
-been asked anything, so tier-1 and tier-2 generated tools are **registered but
-not advertised**.
+`<area>_set_<param>`: about 700 of them with their nudge variants. Listing
+them all would make `tools/list` several hundred KB, a large amount of context
+to spend before you have been asked anything, so tier-1 and tier-2 generated
+tools are **registered but not advertised**.
 
 They still work. If you know the name, `tools/call` resolves it normally, and
 `mcp_describe_parameters` reports each parameter's `tool_name` in `mode="full"`.
@@ -32,7 +32,9 @@ change and need to stay visible.
 | --- | --- |
 | `mcp_describe_parameters` | What parameters exist. Call with no arguments for a group map, then filter. |
 | `wfs_get_parameter` / `wfs_get_parameters` | Current value of a known parameter, one or many. |
-| `session_get_state` | Per-channel id, name and position across the project. |
+| `session_get_state` | Per-channel id, name and position across the project: inputs in display order with their type (mono/stereo), outputs, reverbs and effects (with their mute). |
+| `effect_get` | Everything about one effect channel: its sections, its chain in playing order with every module parameter, and who feeds it. |
+| `map_shapes_list` | The outline shapes drawn on the Map tab (visual aids), with their index, geometry and style. |
 | `session_get_global_state` | Stage, master, binaural, network and other globals. Use `sections` to keep it small. |
 | `session_get_channel_full` | Everything on one channel. Large — prefer the targeted reads above. |
 | `session_get_state_delta` | What changed since your last call. Use between turns to notice operator, OSC or automation edits. |
@@ -46,8 +48,15 @@ change and need to stay visible.
 | `wfs_set_parameter` | One absolute value. Validated against the registry: enum membership and min/max. Tier 2. |
 | `wfs_set_parameter_batch` | Several writes at once — atomic, one undo entry, one confirmation. Preferred for multi-write flows. |
 | `wfs_nudge_parameter` | Relative moves ("a bit louder"). Clamps at the range limit. Tier 1. Numeric, non-EQ, tier-1 parameters only. |
-| `input_create` / `input_delete` (also output, reverb) | Channel lifecycle, one channel at a time. Tier 2. |
+| `input_create` / `input_delete` (also output, reverb, effect) | Channel lifecycle. Tier 2, stopped-only. |
+| `input_move` / `input_reorder` | Rearrange the inputs' display order; numbers, settings and hardware inputs travel with each channel. Tier 2, stopped-only. |
+| `input_renumber` | Give the inputs new permanent numbers without moving them. Tier 3: snapshots, cues and OSC then reach different channels. |
+| `effect_set_chain_order` / `effect_set_module_on` | An effect's module order and its module switches. |
+| `effect_set_fx_send_level` / `effect_set_fx_send_on` | One effect feeding another (the Effects Matrix). |
+| `effect_clear` | Flush an effect's tails and delay lines (no setting changes). |
+| `map_shape_add` / `map_shape_edit` / `map_shape_delete` / `map_shapes_clear` | Draw, change and remove the Map tab's outline shapes. Not undoable. |
 | `input_set_effect_send_level` / `input_set_effect_send_on` | One input's send into one effect channel: the level in dB (tier 2) or the on/off switch, which keeps the level (tier 1). No generated tool covers these cells - an effect stores them as packed rows. |
+| generated `effect_*` tools | One effect value each. EQ bands, dynamics stages and delay taps need these tools (their `instance`, `effect_band` or `tap` argument); `wfs_set_parameter` refuses them. See resource `wfs://knowledge/effects`. |
 | `reverb_auto_layout` | High-level reverb placement from speaker topology, written as one atomic batch. |
 | `session_save` | Persist the project to disk. Tier 2, overwrites the operator's files, and cannot be undone. |
 
@@ -57,7 +66,7 @@ Undo steps over records that document irreversible actions such as a save.
 ## Filter vocabulary for `mcp_describe_parameters`
 
 **`scope`** — `global` (stage, master, network, binaural, config), `input`,
-`output`, `reverb`, `cluster`, `eq_band`.
+`output`, `reverb`, `cluster`, `effect`, `eq_band`.
 
 **`domain`** — what the parameter actually affects:
 
@@ -65,6 +74,7 @@ Undo steps over records that document irreversible actions such as a save.
 | --- | --- |
 | `wfs_synthesis` | Changes what the WFS speakers emit |
 | `reverb` | Reverb sends, returns and algorithm settings |
+| `effects` | Effects channels: their chains, feeds, returns and settings |
 | `binaural` | Headphone / binaural rendering |
 | `adm_osc` | ADM-OSC interop |
 | `floor_reflections` | Floor reflection modelling (called Hackoustics in the UI) |

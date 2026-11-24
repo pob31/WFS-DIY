@@ -5976,6 +5976,9 @@
     <ClInclude Include="..\..\Source\Network\MCP\MCPGenericDispatch.h">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPEffectWrites.h">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\Network\MCP\tools\SessionTools.h">
       <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
     </ClInclude>
@@ -6016,6 +6019,18 @@
       <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\MCP\tools\ChannelLifecycleTools.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\ToolArgs.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\EffectSendTools.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\EffectTools.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\MapShapeTools.h">
       <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\MCP\tools\ReverbAutoLayoutTool.h">

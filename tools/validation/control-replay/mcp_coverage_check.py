@@ -116,6 +116,11 @@ def check_session(c: Checker) -> None:
     types = {i.get("type") for i in state.get("inputs", [])}
     c.expect("every input has a type", types <= {"mono", "stereo"} and types, types)
 
+    # The effects knowledge resource (spatcore catalog row + the app's .md).
+    res = c.app.mcp("resources/read", {"uri": "wfs://knowledge/effects"})
+    contents = (res.get("result") or {}).get("contents") or [{}]
+    c.expect("knowledge_effects served", "Effects channels" in contents[0].get("text", ""), str(res)[:200])
+
 
 def check_generated_effect_tools(c: Checker) -> None:
     c.ok("effect_channel_set_attenuation", {"effect_id": 1, "value": -6.0}, confirm=True)
