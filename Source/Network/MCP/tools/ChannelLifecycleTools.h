@@ -15,7 +15,7 @@ namespace WFSNetwork::Tools::ChannelLifecycle
     the underlying tier-3 channel-count parameters. */
 struct ChannelKindConfig
 {
-    juce::String        kindLabel;       // "input" / "output" / "reverb"
+    juce::String        kindLabel;       // "input" / "output" / "reverb" / "effect"
     juce::Identifier    countParamId;    // WFSParameterIDs::*Channels
     int                 hardMax;         // per-kind max channel count (from WFSParameterDefaults)
 };
@@ -25,8 +25,10 @@ inline const ChannelKindConfig& configFor (const juce::String& kind)
     static const ChannelKindConfig inputCfg  { "input",  WFSParameterIDs::inputChannels,  WFSParameterDefaults::maxInputChannels };
     static const ChannelKindConfig outputCfg { "output", WFSParameterIDs::outputChannels, WFSParameterDefaults::maxOutputChannels };
     static const ChannelKindConfig reverbCfg { "reverb", WFSParameterIDs::reverbChannels, WFSParameterDefaults::maxReverbChannels };
+    static const ChannelKindConfig effectCfg { "effect", WFSParameterIDs::effectChannels, WFSParameterDefaults::maxEffectChannels };
     if (kind == "input")  return inputCfg;
     if (kind == "output") return outputCfg;
+    if (kind == "effect") return effectCfg;
     return reverbCfg;
 }
 

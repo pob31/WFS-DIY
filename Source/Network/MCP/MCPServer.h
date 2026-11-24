@@ -96,6 +96,15 @@ public:
         channelTopologyChanged = std::move (cb);
     }
 
+    /** Called (message thread) by effect_clear with a dense effect index, or -1
+        for every effect: flushes the effects engine's audio state (tails,
+        delay lines). MainComponent wires it to EffectsHost::requestClear, the
+        same call the Effects tab's Clear and /wfs/effect/clear make. */
+    void setEffectClearCallback (std::function<void (int)> cb)
+    {
+        effectClear = std::move (cb);
+    }
+
     /** Called (message thread) with a 0-based input SLOT after a gradient-map
         write. The rasterised map is a cache: changing the tree changes what the
         editor draws, but the audio offsets keep coming from the old raster until
@@ -120,6 +129,7 @@ public:
 
 private:
     std::function<void()> channelTopologyChanged;
+    std::function<void (int)> effectClear;
     std::function<void (int)> gradientMapChanged;
     std::function<void (int)> samplerChanged;
     WFSValueTreeState& valueTreeState;

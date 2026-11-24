@@ -79,6 +79,9 @@ GOLDEN = common.GOLDENS_DIR / "mcp_replay.json"
 # How many effect channels the temp fixture is rewritten to carry (segment A).
 EFFECT_CHANNELS = 2
 
+# Upper bound of the advertised tools/list (hand-written + tier-3 generated).
+VISIBLE_MAX = 80
+
 # 16 writes: X and Y for inputs 1..8, all binary-exact values.
 BATCH_WRITES = (
     [{"variable": "inputPositionX", "channel_id": i, "value": i * 0.25}
@@ -202,10 +205,13 @@ def main() -> int:
         tiers = [t["_meta"]["tier"] for t in tools]
         names = [t["name"] for t in tools]
         count = len(tools)
-        if not (25 <= count <= 60):
+        # 62 since the effects / map-shape / input-order tools (2026-11-24):
+        # the bound guards the hide policy (a listed generated surface would
+        # be ~700), not the hand-written count.
+        if not (25 <= count <= VISIBLE_MAX):
             hard_failures.append(
                 f"tools/list count {count} outside expected visible surface "
-                f"25..60 - did the hide policy change?")
+                f"25..{VISIBLE_MAX} - did the hide policy change?")
         ordering_ok = all(
             (tiers[i] > tiers[i + 1])
             or (tiers[i] == tiers[i + 1] and names[i] < names[i + 1])
@@ -222,7 +228,7 @@ def main() -> int:
                 hard_failures.append(f"{n} should be hidden from tools/list")
 
         census = {
-            "count_in_visible_range": 25 <= count <= 60,
+            "count_in_visible_range": 25 <= count <= VISIBLE_MAX,
             "tier_ordering_ok": ordering_ok,
             "tier_counts": {str(t): tiers.count(t) for t in sorted(set(tiers))},
             "_meta": common.normalize_envelope(tl["result"].get("_meta", {})),

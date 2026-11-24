@@ -21,6 +21,7 @@
 #include "tools/ChannelLifecycleTools.h"
 #include "tools/ReverbAutoLayoutTool.h"
 #include "tools/MapShapeTools.h"
+#include "tools/EffectTools.h"
 
 namespace WFSNetwork
 {
@@ -113,11 +114,21 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     registry->registerTool (Tools::Input::describeSetOutputMute (state));
     registry->registerTool (Tools::Input::describeSetCartesian (state));
     registry->registerTool (Tools::Input::describeSetAttenuation (state));
-    // An input's sends into the effects: one cell of the effect's packed rows,
-    // which no generated tool reaches (the codegen reads no effects CSV).
+    // An input's sends into the effects: one cell of the effect's packed rows
+    // (the generated surface leaves the send rows and cells out on purpose).
     registry->registerTool (Tools::EffectSend::describeSetLevel (state));
     registry->registerTool (Tools::EffectSend::describeSetOn (state));
     registry->registerTool (Tools::EffectSend::describeGet (state));
+
+    // The effect channels beyond one value per tool: a whole-effect read, the
+    // module order and switches, effect-to-effect sends and the tail flush.
+    // Their parameters are the generated effect_* tools (WFS-UI_effects.csv).
+    registry->registerTool (Tools::Effect::describeGet            (state));
+    registry->registerTool (Tools::Effect::describeSetChainOrder  (state));
+    registry->registerTool (Tools::Effect::describeSetModuleOn    (state));
+    registry->registerTool (Tools::Effect::describeSetFxSendLevel (state));
+    registry->registerTool (Tools::Effect::describeSetFxSendOn    (state));
+    registry->registerTool (Tools::Effect::describeClear          (state, &effectClear));
     registry->registerTool (Tools::Output::describeSetCartesian (state));
     registry->registerTool (Tools::Reverb::describeSetCartesian (state));
     registry->registerTool (Tools::Snapshot::describe (fileMgr));
@@ -168,7 +179,8 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     // then write to it" flows from a blank session.
     for (const auto& kind : { juce::String ("input"),
                                juce::String ("output"),
-                               juce::String ("reverb") })
+                               juce::String ("reverb"),
+                               juce::String ("effect") })
     {
         registry->registerTool (Tools::ChannelLifecycle::describeCreate (state, kind, &channelTopologyChanged));
         registry->registerTool (Tools::ChannelLifecycle::describeDelete (state, kind, &channelTopologyChanged));

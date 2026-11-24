@@ -30,7 +30,7 @@ namespace
     {
         if (propsObj == nullptr) return {};
         static const juce::StringArray candidates {
-            "input_id", "output_id", "reverb_id", "cluster_id"
+            "input_id", "output_id", "reverb_id", "cluster_id", "effect_id"
         };
         for (const auto& c : candidates)
             if (propsObj->hasProperty (c))
@@ -50,6 +50,7 @@ namespace
         if (chanArg == "output_id")  return "output";
         if (chanArg == "reverb_id")  return "reverb";
         if (chanArg == "cluster_id") return "cluster";
+        if (chanArg == "effect_id")  return "effect";
         return "global";
     }
 

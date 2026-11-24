@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "../MCPCompat.h"
 #include "../MCPParameterRegistry.h"
+#include "../MCPEffectWrites.h"
 #include "../MCPParameterValidation.h"
 #include "../../OSCParameterBounds.h"
 #include "../../../Parameters/WFSValueTreeState.h"
@@ -224,7 +225,20 @@ inline ToolResult set (WFSValueTreeState& state, const juce::var& args, ChangeRe
                     return ToolResult::error ("invalid_args",
                                               "channel_id is not a live input channel: " + juce::String (displayId));
             }
+            else if (rec->scope == "effect")
+            {
+                const auto why = MCPEffect::refuseRegistryTarget (state, juce::Identifier (variable),
+                                                                  displayId, rec->toolName);
+                if (why.isNotEmpty())
+                    return ToolResult::error ("invalid_args", why);
+            }
         }
+    }
+    else if (const auto* rec = MCPParameterRegistry::getInstance().findByVariable (variable);
+             rec != nullptr && rec->scope == "effect")
+    {
+        return ToolResult::error ("invalid_args", "Missing required arg: channel_id (the effect number) for '"
+                                                  + variable + "'");
     }
 
     int bandIndex = -1;
@@ -327,7 +341,9 @@ inline ToolResult set (WFSValueTreeState& state, const juce::var& args, ChangeRe
     }
     else
     {
-        state.setParameter (paramId, value, channelIndex);
+        // Effect values the OSC way (reverb presets, Custom flip); the rest
+        // through setParameter as before.
+        MCPEffect::routeWrite (state, paramId, value, channelIndex);
     }
 
     juce::var afterValue;

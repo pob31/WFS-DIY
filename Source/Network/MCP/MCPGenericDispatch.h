@@ -37,7 +37,8 @@ struct ToolBinding
     juce::String internalVariable;  // canonical ValueTree property name (case-corrected)
     juce::String csvSection;        // "Position" — used in affected_groups + operatorDescription
     juce::StringArray enumValues;   // empty if not an enum tool
-    juce::String channelArgName;    // input_id / output_id / reverb_id / cluster_id, or empty for global
+    juce::Array<int> enumIntValues; // the STORED value of each label (enum_string_to_int), positional when absent
+    juce::String channelArgName;    // input_id / output_id / reverb_id / cluster_id / effect_id, or empty for global
     juce::String valueArgName { "value" };  // self-documenting renames: "name" / "mode" / "shape" / "protocol"
     bool isEqBand = false;
 
@@ -59,6 +60,9 @@ struct ToolBinding
         SamplerCell,     // input_id + cell_id
         SamplerSet,      // input_id + set_id
         NetworkTarget,   // target_id, global (no channel)
+        EffectInstance,  // effect_id + instance: one of the two EQ or dynamics modules
+        EffectEqBand,    // effect_id + instance + effect_band
+        EffectTap,       // effect_id + tap
     };
 
     SubTree subTree = SubTree::None;
@@ -85,7 +89,8 @@ struct ToolBinding
     and future divergence (e.g. nudges may grow per-press defaults). */
 struct NudgeBinding : ToolBinding {};
 
-/** Map an enum label to its 0-based index; pass through non-enum or
+/** Map an enum label to the value it stores (enum_string_to_int; the label's
+    position when the manifest has no map); pass through non-enum or
     unrecognised values unchanged so the caller can raise a clear error. */
 juce::var coerceValue (const juce::var& incoming, const ToolBinding& binding);
 

@@ -3,6 +3,7 @@
 #include "MCPParameterValidation.h"
 #include "MCPCompat.h"
 #include "MCPLogger.h"
+#include "MCPEffectWrites.h"
 #include "../../Parameters/WFSValueTreeState.h"
 #include "../../Parameters/WFSParameterIDs.h"
 
@@ -87,7 +88,7 @@ namespace
         auto* propsObj = asObject (props);
         if (propsObj == nullptr) return {};
 
-        static const juce::StringArray candidates { "input_id", "output_id", "reverb_id", "cluster_id" };
+        static const juce::StringArray candidates { "input_id", "output_id", "reverb_id", "cluster_id", "effect_id" };
         for (const auto& c : candidates)
             if (propsObj->hasProperty (c))
                 return c;
@@ -108,6 +109,12 @@ namespace
                             const juce::String& channelArgName,
                             int displayId)
     {
+        // Effect ids are dense like reverbs, but the ceiling in the schema (32)
+        // is not the live count: an id past it names nothing, and the effect
+        // setters return void on an invalid tree, so the write would vanish.
+        if (channelArgName == "effect_id")
+            return MCPEffect::isLive (state, displayId - 1) ? displayId - 1 : -1;
+
         if (channelArgName != "input_id")
             return displayId - 1;
 
@@ -210,6 +217,34 @@ namespace
                                             + " (slots are 1-6, and only configured ones exist).");
             break;
 
+        // Effects: the wire numbers instances, bands and taps from 1, as the
+        // Effects tab and OSC do (/wfs/effect/EQgain <fx> <inst> <band> <dB>).
+        case ToolBinding::SubTree::EffectInstance:
+            node = (property == WFSParameterIDs::effectEQBypass)
+                       ? state.getEffectEQSection  (channelIndex, subA - 1)
+                       : state.getEffectDynSection (channelIndex, subA - 1);
+            if (! node.isValid())
+                return ToolResult::error ("invalid_args",
+                                          "No module instance " + juce::String (subA)
+                                            + " on that effect (instances are 1-2).");
+            break;
+
+        case ToolBinding::SubTree::EffectEqBand:
+            node = state.getEffectEQBand (channelIndex, subA - 1, subB - 1);
+            if (! node.isValid())
+                return ToolResult::error ("invalid_args",
+                                          "No band " + juce::String (subB) + " on EQ " + juce::String (subA)
+                                            + " of that effect (instances are 1-2, bands 1-6).");
+            break;
+
+        case ToolBinding::SubTree::EffectTap:
+            node = state.getEffectDelayTap (channelIndex, subA - 1);
+            if (! node.isValid())
+                return ToolResult::error ("invalid_args",
+                                          "No delay tap " + juce::String (subA)
+                                            + " on that effect (taps are 1-8).");
+            break;
+
         case ToolBinding::SubTree::None:
         default:
             break;
@@ -247,7 +282,19 @@ namespace Detail
         if (argName == "output_id")  return "output";
         if (argName == "reverb_id")  return "reverb";
         if (argName == "cluster_id") return "cluster";
+        if (argName == "effect_id")  return "effect";
         return argName;
+    }
+
+    /** Is `stored` an accepted value of this enum? The labels' stored values,
+        plus 0 for an EQ shape: 0 is the band's OFF, which the parameter range
+        allows (eqShapeMin, reverbPreEQshapeMin) though the CSV enum lists only
+        the filter shapes. */
+    static bool isAcceptedEnumValue (const ToolBinding& binding, int stored)
+    {
+        if (binding.enumIntValues.contains (stored))
+            return true;
+        return stored == 0 && binding.internalVariable.containsIgnoreCase ("EQshape");
     }
 
     /** If the tool's value schema declares an `enum` of strings, map the
@@ -259,17 +306,26 @@ namespace Detail
         validation in dispatchGenericSet can produce a clear error. */
     juce::var coerceValue (const juce::var& incoming, const ToolBinding& binding)
     {
+        // The label's STORED value, not its position in the list: the two
+        // differ wherever the CSV declares ids (EQ shapes start at 1, reverb
+        // models skip 2-3, phaser stages are 4/6/8/12), and the position wrote
+        // the wrong value - LowCut landed as OFF.
+        auto storedFor = [&binding] (int i)
+        {
+            return juce::isPositiveAndBelow (i, binding.enumIntValues.size()) ? binding.enumIntValues[i] : i;
+        };
+
         if (binding.enumValues.size() > 0 && incoming.isString())
         {
             const auto s = incoming.toString();
             for (int i = 0; i < binding.enumValues.size(); ++i)
                 if (binding.enumValues[i] == s)
-                    return juce::var (i);
+                    return juce::var (storedFor (i));
 
             const auto sNoSpace = s.removeCharacters (" \t");
             for (int i = 0; i < binding.enumValues.size(); ++i)
                 if (binding.enumValues[i].removeCharacters (" \t") == sNoSpace)
-                    return juce::var (i);
+                    return juce::var (storedFor (i));
         }
         return incoming;
     }
@@ -401,12 +457,16 @@ namespace Detail
         {
             auto rejectValue = [&] (const juce::String& shown)
             {
+                juce::StringArray choices;
+                for (int i = 0; i < binding.enumValues.size(); ++i)
+                    choices.add (binding.enumValues[i] + "="
+                                 + juce::String (juce::isPositiveAndBelow (i, binding.enumIntValues.size())
+                                                     ? binding.enumIntValues[i] : i));
                 return ToolResult::error ("invalid_enum_value",
                                           "value " + shown.quoted()
                                           + " is not a valid " + binding.internalVariable
-                                          + " value (expected an integer index 0.."
-                                          + juce::String (binding.enumValues.size() - 1)
-                                          + " or one of: " + binding.enumValues.joinIntoString (", ") + ")");
+                                          + " value (expected one of the labels or its number: "
+                                          + choices.joinIntoString (", ") + ")");
             };
 
             if (value.isString())
@@ -429,9 +489,9 @@ namespace Detail
 
             if (! (value.isInt() || value.isInt64()))
                 return rejectValue (value.toString());
-            const int idx = static_cast<int> (value);
-            if (idx < 0 || idx >= binding.enumValues.size())
-                return rejectValue (juce::String (idx));
+            const int stored = static_cast<int> (value);
+            if (! isAcceptedEnumValue (binding, stored))
+                return rejectValue (juce::String (stored));
         }
 
         // Range gate: the schema declares `minimum`/`maximum` for numeric
@@ -573,11 +633,28 @@ namespace Detail
                     band.setProperty (paramId, value, state.getActiveUndoManager());
             }
         }
+        else if (writesSubTree && binding.channelArgName == "effect_id")
+        {
+            // An effect module instance, band or tap: the OSC route, with the
+            // delay's Pattern take-over (MCPEffectWrites.h).
+            MCPEffect::writeSectionValue (state, subTreeNode, subTreeProperty, value);
+        }
         else if (writesSubTree)
         {
             // Through the store's write gate (bounds, NaN refusal), like every
             // other MCP write (re-audit section 5).
             state.writeSubTreeProperty (subTreeNode, subTreeProperty, value, state.getActiveUndoManager());
+        }
+        else if (binding.channelArgName == "effect_id" && MCPEffect::isChannelParameter (paramId))
+        {
+            // Not setParameter: a reverb type has to expand into its preset and
+            // a preset-owned edit has to make the reverb Custom, as over OSC.
+            MCPEffect::writeChannelValue (state, channelIndex, paramId, value);
+        }
+        else if (MCPEffect::isGlobalParameter (paramId))
+        {
+            WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Effects);
+            state.setParameter (paramId, value, channelIndex);
         }
         else
         {
@@ -621,6 +698,12 @@ namespace Detail
                        + juce::String (displayId);
                 if (binding.isEqBand)
                     desc += " band " + juce::String (bandIndex + 1);
+                // Effects name their module instance / band / tap, which the
+                // history would otherwise lose (eq1 and eq2 share every name).
+                if (binding.channelArgName == "effect_id" && binding.subIndexArgA.isNotEmpty())
+                    desc += " " + binding.subIndexArgA + " " + juce::String (subA);
+                if (binding.channelArgName == "effect_id" && binding.subIndexArgB.isNotEmpty())
+                    desc += " " + binding.subIndexArgB + " " + juce::String (subB);
             }
             desc += " to " + value.toString();
             record->operatorDescription = desc;
@@ -787,6 +870,22 @@ namespace Detail
                                                  : "No sampler set " + juce::String (subIdx)
                                                      + " on that input (sets are numbered from 1).");
         }
+        else if (binding.subTree == ToolBinding::SubTree::EffectInstance
+              || binding.subTree == ToolBinding::SubTree::EffectEqBand
+              || binding.subTree == ToolBinding::SubTree::EffectTap)
+        {
+            int subA = -1, subB = -1;
+            for (auto* arg : { &binding.subIndexArgA, &binding.subIndexArgB })
+                if (arg->isNotEmpty() && ! argsObj->hasProperty (*arg))
+                    return ToolResult::error ("invalid_args", "Missing required arg: " + *arg);
+            if (binding.subIndexArgA.isNotEmpty()) subA = static_cast<int> (argsObj->getProperty (binding.subIndexArgA));
+            if (binding.subIndexArgB.isNotEmpty()) subB = static_cast<int> (argsObj->getProperty (binding.subIndexArgB));
+
+            juce::Identifier property;
+            auto resolved = resolveSubTreeNode (state, binding, channelIndex, subA, subB, nudgeNode, property);
+            if (! resolved.success)
+                return resolved;
+        }
         else if (binding.subTree != ToolBinding::SubTree::None)
         {
             return ToolResult::error ("unsupported",
@@ -827,8 +926,13 @@ namespace Detail
         else
             writeValue = juce::var (newValue);
 
-        if (nudgeNode.isValid())
+        const bool isEffect = binding.channelArgName == "effect_id";
+        if (nudgeNode.isValid() && isEffect)
+            MCPEffect::writeSectionValue (state, nudgeNode, paramId, writeValue);
+        else if (nudgeNode.isValid())
             state.writeSubTreeProperty (nudgeNode, paramId, writeValue, state.getActiveUndoManager());
+        else if (isEffect && MCPEffect::isChannelParameter (paramId))
+            MCPEffect::writeChannelValue (state, channelIndex, paramId, writeValue);
         else
             state.setParameter (paramId, writeValue, channelIndex);
 
@@ -934,7 +1038,23 @@ namespace
                 // because the layer is baked into the name, and they are not
                 // stored properties at all - the OSC path has translated them
                 // to (layer N, gmLayerEnabled) by hand for years.
-                if (outBinding.internalVariable.startsWith ("samplerCell"))
+                if (outBinding.channelArgName == "effect_id" && propsObj->hasProperty ("effect_band"))
+                {
+                    outBinding.subTree      = ToolBinding::SubTree::EffectEqBand;
+                    outBinding.subIndexArgA = "instance";
+                    outBinding.subIndexArgB = "effect_band";
+                }
+                else if (outBinding.channelArgName == "effect_id" && propsObj->hasProperty ("instance"))
+                {
+                    outBinding.subTree      = ToolBinding::SubTree::EffectInstance;
+                    outBinding.subIndexArgA = "instance";
+                }
+                else if (outBinding.channelArgName == "effect_id" && propsObj->hasProperty ("tap"))
+                {
+                    outBinding.subTree      = ToolBinding::SubTree::EffectTap;
+                    outBinding.subIndexArgA = "tap";
+                }
+                else if (outBinding.internalVariable.startsWith ("samplerCell"))
                 {
                     outBinding.subTree      = ToolBinding::SubTree::SamplerCell;
                     outBinding.subIndexArgA = "cell_id";
@@ -991,6 +1111,19 @@ namespace
                     if (enumVar.isArray())
                         for (const auto& e : *enumVar.getArray())
                             outBinding.enumValues.add (e.toString());
+
+                    // The value each label stores. Positional unless the CSV
+                    // declared ids, in which case the manifest carries the map
+                    // (the registry reads the same map, MCPParameterRegistry).
+                    const auto map = toolObj.getProperty ("enum_string_to_int");
+                    for (int i = 0; i < outBinding.enumValues.size(); ++i)
+                    {
+                        const auto v = map.isObject() ? map.getDynamicObject()->getProperty (
+                                                            juce::Identifier (outBinding.enumValues[i]))
+                                                      : juce::var();
+                        outBinding.enumIntValues.add (v.isInt() || v.isInt64() || v.isDouble()
+                                                        ? static_cast<int> (v) : i);
+                    }
 
                     // Pick up the JSON-Schema type so dispatchGenericSet can
                     // write int vs double correctly. Without this, the AI
@@ -1115,7 +1248,8 @@ LoadStats loadGeneratedTools (MCPToolRegistry& registry,
         const bool isChannelCount =
                binding.internalVariable == WFSParameterIDs::inputChannels.toString()
             || binding.internalVariable == WFSParameterIDs::outputChannels.toString()
-            || binding.internalVariable == WFSParameterIDs::reverbChannels.toString();
+            || binding.internalVariable == WFSParameterIDs::reverbChannels.toString()
+            || binding.internalVariable == WFSParameterIDs::effectChannels.toString();
 
         if (binding.subTree != ToolBinding::SubTree::None)
             subTreeTools()[binding.name] = { binding, onSamplerChanged, onGradientMapChanged };
@@ -1294,8 +1428,11 @@ bool replaySubTreeWrite (WFSValueTreeState& state, const juce::String& toolName,
     for (int i = 0; i < props.size(); ++i)
     {
         const auto key = props.getName (i);
-        state.writeSubTreeProperty (node, key.toString() == binding.internalVariable ? property : key,
-                                    props.getValueAt (i), state.getActiveUndoManager());
+        const auto& target = key.toString() == binding.internalVariable ? property : key;
+        if (binding.channelArgName == "effect_id")
+            MCPEffect::writeSectionValue (state, node, target, props.getValueAt (i));
+        else
+            state.writeSubTreeProperty (node, target, props.getValueAt (i), state.getActiveUndoManager());
     }
 
     // The same hooks the write ran: SamplerManager and the gradient raster

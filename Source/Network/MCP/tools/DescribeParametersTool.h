@@ -25,6 +25,7 @@ inline juce::var buildSchema()
     scopeEnum.add ("output");
     scopeEnum.add ("reverb");
     scopeEnum.add ("cluster");
+    scopeEnum.add ("effect");
     scopeEnum.add ("eq_band");
     scope->setProperty ("enum", scopeEnum);
     scope->setProperty ("description",
@@ -42,6 +43,7 @@ inline juce::var buildSchema()
     juce::Array<juce::var> domainEnum;
     domainEnum.add ("wfs_synthesis");
     domainEnum.add ("reverb");
+    domainEnum.add ("effects");
     domainEnum.add ("binaural");
     domainEnum.add ("adm_osc");
     domainEnum.add ("floor_reflections");

@@ -18,6 +18,7 @@
 #include <JuceHeader.h>
 #include "../MCPCompat.h"
 #include "../MCPParameterRegistry.h"
+#include "../MCPEffectWrites.h"
 #include "../MCPGenericDispatch.h"
 #include "../../../Parameters/WFSValueTreeState.h"
 
@@ -186,6 +187,26 @@ inline ToolResult nudge (WFSValueTreeState& state,
         renamedArgs->setProperty ("input_id", displayId);
         dispatchArgs = juce::var (renamedArgs.release());
         binding.channelArgName = "input_id";
+    }
+
+    // Effects: dense ids, but the dispatcher routes and refuses by the arg
+    // name effect_id (MCPEffectWrites.h), and a per-module value needs the
+    // instance / band / tap only its own tool takes.
+    if (rec->scope == "effect")
+    {
+        if (! obj->hasProperty ("channel_id"))
+            return ToolResult::error ("invalid_args", "Missing required arg: channel_id (the effect number)");
+
+        const int effectId = static_cast<int> (obj->getProperty ("channel_id"));
+        const auto why = MCPEffect::refuseRegistryTarget (state, juce::Identifier (variable), effectId, rec->toolName);
+        if (why.isNotEmpty())
+            return ToolResult::error ("invalid_args", why);
+
+        auto renamedArgs = obj->clone();
+        renamedArgs->removeProperty ("channel_id");
+        renamedArgs->setProperty ("effect_id", effectId);
+        dispatchArgs = juce::var (renamedArgs.release());
+        binding.channelArgName = "effect_id";
     }
 
     return Generated::Detail::dispatchGenericNudge (state, binding, dispatchArgs, record);

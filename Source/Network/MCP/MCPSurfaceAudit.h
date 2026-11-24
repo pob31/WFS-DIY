@@ -60,7 +60,8 @@ inline bool isSubTreeRouted (const juce::DynamicObject* props, const juce::Strin
         return false;
 
     for (const char* sub : { "band", "layer", "shape", "cell_id",
-                             "set_id", "mapping", "axis", "target_id" })
+                             "set_id", "mapping", "axis", "target_id",
+                             "instance", "effect_band", "tap" })
         if (props->hasProperty (sub))
             return true;
 
@@ -134,7 +135,7 @@ inline Result run (const juce::var& manifest, WFSValueTreeState& state)
             if (auto* params = obj->getProperty ("parameters").getDynamicObject())
                 if ((props = params->getProperty ("properties").getDynamicObject()) != nullptr)
                     for (const char* candidate : { "input_id", "output_id",
-                                                   "reverb_id", "cluster_id" })
+                                                   "reverb_id", "cluster_id", "effect_id" })
                         if (props->hasProperty (candidate))
                             { channelArg = candidate; break; }
 
@@ -148,6 +149,7 @@ inline Result run (const juce::var& manifest, WFSValueTreeState& state)
                                  : channelArg == "input_id"  ? state.getNumInputChannels()
                                  : channelArg == "output_id" ? state.getNumOutputChannels()
                                  : channelArg == "reverb_id" ? state.getNumReverbChannels()
+                                 : channelArg == "effect_id" ? state.getNumEffectChannels()
                                                              : WFSParameterDefaults::maxClusters;
             if (liveOfKind <= 0)
             {

@@ -43,5 +43,10 @@
   "trackingPort": 3,
 
   "binauralEnabled": 2,
-  "binauralOutputChannel": 2
+  "binauralOutputChannel": 2,
+
+  "effectAttenuation": 2,
+  "effectDelayLatency": 2,
+  "effectArrayAtten*": 2,
+  "effectChannels": 3
 }

@@ -1096,6 +1096,13 @@ MainComponent::MainComponent()
         handleChannelCountChange();
     });
 
+    // effect_clear: the Effects tab's Clear and /wfs/effect/clear, over MCP.
+    mcpServer->setEffectClearCallback ([this] (int effectIndexOrMinusOne)
+    {
+        if (effectsHost != nullptr)
+            effectsHost->requestClear (effectIndexOrMinusOne);
+    });
+
     // Automation hook (control-replay harnesses): WFS_MCP_AI_ENABLED=1 in the
     // environment flips the MCP AI master toggle on at startup — the exact
     // equivalent of the operator clicking the Network-tab "AI" button. MCP
@@ -6019,6 +6026,15 @@ void MainComponent::runMcpSurfaceSelfTest()
         logLine ("SELF-TEST FAIL M: manifest is not a JSON object");
         logLine ("SELF-TEST RESULT: FAIL");
         return;
+    }
+
+    // A session with no effect channels would leave every effect_* tool
+    // unjudged (skippedNoChannel): give it one, as the plan for the effects
+    // codegen asks (effects-channels-plan.md section 7.4).
+    if (vts.getNumEffectChannels() == 0)
+    {
+        vts.setNumEffectChannels (1);
+        logLine ("SELF-TEST M: created 1 effect channel so the effect tools are judged");
     }
 
     // The audit itself lives in MCPSurfaceAudit.h, shared with the startup

@@ -99,6 +99,46 @@
     {
       "variable": "inputMuteMacro",
       "reason": "Action trigger, not stored state. The macro is applied by InputsTab::applyMuteMacro and the selector resets immediately; the parameter write records which macro ran and is read by nobody (it is not stamped on <Mutes>, so even the GUI's own write is dropped). Applying a macro has no non-GUI implementation, so a tool here would set a number and change no mutes."
+    },
+    {
+      "variable": "effectSolo",
+      "reason": "Transient monitoring state, not persisted (the GUI's long-press)"
+    },
+    {
+      "variable": "effectSendLevel",
+      "reason": "Send cell: input_set_effect_send_level (hand-written) addresses it"
+    },
+    {
+      "variable": "effectSendOn",
+      "reason": "Send cell: input_set_effect_send_on (hand-written) addresses it"
+    },
+    {
+      "variable": "effectFxSendLevel",
+      "reason": "Send cell: effect_set_fx_send_level (hand-written) addresses it"
+    },
+    {
+      "variable": "effectFxSendOn",
+      "reason": "Send cell: effect_set_fx_send_on (hand-written) addresses it"
+    },
+    {
+      "variable": "effectSendLevels",
+      "reason": "Packed send row; the cell tools write it column by input number"
+    },
+    {
+      "variable": "effectSendOns",
+      "reason": "Packed send row; the cell tools write it column by input number"
+    },
+    {
+      "variable": "effectFxSendLevels",
+      "reason": "Packed send row; the fx cell tools write it"
+    },
+    {
+      "variable": "effectFxSendOns",
+      "reason": "Packed send row; the fx cell tools write it"
+    },
+    {
+      "variable": "effectChainOrder",
+      "reason": "Packed order row; effect_set_chain_order (hand-written) validates the permutation"
     }
   ]
 }

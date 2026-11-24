@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "../MCPCompat.h"
 #include "../MCPParameterRegistry.h"
+#include "../MCPEffectWrites.h"
 #include "../MCPParameterValidation.h"
 #include "../../OSCParameterBounds.h"
 #include "../../../Parameters/WFSValueTreeState.h"
@@ -190,7 +191,8 @@ namespace detail
                 bandTree.setProperty (paramId, w.value, state.getActiveUndoManager());
             return;
         }
-        state.setParameter (paramId, w.value, w.channelIndex);
+        // Effect values the OSC way (reverb presets, Custom flip).
+        MCPEffect::routeWrite (state, paramId, w.value, w.channelIndex);
     }
 } // namespace detail
 
@@ -283,6 +285,17 @@ inline ToolResult batch (WFSValueTreeState& state, const juce::var& args, Change
                             "channel_id is not a live input channel: "
                             + juce::String (w.displayId));
                 }
+                else if (rec->scope == "effect")
+                {
+                    const auto why = MCPEffect::refuseRegistryTarget (state, juce::Identifier (w.variable),
+                                                                      w.displayId, rec->toolName);
+                    if (why.isNotEmpty())
+                        return fail ("invalid_args", i, why);
+                }
+        }
+        else if (const auto* rec = reg.findByVariable (w.variable); rec != nullptr && rec->scope == "effect")
+        {
+            return fail ("invalid_args", i, "missing channel_id (the effect number) for '" + w.variable + "'");
         }
         w.eqFamily = classifyEq (w.variable);
         if (entryObj->hasProperty ("band"))

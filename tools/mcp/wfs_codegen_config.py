@@ -20,6 +20,7 @@ CSV_NAMESPACE = {
     "WFS-UI_network.csv":    "network",
     "WFS-UI_config.csv":     "system",
     "WFS-UI_audioPatch.csv": "audio",
+    "WFS-UI_effects.csv":    "effect",
 }
 
 # OSC-path convention for the 12-column CSVs that don't carry an explicit path.
@@ -38,6 +39,9 @@ VARIABLE_PREFIXES = {
                             "admOsc", "findDevice"],
     "WFS-UI_config.csv":   [],  # variable names are PascalCase here
     "WFS-UI_audioPatch.csv": ["sampler"],
+    # Longest first: effectsGlobal* and effectsMapVisible must not be cut at
+    # "effect" (that leaves "sMapVisible").
+    "WFS-UI_effects.csv":    ["effectsGlobal", "effects", "effect"],
 }
 
 # Common abbreviations expanded for human-readable tool names.
@@ -109,6 +113,10 @@ ABBREVIATIONS = [
     ("Phi",         "phi"),
     ("Theta",       "theta"),
     ("DSP",         "dsp"),
+    ("ERProfile",   "er_profile"),
+    ("ERLevel",     "er_level"),
+    ("RT60LowMult", "rt60_low_mult"),
+    ("RT60HighMult", "rt60_high_mult"),
 ]
 
 # Common word fragments to expand once the snake_case form is built.
@@ -188,6 +196,14 @@ DOMAIN_VARIABLE_OVERRIDES = {
     "inputChannels":          ["wfs_synthesis", "routing"],
     "outputChannels":         ["wfs_synthesis", "routing"],
     "reverbChannels":         ["reverb", "routing"],
+    "effectChannels":         ["effects", "routing"],
+
+    # Effects channels: names, the map toggle and the routing rows.
+    "effectName":             ["metadata"],
+    "effectsMapVisible":      ["visualisation_only"],
+    "effectMutes":            ["effects", "routing"],
+    "effectMuteMacro":        ["effects", "routing"],
+    "effectMuteReverbSends":  ["effects", "routing"],
 
     # Cluster reference / plane selectors — wfs_synthesis (transforms
     # apply through these).
@@ -238,6 +254,9 @@ DOMAIN_BY_SECTION_KEYWORD = [
 
     # audio.csv: patching / test signals
     ("audio", "",                  ["routing"]),
+
+    # effects.csv: every section changes what the effect returns render
+    ("effect", "",                 ["effects"]),
 ]
 
 # Per-CSV fallback when no section keyword matches.
@@ -249,6 +268,7 @@ DOMAIN_DEFAULT_BY_CSV = {
     "WFS-UI_network.csv":    ["network"],
     "WFS-UI_config.csv":     ["metadata"],
     "WFS-UI_audioPatch.csv": ["routing"],
+    "WFS-UI_effects.csv":    ["effects"],
 }
 
 # UI-control vocabulary that disqualifies a row from becoming a tool.
@@ -285,6 +305,9 @@ CHANNEL_ID_RANGE = {
                            "Reverb channel number (1-based)."),
     "WFS-UI_clusters.csv": ("cluster_id", 1, 10,
                             "Clusters channel number (1-based)."),
+    "WFS-UI_effects.csv": ("effect_id", 1, 32,
+                           "Effects channel number (1-based, dense like reverbs). "
+                           "Must be a LIVE effect: session_get_state lists them."),
 }
 
 # Placeholder marking per-band rows in the Variable cell, and the schema
@@ -304,6 +327,14 @@ BAND_ARG = {
 FAMILY_ARG_RULES = [
     {
         "csv_file": "WFS-UI_input.csv",
+        "stem_suffix": "atten",
+        "name": "array",
+        "min": 1,
+        "max": 10,
+        "description": "Output array number (1-10).",
+    },
+    {
+        "csv_file": "WFS-UI_effects.csv",
         "stem_suffix": "atten",
         "name": "array",
         "min": 1,
@@ -451,6 +482,49 @@ SUB_INDEX_RULES = [
                             "Network tab."},
         ],
     },
+    # --- Effects: the two EQ and the two dynamics modules ------------------
+    # A chain holds two of each (eq1/eq2, dyn1/dyn2) carrying the SAME property
+    # names, so the instance has to come in as an argument. Never call the band
+    # argument `band`: the loader reads that name as the OUTPUT EQ.
+    {
+        "csv_file": "WFS-UI_effects.csv",
+        "variables": [
+            "effectEQBypass",
+            "effectDynBypass", "effectDynDetector", "effectDynLookahead",
+            "effectDynMakeup", "effectDynAutoMakeup",
+            "effectDynCompOn", "effectDynCompThreshold", "effectDynCompRatio",
+            "effectDynCompKnee", "effectDynCompAttack", "effectDynCompRelease",
+            "effectDynCompDetectorDelay", "effectDynCompScLoCut", "effectDynCompScHiCut",
+            "effectDynExpOn", "effectDynExpThreshold", "effectDynExpRatio",
+            "effectDynExpAttack", "effectDynExpRelease", "effectDynExpRange",
+            "effectDynExpHold", "effectDynExpScLoCut", "effectDynExpScHiCut",
+        ],
+        "args": [
+            {"name": "instance", "min": 1, "max": 2,
+             "description": "Which of the chain's two modules of this kind: 1 "
+                            "(eq1 / dyn1) or 2 (eq2 / dyn2)."},
+        ],
+    },
+    {
+        "csv_file": "WFS-UI_effects.csv",
+        "variables": ["effectEQshape", "effectEQfreq", "effectEQgain",
+                      "effectEQq", "effectEQslope"],
+        "args": [
+            {"name": "instance", "min": 1, "max": 2,
+             "description": "Which of the chain's two EQ modules: 1 (eq1) or 2 (eq2)."},
+            {"name": "effect_band", "min": 1, "max": 6,
+             "description": "EQ band number (1-6)."},
+        ],
+    },
+    {
+        "csv_file": "WFS-UI_effects.csv",
+        "variables": ["effectDelayTapTime", "effectDelayTapLevel"],
+        "args": [
+            {"name": "tap", "min": 1, "max": 8,
+             "description": "Delay tap number (1-8). Only the first effectDelayTaps "
+                            "taps sound."},
+        ],
+    },
 ]
 
 # Rows that sit in a per-channel CSV for editorial reasons but describe ONE
@@ -461,6 +535,19 @@ GLOBAL_ROWS_IN_CHANNEL_CSVS = [
     {
         "csv_file": "WFS-UI_reverb.csv",
         "variables": ["reverbsMapVisible"],
+    },
+    # The Effects tab's header toggle, the I/O count and the nine Settings
+    # globals sit in the effects CSV but are one value each, on <Config>.
+    {
+        "csv_file": "WFS-UI_effects.csv",
+        "variables": [
+            "effectsMapVisible", "effectChannels",
+            "effectsGlobalLinkNames", "effectsGlobalLinkMode",
+            "effectsGlobalFxFeedGeometric", "effectsGlobalWorkerThreads",
+            "effectsGlobalReturnCushion", "effectsGlobalLoopGuard",
+            "effectsGlobalLoopGuardCeiling", "effectsGlobalMaxDelaySeconds",
+            "effectsGlobalFeedGpuDevice",
+        ],
     },
 ]
 
@@ -492,6 +579,7 @@ CSV_FILES_ORDER = [
     "WFS-UI_clusters.csv",
     "WFS-UI_network.csv",
     "WFS-UI_audioPatch.csv",
+    "WFS-UI_effects.csv",   # last: keeps the hash order of the others
 ]
 
 DEFAULT_CSV_DIR = "Documentation"

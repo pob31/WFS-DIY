@@ -1,6 +1,7 @@
 #include "MCPUndoEngine.h"
 #include "MCPParameterRegistry.h"
 #include "MCPGenericDispatch.h"
+#include "MCPEffectWrites.h"
 #include "../OSCProtocolTypes.h"
 #include "../../Parameters/WFSValueTreeState.h"
 #include <optional>
@@ -668,6 +669,20 @@ juce::String MCPUndoEngine::writePayloadHere (const ChangeRecord& record,
 
             if (bandIndex >= 0 && channelIndex >= 0)
                 state.setOutputEQBandParameterWithArrayPropagation (channelIndex, bandIndex, paramId, value);
+            else if (MCPEffect::isChannelParameter (paramId))
+            {
+                // The route the write took (MCPEffectWrites.h): undoing a
+                // reverb type re-expands the preset it names, rather than
+                // putting the id back over the other preset's values.
+                if (! MCPEffect::isLive (state, channelIndex))
+                    return "Effect channel " + juce::String (channelIndex + 1) + " is no longer live";
+                MCPEffect::writeChannelValue (state, channelIndex, paramId, value);
+            }
+            else if (MCPEffect::isGlobalParameter (paramId))
+            {
+                WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Effects);
+                state.setParameter (paramId, value, channelIndex);
+            }
             else
                 state.setParameter (paramId, value, channelIndex);
         }

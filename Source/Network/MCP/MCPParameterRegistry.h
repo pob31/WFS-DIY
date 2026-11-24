@@ -30,7 +30,7 @@ struct ParameterRegistryRecord
     juce::String     toolName;       // generated tool that writes this param
     juce::String     toolIndexArg;   // for a member of a family tool: the argument that picks it ("array")
     int              toolIndex = 0;  // ... and this member's value for it (3 for inputArrayAtten3)
-    juce::String     scope;          // "global" / "input" / "output" / "reverb" / "cluster" / "eq_band"
+    juce::String     scope;          // "global" / "input" / "output" / "reverb" / "cluster" / "effect" / "eq_band"
     juce::String     type;           // JSON-Schema "integer" / "number" / "string"
     std::optional<double> minValue;
     std::optional<double> maxValue;

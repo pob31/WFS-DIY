@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "../MCPCompat.h"
 #include "../MCPParameterRegistry.h"
+#include "../MCPEffectWrites.h"
 #include "../../../Parameters/WFSValueTreeState.h"
 #include "../../../Parameters/WFSParameterIDs.h"
 
@@ -124,6 +125,21 @@ namespace detail
             {
                 maxChannels = 10;  // cluster count is fixed at 10 by design
                 scopeForMessage = "cluster";
+            }
+            else if (rec->scope == "effect")
+            {
+                // A value that exists per EQ/dynamics module, band or tap would
+                // read whichever node comes first - module 1, band 1, tap 1 -
+                // whatever the caller meant. effect_get reads those properly.
+                if (MCPEffect::needsSubIndex (juce::Identifier (out.value.variable)))
+                {
+                    out.errorCode    = "invalid_args";
+                    out.errorMessage = "'" + out.value.variable + "' exists once per EQ/dynamics module, "
+                                       "band or delay tap; read it with effect_get instead";
+                    return out;
+                }
+                maxChannels = state.getNumEffectChannels();
+                scopeForMessage = "effect";
             }
 
             if (maxChannels >= 0)
