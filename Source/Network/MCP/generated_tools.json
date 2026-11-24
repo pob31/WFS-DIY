@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "input_hash": "2e086c1a8aec994ac76718a818bba8ba61394012ae21e3ad98fdc3fdae884358",
+  "input_hash": "2d2382f86c5e2898c8e8851e972d3cb9044e3d05b48f7cf2465d02f7b0218f9b",
   "source_csvs": [
     "WFS-UI_config.csv",
     "WFS-UI_input.csv",
@@ -8490,6 +8490,45 @@
       "internal_variable": "inputOtomoAbsoluteRelative"
     },
     {
+      "name": "input_automotion_set_otomo_coordinate_mode",
+      "description": "How the AutomOtion destination is given: Cartesian (X/Y/Z), Cylindrical (radius, azimuth, height) or Spherical (radius, azimuth, elevation). In the polar modes the movement follows an arc around the origin, so a whole turn is possible. Enum: Cartesian ; Cylindrical ; Spherical. Use `session_get_state()` first if unsure which channels exist.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "input_id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 64,
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "Cartesian",
+              "Cylindrical",
+              "Spherical"
+            ],
+            "description": "Destination Coordinates (enum).",
+            "default": "Cartesian"
+          }
+        },
+        "required": [
+          "input_id",
+          "mode"
+        ]
+      },
+      "tier": 1,
+      "csv_section": "AutomOtion",
+      "group_key": "input_automotion",
+      "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
+      "internal_osc_path": "/wfs/input/otomoCoordinateMode",
+      "internal_variable": "inputOtomoCoordinateMode",
+      "value_arg_name": "mode"
+    },
+    {
       "name": "input_automotion_set_otomo_curve",
       "description": "Bend the Path to the Left (Negative) or Right (Positive) of the Direction of Travel. Value in %. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
@@ -11190,6 +11229,43 @@
       "relative_tool_name": "input_live_source_tamer_nudge_live_source_attenuation"
     },
     {
+      "name": "input_live_source_tamer_set_live_source_peak_enable",
+      "description": "Switch the Live Source Tamer fast (peak) compressor on or off for this input. Its threshold and ratio do nothing while it is off. Enum: OFF ; ON. Use `session_get_state()` first if unsure which channels exist.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "input_id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 64,
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
+          },
+          "value": {
+            "type": "string",
+            "enum": [
+              "OFF",
+              "ON"
+            ],
+            "description": "Peak Compressor (enum).",
+            "default": "OFF"
+          }
+        },
+        "required": [
+          "input_id",
+          "value"
+        ]
+      },
+      "tier": 1,
+      "csv_section": "Live Source Tamer",
+      "group_key": "input_live_source_tamer",
+      "supports_relative": false,
+      "domains": [
+        "live_source"
+      ],
+      "internal_osc_path": "/wfs/input/LSpeakEnable",
+      "internal_variable": "inputLSpeakEnable"
+    },
+    {
       "name": "input_live_source_tamer_set_live_source_peak_ratio",
       "description": "Ratio to Apply the the Fast Compression for Speakers Around the Object to Control Transients. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
@@ -11336,6 +11412,43 @@
       "internal_osc_path": "/wfs/input/LSshape",
       "internal_variable": "inputLSshape",
       "value_arg_name": "shape"
+    },
+    {
+      "name": "input_live_source_tamer_set_live_source_slow_enable",
+      "description": "Switch the Live Source Tamer slow (sustained level) compressor on or off for this input. Its threshold and ratio do nothing while it is off. Enum: OFF ; ON. Use `session_get_state()` first if unsure which channels exist.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "input_id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 64,
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
+          },
+          "value": {
+            "type": "string",
+            "enum": [
+              "OFF",
+              "ON"
+            ],
+            "description": "Slow Compressor (enum).",
+            "default": "OFF"
+          }
+        },
+        "required": [
+          "input_id",
+          "value"
+        ]
+      },
+      "tier": 1,
+      "csv_section": "Live Source Tamer",
+      "group_key": "input_live_source_tamer",
+      "supports_relative": false,
+      "domains": [
+        "live_source"
+      ],
+      "internal_osc_path": "/wfs/input/LSslowEnable",
+      "internal_variable": "inputLSslowEnable"
     },
     {
       "name": "input_live_source_tamer_set_live_source_slow_ratio",
@@ -11518,6 +11631,41 @@
       ],
       "internal_osc_path": "/wfs/input/colour",
       "internal_variable": "inputColour"
+    },
+    {
+      "name": "input_position_set_adm_mapping",
+      "description": "Which ADM-OSC mapping converts this input's position on the way in and out: -1 none, 0-3 the Cartesian mappings 1-4, 4-7 the Polar mappings 1-4 (edited with the network_adm_osc_* tools). Use `session_get_state()` first if unsure which channels exist.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "input_id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 64,
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
+          },
+          "value": {
+            "type": "integer",
+            "minimum": -1,
+            "maximum": 7,
+            "description": "ADM-OSC Mapping.",
+            "default": -1
+          }
+        },
+        "required": [
+          "input_id",
+          "value"
+        ]
+      },
+      "tier": 1,
+      "csv_section": "Position",
+      "group_key": "input_position",
+      "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
+      "internal_osc_path": "",
+      "internal_variable": "inputAdmMapping"
     },
     {
       "name": "input_position_set_constraint_distance",
@@ -18649,6 +18797,59 @@
       "internal_variable": "binauralEnabled"
     },
     {
+      "name": "system_binaural_renderer_set_binaural_head_radius",
+      "description": "Structural HRTF: the listener's head radius in metres (0.06-0.12; 0.0875 is an average adult). Value in m.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number",
+            "minimum": 0.06,
+            "maximum": 0.12,
+            "description": "Head Radius m.",
+            "default": 0.0875
+          }
+        },
+        "required": [
+          "value"
+        ]
+      },
+      "tier": 1,
+      "csv_section": "Binaural Renderer",
+      "group_key": "system_binaural_renderer",
+      "supports_relative": false,
+      "domains": [
+        "binaural"
+      ],
+      "internal_osc_path": "/wfs/config/binauralHeadRadius",
+      "internal_variable": "binauralHeadRadius"
+    },
+    {
+      "name": "system_binaural_renderer_set_binaural_head_tracker_source",
+      "description": "HRTF modes: what turns the head. \"manual\" uses Head Yaw/Pitch/Roll; \"camera:0\" the webcam tracker; \"usb:<id>\" a connected head-tracker dongle. An absent device falls back to manual.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "description": "Head Tracker."
+          }
+        },
+        "required": [
+          "value"
+        ]
+      },
+      "tier": 1,
+      "csv_section": "Binaural Renderer",
+      "group_key": "system_binaural_renderer",
+      "supports_relative": false,
+      "domains": [
+        "binaural"
+      ],
+      "internal_osc_path": "/wfs/config/binauralHeadTrackerSource",
+      "internal_variable": "binauralHeadTrackerSource"
+    },
+    {
       "name": "system_binaural_renderer_set_binaural_listener_angle",
       "description": "Where the binaural listener SITS, as a bearing on a circle around the stage origin (degrees, 0 = the audience side, straight in front of the stage; positive = counter-clockwise viewed from above, matching the inputRotation / outputOrientation convention). The listener always faces the origin, so this does NOT turn the head - it moves the seat, changing the distance to every source and therefore how loud each one is. To turn the head use binauralListenerYaw. Whole degrees, range -180 to 180. Value in degrees.",
       "parameters": {
@@ -18705,6 +18906,146 @@
       "internal_variable": "binauralListenerDistance"
     },
     {
+      "name": "system_binaural_renderer_set_binaural_listener_height",
+      "description": "HRTF modes: the listener's ear height above the floor, in metres. Value in m.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number",
+            "minimum": 0.5,
+            "maximum": 3.0,
+            "description": "Ear Height m.",
+            "default": 1.5
+          }
+        },
+        "required": [
+          "value"
+        ]
+      },
+      "tier": 1,
+      "csv_section": "Binaural Renderer",
+      "group_key": "system_binaural_renderer",
+      "supports_relative": false,
+      "domains": [
+        "binaural"
+      ],
+      "internal_osc_path": "/wfs/config/binauralListenerHeight",
+      "internal_variable": "binauralListenerHeight"
+    },
+    {
+      "name": "system_binaural_renderer_set_binaural_listener_pitch",
+      "description": "HRTF modes: tilt the listener's head up (positive) or down, in degrees. Value in degrees.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number",
+            "minimum": -89.0,
+            "maximum": 89.0,
+            "description": "Head Pitch degrees.",
+            "default": 0.0
+          }
+        },
+        "required": [
+          "value"
+        ]
+      },
+      "tier": 1,
+      "csv_section": "Binaural Renderer",
+      "group_key": "system_binaural_renderer",
+      "supports_relative": false,
+      "domains": [
+        "binaural"
+      ],
+      "internal_osc_path": "/wfs/config/binauralListenerPitch",
+      "internal_variable": "binauralListenerPitch"
+    },
+    {
+      "name": "system_binaural_renderer_set_binaural_listener_roll",
+      "description": "HRTF modes: tilt the listener's head sideways, in degrees. Value in degrees.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number",
+            "minimum": -90.0,
+            "maximum": 90.0,
+            "description": "Head Roll degrees.",
+            "default": 0.0
+          }
+        },
+        "required": [
+          "value"
+        ]
+      },
+      "tier": 1,
+      "csv_section": "Binaural Renderer",
+      "group_key": "system_binaural_renderer",
+      "supports_relative": false,
+      "domains": [
+        "binaural"
+      ],
+      "internal_osc_path": "/wfs/config/binauralListenerRoll",
+      "internal_variable": "binauralListenerRoll"
+    },
+    {
+      "name": "system_binaural_renderer_set_binaural_listener_x",
+      "description": "HRTF modes: move the listener sideways (metres along the ear axis) from the seat set by Distance and Orbit. Value in m.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number",
+            "minimum": -10.0,
+            "maximum": 10.0,
+            "description": "Listener X m.",
+            "default": 0.0
+          }
+        },
+        "required": [
+          "value"
+        ]
+      },
+      "tier": 1,
+      "csv_section": "Binaural Renderer",
+      "group_key": "system_binaural_renderer",
+      "supports_relative": false,
+      "domains": [
+        "binaural"
+      ],
+      "internal_osc_path": "/wfs/config/binauralListenerX",
+      "internal_variable": "binauralListenerX"
+    },
+    {
+      "name": "system_binaural_renderer_set_binaural_listener_yaw",
+      "description": "HRTF modes: turn the listener's head (degrees, offset from facing the stage origin; positive = counter-clockwise from above). Value in degrees.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number",
+            "minimum": -180.0,
+            "maximum": 180.0,
+            "description": "Head Yaw degrees.",
+            "default": 0.0
+          }
+        },
+        "required": [
+          "value"
+        ]
+      },
+      "tier": 1,
+      "csv_section": "Binaural Renderer",
+      "group_key": "system_binaural_renderer",
+      "supports_relative": false,
+      "domains": [
+        "binaural"
+      ],
+      "internal_osc_path": "/wfs/config/binauralListenerYaw",
+      "internal_variable": "binauralListenerYaw"
+    },
+    {
       "name": "system_binaural_renderer_set_binaural_output_channel",
       "description": "Select output channel pair for binaural monitoring. Off disables binaural output. Enum: Select... ; 1-2 ; 3-4 ; 5-6 ; ... ; 63-64. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
@@ -18742,6 +19083,63 @@
       "internal_variable": "binauralOutputChannel"
     },
     {
+      "name": "system_binaural_renderer_set_binaural_render_mode",
+      "description": "How the headphone (binaural) mix is rendered: ORTF (two virtual speakers), Structural HRTF (a modelled head, sized by binauralHeadRadius) or SOFA (measured head responses from binauralSofaFile). Enum: ORTF ; Structural HRTF ; SOFA.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "ORTF",
+              "StructuralHRTF",
+              "SOFA"
+            ],
+            "description": "Render Mode (enum).",
+            "default": "ORTF"
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "tier": 1,
+      "csv_section": "Binaural Renderer",
+      "group_key": "system_binaural_renderer",
+      "supports_relative": false,
+      "domains": [
+        "binaural"
+      ],
+      "internal_osc_path": "/wfs/config/binauralRenderMode",
+      "internal_variable": "binauralRenderMode",
+      "value_arg_name": "mode"
+    },
+    {
+      "name": "system_binaural_renderer_set_binaural_sofa_file",
+      "description": "The SOFA file used in SOFA mode: a file name inside the project's sofa folder. Empty uses the built-in SADIE II KU100 set.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "description": "SOFA File."
+          }
+        },
+        "required": [
+          "value"
+        ]
+      },
+      "tier": 1,
+      "csv_section": "Binaural Renderer",
+      "group_key": "system_binaural_renderer",
+      "supports_relative": false,
+      "domains": [
+        "binaural"
+      ],
+      "internal_osc_path": "/wfs/config/binauralSofaFile",
+      "internal_variable": "binauralSofaFile"
+    },
+    {
       "name": "system_binaural_renderer_set_binaural_solo_mode",
       "description": "Single: one input at a time. Multi: multiple inputs simultaneously. Enum: Solo: Single ; Solo: Multi. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
@@ -18775,6 +19173,36 @@
       "internal_osc_path": "/wfs/config/binauralSoloMode",
       "internal_variable": "binauralSoloMode",
       "value_arg_name": "mode"
+    },
+    {
+      "name": "system_controllers_set_remote_pad_grid_layout",
+      "description": "Grid of the Remote (tablet) sampler pad: 3x2 or 5x3 zones. Enum: 3x2 ; 5x3.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "enum": [
+              "3x2",
+              "5x3"
+            ],
+            "description": "Remote Pad Layout (enum).",
+            "default": "3x2"
+          }
+        },
+        "required": [
+          "value"
+        ]
+      },
+      "tier": 1,
+      "csv_section": "Controllers",
+      "group_key": "system_controllers",
+      "supports_relative": false,
+      "domains": [
+        "routing"
+      ],
+      "internal_osc_path": "/wfs/config/RemotePadGridLayout",
+      "internal_variable": "RemotePadGridLayout"
     },
     {
       "name": "system_controllers_set_sampler_controller_mode",

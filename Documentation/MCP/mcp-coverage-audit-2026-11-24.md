@@ -173,6 +173,20 @@ longer generated; `session_get_global_state` reports the live IPv4 addresses. Ga
 
 ## Group 2 - parameters missing from the CSVs (a row and a regeneration)
 
+**Status: fixed (2026-11-24, branch `mcp/coverage-gaps`), two left out on purpose.** New CSV rows:
+`inputLSpeakEnable` / `inputLSslowEnable`, `inputOtomoCoordinateMode`, `inputAdmMapping` (-1..7), the
+nine binaural HRTF settings and `RemotePadGridLayout`. The binaural settings and the pad layout were
+also missing from the schema templates, so a session that had never opened the System Config section
+could not be written at all; they are stamped now (`createBinauralSection`, `createUISection`, and the
+stray migration moves an old `<IO>` copy of the pad layout). A Remote pad layout written over MCP
+resends the pad configuration; a SOFA file must be a name in the project's `sofa/` folder.
+`input_sampler_set_pad_zone` (hand-written: one input per zone, the Lightpad manager and the Remote pad
+follow). Left out:
+- **GPU pipeline depth** - an engine setting read when processing starts, beside the algorithm choice,
+  which stays with the operator (see Decisions).
+- **Per-input binaural solo** - transient monitoring state, like `effectSolo` (ignored for the same
+  reason) and never in snapshots.
+
 ### Live Source Tamer peak/slow compressor enables missing
 
 *High impact - parameter - area: inputs-core*

@@ -915,6 +915,93 @@ inline ToolDescriptor describeSamplerSetCells (WFSValueTreeState& state,
     return d;
 }
 
+/** Which Lightpad / Remote pad zone plays an input (lightpadZoneId on its
+    <Channel>), as the Sampler sub-tab's zone picker. A zone has one owner:
+    giving it to this input takes it from the input that held it, which the
+    result names. The app then re-assigns the Lightpad manager and resends the
+    Remote pad configuration (onPadZoneChanged). */
+inline ToolDescriptor describeSamplerPadZone (WFSValueTreeState& state,
+                                              const std::function<void (int, int)>* onPadZoneChanged)
+{
+    ToolDescriptor d;
+    d.name        = "input_sampler_set_pad_zone";
+    d.description = "Choose which sampler pad zone plays this input, as the Sampler tab's Lightpad / Remote "
+                    "zone picker: zone -1 unassigns it. Lightpad zones are 0-11 (pad x 4 + quadrant); "
+                    "Remote pad zones are 0-5 on the 3x2 grid or 0-14 on the 5x3 grid, read in rows. A "
+                    "zone belongs to one input: taking one already in use frees it from the other input "
+                    "(reported as taken_from). Not undoable: set it again instead.";
+    auto props = std::make_unique<juce::DynamicObject>();
+    props->setProperty ("input_id", Args::integerArg ("Permanent number of the input channel.", 1,
+                                                      WFSParameterDefaults::maxInputChannels));
+    props->setProperty ("zone", Args::integerArg ("Zone index, or -1 to unassign.", -1, 14));
+    d.inputSchema   = Args::schemaOf (std::move (props), { "input_id", "zone" });
+    d.modifiesState = true;
+    d.tier          = 1;
+    d.handler = [&state, onPadZoneChanged] (const juce::var& args, ChangeRecord* record) -> ToolResult
+    {
+        auto* obj = args.getDynamicObject();
+        if (obj == nullptr || Args::missing (*obj, "input_id") || Args::missing (*obj, "zone"))
+            return ToolResult::error ("invalid_args", "Missing required arg: input_id and zone");
+
+        juce::String code, message;
+        const auto number = Args::wholeNumber (obj->getProperty ("input_id"), "input_id", 1,
+                                               WFSParameterDefaults::maxInputChannels, code, message);
+        if (! number.has_value()) return ToolResult::error (code, message);
+
+        // The zone count follows the controller: Lightpad 12, Remote 6 or 15.
+        const int mode   = static_cast<int> (state.getParameter (WFSParameterIDs::samplerControllerMode, -1));
+        const int layout = static_cast<int> (state.getParameter (WFSParameterIDs::remotePadGridLayout, -1));
+        const int zones  = mode == 2 ? (layout == 1 ? 15 : 6) : 12;
+        const auto zone = Args::wholeNumber (obj->getProperty ("zone"), "zone", -1, zones - 1, code, message);
+        if (! zone.has_value())
+            return ToolResult::error (code, message + (mode == 2 ? " (Remote pad)" : " (Lightpad)"));
+
+        state.markChannelNumbersUserOwned ("MCP sampler pad zone");
+        const int slot = state.getSlotForChannelNumber (*number);
+        if (slot < 0)
+            return ToolResult::error ("invalid_args", "input_id not a live channel: " + juce::String (*number));
+
+        auto inputs = state.getInputsState();
+        int takenFrom = 0;
+        if (*zone >= 0)
+            for (int other = 0; other < inputs.getNumChildren(); ++other)
+            {
+                if (other == slot)
+                    continue;
+                auto channel = inputs.getChild (other).getChildWithName (WFSParameterIDs::Channel);
+                if (channel.isValid() && static_cast<int> (channel.getProperty (WFSParameterIDs::lightpadZoneId, -1)) == *zone)
+                {
+                    channel.setProperty (WFSParameterIDs::lightpadZoneId, -1, nullptr);
+                    takenFrom = state.getInputChannelNumber (other);
+                }
+            }
+
+        const int before = static_cast<int> (state.getInputParameter (slot, WFSParameterIDs::lightpadZoneId));
+        state.setInputParameter (slot, WFSParameterIDs::lightpadZoneId, *zone);
+
+        if (record != nullptr)
+        {
+            record->operatorDescription = "Gave sampler pad zone " + juce::String (*zone) + " to input "
+                                        + juce::String (*number) + " (was " + juce::String (before) + ")"
+                                        + (takenFrom > 0 ? ", taken from input " + juce::String (takenFrom) : juce::String())
+                                        + " (not undoable)";
+            record->affectedParameters.add (WFSParameterIDs::lightpadZoneId.toString());
+            record->affectedGroups.push_back ({ *number, juce::String ("Sampler") });
+            record->undoable = false;
+        }
+        if (onPadZoneChanged != nullptr && *onPadZoneChanged)
+            (*onPadZoneChanged) (slot, *zone);
+
+        auto result = std::make_unique<juce::DynamicObject>();
+        result->setProperty ("input_id", *number);
+        result->setProperty ("zone", *zone);
+        if (takenFrom > 0)
+            result->setProperty ("taken_from", takenFrom);
+        return ToolResult::ok (juce::var (result.release()));
+    };
+    return d;
+}
+
 //==============================================================================
 // Input ORDER and NUMBERS
 //

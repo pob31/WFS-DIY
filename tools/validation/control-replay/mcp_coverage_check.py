@@ -360,6 +360,35 @@ def check_group1(c: Checker) -> None:
     c.expect("live IPv4 listed", isinstance(g.get("local_ipv4_addresses"), list), list(g)[:6])
 
 
+def check_group2(c: Checker) -> None:
+    """Audit 2026-11-24 group 2: parameters that had no CSV row."""
+    c.ok("input_live_source_tamer_set_live_source_peak_enable", {"input_id": 1, "value": "ON"})
+    c.expect("LS peak enable", c.get("inputLSpeakEnable", 1) == 1, c.get("inputLSpeakEnable", 1))
+    c.ok("input_live_source_tamer_set_live_source_slow_enable", {"input_id": 1, "value": "ON"})
+    c.expect("LS slow enable", c.get("inputLSslowEnable", 1) == 1, c.get("inputLSslowEnable", 1))
+    c.ok("input_automotion_set_otomo_coordinate_mode", {"input_id": 1, "mode": "Cylindrical"})
+    c.expect("otomo coordinate mode", c.get("inputOtomoCoordinateMode", 1) == 1, c.get("inputOtomoCoordinateMode", 1))
+    c.ok("input_position_set_adm_mapping", {"input_id": 1, "value": 5})
+    c.expect("ADM mapping", c.get("inputAdmMapping", 1) == 5, c.get("inputAdmMapping", 1))
+
+    c.ok("system_binaural_renderer_set_binaural_render_mode", {"mode": "SOFA"})
+    c.expect("binaural render mode", c.get("binauralRenderMode") == 2, c.get("binauralRenderMode"))
+    c.ok("system_binaural_renderer_set_binaural_listener_yaw", {"value": 30.0})
+    c.expect("binaural yaw", c.get("binauralListenerYaw") == 30.0, c.get("binauralListenerYaw"))
+    c.ok("system_binaural_renderer_set_binaural_head_tracker_source", {"value": "manual"})
+    c.refused("SOFA file must be a name", "system_binaural_renderer_set_binaural_sofa_file",
+              {"value": "../x.sofa"}, "not a file name")
+
+    # Group 1 left the controller on Remote.
+    c.ok("system_controllers_set_remote_pad_grid_layout", {"value": "5x3"})
+    c.expect("remote pad layout", c.get("RemotePadGridLayout") == 1, c.get("RemotePadGridLayout"))
+    z = c.ok("input_sampler_set_pad_zone", {"input_id": 1, "zone": 13})
+    c.expect("pad zone 13 on the 5x3 grid", z.get("zone") == 13, z)
+    z = c.ok("input_sampler_set_pad_zone", {"input_id": 2, "zone": 13})
+    c.expect("zone moves, naming its old owner", z.get("taken_from") == 1, z)
+    c.refused("zone past the grid", "input_sampler_set_pad_zone", {"input_id": 1, "zone": 15}, "zone")
+
+
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--exe", default=None)
@@ -382,7 +411,8 @@ def main() -> int:
                          ("effect lifecycle", check_effect_lifecycle),
                          ("input order", check_input_order),
                          ("map shapes", check_map_shapes),
-                         ("audit group 1", check_group1)]:
+                         ("audit group 1", check_group1),
+                         ("audit group 2", check_group2)]:
             print(f"[coverage] {name}")
             try:
                 fn(c)

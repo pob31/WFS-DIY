@@ -247,11 +247,12 @@ inline ToolResult validateInputMuteList (const juce::String& variable, const juc
     variable. */
 inline ToolResult validateProjectFileName (const juce::String& variable, const juce::var& value)
 {
-    const bool isIR = variable == "reverbIRfile";
-    if (! isIR && variable != "samplerCellFile")
+    const bool isIR   = variable == "reverbIRfile";
+    const bool isSofa = variable == "binauralSofaFile";
+    if (! isIR && ! isSofa && variable != "samplerCellFile")
         return ToolResult::ok ({});
 
-    const juce::String folder = isIR ? "ir/" : "samples/";
+    const juce::String folder = isIR ? "ir/" : isSofa ? "sofa/" : "samples/";
     if (! value.isString())
         return ToolResult::error ("invalid_args", variable + " takes a file name inside the project's "
                                                       + folder + " folder, as a string");

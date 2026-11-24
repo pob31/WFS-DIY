@@ -5782,7 +5782,7 @@ void WFSValueTreeState::migrateStrayConfigProperties()
         { trackingMqttTopic,      Tracking }, { trackingMqttTagIds,   Tracking },
         { trackingMqttJsonX,      Tracking }, { trackingMqttJsonY,    Tracking },
         { trackingMqttJsonZ,      Tracking }, { trackingMqttJsonQ,    Tracking },
-        { samplerControllerMode,  UI },
+        { samplerControllerMode,  UI },       { remotePadGridLayout,  UI },
     };
 
     for (const auto& stray : strays)
@@ -6120,6 +6120,19 @@ void WFSValueTreeState::createBinauralSection (juce::ValueTree& config)
     binaural.setProperty (binauralListenerAngle, binauralListenerAngleDefault, nullptr);
     binaural.setProperty (binauralAttenuation, binauralAttenuationDefault, nullptr);
     binaural.setProperty (binauralDelay, binauralDelayDefault, nullptr);
+    // The HRTF modes' settings. Written only by the System Config section's own
+    // setters until now, so a session that had never opened it had none of
+    // them, and every generic write (MCP, config OSC) found no node to land on.
+    // The values are the defaults the renderer already falls back to.
+    binaural.setProperty (binauralRenderMode, binauralRenderModeDefault, nullptr);
+    binaural.setProperty (binauralSofaFile, juce::String(), nullptr);
+    binaural.setProperty (binauralListenerX, binauralListenerXDefault, nullptr);
+    binaural.setProperty (binauralListenerHeight, binauralListenerHeightDefault, nullptr);
+    binaural.setProperty (binauralHeadRadius, binauralHeadRadiusDefault, nullptr);
+    binaural.setProperty (binauralListenerYaw, binauralListenerYawDefault, nullptr);
+    binaural.setProperty (binauralListenerPitch, binauralListenerPitchDefault, nullptr);
+    binaural.setProperty (binauralListenerRoll, binauralListenerRollDefault, nullptr);
+    binaural.setProperty (binauralHeadTrackerSource, "manual", nullptr);
     // (solo is per-channel: Channel.inputSolo — no csv here anymore)
     config.appendChild (binaural, nullptr);
 }
@@ -6144,6 +6157,7 @@ void WFSValueTreeState::createUISection (juce::ValueTree& config)
     ui.setProperty (lightpadPad2DeviceId, "", nullptr);
     ui.setProperty (lightpadSensitivity, lightpadSensitivityDefault, nullptr);
     ui.setProperty (samplerControllerMode, 0, nullptr);
+    ui.setProperty (remotePadGridLayout, remotePadGridLayoutDefault, nullptr);
     ui.setProperty (colorScheme, 0, nullptr);
     config.appendChild (ui, nullptr);
 }

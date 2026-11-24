@@ -16,6 +16,8 @@ All notable changes to WFS DIY are documented in this file, organized by release
 - **Gradient maps over MCP use real units**: a layer's white and black in dB or metres as in the editor, and shapes placed and sized in stage metres (they were limited to 0-1 and about 2 m).
 - **Sampler over MCP**: a set's cells can be chosen, and choosing the sampler controller switches the sampler on as the System Config selector does.
 - **All 16 cluster LFO preset slots can be renamed over MCP** (only 1-10 could, through a tool that claimed to name a cluster).
+- **More settings are reachable over MCP**: the Live Source Tamer peak and slow compressor switches (without them its thresholds and ratios did nothing), the AutomOtion destination mode (so polar movements work), each input's ADM-OSC mapping, the binaural renderer's HRTF settings (render mode, SOFA file, listener offset and ear height, head size, head turn and tracker), the Remote pad layout, and which pad zone plays an input.
+- **The binaural HRTF settings and the Remote pad layout are part of every session.** A project that had never had them set had no place to store them, so OSC and MCP writes to them were dropped; they now start at their defaults.
 - **EQ shapes set by name over MCP land on the shape named.** Choosing "LowCut" for an output or reverb EQ band wrote the band's OFF value and the other shapes landed on the wrong shape, because the label's position in the list was written instead of its value. Numbers sent for these shapes are now checked against the real shape values too.
 
 ## v1.0.0beta68 — 2026-11-22

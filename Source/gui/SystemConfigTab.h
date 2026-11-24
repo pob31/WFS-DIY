@@ -2723,6 +2723,19 @@ private:
         // Lightpad manager and the remote's pad configuration are applied. A
         // write by tree alone used to set the mode and nothing else, and a
         // reload then forced it back to Off because SamplerEnabled stayed false.
+        // The Remote pad layout written from MCP: resend the pad configuration
+        // to the tablet, as the layout overlay does.
+        if (property == WFSParameterIDs::remotePadGridLayout
+            && WFSNetwork::getCurrentOriginTag() == WFSNetwork::OriginTag::MCP)
+        {
+            juce::MessageManager::callAsync ([safe = juce::Component::SafePointer<SystemConfigTab> (this)]
+            {
+                if (safe != nullptr && safe->onSamplerControllerModeChanged
+                    && static_cast<int> (safe->parameters.getConfigParam ("SamplerControllerMode")) == 2)
+                    safe->onSamplerControllerModeChanged (2);
+            });
+        }
+
         if (property == WFSParameterIDs::samplerControllerMode
             && WFSNetwork::getCurrentOriginTag() == WFSNetwork::OriginTag::MCP)
         {

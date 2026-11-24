@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "input_hash": "2e086c1a8aec994ac76718a818bba8ba61394012ae21e3ad98fdc3fdae884358",
+  "input_hash": "2d2382f86c5e2898c8e8851e972d3cb9044e3d05b48f7cf2465d02f7b0218f9b",
   "groups": {
     "cluster_assigned_inputs": [
       "cluster_assigned_inputs_set_input_order",
@@ -270,6 +270,7 @@
     ],
     "input_automotion": [
       "input_automotion_set_otomo_absolute_relative",
+      "input_automotion_set_otomo_coordinate_mode",
       "input_automotion_set_otomo_curve",
       "input_automotion_set_otomo_duration",
       "input_automotion_set_otomo_pause_resume",
@@ -368,10 +369,12 @@
     "input_live_source_tamer": [
       "input_live_source_tamer_set_live_source_active",
       "input_live_source_tamer_set_live_source_attenuation",
+      "input_live_source_tamer_set_live_source_peak_enable",
       "input_live_source_tamer_set_live_source_peak_ratio",
       "input_live_source_tamer_set_live_source_peak_threshold",
       "input_live_source_tamer_set_live_source_radius",
       "input_live_source_tamer_set_live_source_shape",
+      "input_live_source_tamer_set_live_source_slow_enable",
       "input_live_source_tamer_set_live_source_slow_ratio",
       "input_live_source_tamer_set_live_source_slow_threshold"
     ],
@@ -388,6 +391,7 @@
       "input_set_name"
     ],
     "input_position": [
+      "input_position_set_adm_mapping",
       "input_position_set_constraint_distance",
       "input_position_set_constraint_distance_max",
       "input_position_set_constraint_distance_min",
@@ -637,12 +641,22 @@
       "system_binaural_renderer_set_binaural_attenuation",
       "system_binaural_renderer_set_binaural_delay",
       "system_binaural_renderer_set_binaural_enabled",
+      "system_binaural_renderer_set_binaural_head_radius",
+      "system_binaural_renderer_set_binaural_head_tracker_source",
       "system_binaural_renderer_set_binaural_listener_angle",
       "system_binaural_renderer_set_binaural_listener_distance",
+      "system_binaural_renderer_set_binaural_listener_height",
+      "system_binaural_renderer_set_binaural_listener_pitch",
+      "system_binaural_renderer_set_binaural_listener_roll",
+      "system_binaural_renderer_set_binaural_listener_x",
+      "system_binaural_renderer_set_binaural_listener_yaw",
       "system_binaural_renderer_set_binaural_output_channel",
+      "system_binaural_renderer_set_binaural_render_mode",
+      "system_binaural_renderer_set_binaural_sofa_file",
       "system_binaural_renderer_set_binaural_solo_mode"
     ],
     "system_controllers": [
+      "system_controllers_set_remote_pad_grid_layout",
       "system_controllers_set_sampler_controller_mode"
     ],
     "system_i_o": [

@@ -240,6 +240,7 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     registry->registerTool (Tools::ChannelLifecycle::describeSamplerSetCreate (state, &samplerChanged));
     registry->registerTool (Tools::ChannelLifecycle::describeSamplerSetDelete (state, &samplerChanged));
     registry->registerTool (Tools::ChannelLifecycle::describeSamplerSetCells  (state, &samplerChanged));
+    registry->registerTool (Tools::ChannelLifecycle::describeSamplerPadZone   (state, &padZoneChanged));
 
     // Undo / redo tools — Phase 5a wires the first two to the real engine.
     // mcp.get_ai_change_history remains a read-only query over the ring buffer.

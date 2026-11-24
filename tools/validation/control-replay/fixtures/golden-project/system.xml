@@ -126,12 +126,16 @@
       </Cluster>
     </Clusters>
     <Binaural binauralSoloMode="0" binauralOutputChannel="-1" binauralListenerDistance="5.0"
-              binauralListenerAngle="0" binauralAttenuation="0.0" binauralDelay="0.0"/>
+              binauralListenerAngle="0" binauralAttenuation="0.0" binauralDelay="0.0"
+              binauralRenderMode="0" binauralSofaFile="" binauralListenerX="0.0"
+              binauralListenerHeight="1.5" binauralHeadRadius="0.08749999850988388"
+              binauralListenerYaw="0.0" binauralListenerPitch="0.0" binauralListenerRoll="0.0"
+              binauralHeadTrackerSource="manual"/>
     <UI streamDeckEnabled="1" samplerEnabled="0" samplerBlockSerial=""
         lightpadPad0Split="0" lightpadPad1Split="0" lightpadPad2Split="0"
         lightpadPad0DeviceId="" lightpadPad1DeviceId="" lightpadPad2DeviceId=""
         lightpadSensitivity="0.05000000074505806" SamplerControllerMode="0"
-        colorScheme="0"/>
+        RemotePadGridLayout="0" colorScheme="0"/>
     <EffectsGlobal effectsGlobalLinkNames="Group 1,Group 2,Group 3,Group 4,Group 5,Group 6,Group 7,Group 8"
                    effectsGlobalLinkMode="1" effectsGlobalFxFeedGeometric="1" effectsGlobalWorkerThreads="-1"
                    effectsGlobalReturnCushion="0" effectsGlobalLoopGuard="1" effectsGlobalLoopGuardCeiling="6.0"

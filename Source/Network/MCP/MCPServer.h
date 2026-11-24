@@ -105,6 +105,15 @@ public:
         effectClear = std::move (cb);
     }
 
+    /** Called (message thread) by input_sampler_set_pad_zone with the input's
+        slot and its new zone (-1 = none): MainComponent re-assigns the Lightpad
+        manager and resends the Remote pad configuration, as the zone picker's
+        callback does. */
+    void setPadZoneChangedCallback (std::function<void (int, int)> cb)
+    {
+        padZoneChanged = std::move (cb);
+    }
+
     /** Called (message thread) with a 0-based input SLOT after a gradient-map
         write. The rasterised map is a cache: changing the tree changes what the
         editor draws, but the audio offsets keep coming from the old raster until
@@ -130,6 +139,7 @@ public:
 private:
     std::function<void()> channelTopologyChanged;
     std::function<void (int)> effectClear;
+    std::function<void (int, int)> padZoneChanged;
     std::function<void (int)> gradientMapChanged;
     std::function<void (int)> samplerChanged;
     WFSValueTreeState& valueTreeState;

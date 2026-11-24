@@ -1096,6 +1096,17 @@ MainComponent::MainComponent()
         handleChannelCountChange();
     });
 
+    // input_sampler_set_pad_zone: what the Sampler tab's zone picker does after
+    // saving (MainComponent's setLightpadZoneChangedCallback handler).
+    mcpServer->setPadZoneChangedCallback ([this] (int inputSlot, int zoneId)
+    {
+        if (lightpadManager)
+            lightpadManager->assignZoneToInput (zoneId, inputSlot);
+        resendRemotePadConfig();
+        if (inputsTab)
+            inputsTab->refreshFromValueTree();
+    });
+
     // effect_clear: the Effects tab's Clear and /wfs/effect/clear, over MCP.
     mcpServer->setEffectClearCallback ([this] (int effectIndexOrMinusOne)
     {
