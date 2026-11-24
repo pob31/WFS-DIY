@@ -236,7 +236,10 @@ namespace
         if (entry.hidesMenuBar)
             changeMenuBarHiders (+1);
 
-        [window setStyleMask: NSWindowStyleMaskBorderless];
+        // Title bar and resizing go; Closable and Miniaturizable stay, or
+        // miniaturize: (Cmd+M, setMinimised) would do nothing while covered.
+        [window setStyleMask: entry.styleMask & ~(NSWindowStyleMaskTitled | NSWindowStyleMaskResizable
+                                                  | NSWindowStyleMaskFullSizeContentView)];
         [window setFrame: target display: YES];
         [window makeKeyAndOrderFront: nil];
     }
@@ -308,6 +311,19 @@ namespace
         return true;
     }
 
+    IMP gOriginalMiniaturize = nullptr;
+    IMP gOriginalPerformMiniaturize = nullptr;
+
+    /** AppKit will not minimise a window without a title bar, whatever its
+        style mask says: leave full screen first (it comes back as a window). */
+    void replacementMiniaturize (id self, SEL cmd, id sender)
+    {
+        exitFakeFullScreen ((NSWindow*) self, true);
+
+        if (auto original = (cmd == @selector (performMiniaturize:) ? gOriginalPerformMiniaturize : gOriginalMiniaturize))
+            ((void (*) (id, SEL, id)) original) (self, cmd, sender);
+    }
+
     void replacementToggleFullScreen (id self, SEL cmd, id sender)
     {
         if (toggleFakeFullScreen ((NSWindow*) self))
@@ -363,6 +379,12 @@ void installFakeFullScreenMac()
 
     gOriginalToggleFullScreen = method_setImplementation (method, (IMP) replacementToggleFullScreen);
 
+    if (Method m = class_getInstanceMethod ([NSWindow class], @selector (miniaturize:)))
+        gOriginalMiniaturize = method_setImplementation (m, (IMP) replacementMiniaturize);
+
+    if (Method m = class_getInstanceMethod ([NSWindow class], @selector (performMiniaturize:)))
+        gOriginalPerformMiniaturize = method_setImplementation (m, (IMP) replacementMiniaturize);
+
     // Ctrl+Cmd+F: the app has no View menu, so AppKit adds no Enter Full Screen
     // item and the shortcut would otherwise do nothing.
     [NSEvent addLocalMonitorForEventsMatchingMask: NSEventMaskKeyDown
@@ -393,6 +415,15 @@ void installFakeFullScreenMac()
                     usingBlock: ^(NSNotification* note)
     {
         exitFakeFullScreen ((NSWindow*) [note object], false);
+    }];
+
+    // A minimised window leaves full screen: it would keep the menu bar hidden
+    [centre addObserverForName: NSWindowDidMiniaturizeNotification
+                        object: nil
+                         queue: nil
+                    usingBlock: ^(NSNotification* note)
+    {
+        exitFakeFullScreen ((NSWindow*) [note object], true);
     }];
 
     [centre addObserverForName: NSApplicationDidChangeScreenParametersNotification
