@@ -8,6 +8,15 @@ Evidence lines are the auditors' file:line references at the time of the audit; 
 
 - **No timed transitions (fades) over MCP.** An agent's timing is not predictable enough for a fade to mean anything (`EMIT_TRANSITION_SECONDS = False` in `tools/mcp/wfs_codegen_config.py`). The critic's "Timed transitions have no MCP equivalent" is therefore intentional.
 
+- **Anything time-sensitive is triggered by the operator, never by an agent.** Snapshot recall,
+  AutomOtion start / stop / pause, cluster LFO preset recall, LFO on / off and sampler playback: an
+  agent's response time depends on how long it thinks, and a missed cue is the operator's problem. MCP
+  sets the parameters of these and never starts them; it is not for live situations. For the same
+  reason the generated `input_lfo_set_active`, `effect_lfo_set_active`, `cluster_lfo_set_active` and
+  the two `*_otomo_pause_resume` tools were removed (2026-11-24). The per-tab "Reload config / backup"
+  and the system config import restore a stored state wholesale, the same kind of act as a recall, and
+  stay the operator's too; so do the output test signals (hearing protection) and the head-tracker Set
+  Zero (it needs the person looking at the stage).
 - **The audio processing switches are for the operator only.** Run DSP (processing on/off) and the algorithm choice stay off the MCP surface; the critic's finding about them is intentional.
 
 
@@ -270,6 +279,17 @@ follow). Left out:
 
 
 ## Group 3 - actions MCP cannot trigger
+
+**Status: fixed (2026-11-24, branch `mcp/coverage-gaps`) within the Decisions above.** Built:
+`snapshot_store` / `snapshot_update` / `snapshot_delete` (through the Snapshot row's own session),
+`snapshot_get_scope` / `snapshot_set_scope` (items, channels, apply mode, MIDI trigger with conflict
+check), `snapshot_export_cues` and `input_sampler_export_set_cue` (QLab / Go.dot: the operator fires
+them), `cluster_lfo_preset_store` / `cluster_lfo_preset_get`, `cluster_transform` (the Clusters tab's own
+transform code), `input_gradient_shapes_list` / `input_gradient_shape_add` /
+`input_gradient_shape_arrange`, `stage_scale_inputs`, `channels_shift`, `effect_reset_return_positions`,
+`patch_get` / `patch_set` (stopped-only, latches channel numbers first), `output_apply_array_geometry`
+(the Wizard of OutZ's geometry). Not built, by decision: every recall, transport and trigger, the config
+reloads and import, test signals, Set Zero.
 
 ### AutomOtion transport for effect returns (Start / Stop / Stop All / Pause-Resume All)
 

@@ -4467,6 +4467,11 @@
     <ClInclude Include="..\..\Source\Network\MCP\tools\StateInspectionTools.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\tools\StateDeltaTool.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\tools\ChannelLifecycleTools.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\ClusterTransformTools.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\GradientShapeTools.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\StageTools.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\PatchTools.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\ArrayWizardTools.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\tools\NetworkTargetTools.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\tools\MuteTools.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\tools\ClusterPresetTools.h"/>

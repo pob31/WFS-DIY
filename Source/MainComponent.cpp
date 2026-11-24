@@ -1096,6 +1096,51 @@ MainComponent::MainComponent()
         handleChannelCountChange();
     });
 
+    // The snapshot_* tools: the Snapshot row's own actions, on a named snapshot.
+    {
+        WFSNetwork::Tools::Snapshot::Actions actions;
+        actions.store  = [this] (const juce::String& n) { return snapshotSession ? snapshotSession->storeForMcp (n)  : juce::String ("no snapshot session"); };
+        actions.update = [this] (const juce::String& n) { return snapshotSession ? snapshotSession->updateForMcp (n) : juce::String ("no snapshot session"); };
+        actions.remove = [this] (const juce::String& n) { return snapshotSession ? snapshotSession->removeForMcp (n) : juce::String ("no snapshot session"); };
+        actions.scopeChanged = [this] (const juce::String& n) { if (snapshotSession) snapshotSession->scopeChangedOnDisk (n); };
+        actions.exportCues = [this] (const juce::String& n) -> juce::String
+        {
+            if (! (oscManager && (oscManager->hasQLabTarget() || oscManager->hasGoDotTarget())))
+                return "No QLab or Go.dot target is configured (Network tab)";
+            if (snapshotSession == nullptr || ! snapshotSession->onQLabExportRequested)
+                return "no snapshot session";
+            snapshotSession->onQLabExportRequested (n, parameters.getFileManager().getExtendedSnapshotScope (n));
+            return {};
+        };
+        actions.exportSamplerSetCue = [this] (int channelId, int setNumber, const juce::String& setName) -> juce::String
+        {
+            if (! (oscManager && (oscManager->hasQLabTarget() || oscManager->hasGoDotTarget())))
+                return "No QLab or Go.dot target is configured (Network tab)";
+            if (inputsTab == nullptr || ! inputsTab->getSamplerSubTab().onQLabSetCueRequested)
+                return "no sampler tab";
+            inputsTab->getSamplerSubTab().onQLabSetCueRequested (channelId, setNumber, setName);
+            return {};
+        };
+        mcpServer->setSnapshotActions (std::move (actions));
+    }
+
+    // patch_set: the same reload a project load runs on the patch.
+    mcpServer->setPatchChangedCallback ([this]
+    {
+        repairInputPatchAfterLoad();
+        loadAudioPatches();
+    });
+
+    // cluster_transform: the Clusters tab's joystick and dial code, run once.
+    mcpServer->setClusterTransform ([this] (const WFSNetwork::Tools::ClusterTransform::Request& r)
+    {
+        if (clustersTab == nullptr)
+            return 0;
+        WFSValueTreeState::ScopedUndoDomain scope (parameters.getValueTreeState(), UndoDomain::Clusters);
+        return clustersTab->applyTransformForMcp (r.clusterId, r.dx, r.dy, r.dz, r.rotateDeg,
+                                                  r.scaleX, r.scaleY, r.attenuationDb, r.plane);
+    });
+
     // input_sampler_set_pad_zone: what the Sampler tab's zone picker does after
     // saving (MainComponent's setLightpadZoneChangedCallback handler).
     mcpServer->setPadZoneChangedCallback ([this] (int inputSlot, int zoneId)

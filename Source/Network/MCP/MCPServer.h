@@ -5,6 +5,8 @@
 #include "MCPCompat.h"
 #include "MCPUndoEngine.h"
 #include "MCPOSCQueryAuditor.h"
+#include "tools/SnapshotTools.h"
+#include "tools/ClusterTransformTools.h"
 
 class WFSValueTreeState;
 class WFSFileManager;
@@ -114,6 +116,26 @@ public:
         padZoneChanged = std::move (cb);
     }
 
+    /** The Snapshot row's store / update / delete / scope refresh and the cue
+        export, for the snapshot_* tools (message thread). No recall: that is the
+        operator's (Tools::Snapshot). */
+    void setSnapshotActions (Tools::Snapshot::Actions actions)
+    {
+        snapshotActions = std::move (actions);
+    }
+
+    /** patch_set: the app reloads its patch maps after a write. */
+    void setPatchChangedCallback (std::function<void()> cb)
+    {
+        patchChanged = std::move (cb);
+    }
+
+    /** cluster_transform runs the Clusters tab's own transform code. */
+    void setClusterTransform (Tools::ClusterTransform::Apply apply)
+    {
+        clusterTransform = std::move (apply);
+    }
+
     /** Called (message thread) with a 0-based input SLOT after a gradient-map
         write. The rasterised map is a cache: changing the tree changes what the
         editor draws, but the audio offsets keep coming from the old raster until
@@ -140,6 +162,9 @@ private:
     std::function<void()> channelTopologyChanged;
     std::function<void (int)> effectClear;
     std::function<void (int, int)> padZoneChanged;
+    Tools::Snapshot::Actions snapshotActions;
+    Tools::ClusterTransform::Apply clusterTransform;
+    std::function<void()> patchChanged;
     std::function<void (int)> gradientMapChanged;
     std::function<void (int)> samplerChanged;
     WFSValueTreeState& valueTreeState;

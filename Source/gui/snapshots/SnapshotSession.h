@@ -335,12 +335,12 @@ public:
             });
     }
 
-    void update()
+    bool update()
     {
         if (! hasSelection())
         {
             status (LOC ("inputs.messages.noSnapshotSelected"));
-            return;
+            return false;
         }
 
         const auto name = selected;
@@ -360,7 +360,7 @@ public:
         if (! fileManager.saveInputSnapshotWithExtendedScope (name, scope))
         {
             status (LOC ("inputs.messages.error").replace ("{error}", fileManager.getLastError()));
-            return;
+            return false;
         }
 
         if (writeToQLabEnabled)
@@ -381,14 +381,15 @@ public:
             if (writeSnapshotLoadCueEnabled && onQLabSnapshotLoadCueRequested)
                 onQLabSnapshotLoadCueRequested (name);
         }
+        return true;
     }
 
-    void remove()
+    bool remove()
     {
         if (! hasSelection())
         {
             status (LOC ("inputs.messages.noSnapshotSelected"));
-            return;
+            return false;
         }
 
         const auto name = selected;
@@ -402,11 +403,10 @@ public:
             if (onSnapshotsChanged)
                 onSnapshotsChanged();
             status (LOC ("inputs.messages.snapshotDeleted").replace ("{name}", name));
+            return true;
         }
-        else
-        {
-            status (LOC ("inputs.messages.error").replace ("{error}", fileManager.getLastError()));
-        }
+        status (LOC ("inputs.messages.error").replace ("{error}", fileManager.getLastError()));
+        return false;
     }
 
     /** Open the Scope window on `family`'s grid, or bring the open one to front
@@ -635,7 +635,7 @@ private:
     }
 
     /** The store dialog's OK: capture the session scope into `name`. */
-    void storeNamed (const juce::String& name)
+    bool storeNamed (const juce::String& name)
     {
         // Use the session scope if configured, otherwise a default one
         Scope scope;
@@ -672,7 +672,7 @@ private:
         if (! fileManager.saveInputSnapshotWithExtendedScope (name, scope))
         {
             status (LOC ("inputs.messages.error").replace ("{error}", fileManager.getLastError()));
-            return;
+            return false;
         }
 
         scopes[name] = scope;
@@ -702,6 +702,51 @@ private:
             if (writeSnapshotLoadCueEnabled && onQLabSnapshotLoadCueRequested)
                 onQLabSnapshotLoadCueRequested (name);
         }
+        return true;
+    }
+
+public:
+    //==========================================================================
+    // For MCP: the row's Store / Update / Delete on a NAMED snapshot, with
+    // everything they do after the file - list, selection, MIDI bindings, the
+    // OSCQuery menu, dirty marks. Each answers an empty string on success,
+    // otherwise the reason. Recall is deliberately absent: it is the operator's
+    // (cue timing), and so is everything else that triggers.
+    //==========================================================================
+
+    juce::String storeForMcp (const juce::String& name)
+    {
+        if (name.trim().isEmpty())
+            return "a snapshot needs a name";
+        return storeNamed (name.trim()) ? juce::String() : parameters.getFileManager().getLastError();
+    }
+
+    juce::String updateForMcp (const juce::String& name)
+    {
+        if (! parameters.getFileManager().getInputSnapshotNames().contains (name))
+            return "no snapshot named " + name.quoted();
+        selected = name;
+        const bool ok = update();
+        refreshList();
+        return ok ? juce::String() : parameters.getFileManager().getLastError();
+    }
+
+    juce::String removeForMcp (const juce::String& name)
+    {
+        if (! parameters.getFileManager().getInputSnapshotNames().contains (name))
+            return "no snapshot named " + name.quoted();
+        selected = name;
+        return remove() ? juce::String() : parameters.getFileManager().getLastError();
+    }
+
+    /** A snapshot's scope was rewritten on disk (MCP): drop the cached copy so
+        the row and the Scope window read the file again, and refresh the MIDI
+        bindings and the OSCQuery menu. */
+    void scopeChangedOnDisk (const juce::String& name)
+    {
+        scopes.erase (name);
+        if (onSnapshotsChanged)
+            onSnapshotsChanged();
     }
 
     JUCE_DECLARE_WEAK_REFERENCEABLE (SnapshotSession)

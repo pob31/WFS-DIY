@@ -149,6 +149,26 @@
       "reason": "Action trigger, not stored state: the Reverb tab applies the macro to its buttons and nothing reads the property. reverb_apply_mute_macro (hand-written) applies it"
     },
     {
+      "variable": "inputLFOactive",
+      "reason": "Starts or stops a timed movement: the operator's (an agent's response time is no cue timing; Documentation/MCP/mcp-coverage-audit-2026-11-24.md, Decisions). The LFO's parameters stay settable"
+    },
+    {
+      "variable": "effectLFOactive",
+      "reason": "Starts or stops a timed movement: the operator's (see inputLFOactive)"
+    },
+    {
+      "variable": "clusterLFOactive",
+      "reason": "Starts or stops a timed movement: the operator's (see inputLFOactive)"
+    },
+    {
+      "variable": "inputOtomoPauseResume",
+      "reason": "AutomOtion transport: the operator's (see inputLFOactive). The destination and movement settings stay settable"
+    },
+    {
+      "variable": "effectOtomoPauseResume",
+      "reason": "AutomOtion transport: the operator's (see inputLFOactive)"
+    },
+    {
       "variable": "networkCurrentIP",
       "reason": "Display-only: the stored value is a default nothing updates or reads. session_get_global_state reports the live addresses (local_ipv4_addresses)"
     },

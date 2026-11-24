@@ -338,6 +338,16 @@
                   file="Source/Network/MCP/tools/ChannelLifecycleTools.h"/>
             <FILE id="mcpToolsRevAuto" name="ReverbAutoLayoutTool.h" compile="0" resource="0"
                   file="Source/Network/MCP/tools/ReverbAutoLayoutTool.h"/>
+            <FILE id="mcpToolsClusterXform" name="ClusterTransformTools.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/ClusterTransformTools.h"/>
+            <FILE id="mcpToolsGradShapes" name="GradientShapeTools.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/GradientShapeTools.h"/>
+            <FILE id="mcpToolsStage" name="StageTools.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/StageTools.h"/>
+            <FILE id="mcpToolsPatch" name="PatchTools.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/PatchTools.h"/>
+            <FILE id="mcpToolsArrayWizard" name="ArrayWizardTools.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/ArrayWizardTools.h"/>
             <FILE id="mcpToolsNetTarget" name="NetworkTargetTools.h" compile="0" resource="0"
                   file="Source/Network/MCP/tools/NetworkTargetTools.h"/>
             <FILE id="mcpToolsMutes" name="MuteTools.h" compile="0" resource="0"

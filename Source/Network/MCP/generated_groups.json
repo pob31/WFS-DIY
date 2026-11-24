@@ -1,13 +1,12 @@
 {
   "schema_version": "1.0",
-  "input_hash": "2d2382f86c5e2898c8e8851e972d3cb9044e3d05b48f7cf2465d02f7b0218f9b",
+  "input_hash": "45c56a181cf5dcb6dab81f53f6d6bbd61ee1804e6f44f983106e3f4fc431a25b",
   "groups": {
     "cluster_assigned_inputs": [
       "cluster_assigned_inputs_set_input_order",
       "cluster_assigned_inputs_set_inputs_visible"
     ],
     "cluster_lfo": [
-      "cluster_lfo_set_active",
       "cluster_lfo_set_amplitude_rot",
       "cluster_lfo_set_amplitude_scale",
       "cluster_lfo_set_amplitude_x",
@@ -39,7 +38,6 @@
       "effect_automotion_set_otomo_coordinate_mode",
       "effect_automotion_set_otomo_curve",
       "effect_automotion_set_otomo_duration",
-      "effect_automotion_set_otomo_pause_resume",
       "effect_automotion_set_otomo_phi",
       "effect_automotion_set_otomo_r",
       "effect_automotion_set_otomo_r_spherical",
@@ -223,7 +221,6 @@
       "effect_i_o_set_channels"
     ],
     "effect_lfo": [
-      "effect_lfo_set_active",
       "effect_lfo_set_amplitude_x",
       "effect_lfo_set_amplitude_y",
       "effect_lfo_set_amplitude_z",
@@ -273,7 +270,6 @@
       "input_automotion_set_otomo_coordinate_mode",
       "input_automotion_set_otomo_curve",
       "input_automotion_set_otomo_duration",
-      "input_automotion_set_otomo_pause_resume",
       "input_automotion_set_otomo_phi",
       "input_automotion_set_otomo_r",
       "input_automotion_set_otomo_r_spherical",
@@ -349,7 +345,6 @@
       "input_set_jitter"
     ],
     "input_lfo": [
-      "input_lfo_set_active",
       "input_lfo_set_amplitude_x",
       "input_lfo_set_amplitude_y",
       "input_lfo_set_amplitude_z",

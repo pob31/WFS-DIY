@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "input_hash": "2d2382f86c5e2898c8e8851e972d3cb9044e3d05b48f7cf2465d02f7b0218f9b",
+  "input_hash": "45c56a181cf5dcb6dab81f53f6d6bbd61ee1804e6f44f983106e3f4fc431a25b",
   "source_csvs": [
     "WFS-UI_config.csv",
     "WFS-UI_input.csv",
@@ -80,43 +80,6 @@
       ],
       "internal_osc_path": "/wfs/cluster/inputsVisible",
       "internal_variable": "clusterInputsVisible"
-    },
-    {
-      "name": "cluster_lfo_set_active",
-      "description": "Enable or disable the cluster LFO. Enum: LFO Off ; LFO On. Use `session_get_state()` first if unsure which channels exist.",
-      "parameters": {
-        "type": "object",
-        "properties": {
-          "cluster_id": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 10,
-            "description": "Clusters channel number (1-based)."
-          },
-          "value": {
-            "type": "string",
-            "enum": [
-              "LFOOff",
-              "LFOOn"
-            ],
-            "description": "LFO Active (enum).",
-            "default": "LFOOff"
-          }
-        },
-        "required": [
-          "cluster_id",
-          "value"
-        ]
-      },
-      "tier": 1,
-      "csv_section": "Cluster LFO",
-      "group_key": "cluster_lfo",
-      "supports_relative": false,
-      "domains": [
-        "wfs_synthesis"
-      ],
-      "internal_osc_path": "/wfs/cluster/LFOactive",
-      "internal_variable": "clusterLFOactive"
     },
     {
       "name": "cluster_lfo_set_amplitude_rot",
@@ -1193,47 +1156,6 @@
       "internal_osc_path": "/wfs/effect/otomoDuration",
       "internal_variable": "effectOtomoDuration",
       "relative_tool_name": "effect_automotion_nudge_otomo_duration"
-    },
-    {
-      "name": "effect_automotion_set_otomo_pause_resume",
-      "description": "Pause and Resume the Movement. Enum: Paused (0) ; Resume (1). Use `session_get_state()` first if unsure which channels exist.",
-      "parameters": {
-        "type": "object",
-        "properties": {
-          "effect_id": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 32,
-            "description": "Effects channel number (1-based, dense like reverbs). Must be a LIVE effect: session_get_state lists them."
-          },
-          "value": {
-            "type": "string",
-            "enum": [
-              "Paused",
-              "Resume"
-            ],
-            "description": "Pause / Resume (enum).",
-            "default": "Resume"
-          }
-        },
-        "required": [
-          "effect_id",
-          "value"
-        ]
-      },
-      "tier": 1,
-      "csv_section": "AutomOtion",
-      "group_key": "effect_automotion",
-      "supports_relative": false,
-      "domains": [
-        "effects"
-      ],
-      "internal_osc_path": "/wfs/effect/otomoPauseResume",
-      "internal_variable": "effectOtomoPauseResume",
-      "enum_string_to_int": {
-        "Paused": 0,
-        "Resume": 1
-      }
     },
     {
       "name": "effect_automotion_set_otomo_phi",
@@ -7170,43 +7092,6 @@
       "internal_variable": "effectChannels"
     },
     {
-      "name": "effect_lfo_set_active",
-      "description": "Enable or Disable the Periodic Movement of the Effect Return (LFO). Enum: OFF ; ON. Use `session_get_state()` first if unsure which channels exist.",
-      "parameters": {
-        "type": "object",
-        "properties": {
-          "effect_id": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 32,
-            "description": "Effects channel number (1-based, dense like reverbs). Must be a LIVE effect: session_get_state lists them."
-          },
-          "value": {
-            "type": "string",
-            "enum": [
-              "OFF",
-              "ON"
-            ],
-            "description": "Active (enum).",
-            "default": "OFF"
-          }
-        },
-        "required": [
-          "effect_id",
-          "value"
-        ]
-      },
-      "tier": 1,
-      "csv_section": "L.F.O",
-      "group_key": "effect_lfo",
-      "supports_relative": false,
-      "domains": [
-        "effects"
-      ],
-      "internal_osc_path": "/wfs/effect/LFOactive",
-      "internal_variable": "effectLFOactive"
-    },
-    {
       "name": "effect_lfo_set_amplitude_x",
       "description": "Width of Movement in Relation to Base Position of the Effect Return. Value in m. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
@@ -8599,41 +8484,6 @@
       "internal_osc_path": "/wfs/input/otomoDuration",
       "internal_variable": "inputOtomoDuration",
       "relative_tool_name": "input_automotion_nudge_otomo_duration"
-    },
-    {
-      "name": "input_automotion_set_otomo_pause_resume",
-      "description": "Pause and Resume the Movement. Use `session_get_state()` first if unsure which channels exist.",
-      "parameters": {
-        "type": "object",
-        "properties": {
-          "input_id": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 64,
-            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
-          },
-          "value": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 1,
-            "description": "Pause / Resume.",
-            "default": 1
-          }
-        },
-        "required": [
-          "input_id",
-          "value"
-        ]
-      },
-      "tier": 1,
-      "csv_section": "AutomOtion",
-      "group_key": "input_automotion",
-      "supports_relative": false,
-      "domains": [
-        "wfs_synthesis"
-      ],
-      "internal_osc_path": "/wfs/input/otomoPause",
-      "internal_variable": "inputOtomoPauseResume"
     },
     {
       "name": "input_automotion_set_otomo_phi",
@@ -10548,43 +10398,6 @@
       ],
       "internal_osc_path": "/wfs/input/mapVisible",
       "internal_variable": "inputMapVisible"
-    },
-    {
-      "name": "input_lfo_set_active",
-      "description": "Enable or Disable the Periodic Movement of the Object (LFO). Enum: OFF ; ON. Use `session_get_state()` first if unsure which channels exist.",
-      "parameters": {
-        "type": "object",
-        "properties": {
-          "input_id": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 64,
-            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
-          },
-          "value": {
-            "type": "string",
-            "enum": [
-              "OFF",
-              "ON"
-            ],
-            "description": "Active (enum).",
-            "default": "OFF"
-          }
-        },
-        "required": [
-          "input_id",
-          "value"
-        ]
-      },
-      "tier": 1,
-      "csv_section": "L.F.O",
-      "group_key": "input_lfo",
-      "supports_relative": false,
-      "domains": [
-        "wfs_synthesis"
-      ],
-      "internal_osc_path": "/wfs/input/LFOactive",
-      "internal_variable": "inputLFOactive"
     },
     {
       "name": "input_lfo_set_amplitude_x",
@@ -27924,6 +27737,11 @@
       "csv_file": "WFS-UI_clusters.csv"
     },
     {
+      "variable": "clusterLFOactive",
+      "reason": "Starts or stops a timed movement: the operator's (see inputLFOactive)",
+      "csv_file": "WFS-UI_clusters.csv"
+    },
+    {
       "variable": "DialsAndButtonsDevice",
       "reason": "No C++ ValueTree backing yet (controller selection is UI-side)",
       "csv_file": "WFS-UI_config.csv"
@@ -27974,8 +27792,18 @@
       "csv_file": "WFS-UI_effects.csv"
     },
     {
+      "variable": "effectLFOactive",
+      "reason": "Starts or stops a timed movement: the operator's (see inputLFOactive)",
+      "csv_file": "WFS-UI_effects.csv"
+    },
+    {
       "variable": "effectMuteMacro",
       "reason": "Action trigger, not stored state: the Effects tab applies the macro to its buttons and nothing reads the property. effect_apply_mute_macro (hand-written) applies it",
+      "csv_file": "WFS-UI_effects.csv"
+    },
+    {
+      "variable": "effectOtomoPauseResume",
+      "reason": "AutomOtion transport: the operator's (see inputLFOactive)",
       "csv_file": "WFS-UI_effects.csv"
     },
     {
@@ -28029,6 +27857,11 @@
       "csv_file": "WFS-UI_input.csv"
     },
     {
+      "variable": "inputLFOactive",
+      "reason": "Starts or stops a timed movement: the operator's (an agent's response time is no cue timing; Documentation/MCP/mcp-coverage-audit-2026-11-24.md, Decisions). The LFO's parameters stay settable",
+      "csv_file": "WFS-UI_input.csv"
+    },
+    {
       "variable": "inputMuteMacro",
       "reason": "Action trigger, not stored state. The macro is applied by InputsTab::applyMuteMacro and the selector resets immediately; the parameter write records which macro ran and is read by nobody (it is not stamped on <Mutes>, so even the GUI's own write is dropped). Applying a macro has no non-GUI implementation, so a tool here would set a number and change no mutes.",
       "csv_file": "WFS-UI_input.csv"
@@ -28051,6 +27884,11 @@
     {
       "variable": "inputOffsetTheta",
       "reason": "Cylindrical/spherical display mode; offset stored as XYZ",
+      "csv_file": "WFS-UI_input.csv"
+    },
+    {
+      "variable": "inputOtomoPauseResume",
+      "reason": "AutomOtion transport: the operator's (see inputLFOactive). The destination and movement settings stay settable",
       "csv_file": "WFS-UI_input.csv"
     },
     {

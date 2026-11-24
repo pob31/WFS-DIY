@@ -389,6 +389,85 @@ def check_group2(c: Checker) -> None:
     c.refused("zone past the grid", "input_sampler_set_pad_zone", {"input_id": 1, "zone": 15}, "zone")
 
 
+def check_group3(c: Checker) -> None:
+    """Audit 2026-11-24 group 3: setup actions (recalls and transport stay the operator's)."""
+    names = {t["name"] for t in c.app.mcp("tools/list")["result"]["tools"]}
+    # Hidden tools are callable by name: probe one too. An unknown tool answers a
+    # JSON-RPC error with no result at all.
+    probe = c.app.tool("input_lfo_set_active", {"input_id": 1, "value": "ON"})
+    if "result" in probe and not common.envelope_result(probe).get("isError"):
+        names.add("input_lfo_set_active")
+    for absent in ("snapshot_load", "snapshot_recall", "input_otomo_transport", "cluster_lfo_preset_recall",
+                   "input_lfo_set_active", "effect_lfo_set_active", "cluster_lfo_set_active",
+                   "input_automotion_set_otomo_pause_resume", "effect_automotion_set_otomo_pause_resume"):
+        c.expect(f"no {absent} tool (operator-only)", absent not in names)
+
+    # -- snapshots: store, scope, MIDI, update, delete ------------------------
+    c.ok("snapshot_store", {"name": "MCP Test"}, confirm=True)
+    listed = c.ok("snapshot_list")
+    c.expect("snapshot stored", "MCP Test" in listed.get("snapshots", []), listed)
+    c.ok("snapshot_set_scope", {"name": "MCP Test", "midi": {"channel": 3, "note": 61},
+                                "changes": [{"family": "inputs", "item": "position", "channel_id": 1, "included": False}]},
+         confirm=True)
+    scope = c.ok("snapshot_get_scope", {"name": "MCP Test"})
+    pos = [i for i in scope.get("inputs", {}).get("items", []) if i["item"] == "position"]
+    c.expect("scope edit stored", pos and pos[0].get("excluded_channels") == [1], pos)
+    c.expect("MIDI bound", scope.get("midi_channel") == 3 and scope.get("midi_note") == 61, scope.get("midi_note"))
+    c.ok("snapshot_update", {"name": "MCP Test"}, confirm=True)
+    c.refused("cue export needs a target", "snapshot_export_cues", {"name": "MCP Test"}, "target", confirm=True)
+    c.ok("snapshot_delete", {"name": "MCP Test"}, confirm=True)
+    c.expect("snapshot deleted", "MCP Test" not in c.ok("snapshot_list").get("snapshots", []))
+
+    # -- cluster LFO preset store / get, cluster transform ---------------------
+    c.ok("cluster_lfo_set_shape_x", {"cluster_id": 2, "shape": "Sine"})
+    c.ok("cluster_lfo_preset_store", {"cluster_id": 2, "preset": 5}, confirm=True)
+    p = c.ok("cluster_lfo_preset_get", {"preset": 5})
+    c.expect("preset stored", p.get("populated") is True and p["values"].get("clusterLFOshapeX") == 1, p.get("values", {}).get("clusterLFOshapeX"))
+    for i in (3, 4):
+        c.ok("input_set_cluster", {"input_id": i, "value": "Cluster3"})
+    x3, x4 = float(c.get("inputPositionX", 3)), float(c.get("inputPositionX", 4))
+    t = c.ok("cluster_transform", {"cluster_id": 3, "dx": 1.0}, confirm=True)
+    c.expect("cluster moved", abs(float(c.get("inputPositionX", 3)) - (x3 + 1.0)) < 1e-4
+             and abs(float(c.get("inputPositionX", 4)) - (x4 + 1.0)) < 1e-4, t)
+    c.refused("empty cluster", "cluster_transform", {"cluster_id": 9, "dx": 1.0}, "no inputs", confirm=True)
+
+    # -- gradient shapes --------------------------------------------------------
+    a = c.ok("input_gradient_shape_add", {"input_id": 2, "layer": 0, "type": "ellipse",
+                                          "x": 1, "y": 2, "width": 4, "height": 2, "fill_value": 0.5})
+    c.expect("gradient shape added", a.get("shape") == 0 and a.get("half_width") == 2.0, a)
+    c.ok("input_gradient_shape_add", {"input_id": 2, "layer": 0, "type": "polygon", "points": [[0, 0], [2, 0], [1, 2]]})
+    c.ok("input_gradient_shape_arrange", {"input_id": 2, "layer": 0, "shape": 0, "action": "front"})
+    c.ok("input_gradient_shape_arrange", {"input_id": 2, "layer": 0, "shape": 1, "action": "disable"})
+    lst = c.ok("input_gradient_shapes_list", {"input_id": 2, "layer": 0}).get("shapes", [])
+    c.expect("front and disable", len(lst) == 2 and lst[0]["order"] > lst[1]["order"] and lst[1]["enabled"] is False, lst)
+    c.ok("input_gradient_shape_arrange", {"input_id": 2, "layer": 0, "shape": 1, "action": "delete"})
+    c.expect("gradient shape deleted", len(c.ok("input_gradient_shapes_list", {"input_id": 2, "layer": 0})["shapes"]) == 1)
+
+    # -- stage, shift, effects ring ---------------------------------------------
+    y5 = float(c.get("inputPositionY", 5))
+    c.ok("channels_shift", {"kinds": ["inputs"], "dy": 0.5}, confirm=True)
+    c.expect("inputs shifted", abs(float(c.get("inputPositionY", 5)) - (y5 + 0.5)) < 1e-4)
+    c.ok("stage_scale_inputs", {"mode": "fit"}, confirm=True)
+    c.ok("effect_reset_return_positions", {}, confirm=True)
+
+    # -- audio patch --------------------------------------------------------------
+    pg = c.ok("patch_get", {"kind": "outputs"})
+    c.expect("patch read", len(pg.get("channels", [])) > 0, pg.get("kind"))
+    c.ok("patch_set", {"kind": "outputs", "channel_id": 2, "hardware": [40]}, confirm=True)
+    after = [ch for ch in c.ok("patch_get", {"kind": "outputs"})["channels"] if ch["output_id"] == 2]
+    c.expect("output 2 on hardware 40", after and after[0]["hardware"] == [40], after)
+    c.refused("hardware owned elsewhere", "patch_set", {"kind": "outputs", "channel_id": 3, "hardware": [40]},
+              "patched to", confirm=True)
+
+    # -- Wizard of OutZ --------------------------------------------------------------
+    w = c.ok("output_apply_array_geometry", {"array": 4, "start_output": 9, "count": 4, "method": "straight_center",
+                                             "center_x": 0, "center_y": -2, "z": 1, "spacing": 1.5,
+                                             "orientation": 0, "low_cut_hz": 80}, confirm=True)
+    xs = [s["x"] for s in w.get("speakers", [])]
+    c.expect("array laid out", xs == [-2.25, -0.75, 0.75, 2.25], xs)
+    c.expect("array assigned", int(c.get("outputArray", 10)) == 4, c.get("outputArray", 10))
+
+
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--exe", default=None)
@@ -412,7 +491,8 @@ def main() -> int:
                          ("input order", check_input_order),
                          ("map shapes", check_map_shapes),
                          ("audit group 1", check_group1),
-                         ("audit group 2", check_group2)]:
+                         ("audit group 2", check_group2),
+                         ("audit group 3", check_group3)]:
             print(f"[coverage] {name}")
             try:
                 fn(c)

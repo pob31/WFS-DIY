@@ -80,7 +80,7 @@ GOLDEN = common.GOLDENS_DIR / "mcp_replay.json"
 EFFECT_CHANNELS = 2
 
 # Upper bound of the advertised tools/list (hand-written + tier-3 generated).
-VISIBLE_MAX = 80
+VISIBLE_MAX = 120
 
 # 16 writes: X and Y for inputs 1..8, all binary-exact values.
 BATCH_WRITES = (
@@ -205,7 +205,7 @@ def main() -> int:
         tiers = [t["_meta"]["tier"] for t in tools]
         names = [t["name"] for t in tools]
         count = len(tools)
-        # 62 since the effects / map-shape / input-order tools (2026-11-24):
+        # 93 since the audit groups 1-3 (2026-11-24; 62 after the effects tools):
         # the bound guards the hide policy (a listed generated surface would
         # be ~700), not the hand-written count.
         if not (25 <= count <= VISIBLE_MAX):

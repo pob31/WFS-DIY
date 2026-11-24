@@ -57,8 +57,23 @@ change and need to stay visible.
 | `map_shape_add` / `map_shape_edit` / `map_shape_delete` / `map_shapes_clear` | Draw, change and remove the Map tab's outline shapes. Not undoable. |
 | `input_set_effect_send_level` / `input_set_effect_send_on` | One input's send into one effect channel: the level in dB (tier 2) or the on/off switch, which keeps the level (tier 1). No generated tool covers these cells - an effect stores them as packed rows. |
 | generated `effect_*` tools | One effect value each. EQ bands, dynamics stages and delay taps need these tools (their `instance`, `effect_band` or `tap` argument); `wfs_set_parameter` refuses them. See resource `wfs://knowledge/effects`. |
+| `snapshot_store` / `snapshot_update` / `snapshot_delete` | Prepare snapshots. There is no recall over MCP: a recall is a cue, and cues are fired by the operator. |
+| `snapshot_get_scope` / `snapshot_set_scope` | What a snapshot covers (per item and channel), when the scope applies, and its MIDI trigger. |
+| `snapshot_export_cues` / `input_sampler_export_set_cue` | Write cues into QLab / Go.dot for the operator to fire. |
+| `cluster_transform` | Move, rotate, scale or re-level a whole cluster about its reference point. |
+| `cluster_lfo_presets_list` / `cluster_lfo_preset_get` / `cluster_lfo_preset_store` / `cluster_lfo_preset_set_name` | The 16 LFO preset slots. Recalling one, and switching an LFO on or off, is the operator's. |
+| `input_gradient_shapes_list` / `input_gradient_shape_add` / `input_gradient_shape_arrange` | Draw, remove, switch and stack gradient-map shapes. |
+| `stage_scale_inputs` / `channels_shift` | Rescale or fit inputs after a stage change; shift inputs, outputs or reverbs by an offset. |
+| `output_apply_array_geometry` | Lay out a run of outputs as one array (the Wizard of OutZ). |
+| `patch_get` / `patch_set` | The hardware patch; writes only while processing is stopped. |
+| `network_targets_list` / `network_target_create` / `network_target_delete` | The Network tab's targets. |
+| `*_set_output_mute` / `*_apply_mute_macro` | Per-output mutes and mute macros for inputs, reverbs and effects. |
 | `reverb_auto_layout` | High-level reverb placement from speaker topology, written as one atomic batch. |
 | `session_save` | Persist the project to disk. Tier 2, overwrites the operator's files, and cannot be undone. |
+
+**Not for live use.** MCP prepares a show; it does not run one. Nothing here recalls a snapshot,
+starts or stops a movement (AutomOtion, LFO), recalls an LFO preset or plays the sampler: an agent's
+response time is no cue timing, so those stay with the operator.
 
 Undo with `mcp_undo_last_ai_change`, redo with `mcp_redo_last_undone_ai_change`.
 Undo steps over records that document irreversible actions such as a save.

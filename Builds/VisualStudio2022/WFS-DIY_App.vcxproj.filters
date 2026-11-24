@@ -6024,6 +6024,21 @@
     <ClInclude Include="..\..\Source\Network\MCP\tools\ChannelLifecycleTools.h">
       <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\ClusterTransformTools.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\GradientShapeTools.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\StageTools.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\PatchTools.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\ArrayWizardTools.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\Network\MCP\tools\NetworkTargetTools.h">
       <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
     </ClInclude>

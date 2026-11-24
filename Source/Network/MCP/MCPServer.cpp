@@ -25,6 +25,10 @@
 #include "tools/NetworkTargetTools.h"
 #include "tools/MuteTools.h"
 #include "tools/ClusterPresetTools.h"
+#include "tools/GradientShapeTools.h"
+#include "tools/StageTools.h"
+#include "tools/PatchTools.h"
+#include "tools/ArrayWizardTools.h"
 
 namespace WFSNetwork
 {
@@ -136,6 +140,13 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     registry->registerTool (Tools::Output::describeSetCartesian (state));
     registry->registerTool (Tools::Reverb::describeSetCartesian (state));
     registry->registerTool (Tools::Snapshot::describe (fileMgr));
+    // Preparing snapshots, never recalling one (a recall is a cue: the operator's).
+    registry->registerTool (Tools::Snapshot::describeStore      (&snapshotActions));
+    registry->registerTool (Tools::Snapshot::describeUpdate     (fileMgr, &snapshotActions));
+    registry->registerTool (Tools::Snapshot::describeDelete     (fileMgr, &snapshotActions));
+    registry->registerTool (Tools::Snapshot::describeGetScope   (fileMgr, state));
+    registry->registerTool (Tools::Snapshot::describeSetScope   (fileMgr, state, &snapshotActions));
+    registry->registerTool (Tools::Snapshot::describeExportCues (fileMgr, &snapshotActions));
 
     // Phase 2 Block 3 — generic escape-hatch tool. Lets the AI hit a
     // parameter the auto-generated surface didn't cover. Trusted-caller
@@ -233,6 +244,27 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     // name tool took cluster_id 1-10 as the slot).
     registry->registerTool (Tools::ClusterPresets::describeList    (state));
     registry->registerTool (Tools::ClusterPresets::describeSetName (state));
+    registry->registerTool (Tools::ClusterPresets::describeGet     (state));
+    registry->registerTool (Tools::ClusterPresets::describeStore   (state));
+    registry->registerTool (Tools::ClusterTransform::describe      (state, &clusterTransform));
+
+    // Gradient-map shapes: the generated tools edit one that exists; these make,
+    // remove, switch and stack them, and rebuild the map as the editor does.
+    registry->registerTool (Tools::GradientShapes::describeList (state));
+    registry->registerTool (Tools::GradientShapes::describeAdd  (state, &gradientMapChanged));
+    registry->registerTool (Tools::GradientShapes::describeEdit (state, &gradientMapChanged));
+
+    // System Config's Scale / Fit / Shift after a stage change, and the effects'
+    // Reset Return Positions.
+    registry->registerTool (Tools::Stage::describeScaleInputs    (state));
+    registry->registerTool (Tools::Stage::describeShift          (state));
+    registry->registerTool (Tools::Stage::describeEffectRelayout (state));
+
+    // The audio patch (stopped-only writes), the Wizard of OutZ, a sampler set's cue.
+    registry->registerTool (Tools::Patch::describeGet (state));
+    registry->registerTool (Tools::Patch::describeSet (state, &patchChanged));
+    registry->registerTool (Tools::ArrayWizard::describe (state));
+    registry->registerTool (Tools::Snapshot::describeSamplerSetCue (state, &snapshotActions));
 
     // Sampler set create/delete. The 17 generated input_sampler_set_set_* tools
     // address a set by number and there was no way to make one - onAddSet is a

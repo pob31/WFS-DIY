@@ -2895,6 +2895,38 @@ private:
         }
     }
 
+public:
+    /** One cluster transform requested from outside the tab (MCP's
+        cluster_transform): the joysticks' and dials' own code - reference point,
+        tracked member moved through its offset, stage and distance constraints -
+        run once on `clusterId`, in `plane` (0 XY, 1 XZ, 2 YZ). The operator's
+        selected cluster and plane are restored afterwards. Returns the number of
+        member inputs, 0 when the cluster has none. */
+    int applyTransformForMcp (int clusterId, float dx, float dy, float dz,
+                              float rotateDeg, float scaleX, float scaleY, float attenuationDb, int plane)
+    {
+        const int previousCluster = selectedCluster;
+        const auto previousPlane = currentPlane;
+        selectedCluster = clusterId;
+        currentPlane = static_cast<Plane> (juce::jlimit (0, 2, plane));
+        updateAssignedInputsList();
+
+        const int members = static_cast<int> (assignedInputs.size());
+        if (members > 0)
+        {
+            if (dx != 0.0f || dy != 0.0f || dz != 0.0f)  applyPositionDelta (dx, dy, dz);
+            if (rotateDeg != 0.0f)                       applyRotationDelta (rotateDeg);
+            if (scaleX != 1.0f || scaleY != 1.0f)        applyScaleDelta (scaleX, scaleY);
+            if (attenuationDb != 0.0f)                   applyAttenuationDelta (attenuationDb);
+        }
+
+        selectedCluster = previousCluster;
+        currentPlane = previousPlane;
+        updateAssignedInputsList();
+        return members;
+    }
+
+private:
     //==========================================================================
     // Timer Callback (50Hz)
     //==========================================================================
@@ -2954,6 +2986,21 @@ private:
                                   const juce::Identifier& property) override
     {
         juce::ignoreUnused(treeWhosePropertyHasChanged);
+
+        // A preset slot written from outside the tab (MCP store or rename): the
+        // tiles only re-read on the tab's own store, so they went stale.
+        if (treeWhosePropertyHasChanged.hasType (WFSParameterIDs::ClusterLFOPreset))
+        {
+            juce::Component::SafePointer<ClustersTab> safeThis (this);
+            juce::MessageManager::callAsync ([safeThis]()
+            {
+                if (auto* self = safeThis.getComponent())
+                    for (auto& tile : self->presetTiles)
+                        if (tile != nullptr)
+                            tile->updateFromValueTree();
+            });
+            return;
+        }
 
         if (property == WFSParameterIDs::inputCluster)
         {
