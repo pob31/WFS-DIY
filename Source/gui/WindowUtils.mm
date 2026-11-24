@@ -90,9 +90,11 @@ void endRealtimeAudioActivityMac()
 // window without patching JUCE. Windows that are not JUCE's (open panels,
 // alerts) and a window already in native full screen keep AppKit's behaviour.
 //
-// Full screen here is: borderless style, frame = the display's whole frame,
-// menu bar and Dock hidden while any such window sits on a display that has a
-// menu bar. Presentation options belong to the app, not to a display.
+// Full screen here is: frame = the display's whole frame, title bar kept (its
+// green button is the way back for a mouse or a finger), size pinned and the
+// window not movable, menu bar and Dock hidden while any such window sits on a
+// display that has a menu bar. Presentation options belong to the app, not to
+// a display.
 #import <objc/runtime.h>
 #include <map>
 #include <memory>
@@ -132,6 +134,7 @@ namespace
         bool hadLimits = false;
         int minW = 0, minH = 0, maxW = 0, maxH = 0;
         bool hidesMenuBar = false;
+        bool wasMovable = true;
         std::unique_ptr<FakeFullScreenVisibilityListener> visibilityListener;
     };
 
@@ -193,18 +196,20 @@ namespace
         }
     }
 
-    /** Lets JUCE's constrainer reach the whole display: its maximum is the
-        display's user area (fitResizeLimitsToDisplay), which leaves out the
-        menu bar and Dock. */
-    void liftResizeLimits (FakeFullScreenState& s, NSRect target)
+    /** Pins JUCE's constrainer to the content of a window covering the display:
+        its usual maximum is the display's user area (fitResizeLimitsToDisplay),
+        which leaves out the menu bar and Dock, and an edge drag must not
+        resize a full-screen window. JUCE's limits are content sizes, not frames. */
+    void pinResizeLimits (FakeFullScreenState& s, NSWindow* window, NSRect target)
     {
         if (! s.hadLimits)
             return;
 
+        const NSSize content = [window contentRectForFrameRect: target].size;
+        const int w = (int) std::ceil (content.width), h = (int) std::ceil (content.height);
+
         if (auto* rw = dynamic_cast<juce::ResizableWindow*> (s.component.getComponent()))
-            rw->setResizeLimits (s.minW, s.minH,
-                                 juce::jmax (s.maxW, (int) std::ceil (target.size.width)),
-                                 juce::jmax (s.maxH, (int) std::ceil (target.size.height)));
+            rw->setResizeLimits (w, h, w, h);
     }
 
     void enterFakeFullScreen (NSWindow* window, juce::Component* component)
@@ -240,15 +245,16 @@ namespace
         // In the map before any resize: moved() -> fitResizeLimitsToDisplay checks it
         auto& entry = fakeFullScreenWindows()[keyFor (window)];
         entry = std::move (s);
-        liftResizeLimits (entry, target);
+        entry.wasMovable = [window isMovable];
+        pinResizeLimits (entry, window, target);
 
         if (entry.hidesMenuBar)
             changeMenuBarHiders (+1);
 
-        // Title bar and resizing go; Closable and Miniaturizable stay, or
-        // miniaturize: (Cmd+M, setMinimised) would do nothing while covered.
-        [window setStyleMask: entry.styleMask & ~(NSWindowStyleMaskTitled | NSWindowStyleMaskResizable
-                                                  | NSWindowStyleMaskFullSizeContentView)];
+        // The title bar stays, with its green button: the way back out for a
+        // mouse or a finger. It sits where the hidden menu bar was. The window
+        // must not be dragged off the display while it covers it.
+        [window setMovable: NO];
         [window setFrame: target display: YES];
         [window makeKeyAndOrderFront: nil];
     }
@@ -274,18 +280,15 @@ namespace
         if (! restore)
             return;
 
-        [window setStyleMask: s.styleMask];
-
-        // AppKit draws no title after a borderless -> titled switch until it changes
-        NSString* title = [NSString stringWithString: [window title]];
-        [window setTitle: @" "];
-        [window setTitle: title];
-
-        [window setFrame: s.frame display: YES];
-
+        // Limits before the frame: the frame change's moved() keeps the constrainer's
+        // minimum (fitResizeLimitsToDisplay), still pinned to the display's size.
         if (s.hadLimits)
             if (auto* rw = dynamic_cast<juce::ResizableWindow*> (s.component.getComponent()))
                 rw->setResizeLimits (s.minW, s.minH, s.maxW, s.maxH);
+
+        [window setStyleMask: s.styleMask];
+        [window setMovable: s.wasMovable];
+        [window setFrame: s.frame display: YES];
     }
 
     void FakeFullScreenVisibilityListener::componentVisibilityChanged (juce::Component& c)
@@ -323,8 +326,9 @@ namespace
     IMP gOriginalMiniaturize = nullptr;
     IMP gOriginalPerformMiniaturize = nullptr;
 
-    /** AppKit will not minimise a window without a title bar, whatever its
-        style mask says: leave full screen first (it comes back as a window). */
+    /** A minimised window must not keep the menu bar hidden or come back
+        pinned over the display: leave full screen first, then minimise as a
+        window (a borderless window could not be minimised at all). */
     void replacementMiniaturize (id self, SEL cmd, id sender)
     {
         exitFakeFullScreen ((NSWindow*) self, true);
@@ -370,7 +374,7 @@ namespace
                 changeMenuBarHiders (hides ? +1 : -1);
             }
 
-            liftResizeLimits (s, [screen frame]);
+            pinResizeLimits (s, window, [screen frame]);
             [window setFrame: [screen frame] display: YES];
         }
     }
