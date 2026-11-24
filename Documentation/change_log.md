@@ -2,6 +2,17 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
+## v1.0.0beta70 — 2026-11-24
+
+### Changed
+- **On macOS, full screen stays on the current desktop.** The green button used to send a window to a Space of its own, so the other windows and displays slid away. Now it, Ctrl+Cmd+F and the system full-screen shortcut make the window fill its whole display where it is, with the menu bar and Dock hidden while it covers a display that has them. The same keys bring the title bar and the window's previous size and place back. This works for every resizable window: main, Map, Level Meters, Network Log, Snapshot Scope, Array Helper, Audio Interface and AI history. A full-screen window has no title bar, so leaving it from a touch panel needs a keyboard.
+
+### Fixed
+- **A full-screen window can still be minimised on macOS** (Cmd+M or the app's own minimise): it leaves full screen and minimises as a window. Closing, hiding or minimising a full-screen window, or unplugging its display, gives the menu bar and Dock back as they were, including a menu bar set to hide itself.
+
+### Chore / Internal
+- spatcore unchanged (main 7bdf4ab).
+
 ## v1.0.0beta69 — 2026-11-24
 
 ### Added
