@@ -180,7 +180,16 @@ namespace
         }
         else if (before > 0 && gMenuBarHiders == 0)
         {
-            [NSApp setPresentationOptions: gPresentationBeforeHiding];
+            // The user's auto-hide reads back as AutoHideMenuBar alone, a combination
+            // AppKit documents as invalid (it may raise): Default shows it again.
+            @try
+            {
+                [NSApp setPresentationOptions: gPresentationBeforeHiding];
+            }
+            @catch (NSException*)
+            {
+                [NSApp setPresentationOptions: NSApplicationPresentationDefault];
+            }
         }
     }
 
