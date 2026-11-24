@@ -199,14 +199,14 @@ namespace
     /** Pins JUCE's constrainer to the content of a window covering the display:
         its usual maximum is the display's user area (fitResizeLimitsToDisplay),
         which leaves out the menu bar and Dock, and an edge drag must not
-        resize a full-screen window. JUCE's limits are content sizes, not frames. */
-    void pinResizeLimits (FakeFullScreenState& s, NSWindow* window, NSRect target)
+        resize a full-screen window. A ResizableWindow's limits include the native
+        title bar (measured: content-size limits left it 28 points short). */
+    void pinResizeLimits (FakeFullScreenState& s, NSRect target)
     {
         if (! s.hadLimits)
             return;
 
-        const NSSize content = [window contentRectForFrameRect: target].size;
-        const int w = (int) std::ceil (content.width), h = (int) std::ceil (content.height);
+        const int w = (int) std::ceil (target.size.width), h = (int) std::ceil (target.size.height);
 
         if (auto* rw = dynamic_cast<juce::ResizableWindow*> (s.component.getComponent()))
             rw->setResizeLimits (w, h, w, h);
@@ -246,7 +246,7 @@ namespace
         auto& entry = fakeFullScreenWindows()[keyFor (window)];
         entry = std::move (s);
         entry.wasMovable = [window isMovable];
-        pinResizeLimits (entry, window, target);
+        pinResizeLimits (entry, target);
 
         if (entry.hidesMenuBar)
             changeMenuBarHiders (+1);
@@ -331,10 +331,25 @@ namespace
         window (a borderless window could not be minimised at all). */
     void replacementMiniaturize (id self, SEL cmd, id sender)
     {
+        auto original = (cmd == @selector (performMiniaturize:) ? gOriginalPerformMiniaturize : gOriginalMiniaturize);
+
+        if (original == nullptr)
+            return;
+
+        if (fakeFullScreenWindows().count (keyFor ((NSWindow*) self)) == 0)
+        {
+            ((void (*) (id, SEL, id)) original) (self, cmd, sender);
+            return;
+        }
+
+        // AppKit ignores a minimise sent while the frame it is restoring is still
+        // settling (measured: nothing happened), so it goes on the next turn.
         exitFakeFullScreen ((NSWindow*) self, true);
 
-        if (auto original = (cmd == @selector (performMiniaturize:) ? gOriginalPerformMiniaturize : gOriginalMiniaturize))
-            ((void (*) (id, SEL, id)) original) (self, cmd, sender);
+        NSWindow* window = (NSWindow*) self;   // retained by the block
+        dispatch_async (dispatch_get_main_queue(), ^{
+            ((void (*) (id, SEL, id)) original) (window, cmd, nil);
+        });
     }
 
     void replacementToggleFullScreen (id self, SEL cmd, id sender)
@@ -374,7 +389,7 @@ namespace
                 changeMenuBarHiders (hides ? +1 : -1);
             }
 
-            pinResizeLimits (s, window, [screen frame]);
+            pinResizeLimits (s, [screen frame]);
             [window setFrame: [screen frame] display: YES];
         }
     }
