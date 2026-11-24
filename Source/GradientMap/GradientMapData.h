@@ -13,6 +13,22 @@
 namespace GradientMap
 {
 
+/** A layer's white / black range, in the layer's own unit: 0 attenuation
+    (-92..0 dB), 1 height (-50..50 m), 2 HF shelf (-24..0 dB). One table for
+    the editor's sliders and the MCP tools' validation. */
+struct LayerValueBounds { float min, max, defaultWhite, defaultBlack; };
+
+inline LayerValueBounds layerValueBounds (int layer)
+{
+    switch (layer)
+    {
+        case 0:  return { -92.0f,  0.0f, -92.0f,  0.0f };
+        case 1:  return { -50.0f, 50.0f,   0.0f,  0.0f };
+        case 2:  return { -24.0f,  0.0f, -24.0f,  0.0f };
+        default: return { -92.0f,  0.0f,   0.0f,  0.0f };
+    }
+}
+
 //==============================================================================
 // Enums
 //==============================================================================

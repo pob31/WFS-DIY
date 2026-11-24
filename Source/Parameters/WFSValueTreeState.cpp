@@ -3152,28 +3152,42 @@ int WFSValueTreeState::getNumNetworkTargets() const
     return network.getNumChildren();
 }
 
-void WFSValueTreeState::addNetworkTarget()
+// A target is addressed by its SLOT - the stored `id`, 0-based, which is the
+// row the Network tab shows it on - never by its child position: the tab fills
+// the first free row and appends the child at the end, and removes by id, so
+// after a remove and an add the children are out of row order (ids 0, 2, 1).
+
+int WFSValueTreeState::addNetworkTarget()
 {
     auto network = getNetworkState();
-    if (network.getNumChildren() < maxNetworkTargets)
+    for (int slot = 0; slot < maxNetworkTargets; ++slot)
     {
-        auto target = createDefaultNetworkTarget (network.getNumChildren());
-        network.appendChild (target, getActiveUndoManager());
+        if (getNetworkTargetState (slot).isValid())
+            continue;
+        network.appendChild (createDefaultNetworkTarget (slot), getActiveUndoManager());
+        return slot;
     }
+    return -1;
 }
 
-void WFSValueTreeState::removeNetworkTarget (int targetIndex)
+bool WFSValueTreeState::removeNetworkTarget (int slot)
 {
-    auto network = getNetworkState();
-    if (targetIndex >= 0 && targetIndex < network.getNumChildren())
-        network.removeChild (targetIndex, getActiveUndoManager());
+    auto target = getNetworkTargetState (slot);
+    if (! target.isValid())
+        return false;
+    getNetworkState().removeChild (target, getActiveUndoManager());
+    return true;
 }
 
-juce::ValueTree WFSValueTreeState::getNetworkTargetState (int targetIndex)
+juce::ValueTree WFSValueTreeState::getNetworkTargetState (int slot)
 {
     auto network = getNetworkState();
-    if (targetIndex >= 0 && targetIndex < network.getNumChildren())
-        return network.getChild (targetIndex);
+    for (int i = 0; i < network.getNumChildren(); ++i)
+    {
+        auto child = network.getChild (i);
+        if (child.hasType (NetworkTarget) && WFSVar::toInt (child.getProperty (id), -1) == slot)
+            return child;
+    }
     return {};
 }
 
@@ -7375,7 +7389,7 @@ juce::ValueTree WFSValueTreeState::createEffectCrushSection()
 juce::ValueTree WFSValueTreeState::createDefaultNetworkTarget (int index)
 {
     juce::ValueTree target (NetworkTarget);
-    target.setProperty (id, index + 1, nullptr);
+    target.setProperty (id, index, nullptr);   // the 0-based slot, as the Network tab stores it
     target.setProperty (networkTSname, networkTSnameDefault + " " + juce::String (index + 1), nullptr);
     target.setProperty (networkTSdataMode, networkTSdataModeDefault, nullptr);
     target.setProperty (networkTSip, networkTSipDefault, nullptr);

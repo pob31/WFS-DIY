@@ -14,6 +14,7 @@
 #include "ColumnFocusTraverser.h"
 #include "../AppSettings.h"
 #include "../WFSLogger.h"
+#include "../Network/OSCProtocolTypes.h"
 #include "ScreenShareRendering.h"
 #include "../../spatcore/controllers/lightpad/LightpadTypes.h"
 #include "HelpCard.h"
@@ -2716,6 +2717,30 @@ private:
             rebuildBinauralOutputSelector();
 
         loadParametersToUI();
+
+        // The sampler controller written from MCP: what the selector's onChange
+        // does - SamplerEnabled follows the mode, then the sampler UI, the
+        // Lightpad manager and the remote's pad configuration are applied. A
+        // write by tree alone used to set the mode and nothing else, and a
+        // reload then forced it back to Off because SamplerEnabled stayed false.
+        if (property == WFSParameterIDs::samplerControllerMode
+            && WFSNetwork::getCurrentOriginTag() == WFSNetwork::OriginTag::MCP)
+        {
+            juce::MessageManager::callAsync ([safe = juce::Component::SafePointer<SystemConfigTab> (this)]
+            {
+                if (safe == nullptr)
+                    return;
+                const int mode = static_cast<int> (safe->parameters.getConfigParam ("SamplerControllerMode"));
+                const bool enabled = mode > 0;
+                safe->parameters.setConfigParam ("SamplerEnabled", enabled);
+                safe->updateControllerSetupButton();
+                if (safe->onSamplerEnabledChanged)
+                    safe->onSamplerEnabledChanged (enabled);
+                if (safe->onSamplerControllerModeChanged)
+                    safe->onSamplerControllerModeChanged (mode);
+                safe->resized();
+            });
+        }
     }
 
     //==============================================================================

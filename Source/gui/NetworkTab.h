@@ -4588,10 +4588,100 @@ private:
             else if (property == WFSParameterIDs::networkRxTCPport)
                 tcpPortEditor.setText(juce::String((int)parameters.getConfigParam(WFSParameterIDs::networkRxTCPport.toString())), false);
         }
+
+        noteExternalNetworkWrite (tree, property);
     }
 
-    void valueTreeChildAdded(juce::ValueTree&, juce::ValueTree&) override {}
-    void valueTreeChildRemoved(juce::ValueTree&, juce::ValueTree&, int) override {}
+    void valueTreeChildAdded(juce::ValueTree&, juce::ValueTree& child) override
+    {
+        if (child.hasType (WFSParameterIDs::NetworkTarget) && isExternalWrite())
+            scheduleExternalApply (false, false);
+    }
+
+    void valueTreeChildRemoved(juce::ValueTree&, juce::ValueTree& child, int) override
+    {
+        if (child.hasType (WFSParameterIDs::NetworkTarget) && isExternalWrite())
+            scheduleExternalApply (false, false);
+    }
+
+    //==========================================================================
+    // Writes made from outside the tab (MCP)
+    //
+    // Every GUI handler here saves to the tree and then applies by hand:
+    // updateOSCManagerConfig() for targets and the source filter, the tracking
+    // receiver for tracking, the OSC Query server for its switch and port. A
+    // write that arrives by tree alone - an MCP tool, its undo - changed the
+    // tree and nothing else, so a new target IP, a tracking protocol or an OSC
+    // Query port took effect only after a project reload while the tool said
+    // ok. MCP writes run on the message thread inside OriginTagScope{MCP}, so
+    // the tab can tell them from its own writes and run the same apply path,
+    // once per burst (a batch writes many values in one go).
+    //==========================================================================
+
+    static bool isExternalWrite()
+    {
+        return WFSNetwork::getCurrentOriginTag() == WFSNetwork::OriginTag::MCP;
+    }
+
+    void noteExternalNetworkWrite (const juce::ValueTree& tree, const juce::Identifier& property)
+    {
+        if (! isExternalWrite())
+            return;
+
+        const auto name = property.toString();
+        const bool target   = tree.hasType (WFSParameterIDs::NetworkTarget);
+        const bool tracking = name.startsWith ("tracking");
+        const bool oscQuery = property == WFSParameterIDs::networkOscQueryEnabled
+                           || property == WFSParameterIDs::networkOscQueryPort;
+        if (target || tracking || oscQuery || property == WFSParameterIDs::networkOscSourceFilter)
+            scheduleExternalApply (tracking, oscQuery);
+    }
+
+    void scheduleExternalApply (bool tracking, bool oscQuery)
+    {
+        externalApplyTracking = externalApplyTracking || tracking;
+        externalApplyOscQuery = externalApplyOscQuery || oscQuery;
+        if (externalApplyPending)
+            return;
+        externalApplyPending = true;
+        juce::MessageManager::callAsync ([safe = juce::Component::SafePointer<NetworkTab> (this)]
+        {
+            if (safe != nullptr)
+                safe->applyExternalChange();
+        });
+    }
+
+public:
+    /** Reload the tab from the tree and apply what changed, as the GUI handlers
+        do. Restarts the tracking receiver only when a tracking value changed,
+        and moves the OSC Query server only when its port changed. */
+    void applyExternalChange()
+    {
+        const bool tracking = externalApplyTracking;
+        const bool oscQuery = externalApplyOscQuery;
+        externalApplyPending = externalApplyTracking = externalApplyOscQuery = false;
+
+        loadParametersFromValueTree();   // also starts / stops OSC Query on its switch
+        updateOSCManagerConfig();
+
+        if (tracking)
+        {
+            updateTrackingReceiver (true);
+            updateTrackingTransformations();
+        }
+
+        if (oscQuery && oscManager != nullptr && oscManager->isOSCQueryRunning()
+            && oscManager->getOSCQueryHttpPort() != storedOscQueryPort())
+        {
+            oscManager->stopOSCQuery();
+            updateOSCQueryServer();
+        }
+    }
+
+private:
+    bool externalApplyPending  = false;
+    bool externalApplyTracking = false;
+    bool externalApplyOscQuery = false;
     void valueTreeChildOrderChanged(juce::ValueTree&, int, int) override {}
     void valueTreeParentChanged(juce::ValueTree&) override {}
 

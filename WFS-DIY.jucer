@@ -303,6 +303,8 @@
                 file="Source/Network/MCP/MCPParameterValidation.h"/>
           <FILE id="mcpGenDispH" name="MCPGenericDispatch.h" compile="0" resource="0"
                 file="Source/Network/MCP/MCPGenericDispatch.h"/>
+          <FILE id="mcpOutputWritesH" name="MCPOutputWrites.h" compile="0" resource="0"
+                file="Source/Network/MCP/MCPOutputWrites.h"/>
           <FILE id="mcpEffectWritesH" name="MCPEffectWrites.h" compile="0" resource="0"
                 file="Source/Network/MCP/MCPEffectWrites.h"/>
           <GROUP id="{MCPTOOLSGROUP}" name="tools">
@@ -336,6 +338,12 @@
                   file="Source/Network/MCP/tools/ChannelLifecycleTools.h"/>
             <FILE id="mcpToolsRevAuto" name="ReverbAutoLayoutTool.h" compile="0" resource="0"
                   file="Source/Network/MCP/tools/ReverbAutoLayoutTool.h"/>
+            <FILE id="mcpToolsNetTarget" name="NetworkTargetTools.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/NetworkTargetTools.h"/>
+            <FILE id="mcpToolsMutes" name="MuteTools.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/MuteTools.h"/>
+            <FILE id="mcpToolsClusterPresets" name="ClusterPresetTools.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/ClusterPresetTools.h"/>
             <FILE id="mcpToolsArgs" name="ToolArgs.h" compile="0" resource="0"
                   file="Source/Network/MCP/tools/ToolArgs.h"/>
             <FILE id="mcpToolsEffSend" name="EffectSendTools.h" compile="0" resource="0"

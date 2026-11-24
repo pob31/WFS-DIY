@@ -545,6 +545,14 @@ def seed_map_shapes(project_dir: Path) -> None:
         print("[remote-mock] fixture system.xml has no single </Config>; "
               "cannot seed the map shapes", file=sys.stderr)
         raise SystemExit(EXIT_MISMATCH)
+    # The fixture carries an empty <MapShapes/> since PR #24 (692fc6b1), and a
+    # load reads the FIRST MapShapes child: appending a second one left the
+    # seeded shapes unread, so the empty node is replaced, not added to.
+    text, n = re.subn(r"[ \t]*<MapShapes\s*/>\r?\n", "", text)
+    if n > 1 or "<MapShapes>" in text:
+        print("[remote-mock] fixture system.xml carries a populated or repeated "
+              "<MapShapes>; cannot seed the map shapes", file=sys.stderr)
+        raise SystemExit(EXIT_MISMATCH)
     text = text.replace("  </Config>", block + "  </Config>")
     system.write_text(text, encoding="utf-8")
 

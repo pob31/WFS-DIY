@@ -884,14 +884,16 @@ public:
     /** Get number of network targets */
     int getNumNetworkTargets() const;
 
-    /** Add a network target */
-    void addNetworkTarget();
+    /** Add a network target in the first free slot (0-based, the Network tab's
+        row); returns the slot, or -1 when all are taken. */
+    int addNetworkTarget();
 
-    /** Remove a network target */
-    void removeNetworkTarget (int targetIndex);
+    /** Remove the network target in a slot; false when the slot is empty. */
+    bool removeNetworkTarget (int slot);
 
-    /** Get network target state */
-    juce::ValueTree getNetworkTargetState (int targetIndex);
+    /** The network target in a slot (its stored `id`, 0-based - the Network
+        tab's row), whatever its child position; invalid when the slot is empty. */
+    juce::ValueTree getNetworkTargetState (int slot);
 
     //==========================================================================
     // Channel Management

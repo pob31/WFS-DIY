@@ -139,6 +139,30 @@
     {
       "variable": "effectChainOrder",
       "reason": "Packed order row; effect_set_chain_order (hand-written) validates the permutation"
+    },
+    {
+      "variable": "reverbMutes",
+      "reason": "Packed per-output row; the generated tool took a bare MUTE/unmute with no output index, which the row guard refuses. reverb_set_output_mute and reverb_apply_mute_macro (hand-written) edit it"
+    },
+    {
+      "variable": "reverbMuteMacro",
+      "reason": "Action trigger, not stored state: the Reverb tab applies the macro to its buttons and nothing reads the property. reverb_apply_mute_macro (hand-written) applies it"
+    },
+    {
+      "variable": "networkCurrentIP",
+      "reason": "Display-only: the stored value is a default nothing updates or reads. session_get_global_state reports the live addresses (local_ipv4_addresses)"
+    },
+    {
+      "variable": "samplerMidiZoneQuadrant",
+      "reason": "Declared and defaulted but read by nothing; the real pad routing is lightpadZoneId"
+    },
+    {
+      "variable": "clusterLFOPresetName",
+      "reason": "Addressed by preset slot 1-16, not cluster_id 1-10: cluster_lfo_preset_set_name / cluster_lfo_presets_list (hand-written)"
+    },
+    {
+      "variable": "effectMuteMacro",
+      "reason": "Action trigger, not stored state: the Effects tab applies the macro to its buttons and nothing reads the property. effect_apply_mute_macro (hand-written) applies it"
     }
   ]
 }

@@ -834,6 +834,87 @@ inline ToolDescriptor describeSamplerSetDelete (WFSValueTreeState& state,
     return d;
 }
 
+/** A sampler set's cells - which of the 36 grid cells the pad or Lightpad
+    plays for it. Stored as samplerSetCells (comma-separated indices), which the
+    generator skipped as an "(internal)" UI row, so every set made over MCP was
+    empty and played nothing. */
+inline ToolDescriptor describeSamplerSetCells (WFSValueTreeState& state,
+                                               const std::function<void (int)>* onSamplerChanged)
+{
+    ToolDescriptor d;
+    d.name        = "input_sampler_set_set_cells";
+    d.description = "Set which grid cells belong to one sampler set of an input (cells 0-35, the 6x6 grid "
+                    "read in rows): the cells its pad or Lightpad plays. Replaces the set's whole list; an "
+                    "empty list leaves the set silent. Not undoable: set the cells again instead.";
+    auto props = std::make_unique<juce::DynamicObject>();
+    props->setProperty ("input_id", Args::integerArg ("Permanent number of the input channel.", 1,
+                                                      WFSParameterDefaults::maxInputChannels));
+    props->setProperty ("set_id", Args::integerArg ("Sampler set number (1-based, as the Sampler tab numbers them).", 1,
+                                                    WFSParameterDefaults::maxSamplerSets));
+    props->setProperty ("cells", Args::integerArrayArg ("Cell indices 0-35, in any order.", 0, 35));
+    d.inputSchema   = Args::schemaOf (std::move (props), { "input_id", "set_id", "cells" });
+    d.modifiesState = true;
+    d.tier          = 1;
+    d.handler = [&state, onSamplerChanged] (const juce::var& args, ChangeRecord* record) -> ToolResult
+    {
+        auto* obj = args.getDynamicObject();
+        if (obj == nullptr)
+            return ToolResult::error ("invalid_args", "Arguments must be a JSON object");
+        for (const char* arg : { "input_id", "set_id", "cells" })
+            if (Args::missing (*obj, arg))
+                return ToolResult::error ("invalid_args", juce::String ("Missing required arg: ") + arg);
+
+        juce::String code, message;
+        const auto number = Args::wholeNumber (obj->getProperty ("input_id"), "input_id", 1,
+                                               WFSParameterDefaults::maxInputChannels, code, message);
+        if (! number.has_value()) return ToolResult::error (code, message);
+        const auto setId = Args::wholeNumber (obj->getProperty ("set_id"), "set_id", 1,
+                                              WFSParameterDefaults::maxSamplerSets, code, message);
+        if (! setId.has_value()) return ToolResult::error (code, message);
+        auto cells = Args::wholeNumberArray (obj->getProperty ("cells"), "cells", 0, 35, code, message);
+        if (! cells.has_value()) return ToolResult::error (code, message);
+
+        state.markChannelNumbersUserOwned ("MCP sampler set cells");
+        const int slot = state.getSlotForChannelNumber (*number);
+        if (slot < 0)
+            return ToolResult::error ("invalid_args", "input_id not a live channel: " + juce::String (*number));
+        auto set = state.getInputSamplerSet (slot, *setId - 1);
+        if (! set.isValid())
+            return ToolResult::error ("invalid_args", "No sampler set " + juce::String (*setId)
+                                                        + " on that input (sets are numbered from 1).");
+
+        std::sort (cells->begin(), cells->end());
+        cells->erase (std::unique (cells->begin(), cells->end()), cells->end());
+        juce::StringArray tokens;
+        for (int c : *cells)
+            tokens.add (juce::String (c));
+        const auto before = set.getProperty (WFSParameterIDs::samplerSetCells).toString();
+        const auto after  = tokens.joinIntoString (",");
+        state.writeSubTreeProperty (set, WFSParameterIDs::samplerSetCells, after, state.getActiveUndoManager());
+
+        if (record != nullptr)
+        {
+            record->operatorDescription = "Set the cells of sampler set " + juce::String (*setId) + " on input "
+                                        + juce::String (*number) + " to [" + after + "] (was [" + before
+                                        + "]; not undoable)";
+            record->affectedParameters.add (WFSParameterIDs::samplerSetCells.toString());
+            record->affectedGroups.push_back ({ *number, juce::String ("Sampler") });
+            record->undoable = false;
+        }
+        if (onSamplerChanged != nullptr && *onSamplerChanged)
+            (*onSamplerChanged) (slot);
+
+        auto result = std::make_unique<juce::DynamicObject>();
+        result->setProperty ("input_id", *number);
+        result->setProperty ("set_id", *setId);
+        juce::Array<juce::var> out;
+        for (int c : *cells) out.add (c);
+        result->setProperty ("cells", juce::var (out));
+        return ToolResult::ok (juce::var (result.release()));
+    };
+    return d;
+}
+
 //==============================================================================
 // Input ORDER and NUMBERS
 //

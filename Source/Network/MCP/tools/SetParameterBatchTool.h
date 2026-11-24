@@ -4,6 +4,7 @@
 #include "../MCPCompat.h"
 #include "../MCPParameterRegistry.h"
 #include "../MCPEffectWrites.h"
+#include "../MCPOutputWrites.h"
 #include "../MCPParameterValidation.h"
 #include "../../OSCParameterBounds.h"
 #include "../../../Parameters/WFSValueTreeState.h"
@@ -49,6 +50,7 @@ inline juce::var buildSchema()
     entryProps->setProperty ("value",      juce::var (entryValue.release()));
     entryProps->setProperty ("channel_id", juce::var (entryChannelId.release()));
     entryProps->setProperty ("band",       juce::var (entryBand.release()));
+    entryProps->setProperty (MCPOutput::bypassArgName, MCPOutput::bypassArgSchema());
 
     auto entryRequired = juce::Array<juce::var>();
     entryRequired.add ("variable");
@@ -119,6 +121,8 @@ namespace detail
         juce::String groupName;          // CSV section, used in affectedGroups
         EqFamily eqFamily = EqFamily::None;
         int tier = 1;
+        bool outputArray    = false;     // array-linked output value: Apply to Array
+        bool thisOutputOnly = false;     // the entry's Ctrl/Cmd bypass
     };
 
     /** Build the dynamic-object error envelope for a per-entry failure.
@@ -189,6 +193,13 @@ namespace detail
             auto bandTree = state.getReverbPostEQBand (w.bandIndex);
             if (bandTree.isValid())
                 bandTree.setProperty (paramId, w.value, state.getActiveUndoManager());
+            return;
+        }
+        if (w.outputArray)
+        {
+            // Apply to Array, as the Outputs tab (MCPOutputWrites.h). The other
+            // members it moves are recorded after pass 4.
+            state.setOutputParameterWithArrayPropagation (w.channelIndex, paramId, w.value, ! w.thisOutputOnly);
             return;
         }
         // Effect values the OSC way (reverb presets, Custom flip).
@@ -298,6 +309,14 @@ inline ToolResult batch (WFSValueTreeState& state, const juce::var& args, Change
             return fail ("invalid_args", i, "missing channel_id (the effect number) for '" + w.variable + "'");
         }
         w.eqFamily = classifyEq (w.variable);
+        if (const auto* rec = reg.findByVariable (w.variable);
+            rec != nullptr && rec->scope == "output" && w.channelIndex >= 0
+            && MCPOutput::isArrayLinked (juce::Identifier (w.variable)))
+        {
+            w.outputArray = true;
+            w.thisOutputOnly = entryObj->hasProperty (MCPOutput::bypassArgName)
+                            && static_cast<bool> (entryObj->getProperty (MCPOutput::bypassArgName));
+        }
         if (entryObj->hasProperty ("band"))
         {
             w.bandIndex = static_cast<int> (entryObj->getProperty ("band")) - 1;
@@ -416,6 +435,17 @@ inline ToolResult batch (WFSValueTreeState& state, const juce::var& args, Change
     for (const auto& w : resolved)
         beforeValues.push_back (readCurrent (state, w));
 
+    // Apply to Array can move outputs no entry names: snapshot every output's
+    // value of each array-linked parameter the batch touches.
+    std::map<juce::String, juce::Array<juce::var>> outputsBefore;
+    for (const auto& w : resolved)
+        if (w.outputArray && outputsBefore.count (w.variable) == 0)
+        {
+            auto& column = outputsBefore[w.variable];
+            for (int o = 0; o < state.getNumOutputChannels(); ++o)
+                column.add (state.getOutputParameter (o, juce::Identifier (w.variable)));
+        }
+
     // ---- PASS 3: apply all writes.
     for (const auto& w : resolved)
         applyOne (state, w);
@@ -483,6 +513,32 @@ inline ToolResult batch (WFSValueTreeState& state, const juce::var& args, Change
                 seenGroups.push_back (key);
 
             sectionCounts[group]++;
+        }
+
+        // The array members Apply to Array moved and no entry named: one
+        // sub-write each, pre-batch to post-batch, so undo reverts them too.
+        for (const auto& [variable, column] : outputsBefore)
+        {
+            const juce::Identifier paramId (variable);
+            for (int o = 0; o < column.size(); ++o)
+            {
+                const bool named = std::any_of (resolved.begin(), resolved.end(), [&] (const ResolvedWrite& w)
+                                                { return w.variable == variable && w.channelIndex == o; });
+                const auto after = state.getOutputParameter (o, paramId);
+                if (named || after == column[o])
+                    continue;
+
+                ChangeSubWrite sw;
+                sw.channelIndex  = o;
+                sw.channelNumber = 0;
+                auto b = std::make_unique<juce::DynamicObject>();
+                b->setProperty (paramId, column[o]);
+                auto a = std::make_unique<juce::DynamicObject>();
+                a->setProperty (paramId, after);
+                sw.beforeState = juce::var (b.release());
+                sw.afterState  = juce::var (a.release());
+                record->subWrites.push_back (std::move (sw));
+            }
         }
 
         record->beforeState = juce::var (flatBefore.release());

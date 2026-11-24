@@ -261,6 +261,105 @@ def check_map_shapes(c: Checker) -> None:
     c.expect("cleared", c.ok("map_shapes_list").get("count") == 0, cleared)
 
 
+TRACKING_PORT = 7000      # trackingPort in the fixture
+TARGET_LISTEN_PORT = 9123  # a UDP port this driver listens on as an OSC target
+
+
+def check_group1(c: Checker) -> None:
+    """Audit 2026-11-24 group 1: tools that answered ok and changed nothing."""
+    import socket
+    import time
+
+    # -- network target lifecycle + writes reach the live OSC engine --------
+    listed = c.ok("network_targets_list")
+    before = len(listed.get("targets", []))
+    created = c.ok("network_target_create", {}, confirm=True)
+    tid = created.get("target_id")
+    c.expect("target created", isinstance(tid, int) and len(c.ok("network_targets_list")["targets"]) == before + 1, created)
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(("127.0.0.1", TARGET_LISTEN_PORT))
+    sock.settimeout(0.5)
+    c.ok("network_set_t_sip", {"target_id": tid, "value": "127.0.0.1"})
+    c.ok("network_set_t_sport", {"target_id": tid, "value": TARGET_LISTEN_PORT})
+    c.ok("network_set_ts_protocol", {"target_id": tid, "protocol": "OSC"})
+    c.ok("network_set_t_stx_enable", {"target_id": tid, "value": "ON"})
+    time.sleep(0.5)
+    got = 0
+    deadline = time.monotonic() + 4.0
+    x = 1.0
+    while time.monotonic() < deadline and got == 0:
+        x += 0.25
+        c.ok("input_position_set_x", {"input_id": 1, "value": x})
+        try:
+            data, _ = sock.recvfrom(65536)
+            got = len(data)
+        except socket.timeout:
+            pass
+    sock.close()
+    c.expect("target configured over MCP receives OSC (live engine applied)", got > 0)
+    c.expect("target_id addresses the row", any(t["target_id"] == tid and t["port"] == TARGET_LISTEN_PORT
+                                               for t in c.ok("network_targets_list")["targets"]))
+    deleted = c.ok("network_target_delete", {"target_id": tid}, confirm=True)
+    c.expect("target deleted", len(deleted.get("targets", [None] * 99)) == before, deleted)
+
+    # -- tracking enabled over MCP starts the receiver -----------------------
+    c.ok("input_tracking_set_active", {"input_id": 1, "value": 1})
+    c.ok("network_tracking_set_protocol", {"protocol": "OSC"}, confirm=True)
+    c.ok("network_tracking_set_enabled", {"value": "ON"}, confirm=True)
+    time.sleep(1.0)
+    tracker = common.OSCSender(port=TRACKING_PORT, delay=0.3)
+    tracker.send("/wfs/tracking", [("i", 1), ("f", 1.25), ("f", 0.5), ("f", 0.0)])
+    tracker.close()
+    time.sleep(1.0)
+    c.expect("tracking receiver started by MCP", c.get("inputOffsetX", 1) == 1.25, c.get("inputOffsetX", 1))
+
+    # -- Apply to Array -------------------------------------------------------
+    for o in (1, 2, 3):
+        c.ok("output_set_array", {"output_id": o, "value": "Array1"})
+        c.ok("output_array_set_apply_to_array", {"output_id": o, "value": "ABSOLUTE"})
+    c.ok("output_set_attenuation", {"output_id": 1, "value": -7.0}, confirm=True)
+    c.expect("array member follows", c.get("outputAttenuation", 3) == -7.0, c.get("outputAttenuation", 3))
+    c.undo()
+    c.expect("undo reverts the member too", c.get("outputAttenuation", 3) != -7.0, c.get("outputAttenuation", 3))
+    c.ok("output_set_attenuation", {"output_id": 1, "value": -9.0, "this_output_only": True}, confirm=True)
+    c.expect("this_output_only leaves the array", c.get("outputAttenuation", 2) != -9.0, c.get("outputAttenuation", 2))
+
+    # -- per-output mutes and macros -----------------------------------------
+    m = c.ok("reverb_set_output_mute", {"reverb_id": 1, "output_id": 2, "muted": True})
+    c.expect("reverb output mute", m.get("muted_outputs") == [2], m)
+    m = c.ok("reverb_apply_mute_macro", {"reverb_id": 1, "macro": "invert"})
+    c.expect("reverb invert", 2 not in m.get("muted_outputs", []) and 1 in m.get("muted_outputs", []), m)
+    c.undo()
+    m = c.ok("effect_apply_mute_macro", {"effect_id": 1, "macro": "mute_array", "array": 1})
+    c.expect("effect mute_array", m.get("muted_outputs") == [1, 2, 3], m)
+    m = c.ok("input_apply_mute_macro", {"input_id": 1, "macro": "mute_odd"})
+    c.expect("input mute_odd", m.get("muted_outputs", [])[:3] == [1, 3, 5], m)
+    c.undo()
+
+    # -- gradient layer white/black in the layer's unit ----------------------
+    c.ok("input_gradient_map_set_gm_layer_white", {"input_id": 1, "layer": 0, "value": -40.0})
+    c.refused("attenuation layer refuses +10", "input_gradient_map_set_gm_layer_white",
+              {"input_id": 1, "layer": 0, "value": 10.0}, "layer 0")
+    c.ok("input_gradient_map_set_gm_layer_black", {"input_id": 1, "layer": 1, "value": 12.0})
+
+    # -- sampler set cells, controller mode -----------------------------------
+    s = c.ok("input_sampler_create_set", {"input_id": 1}, confirm=True)
+    sid = s.get("set_id")
+    cells = c.ok("input_sampler_set_set_cells", {"input_id": 1, "set_id": sid, "cells": [5, 0, 5, 12]})
+    c.expect("sampler set cells", cells.get("cells") == [0, 5, 12], cells)
+    c.ok("system_controllers_set_sampler_controller_mode", {"mode": "Remote"})
+    time.sleep(0.5)
+    c.expect("sampler controller mode", c.get("SamplerControllerMode") == 2, c.get("SamplerControllerMode"))
+
+    # -- preset names, live IP -------------------------------------------------
+    c.ok("cluster_lfo_preset_set_name", {"preset": 16, "name": "Swirl"})
+    names = c.ok("cluster_lfo_presets_list").get("presets", [])
+    c.expect("preset 16 named", len(names) == 16 and names[15].get("name") == "Swirl", names[-1:])
+    g = c.ok("session_get_global_state", {"sections": ["network"]})
+    c.expect("live IPv4 listed", isinstance(g.get("local_ipv4_addresses"), list), list(g)[:6])
+
+
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--exe", default=None)
@@ -282,7 +381,8 @@ def main() -> int:
                          ("hand-written effect tools", check_hand_written_effect_tools),
                          ("effect lifecycle", check_effect_lifecycle),
                          ("input order", check_input_order),
-                         ("map shapes", check_map_shapes)]:
+                         ("map shapes", check_map_shapes),
+                         ("audit group 1", check_group1)]:
             print(f"[coverage] {name}")
             try:
                 fn(c)

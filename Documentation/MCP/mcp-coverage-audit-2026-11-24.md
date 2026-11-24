@@ -13,6 +13,19 @@ Evidence lines are the auditors' file:line references at the time of the audit; 
 
 ## Group 1 - tools that answer "ok" but change nothing, or cannot express useful values
 
+**Status: fixed (2026-11-24, branch `mcp/coverage-gaps`).** Network targets, the source filter, tracking
+and OSC Query written over MCP are applied by the Network tab (`NetworkTab::applyExternalChange`,
+triggered by its tree listener for MCP-origin writes); targets are addressed by slot, and
+`network_targets_list` / `network_target_create` / `network_target_delete` exist. Output writes follow
+Apply to Array with an optional `this_output_only` and undo every member they moved
+(`MCPOutputWrites.h`). `reverb_set_output_mute`, `effect_set_output_mute` and
+`input|reverb|effect_apply_mute_macro` replace the no-op tools. Gradient white/black are validated per
+layer and the shape position/size take stage metres. `input_sampler_set_set_cells`; the sampler
+controller mode written over MCP runs the System Config selector's path. `cluster_lfo_preset_set_name`
+/ `cluster_lfo_presets_list` (slots 1-16). `networkCurrentIP` and `samplerMidiZoneQuadrant` are no
+longer generated; `session_get_global_state` reports the live IPv4 addresses. Gate:
+`tools/validation/control-replay/mcp_coverage_check.py` (audit group 1 section).
+
 ### Gradient-map layer white/black tools use the wrong units and range
 
 *High impact - broken tool - area: inputs-core*

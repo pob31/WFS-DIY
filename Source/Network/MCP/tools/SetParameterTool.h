@@ -4,6 +4,7 @@
 #include "../MCPCompat.h"
 #include "../MCPParameterRegistry.h"
 #include "../MCPEffectWrites.h"
+#include "../MCPOutputWrites.h"
 #include "../MCPParameterValidation.h"
 #include "../../OSCParameterBounds.h"
 #include "../../../Parameters/WFSValueTreeState.h"
@@ -55,6 +56,7 @@ inline juce::var buildSchema()
     props->setProperty ("value",      juce::var (value.release()));
     props->setProperty ("channel_id", juce::var (channelId.release()));
     props->setProperty ("band",       juce::var (band.release()));
+    props->setProperty (MCPOutput::bypassArgName, MCPOutput::bypassArgSchema());
     props->setProperty ("confirm",    juce::var (confirm.release()));
 
     auto required = juce::Array<juce::var>();
@@ -341,9 +343,15 @@ inline ToolResult set (WFSValueTreeState& state, const juce::var& args, ChangeRe
     }
     else
     {
-        // Effect values the OSC way (reverb presets, Custom flip); the rest
-        // through setParameter as before.
-        MCPEffect::routeWrite (state, paramId, value, channelIndex);
+        const auto* outRec = MCPParameterRegistry::getInstance().findByVariable (variable);
+        if (outRec != nullptr && outRec->scope == "output" && channelIndex >= 0
+            && MCPOutput::isArrayLinked (paramId))
+            // Apply to Array, as the Outputs tab; one sub-write per output moved.
+            MCPOutput::write (state, channelIndex, paramId, value, MCPOutput::readBypass (args), record);
+        else
+            // Effect values the OSC way (reverb presets, Custom flip); the rest
+            // through setParameter as before.
+            MCPEffect::routeWrite (state, paramId, value, channelIndex);
     }
 
     juce::var afterValue;

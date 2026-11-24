@@ -22,6 +22,9 @@
 #include "tools/ReverbAutoLayoutTool.h"
 #include "tools/MapShapeTools.h"
 #include "tools/EffectTools.h"
+#include "tools/NetworkTargetTools.h"
+#include "tools/MuteTools.h"
+#include "tools/ClusterPresetTools.h"
 
 namespace WFSNetwork
 {
@@ -213,11 +216,30 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     registry->registerTool (Tools::MapShapes::describeDelete (state));
     registry->registerTool (Tools::MapShapes::describeClear  (state));
 
+    // The Network tab's target table: a fresh session has none, and the
+    // generated network_set_t_s* tools can only edit a target that exists.
+    registry->registerTool (Tools::NetworkTarget::describeList   (state));
+    registry->registerTool (Tools::NetworkTarget::describeCreate (state));
+    registry->registerTool (Tools::NetworkTarget::describeDelete (state));
+
+    // Per-output mutes: one output of a reverb or effect return (inputs have
+    // input_set_output_mute), and the tabs' mute macros applied to the row.
+    registry->registerTool (Tools::Mutes::describeSetOutputMute (state, "reverb"));
+    registry->registerTool (Tools::Mutes::describeSetOutputMute (state, "effect"));
+    for (const auto& kind : { juce::String ("input"), juce::String ("reverb"), juce::String ("effect") })
+        registry->registerTool (Tools::Mutes::describeApplyMuteMacro (state, kind));
+
+    // The 16 cluster LFO preset slots, by their own number (the generated
+    // name tool took cluster_id 1-10 as the slot).
+    registry->registerTool (Tools::ClusterPresets::describeList    (state));
+    registry->registerTool (Tools::ClusterPresets::describeSetName (state));
+
     // Sampler set create/delete. The 17 generated input_sampler_set_set_* tools
     // address a set by number and there was no way to make one - onAddSet is a
     // GUI button - so on a fresh input every one of them failed and stayed failed.
     registry->registerTool (Tools::ChannelLifecycle::describeSamplerSetCreate (state, &samplerChanged));
     registry->registerTool (Tools::ChannelLifecycle::describeSamplerSetDelete (state, &samplerChanged));
+    registry->registerTool (Tools::ChannelLifecycle::describeSamplerSetCells  (state, &samplerChanged));
 
     // Undo / redo tools — Phase 5a wires the first two to the real engine.
     // mcp.get_ai_change_history remains a read-only query over the ring buffer.

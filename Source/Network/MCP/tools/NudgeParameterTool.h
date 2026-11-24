@@ -19,6 +19,7 @@
 #include "../MCPCompat.h"
 #include "../MCPParameterRegistry.h"
 #include "../MCPEffectWrites.h"
+#include "../MCPOutputWrites.h"
 #include "../MCPGenericDispatch.h"
 #include "../../../Parameters/WFSValueTreeState.h"
 
@@ -61,6 +62,7 @@ inline juce::var buildSchema()
     props->setProperty ("direction",  juce::var (direction.release()));
     props->setProperty ("amount",     juce::var (amount.release()));
     props->setProperty ("channel_id", juce::var (channelId.release()));
+    props->setProperty (MCPOutput::bypassArgName, MCPOutput::bypassArgSchema());
 
     juce::Array<juce::var> required;
     required.add ("variable");
@@ -187,6 +189,17 @@ inline ToolResult nudge (WFSValueTreeState& state,
         renamedArgs->setProperty ("input_id", displayId);
         dispatchArgs = juce::var (renamedArgs.release());
         binding.channelArgName = "input_id";
+    }
+
+    // Outputs: dense ids, but Apply to Array is keyed on the arg name output_id
+    // in the shared nudge (MCPOutputWrites.h), as for the generated tools.
+    if (rec->scope == "output" && obj->hasProperty ("channel_id"))
+    {
+        auto renamedArgs = obj->clone();
+        renamedArgs->setProperty ("output_id", renamedArgs->getProperty ("channel_id"));
+        renamedArgs->removeProperty ("channel_id");
+        dispatchArgs = juce::var (renamedArgs.release());
+        binding.channelArgName = "output_id";
     }
 
     // Effects: dense ids, but the dispatcher routes and refuses by the arg

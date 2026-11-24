@@ -661,17 +661,8 @@ public:
     }
 
     /** Layer value bounds (exposed for StreamDeck dial ranges). */
-    struct LayerValueBounds { float min, max, defaultWhite, defaultBlack; };
-    static LayerValueBounds getLayerValueBounds (int layer)
-    {
-        switch (layer)
-        {
-            case 0:  return { -92.0f,  0.0f, -92.0f,  0.0f };
-            case 1:  return { -50.0f, 50.0f,   0.0f,  0.0f };
-            case 2:  return { -24.0f,  0.0f, -24.0f,  0.0f };
-            default: return { -92.0f,  0.0f,   0.0f,  0.0f };
-        }
-    }
+    using LayerValueBounds = GradientMap::LayerValueBounds;
+    static LayerValueBounds getLayerValueBounds (int layer) { return GradientMap::layerValueBounds (layer); }
 
     /** Set layer white/black/curve values (only for active layer) */
     void setLayerWhite (float v)

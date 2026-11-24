@@ -4,6 +4,8 @@
 #include "MCPCompat.h"
 #include "MCPLogger.h"
 #include "MCPEffectWrites.h"
+#include "MCPOutputWrites.h"
+#include "../../GradientMap/GradientMapData.h"
 #include "../../Parameters/WFSValueTreeState.h"
 #include "../../Parameters/WFSParameterIDs.h"
 
@@ -425,6 +427,22 @@ namespace Detail
 
         const bool writesSubTree = subTreeNode.isValid();
 
+        // A gradient layer's white / black are in the layer's own unit, so the
+        // schema can only carry the hull (-92..50); the layer decides the rest,
+        // as the editor's sliders do (GradientMap::layerValueBounds).
+        if (binding.subTree == ToolBinding::SubTree::GradientLayer
+            && (binding.internalVariable == "gmLayerWhite" || binding.internalVariable == "gmLayerBlack"))
+        {
+            const auto raw = argsObj->getProperty (binding.valueArgName);
+            const double v = raw.isString() ? raw.toString().getDoubleValue() : static_cast<double> (raw);
+            const auto b = GradientMap::layerValueBounds (subA);
+            if (! (v >= b.min && v <= b.max))
+                return ToolResult::error ("out_of_range",
+                                          binding.internalVariable + " " + juce::String (v) + " not in ["
+                                            + juce::String (b.min) + ", " + juce::String (b.max) + "] for layer "
+                                            + juce::String (subA) + " (0 attenuation dB, 1 height m, 2 HF dB)");
+        }
+
         // Resolve and coerce value. The arg name is "value" for most tools
         // but renamed for self-documenting cases ("name" for renames, "mode"
         // for coordinate-mode dropdowns, etc.) — driven by `value_arg_name`
@@ -656,6 +674,12 @@ namespace Detail
             WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Effects);
             state.setParameter (paramId, value, channelIndex);
         }
+        else if (binding.channelArgName == "output_id" && MCPOutput::isArrayLinked (paramId))
+        {
+            // Apply to Array, as the Outputs tab (MCPOutputWrites.h); the
+            // record gets one sub-write per output that moved.
+            MCPOutput::write (state, channelIndex, paramId, value, MCPOutput::readBypass (args), record);
+        }
         else
         {
             state.setParameter (paramId, value, channelIndex);
@@ -722,6 +746,8 @@ namespace Detail
         if (afterValue != value)
             result->setProperty ("requested", value);
         result->setProperty ("before", beforeValue);
+        if (binding.channelArgName == "output_id" && MCPOutput::isArrayLinked (paramId) && record != nullptr)
+            result->setProperty ("array_members_changed", MCPOutput::othersMoved (record, channelIndex));
         return ToolResult::ok (juce::var (result.release()));
     }
 }  // namespace Detail
@@ -933,6 +959,8 @@ namespace Detail
             state.writeSubTreeProperty (nudgeNode, paramId, writeValue, state.getActiveUndoManager());
         else if (isEffect && MCPEffect::isChannelParameter (paramId))
             MCPEffect::writeChannelValue (state, channelIndex, paramId, writeValue);
+        else if (binding.channelArgName == "output_id" && MCPOutput::isArrayLinked (paramId))
+            MCPOutput::write (state, channelIndex, paramId, writeValue, MCPOutput::readBypass (args), record);
         else
             state.setParameter (paramId, writeValue, channelIndex);
 
@@ -1217,6 +1245,12 @@ LoadStats loadGeneratedTools (MCPToolRegistry& registry,
             binding.maxValue = rmax;
         }
 
+        // Array-linked output parameters take the Ctrl/Cmd bypass as an argument.
+        if (binding.channelArgName == "output_id"
+            && MCPOutput::isArrayLinked (juce::Identifier (binding.internalVariable)))
+            if (auto* props = parameters.getProperty ("properties", {}).getDynamicObject())
+                props->setProperty (MCPOutput::bypassArgName, MCPOutput::bypassArgSchema());
+
         ToolDescriptor d;
         d.name           = binding.name;
         d.description    = toolObj->getProperty ("description").toString();
@@ -1344,10 +1378,16 @@ LoadStats loadGeneratedTools (MCPToolRegistry& registry,
             // anyway, but the AI's call should fail closed at write time
             // rather than at registration.
 
+            auto nudgeParameters = toolObj->getProperty ("parameters");
+            if (binding.channelArgName == "output_id"
+                && MCPOutput::isArrayLinked (juce::Identifier (binding.internalVariable)))
+                if (auto* props = nudgeParameters.getProperty ("properties", {}).getDynamicObject())
+                    props->setProperty (MCPOutput::bypassArgName, MCPOutput::bypassArgSchema());
+
             ToolDescriptor d;
             d.name           = binding.name;
             d.description    = toolObj->getProperty ("description").toString();
-            d.inputSchema    = toolObj->getProperty ("parameters");
+            d.inputSchema    = nudgeParameters;
             d.modifiesState  = true;
             if (toolObj->hasProperty ("tier"))
                 d.tier = juce::jlimit (1, 3, static_cast<int> (toolObj->getProperty ("tier")));

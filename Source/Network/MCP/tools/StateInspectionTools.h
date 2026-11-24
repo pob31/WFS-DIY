@@ -152,6 +152,17 @@ inline ToolResult getGlobalState (WFSValueTreeState& state, const juce::var& arg
     addIfWanted ("show",     state.getShowState());
     addIfWanted ("binaural", state.getBinauralState());
     addIfWanted ("network",  state.getNetworkState());
+    if (wanted.contains ("network"))
+    {
+        // The processor's live IPv4 addresses (the Network tab's "current IP"):
+        // what a remote has to be pointed at. networkCurrentIP in the tree is a
+        // default nobody updates.
+        juce::Array<juce::var> ips;
+        for (const auto& ip : juce::IPAddress::getAllAddresses (false))
+            if (ip != juce::IPAddress::local())
+                ips.add (ip.toString());
+        root->setProperty ("local_ipv4_addresses", juce::var (ips));
+    }
     addIfWanted ("tracking", state.getTrackingState());
     addIfWanted ("ui",       state.getUIState());
     addIfWanted ("admosc",   state.getADMOSCState());
@@ -161,6 +172,7 @@ inline ToolResult getGlobalState (WFSValueTreeState& state, const juce::var& arg
     counts->setProperty ("inputs",   state.getNumInputChannels());
     counts->setProperty ("outputs",  state.getNumOutputChannels());
     counts->setProperty ("reverbs",  state.getNumReverbChannels());
+    counts->setProperty ("effects",  state.getNumEffectChannels());
     root->setProperty ("channel_counts", juce::var (counts.release()));
 
     juce::Array<juce::var> includedArr;

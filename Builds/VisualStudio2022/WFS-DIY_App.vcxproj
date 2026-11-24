@@ -4451,6 +4451,7 @@
     <ClInclude Include="..\..\Source\Network\MCP\MCPParameterRegistry.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\MCPParameterValidation.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\MCPGenericDispatch.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPOutputWrites.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\MCPEffectWrites.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\tools\SessionTools.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\tools\InputTools.h"/>
@@ -4466,6 +4467,9 @@
     <ClInclude Include="..\..\Source\Network\MCP\tools\StateInspectionTools.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\tools\StateDeltaTool.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\tools\ChannelLifecycleTools.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\NetworkTargetTools.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\MuteTools.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\ClusterPresetTools.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\tools\ToolArgs.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\tools\EffectSendTools.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\tools\EffectTools.h"/>

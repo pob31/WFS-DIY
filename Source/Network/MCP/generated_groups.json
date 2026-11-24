@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "input_hash": "4d033a9ad8c26d8e703bed381c2c11d8f3e62d25774af22d79cfc250b95bb0f7",
+  "input_hash": "2e086c1a8aec994ac76718a818bba8ba61394012ae21e3ad98fdc3fdae884358",
   "groups": {
     "cluster_assigned_inputs": [
       "cluster_assigned_inputs_set_input_order",
@@ -30,9 +30,6 @@
       "cluster_lfo_set_shape_x",
       "cluster_lfo_set_shape_y",
       "cluster_lfo_set_shape_z"
-    ],
-    "cluster_lfo_presets": [
-      "cluster_lfo_presets_set_lfo_preset_name"
     ],
     "cluster_reference": [
       "cluster_reference_set_mode"
@@ -258,7 +255,6 @@
       "effect_return_set_distance_attenuation",
       "effect_return_set_distance_ratio",
       "effect_return_set_hf_shelf",
-      "effect_return_set_mute_macro",
       "effect_return_set_mute_reverb_sends",
       "effect_return_set_mutes"
     ],
@@ -417,7 +413,6 @@
       "input_sampler_set_cell_offset_y",
       "input_sampler_set_cell_offset_z",
       "input_sampler_set_cell_out_time",
-      "input_sampler_set_midi_zone_quadrant",
       "input_sampler_set_set_level",
       "input_sampler_set_set_name",
       "input_sampler_set_set_play_mode",
@@ -451,7 +446,6 @@
       "input_tracking_set_smooth"
     ],
     "network": [
-      "network_set_current_ip",
       "network_set_osc_query_enabled",
       "network_set_osc_query_port",
       "network_set_osc_source_filter",
@@ -596,10 +590,6 @@
     ],
     "reverb_header": [
       "reverb_header_set_reverbs_map_visible"
-    ],
-    "reverb_mutes": [
-      "reverb_mutes_set_mute_macro",
-      "reverb_set_mutes"
     ],
     "reverb_name": [
       "reverb_set_name"
