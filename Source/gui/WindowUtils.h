@@ -12,10 +12,41 @@
 void enableDarkTitleBarMac(void* nsWindow);
 void beginRealtimeAudioActivityMac();
 void endRealtimeAudioActivityMac();
+void installFakeFullScreenMac();
+bool isFakeFullScreenMac(void* peerView);
 #endif
 
 namespace WindowUtils
 {
+    /**
+     * macOS full screen that stays on the current Space. Native full screen
+     * moves a window to a Space of its own: the operator's other windows and
+     * displays slide away, and a touch panel's window leaves its desktop. Once
+     * installed, the green button, Ctrl+Cmd+F and ResizableWindow::setFullScreen
+     * make a JUCE window borderless over its whole display instead, and hide
+     * the menu bar and Dock while it is on a display that has them; the same
+     * keys bring the title bar and the old frame back. Call once at startup,
+     * before the first window opens. No-op on other OSes.
+     */
+    inline void installFakeFullScreen()
+    {
+#if JUCE_MAC
+        installFakeFullScreenMac();
+#endif
+    }
+
+    /** True while a window is in the full screen of installFakeFullScreen(). */
+    inline bool isFakeFullScreen(juce::Component& window)
+    {
+#if JUCE_MAC
+        if (auto* peer = window.getPeer())
+            return isFakeFullScreenMac(peer->getNativeHandle());
+#else
+        juce::ignoreUnused(window);
+#endif
+        return false;
+    }
+
     /**
      * Enable dark mode title bar on Windows 10/11 and macOS.
      * Call this after the window is made visible.
@@ -50,9 +81,13 @@ namespace WindowUtils
      * window stopped short of the bottom - and a cap taken from the largest
      * display would let a window on a smaller one spill past its edge.
      * A window dragged onto a smaller display shrinks to fit it.
+     * Skipped in full screen, which covers the whole display, not its user area.
      */
     inline void fitResizeLimitsToDisplay(juce::ResizableWindow& window)
     {
+        if (isFakeFullScreen(window))
+            return;
+
         const auto* display = juce::Desktop::getInstance().getDisplays().getDisplayForRect(window.getScreenBounds());
         auto* constrainer = window.getConstrainer();
         if (display == nullptr || constrainer == nullptr)

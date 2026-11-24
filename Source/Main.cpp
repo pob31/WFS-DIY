@@ -95,6 +95,9 @@ public:
         // Idle until System Config's Screen Rendering is set to Compatible
         screenShareWatcher = std::make_unique<ScreenShareRendering::Watcher>();
 
+        // macOS: green button / Ctrl+Cmd+F fill the display on the current Space
+        WindowUtils::installFakeFullScreen();
+
         mainWindow.reset (new MainWindow (getApplicationName()));
 
         // Mark session as dirty until clean shutdown (crash detection).
