@@ -7,6 +7,7 @@
 #include "../../../Parameters/WFSParameterIDs.h"
 #include "../../../Parameters/WFSParameterDefaults.h"
 #include "InputTools.h"
+#include "ToolArgs.h"
 
 /*
     An input's sends into the effect channels, over MCP.
@@ -33,72 +34,14 @@ namespace WFSNetwork::Tools::EffectSend
 
 namespace detail
 {
-    inline juce::var integerArg (const juce::String& description, int minimum)
-    {
-        auto v = std::make_unique<juce::DynamicObject>();
-        v->setProperty ("type", "integer");
-        v->setProperty ("minimum", minimum);
-        v->setProperty ("description", description);
-        return juce::var (v.release());
-    }
-
-    inline juce::var schemaOf (std::unique_ptr<juce::DynamicObject> props, std::initializer_list<const char*> required)
-    {
-        juce::Array<juce::var> req;
-        for (auto* r : required)
-            req.add (r);
-
-        auto schema = std::make_unique<juce::DynamicObject>();
-        schema->setProperty ("type", "object");
-        schema->setProperty ("properties", juce::var (props.release()));
-        schema->setProperty ("required", juce::var (req));
-        schema->setProperty ("additionalProperties", false);
-        return juce::var (schema.release());
-    }
-
-    inline bool isNumber (const juce::var& v) { return v.isInt() || v.isInt64() || v.isDouble(); }
-
-    /** The dispatcher does not enforce `required`: a missing argument casts
-        to 0 or false and the write goes through with the wrong meaning. */
-    inline bool missing (const juce::DynamicObject& obj, const char* name)
-    {
-        return ! obj.hasProperty (name) || obj.getProperty (name).isVoid();
-    }
-
-    /** A whole number within [minimum, maximum], or an explanation. The loose
-        forms a client emits ("3", 3.0) are accepted as the generated tools
-        accept them. */
-    inline std::optional<int> wholeNumber (const juce::var& raw, const char* name, int minimum, int maximum,
-                                           juce::String& errorCode, juce::String& errorMessage)
-    {
-        const auto text = raw.toString().trim();
-        double d = 0.0;
-        if (isNumber (raw))
-            d = static_cast<double> (raw);
-        else if (raw.isString() && text.isNotEmpty() && text.containsOnly ("0123456789.+-eE"))
-            d = text.getDoubleValue();
-        else
-        {
-            errorCode = "invalid_args";
-            errorMessage = juce::String (name) + " must be an integer, got " + text.quoted();
-            return std::nullopt;
-        }
-
-        if (! std::isfinite (d) || std::floor (d) != d)
-        {
-            errorCode = "invalid_args";
-            errorMessage = juce::String (name) + " must be an integer, got " + text.quoted();
-            return std::nullopt;
-        }
-        if (d < minimum || d > maximum)
-        {
-            errorCode = "out_of_range";
-            errorMessage = juce::String (name) + " " + text + " not in [" + juce::String (minimum)
-                         + ", " + juce::String (maximum) + "]";
-            return std::nullopt;
-        }
-        return static_cast<int> (d);
-    }
+    // Shared argument checks (ToolArgs.h). The dispatcher does not enforce
+    // `required`: a missing argument casts to 0 or false and the write goes
+    // through with the wrong meaning.
+    using Args::integerArg;
+    using Args::schemaOf;
+    using Args::isNumber;
+    using Args::missing;
+    using Args::wholeNumber;
 
     struct Target
     {

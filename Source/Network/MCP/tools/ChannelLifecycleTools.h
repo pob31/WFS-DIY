@@ -5,6 +5,7 @@
 #include "../../../Parameters/WFSValueTreeState.h"
 #include "../../../Parameters/WFSParameterIDs.h"
 #include "../../../Parameters/InputChannelDescription.h"
+#include "ToolArgs.h"
 
 namespace WFSNetwork::Tools::ChannelLifecycle
 {
@@ -827,6 +828,302 @@ inline ToolDescriptor describeSamplerSetDelete (WFSValueTreeState& state,
         result->setProperty ("deleted_set_id", oneBased);
         result->setProperty ("total",          total);
         return ToolResult::ok (juce::var (result.release()));
+    };
+    return d;
+}
+
+//==============================================================================
+// Input ORDER and NUMBERS
+//
+// The display order (the Arrange list, top to bottom) and the permanent numbers
+// are two different things: a drag moves a channel, its patch row and its
+// cluster positions while its number stays; a relabel changes numbers while
+// every channel stays where it is. Both were GUI-only. These three tools call
+// the same WFSValueTreeState functions the Arrange list and the project-load
+// identity dialog call, and end with the same reconfiguration pass.
+//
+// All three are stopped-only and clear every tab undo history (the state
+// functions do that themselves): a channel's slot is the key of every undo
+// entry, and a move invalidates them all. Filed, not undoable - the way back
+// is another move.
+//==============================================================================
+
+/** Every live input in display order: { position, id, name, type }. */
+inline juce::var inputDisplayOrder (WFSValueTreeState& state)
+{
+    juce::Array<juce::var> out;
+    for (int slot = 0; slot < state.getNumInputChannels(); ++slot)
+    {
+        auto obj = std::make_unique<juce::DynamicObject>();
+        obj->setProperty ("position", slot + 1);
+        obj->setProperty ("id",       state.getInputChannelNumber (slot));
+        obj->setProperty ("name",     state.getInputParameter (slot, WFSParameterIDs::inputName).toString());
+        obj->setProperty ("type",     state.isInputChannelStereo (slot) ? "stereo" : "mono");
+        out.add (juce::var (obj.release()));
+    }
+    return juce::var (out);
+}
+
+inline std::vector<int> liveNumbersInDisplayOrder (WFSValueTreeState& state)
+{
+    std::vector<int> out;
+    for (int slot = 0; slot < state.getNumInputChannels(); ++slot)
+        out.push_back (state.getInputChannelNumber (slot));
+    return out;
+}
+
+inline juce::String numberList (const std::vector<int>& numbers)
+{
+    juce::StringArray parts;
+    for (int n : numbers)
+        parts.add (juce::String (n));
+    return parts.joinIntoString (", ");
+}
+
+inline ToolResult moveInput (WFSValueTreeState& state, const juce::var& args, ChangeRecord* record)
+{
+    auto* obj = args.getDynamicObject();
+    if (obj == nullptr)
+        return ToolResult::error ("invalid_args", "Arguments must be a JSON object");
+    for (const char* arg : { "input_id", "position" })
+        if (Args::missing (*obj, arg))
+            return ToolResult::error ("invalid_args", juce::String ("Missing required arg: ") + arg);
+
+    juce::String code, message;
+    const auto number = Args::wholeNumber (obj->getProperty ("input_id"), "input_id", 1,
+                                           WFSParameterDefaults::maxInputChannels, code, message);
+    if (! number.has_value())
+        return ToolResult::error (code, message);
+    const int total = state.getNumInputChannels();
+    const auto position = Args::wholeNumber (obj->getProperty ("position"), "position", 1,
+                                             juce::jmax (1, total), code, message);
+    if (! position.has_value())
+        return ToolResult::error (code, message);
+
+    const int fromSlot = state.getSlotForChannelNumber (*number);
+    if (fromSlot < 0)
+        return ToolResult::error ("invalid_args", "input_id is not a live input channel: " + juce::String (*number));
+
+    // Latch first: unlatched, a move renumbers every channel to its new display
+    // position, which would change the very number the client just quoted.
+    state.markChannelNumbersUserOwned ("MCP input move");
+
+    auto res = state.moveInputChannel (*number, *position - 1);
+    if (res.failed())
+        return ToolResult::error ("invalid_args", res.getErrorMessage());
+
+    if (record != nullptr)
+    {
+        record->affectedParameters.add (WFSParameterIDs::inputChannels.toString());
+        record->affectedGroups.push_back ({ *number, juce::String ("Channel") });
+        record->operatorDescription = "Moved input " + juce::String (*number) + " from position "
+                                    + juce::String (fromSlot + 1) + " to " + juce::String (*position);
+        markStructural (*record);
+    }
+
+    auto result = std::make_unique<juce::DynamicObject>();
+    result->setProperty ("input_id",      *number);
+    result->setProperty ("from_position", fromSlot + 1);
+    result->setProperty ("position",      state.getSlotForChannelNumber (*number) + 1);
+    result->setProperty ("order",         inputDisplayOrder (state));
+    return ToolResult::ok (juce::var (result.release()));
+}
+
+inline ToolResult reorderInputs (WFSValueTreeState& state, const juce::var& args, ChangeRecord* record)
+{
+    auto* obj = args.getDynamicObject();
+    if (obj == nullptr || Args::missing (*obj, "order"))
+        return ToolResult::error ("invalid_args", "Missing required arg: order");
+
+    juce::String code, message;
+    const auto order = Args::wholeNumberArray (obj->getProperty ("order"), "order", 1,
+                                               WFSParameterDefaults::maxInputChannels, code, message);
+    if (! order.has_value())
+        return ToolResult::error (code, message);
+    if (order->empty())
+        return ToolResult::error ("invalid_args", "order must list at least one input number");
+
+    std::vector<int> seen, unknown;
+    for (int n : *order)
+    {
+        if (std::find (seen.begin(), seen.end(), n) != seen.end())
+            return ToolResult::error ("invalid_args", "input " + juce::String (n) + " appears twice in order");
+        seen.push_back (n);
+        if (state.getSlotForChannelNumber (n) < 0)
+            unknown.push_back (n);
+    }
+    if (unknown.size() == order->size())
+        return ToolResult::error ("invalid_args", "none of the listed numbers is a live input channel");
+
+    const auto before = liveNumbersInDisplayOrder (state);
+
+    // Latches the numbers itself, before the first move.
+    auto res = state.reorderInputChannelsToNumbers (*order, "MCP input reorder");
+    if (res.failed())
+        return ToolResult::error ("internal_error", res.getErrorMessage());
+
+    const auto after = liveNumbersInDisplayOrder (state);
+
+    if (record != nullptr)
+    {
+        record->affectedParameters.add (WFSParameterIDs::inputChannels.toString());
+        record->affectedGroups.push_back ({ 0, juce::String ("I/O") });
+        record->operatorDescription = "Rearranged the input order to " + numberList (after)
+                                    + " (was " + numberList (before) + ")";
+        markStructural (*record);
+    }
+
+    auto result = std::make_unique<juce::DynamicObject>();
+    result->setProperty ("changed", before != after);
+    result->setProperty ("order",   inputDisplayOrder (state));
+    if (! unknown.empty())
+    {
+        juce::Array<juce::var> skipped;
+        for (int n : unknown)
+            skipped.add (n);
+        result->setProperty ("skipped_unknown_ids", juce::var (skipped));
+    }
+    return ToolResult::ok (juce::var (result.release()));
+}
+
+inline ToolResult renumberInputs (WFSValueTreeState& state, const juce::var& args, ChangeRecord* record)
+{
+    auto* obj = args.getDynamicObject();
+    if (obj == nullptr || Args::missing (*obj, "numbers"))
+        return ToolResult::error ("invalid_args", "Missing required arg: numbers");
+
+    juce::String code, message;
+    const auto numbers = Args::wholeNumberArray (obj->getProperty ("numbers"), "numbers", 1,
+                                                 WFSParameterDefaults::maxInputChannels, code, message);
+    if (! numbers.has_value())
+        return ToolResult::error (code, message);
+
+    const auto before = liveNumbersInDisplayOrder (state);
+
+    // Validates the whole list (length, range, duplicates) before the first
+    // write, so a refused list changes nothing. Latches the numbers.
+    auto res = state.assignInputChannelNumbersBySlot (*numbers, "MCP input renumber");
+    if (res.failed())
+        return ToolResult::error ("invalid_args", res.getErrorMessage());
+
+    if (record != nullptr)
+    {
+        record->affectedParameters.add (WFSParameterIDs::inputChannels.toString());
+        record->affectedGroups.push_back ({ 0, juce::String ("I/O") });
+        record->operatorDescription = "Renumbered the inputs to " + numberList (*numbers)
+                                    + " (was " + numberList (before) + ")";
+        markStructural (*record);
+    }
+
+    auto result = std::make_unique<juce::DynamicObject>();
+    result->setProperty ("changed", before != *numbers);
+    result->setProperty ("order",   inputDisplayOrder (state));
+    return ToolResult::ok (juce::var (result.release()));
+}
+
+inline ToolDescriptor describeInputMove (WFSValueTreeState& state, const std::function<void()>* topologyChanged)
+{
+    ToolDescriptor d;
+    d.name        = "input_move";
+    d.description = juce::String (
+        "Move one input channel to another place in the DISPLAY order (the Arrange list, "
+        "top to bottom), as dragging it there does. The channel keeps its permanent "
+        "number, settings and hardware inputs; its patch row and cluster positions "
+        "move with it. position is 1-based (1 = top). Returns the new order. "
+        "session_get_state lists the current order. Refused while the audio engine "
+        "is running. Clears every tab undo history. Not undoable: move it back instead.")
+        + juce::String (kTier2DescriptionSuffix);
+
+    auto props = std::make_unique<juce::DynamicObject>();
+    props->setProperty ("input_id", Args::integerArg ("Permanent number of the input to move.", 1,
+                                                      WFSParameterDefaults::maxInputChannels));
+    props->setProperty ("position", Args::integerArg ("Target place in the display order, 1 = top.", 1,
+                                                      WFSParameterDefaults::maxInputChannels));
+    props->setProperty ("confirm", Args::confirmArg());
+    d.inputSchema   = Args::schemaOf (std::move (props), { "input_id", "position" });
+    d.modifiesState = true;
+    d.tier          = 2;
+    d.handler = [&state, topologyChanged] (const juce::var& args, ChangeRecord* record) -> ToolResult
+    {
+        ToolResult refusal;
+        if (refuseWhileProcessing (state, "move an input channel", refusal))
+            return refusal;
+        auto result = moveInput (state, args, record);
+        if (result.success)
+            notifyTopology (topologyChanged);
+        return result;
+    };
+    return d;
+}
+
+inline ToolDescriptor describeInputReorder (WFSValueTreeState& state, const std::function<void()>* topologyChanged)
+{
+    ToolDescriptor d;
+    d.name        = "input_reorder";
+    d.description = juce::String (
+        "Rearrange the input channels so their permanent numbers read `order` from the "
+        "top of the display order down, e.g. order=[5,1,2] puts input 5 first. Numbers, "
+        "settings and hardware inputs travel with their channel; nothing is renumbered "
+        "(input_renumber does that). Channels not listed keep their relative order "
+        "after the listed ones. Numbers that are not live are skipped and reported in "
+        "skipped_unknown_ids. Returns the new order. Refused while the audio engine is "
+        "running. Clears every tab undo history. Not undoable: reorder again instead.")
+        + juce::String (kTier2DescriptionSuffix);
+
+    auto props = std::make_unique<juce::DynamicObject>();
+    props->setProperty ("order", Args::integerArrayArg ("Permanent input numbers in the wanted display "
+                                                        "order, top first. No duplicates.",
+                                                        1, WFSParameterDefaults::maxInputChannels));
+    props->setProperty ("confirm", Args::confirmArg());
+    d.inputSchema   = Args::schemaOf (std::move (props), { "order" });
+    d.modifiesState = true;
+    d.tier          = 2;
+    d.handler = [&state, topologyChanged] (const juce::var& args, ChangeRecord* record) -> ToolResult
+    {
+        ToolResult refusal;
+        if (refuseWhileProcessing (state, "reorder the input channels", refusal))
+            return refusal;
+        auto result = reorderInputs (state, args, record);
+        if (result.success)
+            notifyTopology (topologyChanged);
+        return result;
+    };
+    return d;
+}
+
+inline ToolDescriptor describeInputRenumber (WFSValueTreeState& state, const std::function<void()>* topologyChanged)
+{
+    ToolDescriptor d;
+    d.name        = "input_renumber";
+    d.description = juce::String (
+        "Give the input channels new permanent numbers WITHOUT moving them: numbers[i] "
+        "becomes the number of the channel at display position i+1. Every channel keeps "
+        "its place, settings, name and hardware inputs, and its effect sends follow it. "
+        "The list must name every live input exactly once (same length as the input "
+        "count, no duplicates, 1-64); a bad list changes nothing. CAUTION: the numbers "
+        "are what snapshots, QLab/Go.dot cues, OSC and DAW mappings address, so those "
+        "reach different channels afterwards - this is for the one-time alignment of a "
+        "session with the numbers an external system expects. Refused while the audio "
+        "engine is running. Clears every tab undo history. Not undoable.")
+        + juce::String (kTier3DescriptionSuffix);
+
+    auto props = std::make_unique<juce::DynamicObject>();
+    props->setProperty ("numbers", Args::integerArrayArg ("New permanent number for each display position, "
+                                                          "top first.",
+                                                          1, WFSParameterDefaults::maxInputChannels));
+    props->setProperty ("confirm", Args::confirmArg());
+    d.inputSchema   = Args::schemaOf (std::move (props), { "numbers" });
+    d.modifiesState = true;
+    d.tier          = 3;
+    d.handler = [&state, topologyChanged] (const juce::var& args, ChangeRecord* record) -> ToolResult
+    {
+        ToolResult refusal;
+        if (refuseWhileProcessing (state, "renumber the input channels", refusal))
+            return refusal;
+        auto result = renumberInputs (state, args, record);
+        if (result.success)
+            notifyTopology (topologyChanged);
+        return result;
     };
     return d;
 }

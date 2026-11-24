@@ -20,6 +20,7 @@
 #include "tools/StateDeltaTool.h"
 #include "tools/ChannelLifecycleTools.h"
 #include "tools/ReverbAutoLayoutTool.h"
+#include "tools/MapShapeTools.h"
 
 namespace WFSNetwork
 {
@@ -184,6 +185,20 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     // block comment in ChannelLifecycleTools.h.
     registry->registerTool (Tools::ChannelLifecycle::describeSetCount (state, false, &channelTopologyChanged));
     registry->registerTool (Tools::ChannelLifecycle::describeSetCount (state, true,  &channelTopologyChanged));
+
+    // Input display order and permanent numbers - the Arrange list's drag and
+    // the identity dialog's relabel, which were GUI-only.
+    registry->registerTool (Tools::ChannelLifecycle::describeInputMove     (state, &channelTopologyChanged));
+    registry->registerTool (Tools::ChannelLifecycle::describeInputReorder  (state, &channelTopologyChanged));
+    registry->registerTool (Tools::ChannelLifecycle::describeInputRenumber (state, &channelTopologyChanged));
+
+    // The Map tab's drawn outline shapes (<Config><MapShapes>). The tablet only
+    // receives them, so these are the only writers besides the Map tab editor.
+    registry->registerTool (Tools::MapShapes::describeList   (state));
+    registry->registerTool (Tools::MapShapes::describeAdd    (state));
+    registry->registerTool (Tools::MapShapes::describeEdit   (state));
+    registry->registerTool (Tools::MapShapes::describeDelete (state));
+    registry->registerTool (Tools::MapShapes::describeClear  (state));
 
     // Sampler set create/delete. The 17 generated input_sampler_set_set_* tools
     // address a set by number and there was no way to make one - onAddSet is a
